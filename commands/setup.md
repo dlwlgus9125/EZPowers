@@ -19,6 +19,11 @@
 - 매니페스트 또는 소스 디렉터리가 있으면 → 기존 프로젝트
 - 둘 다 없으면 → 신규 프로젝트
 
+`phases/index.json`이 아직 없으면 즉시 생성하여 setup phase를 `in_progress`로 설정:
+```json
+{ "current_phase": "setup", "phases": { "setup": { "status": "in_progress" } } }
+```
+
 ## Phase 2A: 기존 프로젝트 분석
 
 기존 프로젝트라면 현재 상태를 분석한다.
