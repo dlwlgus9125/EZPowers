@@ -22,6 +22,7 @@ EZPowers는 개인 전용 Claude Code 스킬 플러그인.
 | `/brainstorm` | 대화형 설계 → spec + plan 문서 생성 |
 | `/plan` | 설계문서 → step 분해 + 에이전트 배치 |
 | `/build` | 작업 실행 (서브에이전트 or 하네스 실행 선택) |
+| `/executeharness` | EasyPowersHarness executor 위임 (plan → phase 변환 + step 실행) |
 
 ## Independent Utilities
 
@@ -65,6 +66,7 @@ docs/
   plans/              # /plan이 생성하는 plan 문서
   handoff-session1.md
   handoff-session2.md
+phases/               # /executeharness가 생성하는 phase 디렉터리 (하네스 연동 시)
 ```
 
 ## Key Conventions

@@ -27,9 +27,13 @@ plan 문서의 task들을 실행한다. Fresh 서브에이전트 per task + 컨�
 >
 > **1. 서브에이전트 드리븐 (추천)** — task마다 fresh 에이전트 배치, 빠른 반복
 >
-> **2. 인라인 실행** — 현재 세션에서 순차 실행
+> **2. /executeharness (하네스 실행)** — EasyPowersHarness의 Python executor로 step 단위 실행 (`harness.root` 설정 필요)
+>
+> **3. 인라인 실행** — 현재 세션에서 순차 실행
 >
 > **어떤 방식으로 하시겠습니까?**
+
+경로 2 선택 시 `commands/executeharness.md`의 절차를 따른다.
 
 ## 3. Task Graph Analysis
 
@@ -296,7 +300,23 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 3. **Session-level:** 3+ task에서 degradation -> plan 분해 재검토
 4. **Escalation:** 컴팩션+분할 후에도 지속 -> 상태 저장 + fresh 세션 제안
 
-## 10. Inline Execution (경로 B)
+## 10. /executeharness Execution (경로 B)
+
+사용자가 경로 2를 선택하면 `/executeharness` 커맨드로 위임한다.
+
+1. `harness.root` 확인 → 미설정 시 사용자에게 안내
+2. Git hash 캡처 (`git rev-parse HEAD` → `<harness-start-hash>`)
+3. Plan → Phase 변환 (task를 stepN.md로, plan 헤더를 phase-context.md로)
+4. `phases/{feature-name}/index.json` 생성 (하네스 스키마)
+5. `phases/index.json` 보호 (EZPowers 형식 백업)
+6. 변환 파일 커밋
+7. Step-by-step 실행 (`execute.py` 호출 루프)
+8. `phases/index.json` 복원 (EZPowers 형식)
+9. 완료 시 → 섹션 12(Final Code Review)로 진행, diff range: `<harness-start-hash>..HEAD`
+
+상세 절차는 `commands/executeharness.md` 참조.
+
+## 11. Inline Execution (경로 C)
 
 현재 세션에서 task를 순차적으로 실행한다.
 
@@ -307,7 +327,7 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 4. 커밋
 5. 다음 task
 
-## 11. Final Code Review
+## 12. Final Code Review
 
 모든 task 완료 후 `agents/code-reviewer.md` 기반 서브에이전트 배치:
 
@@ -318,7 +338,7 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 - FAIL -> fix + fresh 재디스패치. warn@5, stop@10. Oscillation check from iteration 3.
 - `## Verdict:` 패턴이 서브에이전트 반환에서 발견되지 않으면 FAIL로 처리하고 사용자에게 에스컬레이션: "Code reviewer가 표준 형식으로 판정을 반환하지 않았습니다."
 
-## 12. Backward Transition: /plan으로 복귀
+## 13. Backward Transition: /plan으로 복귀
 
 실행 중 plan 분해가 부적절하면 — task가 너무 밀결합, 의존성 누락, 경계 불일치 — 깨진 plan을 강행하지 않는다.
 
@@ -349,7 +369,7 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 5. 스킵된 task의 artifact(커밋)는 이미 존재하므로 의존성 충족으로 간주
 6. **주의:** plan이 기존 완료 task의 파일을 재수정하도록 변경했으면, 해당 task를 수동으로 `- [ ]`로 리셋해야 함 — /plan에서 사용자에게 안내
 
-## 13. 완료
+## 14. 완료
 
 모든 task + final review 완료 후:
 1. 전체 diff 요약 (`git diff <first-task-start-hash>..HEAD`)

@@ -244,7 +244,12 @@ INDEX.md에 각 문서의 authority 마커를 `[canonical]`, `[supporting]`, `[d
   "executor": {
     "agent": "claude-sonnet-4-6",
     "context_window": 200000,
-    "budget_ratio": 0.40
+    "budget_ratio": 0.40,
+    "backend": "claude-code",
+    "reviewer_backend": "claude-code"
+  },
+  "harness": {
+    "root": ""
   },
   "defaults": {
     "spec_location": "docs/specs/",
@@ -275,6 +280,9 @@ INDEX.md에 각 문서의 authority 마커를 `[canonical]`, `[supporting]`, `[d
 - `executor.agent`: `/build` 서브에이전트에 사용할 모델
 - `executor.context_window`: 컨텍스트 윈도우 크기
 - `executor.budget_ratio`: step당 허용 비율
+- `executor.backend`: `/executeharness` 실행 백엔드 (`claude-code` | `codex-cli` | `openai-api`, 기본 `claude-code`)
+- `executor.reviewer_backend`: verifier 서브에이전트 백엔드 (기본 `claude-code`)
+- `harness.root`: EasyPowersHarness 설치 경로 (빈 문자열이면 `/executeharness` 경로 비활성)
 - `defaults.spec_location`: spec 문서 저장 디렉터리
 - `defaults.plan_location`: plan 문서 저장 디렉터리
 - `defaults.max_retries`: step 재시도 횟수
