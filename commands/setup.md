@@ -58,7 +58,7 @@ Test strategy: {unit/integration/e2e 등}
 3. 테스트 전략
 4. build/lint/test 명령
 5. smoke.command 필요 여부
-6. `/build`에 사용할 실행 방식 선호도 (서브에이전트 vs 인라인)
+6. `/choiceexecutor`에 사용할 실행 방식 선호도 (서브에이전트 vs 하네스 vs 인라인)
 
 가능하면 preset을 제안:
 - Next.js + TypeScript
@@ -277,7 +277,7 @@ INDEX.md에 각 문서의 authority 마커를 `[canonical]`, `[supporting]`, `[d
 - `server.stop_command`: Verify 완료 후 서버 종료 명령
 - `server.health_check_url`: 서버 준비 확인 URL (예: `http://localhost:3000/health`)
 - `server.health_check_timeout`: health check 최대 대기 시간 (초, 기본 15)
-- `executor.agent`: `/build` 서브에이전트에 사용할 모델
+- `executor.agent`: `/choiceexecutor` 서브에이전트에 사용할 모델
 - `executor.context_window`: 컨텍스트 윈도우 크기
 - `executor.budget_ratio`: step당 허용 비율
 - `executor.backend`: `/executeharness` 실행 백엔드 (`claude-code` | `codex-cli` | `openai-api`, 기본 `claude-code`)

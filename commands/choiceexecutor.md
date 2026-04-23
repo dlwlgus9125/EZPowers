@@ -1,6 +1,6 @@
-# /build — 작업 실행
+# /choiceexecutor — 실행 경로 선택
 
-plan 문서의 task들을 실행한다. Fresh 서브에이전트 per task + 컨트롤러 AC 검증 + 조건부 보안 리뷰 + 최종 코드 리뷰.
+plan 문서의 task들을 실행한다. 실행 방식(서브에이전트 / 하네스 / 인라인)을 선택하고, 선택된 경로로 task를 실행 + AC 검증 + 조건부 보안 리뷰 + 최종 코드 리뷰.
 
 ## 1. 사전 확인
 
@@ -19,6 +19,28 @@ plan 문서의 task들을 실행한다. Fresh 서브에이전트 per task + 컨�
 { "current_phase": "build", "phases": { "...": "...", "build": { "status": "in_progress" } } }
 ```
 
+### 이전 세션 재진입 감지
+
+`phases/index.json`의 build phase가 이미 `in_progress`이고, plan 문서에 `- [x]`로 체크된 task가 있으면 이전 세션에서 중단된 것으로 판단한다.
+
+사용자에게 옵션을 제시한다:
+
+> **이전 세션에서 Task 1-{N} 완료, Task {N+1} 미완료.**
+>
+> **1. 재개** — 완료 task 스킵, Task {N+1}부터 정상 흐름
+>
+> **2. 해당 task 재실행** — Task {N+1} 체크박스 리셋 후 처음부터 재구현 (기존 커밋 유지, implementer가 현재 상태에서 재작업)
+>
+> **3. 전체 재실행** — 모든 체크박스 리셋(`- [x]` → `- [ ]`), `first-task-start-hash` 갱신, 전체 재실행
+>
+> **4. 중단** — 현재 상태 유지
+
+옵션별 동작:
+- **재개:** Resume Protocol(섹션 13) 적용. `- [x]` task는 PASS로 간주.
+- **해당 task 재실행:** 미완 task의 `- [x]`를 `- [ ]`로 리셋. git revert 하지 않음 — implementer가 기존 코드 위에서 재구현하므로 충돌 없음.
+- **전체 재실행:** plan의 모든 체크박스를 `- [ ]`로 리셋. `**Resume hash:**` 마커 제거. 새 `first-task-start-hash` 기록.
+- **중단:** 아무 동작 없음.
+
 ## 2. 실행 경로 선택
 
 사용자에게 실행 방식을 묻는다:
@@ -27,13 +49,18 @@ plan 문서의 task들을 실행한다. Fresh 서브에이전트 per task + 컨�
 >
 > **1. 서브에이전트 드리븐 (추천)** — task마다 fresh 에이전트 배치, 빠른 반복
 >
-> **2. /executeharness (하네스 실행)** — EasyPowersHarness의 Python executor로 step 단위 실행 (`harness.root` 설정 필요)
+> **2. 하네스 실행** — EasyPowersHarness의 Python executor로 step 단위 실행 (`harness.root` 설정 필요)
 >
 > **3. 인라인 실행** — 현재 세션에서 순차 실행
 >
 > **어떤 방식으로 하시겠습니까?**
 
-경로 2 선택 시 `commands/executeharness.md`의 절차를 따른다.
+**추천 가이드:**
+- Task 1-3개, 독립적 → **인라인** 추천 (빠르고 가벼움)
+- Task 4+개 → **서브에이전트 드리븐** 추천 (컨텍스트 분리)
+- `harness.root` 설정됨 + step 단위 실행 로그 필요 → **하네스** 추천
+
+경로 2 선택 시 `/executeharness` 커맨드의 절차를 따른다.
 
 ## 3. Task Graph Analysis
 
@@ -43,7 +70,8 @@ plan 문서의 task들을 실행한다. Fresh 서브에이전트 per task + 컨�
 
 각 task에서 식별:
 - **명시적 의존:** `Depends on: Task N` 마커
-- **암시적 의존:** 같은 파일 수정 (`Modify:` 항목 매칭)
+- **파일 겹침 의존:** `**File overlap with:** Task N` 마커 — plan이 이미 계산해놓은 파일 겹침 정보. 존재하면 암시적 의존보다 우선 신뢰.
+- **암시적 의존:** 같은 파일 수정 (`Modify:` 항목 매칭) — `File overlap with` 마커가 없을 때 fallback
   - 암시적 의존 감지: 각 task의 `Modify:` 경로를 정규화(trailing slash 제거, 대소문자 통일)한 뒤 정확 문자열 비교. 부분 경로 매칭 없음.
 
 ### Step 2: Build Directed Graph
@@ -192,9 +220,9 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 |-------------|--------|----------------|---------|---------|
 | Spec review | brainstorm.md | 5 | 3 | 5 |
 | Plan review | plan.md | 5 | 3 | 5 |
-| Implementer AC | build.md | 3 | — | 3 |
-| Security review | build.md | 5 | 3 | 5 |
-| Final code review | build.md | 10 | 5 | 10 |
+| Implementer AC | choiceexecutor.md | 3 | — | 3 |
+| Security review | choiceexecutor.md | 5 | 3 | 5 |
+| Final code review | choiceexecutor.md | 10 | 5 | 10 |
 
 모든 review type에서 Verdict 헤더 누락이 2회 연속 시 즉시 사용자 에스컬레이션.
 
@@ -300,7 +328,7 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 3. **Session-level:** 3+ task에서 degradation -> plan 분해 재검토
 4. **Escalation:** 컴팩션+분할 후에도 지속 -> 상태 저장 + fresh 세션 제안
 
-## 10. /executeharness Execution (경로 B)
+## 10. 하네스 실행 (경로 2)
 
 사용자가 경로 2를 선택하면 `/executeharness` 커맨드로 위임한다.
 
@@ -316,16 +344,68 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 
 상세 절차는 `commands/executeharness.md` 참조.
 
-## 11. Inline Execution (경로 C)
+## 11. 인라인 실행 (경로 3)
 
-현재 세션에서 task를 순차적으로 실행한다.
+현재 세션에서 task를 순차적으로 실행한다. 인라인은 모든 작업이 컨트롤러 컨텍스트에서 일어나므로, 서브에이전트 경로보다 컨텍스트 소비가 크다.
+
+### 컨텍스트 사전 확인
+
+인라인 선택 시 plan의 task 수와 예상 복잡도를 기반으로 컨텍스트 소모량을 추정한다. **추정 소모량이 컨텍스트 윈도우의 40%를 초과할 것으로 판단되면** 사용자에게 질의한다:
+
+> "인라인 실행 시 컨텍스트 소모가 40%를 초과할 것으로 예상됩니다. `/compact`를 수행하고 진행할까요?"
+>
+> 1. `/compact` 후 진행
+> 2. 그대로 진행
+> 3. 서브에이전트 드리븐으로 변경
+
+추정 기준:
+- Task당 약 3-5K 토큰 소비 (파일 읽기 + 구현 + 테스트 + Verify)
+- 현재 세션의 이미 소비된 컨텍스트도 감안
+
+### Git Hash Recording
+
+- **첫 task 시작 전:** `git rev-parse HEAD` → `<first-task-start-hash>` 저장 (최종 리뷰용). 이후 task에서 이 값을 덮어쓰지 않는다.
+- **각 task 시작 전:** `git rev-parse HEAD` → `<task-start-hash>` 저장
+- **커밋 없는 상태:** 빈 트리 해시 `4b825dc642cb6eb9a060e54bf899d8b2306e7304` 사용
+- **각 task 완료 후:** changed-files = `git diff --name-only <task-start-hash>..HEAD` + `git ls-files --others --exclude-standard`
+
+### Per-Task 실행 루프
 
 각 task마다:
-1. task 내용 읽기
-2. TDD 순서로 구현 (테스트 -> 실패 확인 -> 구현 -> 통과 확인)
-3. Verify 커맨드 실행
-4. 커밋
-5. 다음 task
+
+```
+git hash 기록 (git rev-parse HEAD)
+  -> task 내용 읽기
+  -> TDD 순서로 구현 (테스트 -> 실패 확인 -> 구현 -> 통과 확인)
+  -> AC 검증 (Verify 커맨드 실행, exit 0 = PASS)
+    -> PASS -> 조건부 보안 리뷰
+    -> FAIL -> 실패 원인 분석 -> 코드 수정 -> 재검증 (최대 3회)
+    -> 3회 실패 -> 사용자 에스컬레이션
+  -> 커밋
+  -> changed-files 계산
+  -> 다음 task
+```
+
+### AC 검증
+
+섹션 5(Acceptance Criteria Verification)와 동일한 절차를 따른다. Verify 커맨드 실행, Verify-type별 타임아웃 적용.
+
+### 조건부 보안 리뷰
+
+섹션 6(Conditional Security Review)와 동일한 트리거 조건(27개 키워드). 트리거 시 `agents/security-reviewer-prompt.md` 기반 서브에이전트 배치.
+
+### 실패 처리
+
+인라인은 서브에이전트 "재배치"가 아닌 **같은 컨텍스트에서 수정 → 재검증** 루프:
+
+1. Verify 실패 → 실패 출력 분석
+2. 원인에 맞는 코드 수정
+3. Verify 재실행
+4. 최대 3회. 이후 사용자 에스컬레이션.
+
+### Final Code Review
+
+모든 task 완료 후 섹션 12(Final Code Review)로 진행한다. 서브에이전트 경로와 동일.
 
 ## 12. Final Code Review
 
@@ -358,9 +438,9 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
    - 커밋 메시지: `wip: build progress saved before /plan return — Tasks 1-N complete`
 4. `phases/index.json` 업데이트: build를 `pending`으로, plan을 `in_progress`로 리셋
 5. `/plan`으로 복귀하여 plan 수정
-6. 업데이트된 plan으로 /build 재개
+6. 업데이트된 plan으로 `/choiceexecutor` 재개
 
-### Resume Protocol (plan 복귀 후 /build 재개 시)
+### Resume Protocol (plan 복귀 후 /choiceexecutor 재개 시)
 
 1. Plan 문서에서 `**Resume hash:**` 마커 확인
 2. 마커 있으면: 이전 `first-task-start-hash` 복원 (최종 리뷰 diff 범위 유지)

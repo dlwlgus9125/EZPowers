@@ -2,7 +2,7 @@
 
 brainstorm에서 만든 설계 문서(spec)를 입력으로 받아 상세 task 문서로 분해하고 에이전트 배치를 결정한다. 코드는 작성하지 않는다.
 
-> **For agentic workers:** /build에서 서브에이전트 드리븐 또는 인라인 실행으로 이 plan의 task를 실행한다. Steps는 체크박스 구문으로 추적.
+> **For agentic workers:** /choiceexecutor에서 서브에이전트 드리븐, 하네스, 또는 인라인 실행으로 이 plan의 task를 실행한다. Steps는 체크박스 구문으로 추적.
 
 ## 1. 사전 확인
 
@@ -271,7 +271,7 @@ Plan 커밋 시 `docs/INDEX.md`에 plan 항목을 추가:
 plan 작성이 끝나면:
 1. task 개수, 의존 관계 요약
 2. 리스크 있는 task
-3. 다음 명령: `/build`
+3. 다음 명령: `/choiceexecutor`
 
 `phases/index.json` 업데이트:
 - plan: `status: "complete"`, `artifact: "<plan 파일 경로>"`, `completed_at: "<ISO 8601>"`

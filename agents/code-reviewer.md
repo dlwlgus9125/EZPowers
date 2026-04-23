@@ -1,6 +1,6 @@
 # Code Reviewer Prompt Template
 
-Use this template when dispatching a final code reviewer subagent from /build after all tasks are complete.
+Use this template when dispatching a final code reviewer subagent from /choiceexecutor after all tasks are complete.
 
 **Purpose:** Review the full diff against the plan, verify spec evidence, check structural invariants, and validate package imports.
 **Dispatch after:** All tasks pass AC verification.

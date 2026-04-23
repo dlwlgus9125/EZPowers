@@ -1,6 +1,6 @@
 # Security Reviewer Prompt Template
 
-Use this template when dispatching a security reviewer subagent from /build (conditional — only when security surface is detected).
+Use this template when dispatching a security reviewer subagent from /choiceexecutor (conditional — only when security surface is detected).
 
 **Trigger:** Task description or changed files contain security keywords.
 

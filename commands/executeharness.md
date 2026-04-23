@@ -13,9 +13,18 @@ execute.py를 EZPowers에 복사하지 않는다. 하네스 설치 경로를 참
 1. `.harness/config.json`의 `harness.root` 필드에서 하네스 경로 확인
 2. `{harness.root}/scripts/execute.py` 존재 여부
 3. plan 문서 존재 여부
+4. `phases/index.ezpowers.json` 잔존 여부 — 이전 하네스 실행이 비정상 종료되어 복원이 안 된 상태
+
+`phases/index.ezpowers.json`이 존재하면:
+> "이전 하네스 실행이 비정상 종료된 것으로 보입니다. `phases/index.ezpowers.json`에서 EZPowers index를 복원할까요?"
+>
+> 1. 복원 후 진행 — `phases/index.ezpowers.json` → `phases/index.json` 복원 후 백업 파일 삭제
+> 2. 백업 폐기 후 진행 — `phases/index.ezpowers.json` 삭제, 현재 `phases/index.json`을 그대로 사용
+>
+> 어느 쪽이든 이전 백업 파일은 즉시 처리되므로, 이후 섹션 6(복원)에서 현재 세션의 백업과 충돌하지 않는다.
 
 `harness.root`가 비어있거나 미설정:
-> "`harness.root`가 설정되지 않았습니다. /setup에서 설정하거나, `/build`의 경로 1(서브에이전트) 또는 경로 3(인라인)을 사용하세요."
+> "`harness.root`가 설정되지 않았습니다. /setup에서 설정하거나, `/choiceexecutor`의 경로 1(서브에이전트) 또는 경로 3(인라인)을 사용하세요."
 
 `execute.py` 미존재:
 > "EasyPowersHarness가 `{harness.root}`에서 발견되지 않습니다. 경로를 확인하세요."
@@ -69,11 +78,14 @@ mkdir -p phases/{feature-name}
 
 ### 3-3. Task → Step 필드 매핑
 
-각 plan Task N을 `phases/{feature-name}/step{N}.md`로 변환:
+각 plan Task N을 `phases/{feature-name}/step{N-1}.md`로 변환한다 (하네스 executor가 0-indexed).
+
+**번호 변환 규칙:** `Task N → step{N-1}.md` (예: Task 1 → step0.md, Task 2 → step1.md, Task 3 → step2.md)
+`--reset-step` 인자도 0-indexed이므로, Task 3을 리셋하려면 `--reset-step 2`를 사용한다.
 
 | EZPowers Plan Task 필드 | 하네스 Step 섹션 | 변환 규칙 |
 |--------------------------|------------------|-----------|
-| Task 제목 (`### Task N: [이름]`) | `# Step {N}: [이름]` | 그대로 |
+| Task 제목 (`### Task N: [이름]`) | `# Step {N-1} (Task N): [이름]` | 번호 변환 + Task 번호 병기 |
 | `**Files:**` (Create/Modify/Test) | `## 읽어야 할 파일` | Modify/Test 파일을 목록으로 |
 | task 전체 텍스트 | `## 작업` | Impact scope, Depends on 포함하여 원문 복사 |
 | `**Completion criteria (from spec):**` | `## Acceptance Criteria` | Given/When/Then/Verify 원문 복사 |
@@ -84,7 +96,7 @@ mkdir -p phases/{feature-name}
 Step 파일 결과 구조:
 
 ```markdown
-# Step {N}: {task name}
+# Step {N-1} (Task N): {task name}
 
 ## 읽어야 할 파일
 - `{Modify 파일 경로}`
@@ -211,7 +223,7 @@ Step {N} 실패: {error 요약}
 
 1. step별 PASS/FAIL/BLOCKED 요약 출력
 2. `git diff <harness-start-hash>..HEAD`로 전체 변경 확인
-3. `/build`의 Final Code Review(섹션 12) 진행:
+3. `/choiceexecutor`의 Final Code Review(섹션 12) 진행:
    - Plan 경로 제공
    - Diff range: `<harness-start-hash>..HEAD`
    - 하네스 실행 경로였음을 명시

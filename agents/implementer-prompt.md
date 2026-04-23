@@ -1,6 +1,6 @@
 # Implementer Subagent Prompt Template
 
-Use this template when dispatching an implementer subagent from /build.
+Use this template when dispatching an implementer subagent from /choiceexecutor.
 
 ```
 Agent tool:
@@ -34,6 +34,15 @@ Agent tool:
     - Dependencies or assumptions
 
     **Ask them now.** Raise any concerns before starting work.
+
+    ## Scope Guard
+
+    - Plan의 **Files** 섹션에 명시된 파일만 수정한다.
+    - 명시되지 않은 파일을 수정해야 할 경우 **NEEDS_CONTEXT**로 보고하고, 왜 추가 파일이 필요한지 설명한다. 컨트롤러 승인 없이 범위를 확장하지 않는다.
+
+    ## Command Safety
+
+    `/choiceexecutor`, `/executeharness`, `/plan`, `/brainstorm`, `/setup`, `/review` 등 상위 커맨드를 호출하지 않는다. 당신은 단일 task 실행자이다.
 
     ## Your Job
 

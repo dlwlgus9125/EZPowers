@@ -112,6 +112,20 @@ ASSUMPTIONS:
 **저장 위치:** `AGENTS.md`의 `spec location:` 값. 없으면 `docs/specs/` 기본값.
 **파일명:** `YYYY-MM-DD-<topic>-design.md`
 
+### Extracted Requirements 섹션 (필수)
+
+Spec 파일 상단에 섹션 4에서 추출한 요구사항 목록을 반드시 포함한다:
+
+```markdown
+## Extracted Requirements
+
+- R1: [요구사항 제목]
+- R2: [요구사항 제목]
+...
+```
+
+이 섹션은 spec reviewer가 요구사항 커버리지를 검증하는 기준이 되며, `/plan`의 Coverage Matrix가 이 목록을 참조한다. 누락 시 spec review FAIL.
+
 ### 요구사항별 구조
 
 각 요구사항은 이 구조를 따른다:

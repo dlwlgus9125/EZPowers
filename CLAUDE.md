@@ -13,7 +13,7 @@ EZPowers는 개인 전용 Claude Code 스킬 플러그인.
 ## Main Flow
 
 ```
-/setup → /brainstorm → /plan → /build
+/setup → /brainstorm → /plan → /choiceexecutor
 ```
 
 | Command | 역할 |
@@ -21,7 +21,7 @@ EZPowers는 개인 전용 Claude Code 스킬 플러그인.
 | `/setup` | 프로젝트 하네스 초기화 (config, steering 문서, agents.md) |
 | `/brainstorm` | 대화형 설계 → spec + plan 문서 생성 |
 | `/plan` | 설계문서 → step 분해 + 에이전트 배치 |
-| `/build` | 작업 실행 (서브에이전트 or 하네스 실행 선택) |
+| `/choiceexecutor` | 실행 경로 선택 (서브에이전트 / 하네스 / 인라인) |
 | `/executeharness` | EasyPowersHarness executor 위임 (plan → phase 변환 + step 실행) |
 
 ## Independent Utilities
@@ -37,7 +37,7 @@ EZPowers는 개인 전용 Claude Code 스킬 플러그인.
 
 ```
 .claude-plugin/       # plugin.json
-commands/             # 슬래시 명령어 (setup, brainstorm, plan, build, review)
+commands/             # 슬래시 명령어 (setup, brainstorm, plan, choiceexecutor, executeharness, review)
 skills/               # 독립 스킬
   systematic-debugging/
     SKILL.md          # 4-Phase 디버깅 프로토콜
@@ -66,7 +66,7 @@ docs/
   plans/              # /plan이 생성하는 plan 문서
   handoff-session1.md
   handoff-session2.md
-phases/               # /executeharness가 생성하는 phase 디렉터리 (하네스 연동 시)
+phases/               # /executeharness가 생성하는 phase 디렉터리 (하네스 경로 선택 시)
 ```
 
 ## Key Conventions
