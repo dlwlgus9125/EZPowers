@@ -199,7 +199,7 @@ AC 검증 PASS 후 보안 리뷰 필요 여부 확인.
 **27개 Security Keywords:**
 auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, permission, role, sanitize, escape, injection, CORS, CSRF, API key, credential, certificate, OAuth, JWT, bearer, privilege, access control, rate limit, brute force
 
-**트리거됨:** `agents/security-reviewer-prompt.md` 기반 서브에이전트 배치
+**트리거됨:** `ezpowers:security-reviewer` 플러그인 에이전트를 `subagent_type`으로 지정하여 배치
 **트리거 안 됨:** 스킵. 로그: "Security review skipped — no security surface in Task N."
 
 **False positive policy:** 의심되면 리뷰. 안전 > 효율.
@@ -293,16 +293,27 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 | `[directory]` | 작업 디렉터리 절대 경로 |
 | `[module-directory]` | 수정 대상 모듈 디렉터리 경로 |
 
-**Security Reviewer (`agents/security-reviewer-prompt.md`):**
-| Placeholder | 치환값 |
-|-------------|--------|
-| `[LIST OF CHANGED FILES WITH PATHS]` | `git diff --name-only <task-start-hash>..HEAD` 결과 |
+**Security Reviewer (`ezpowers:security-reviewer` 플러그인 에이전트):**
 
-**Code Reviewer (`agents/code-reviewer.md`):**
-| Placeholder | 치환값 |
-|-------------|--------|
-| `[PLAN_FILE_PATH]` | plan 파일 절대 경로 |
-| `[DIFF_RANGE]` | `<first-task-start-hash>..HEAD` |
+```
+Agent tool:
+  subagent_type: "ezpowers:security-reviewer"
+  description: "Security review for Task N"
+  prompt: |
+    ## Changed Files
+    <git diff --name-only <task-start-hash>..HEAD 결과를 줄바꿈 목록으로>
+```
+
+**Code Reviewer (`ezpowers:code-reviewer` 플러그인 에이전트):**
+
+```
+Agent tool:
+  subagent_type: "ezpowers:code-reviewer"
+  description: "Final code review"
+  prompt: |
+    **Plan file:** <plan 파일 절대 경로>
+    **Diff range:** <first-task-start-hash>..HEAD
+```
 
 **Post-substitution validation:** 디스패치 전 완성된 프롬프트에서 `[` + 대문자/소문자 + `]` 패턴 (예: `[SPEC_FILE_PATH]`, `[directory]`)을 검색. 미치환 placeholder가 남아있으면 디스패치하지 않고 누락된 placeholder를 로그하여 수정.
 
@@ -392,7 +403,7 @@ git hash 기록 (git rev-parse HEAD)
 
 ### 조건부 보안 리뷰
 
-섹션 6(Conditional Security Review)와 동일한 트리거 조건(27개 키워드). 트리거 시 `agents/security-reviewer-prompt.md` 기반 서브에이전트 배치.
+섹션 6(Conditional Security Review)와 동일한 트리거 조건(27개 키워드). 트리거 시 `ezpowers:security-reviewer` 플러그인 에이전트를 `subagent_type`으로 지정하여 배치.
 
 ### 실패 처리
 
@@ -409,7 +420,7 @@ git hash 기록 (git rev-parse HEAD)
 
 ## 12. Final Code Review
 
-모든 task 완료 후 `agents/code-reviewer.md` 기반 서브에이전트 배치:
+모든 task 완료 후 `ezpowers:code-reviewer` 플러그인 에이전트를 `subagent_type`으로 지정하여 배치:
 
 - Plan 경로 제공
 - 전체 diff: `git diff <first-task-start-hash>..HEAD`

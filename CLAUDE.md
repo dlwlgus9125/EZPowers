@@ -50,12 +50,12 @@ skills/               # 독립 스킬
     SKILL.md          # 스킬 작성 메타 스킬 (TDD 기반)
     anthropic-best-practices.md
     testing-skills-with-subagents.md
-agents/               # 에이전트 서브에이전트 프롬프트
-  code-reviewer.md
-  implementer-prompt.md
-  security-reviewer-prompt.md
-  spec-document-reviewer-prompt.md
-  plan-document-reviewer-prompt.md
+agents/               # 플러그인 에이전트 + 프롬프트 템플릿
+  code-reviewer.md          # Plugin Agent — 최종 코드 리뷰 (inherit, Read/Grep/Glob/Bash)
+  security-reviewer.md      # Plugin Agent — 보안 취약점 스캔 (inherit, Read/Grep/Glob/Bash)
+  spec-reviewer.md          # Plugin Agent — Spec 문서 검증 (sonnet, Read/Grep/Glob)
+  plan-reviewer.md          # Plugin Agent — Plan 문서 검증 (sonnet, Read/Grep/Glob)
+  implementer-prompt.md     # Template — 구현 서브에이전트 (placeholder 치환 방식 유지)
 phases/               # /setup이 생성하는 phase 상태 추적
 docs/
   INDEX.md            # /setup이 생성하는 문서 내비게이션 맵

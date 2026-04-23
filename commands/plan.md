@@ -207,21 +207,22 @@ Mode: `isolated` / `sequential` / `parallel`
 
 Plan 작성 완료 후:
 
-1. `agents/plan-document-reviewer-prompt.md` 기반 서브에이전트 디스패치 (plan 경로 + spec 경로 제공)
+1. `ezpowers:plan-reviewer` 플러그인 에이전트를 `subagent_type`으로 지정하여 디스패치. 동적 정보만 prompt로 전달:
+
+   ```
+   Agent tool:
+     subagent_type: "ezpowers:plan-reviewer"
+     description: "Review plan document"
+     prompt: |
+       **Plan to review:** <plan 파일의 절대 경로>
+       **Spec for reference:** <spec 파일의 절대 경로>
+   ```
+
 2. reviewer 결과는 `## Verdict: PASS` 또는 `## Verdict: FAIL` 헤더만 판정 기준으로 파싱. 다른 위치의 `PASS`/`FAIL` 문자열은 무시. **Verdict 헤더가 없거나 형식이 다르면:** `FAIL`로 간주하되, 2회 연속 Verdict 헤더 누락 시 사용자에게 에스컬레이션 ("Reviewer가 표준 형식으로 판정을 반환하지 않습니다.")
 3. Issues Found -> fix -> fresh 서브에이전트 재디스패치 (동일 프롬프트, 이전 결과 전달 금지)
 4. 비공개 이슈 로그 유지 — oscillation 감지용. 각 이슈를 `{task}:{check_number}` 키로 기록 (예: `T2:coverage_matrix`, `T3:impact_scope`).
 5. **Oscillation check (iteration 3부터):** 현재 이슈의 `{task}:{check_number}` 키가 2+ 이전 iteration에도 존재 -> 즉시 사용자 에스컬레이션
 6. **Tiered escalation:** 3회 -> 경고. 5회 -> 중단.
-
-### Plan Reviewer Dispatch — Placeholder 치환
-
-서브에이전트 디스패치 시 `agents/plan-document-reviewer-prompt.md` 템플릿의 placeholder를 치환:
-
-| Placeholder | 치환값 |
-|-------------|--------|
-| `[PLAN_FILE_PATH]` | 방금 작성한 plan 파일의 절대 경로 |
-| `[SPEC_FILE_PATH]` | plan이 참조하는 spec 파일의 절대 경로 |
 
 ## Backward Transition: /brainstorm으로 복귀
 

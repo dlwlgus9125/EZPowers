@@ -231,20 +231,21 @@ Spec 커밋 시 `docs/INDEX.md`에 spec 항목을 추가:
 
 Spec 작성 후:
 
-1. `agents/spec-document-reviewer-prompt.md` 기반 서브에이전트 디스패치
+1. `ezpowers:spec-reviewer` 플러그인 에이전트를 `subagent_type`으로 지정하여 디스패치. 동적 정보만 prompt로 전달:
+
+   ```
+   Agent tool:
+     subagent_type: "ezpowers:spec-reviewer"
+     description: "Review spec document"
+     prompt: |
+       **Spec to review:** <spec 파일의 절대 경로>
+   ```
+
 2. reviewer 결과는 `## Verdict: PASS` 또는 `## Verdict: FAIL` 헤더만 판정 기준으로 파싱. 다른 위치의 `PASS`/`FAIL` 문자열은 무시. **Verdict 헤더가 없거나 형식이 다르면:** `FAIL`로 간주하되, 2회 연속 Verdict 헤더 누락 시 사용자에게 에스컬레이션 ("Reviewer가 표준 형식으로 판정을 반환하지 않습니다.")
 3. Issues Found -> 이슈 fix -> fresh 서브에이전트 재디스패치 (동일 프롬프트, 이전 리뷰 결과 전달 금지)
 4. 비공개 이슈 로그 유지 (리뷰어와 공유하지 않음) — oscillation 감지용. 각 이슈를 `{section}:{check_number}` 키로 기록 (예: `R2:structural_completeness`, `R3:banned_expression`). 이것이 oscillation 매칭의 "category".
 5. **Oscillation check (iteration 3부터):** 현재 이슈의 `{section}:{check_number}` 키가 2+ 이전 iteration에도 존재 -> 즉시 사용자 에스컬레이션
 6. **Tiered escalation:** 3회 승인 없음 -> 사용자 경고. 5회 -> 중단.
-
-### Spec Reviewer Dispatch — Placeholder 치환
-
-서브에이전트 디스패치 시 `agents/spec-document-reviewer-prompt.md` 템플릿의 placeholder를 치환:
-
-| Placeholder | 치환값 |
-|-------------|--------|
-| `[SPEC_FILE_PATH]` | 방금 작성한 spec 파일의 절대 경로 |
 
 ## 7. 사용자 Spec 리뷰
 
