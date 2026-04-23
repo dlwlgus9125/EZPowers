@@ -454,6 +454,16 @@ git hash 기록 (git rev-parse HEAD)
 모든 task + final review 완료 후:
 1. 전체 diff 요약 (`git diff <first-task-start-hash>..HEAD`)
 2. 완료/실패/SKIPPED task 목록
-3. 다음 추천: `/review`
+3. 레퍼런스 문서 동기화 제안:
+
+> **레퍼런스 문서를 코드베이스와 동기화할까요?** (`/sync-docs`)
+>
+> 1. 실행
+> 2. 스킵
+
+사용자가 1을 선택하면 `/sync-docs` 절차를 따른다. 스킵해도 나중에 독립 호출 가능.
+
+4. 다음 추천: `/review`
+
 `phases/index.json` 업데이트:
 - build: `status: "complete"`, `completed_at: "<ISO 8601>"`

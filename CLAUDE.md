@@ -29,6 +29,7 @@ EZPowers는 개인 전용 Claude Code 스킬 플러그인.
 | 이름 | 유형 | 역할 |
 |------|------|------|
 | `/review` | command | 변경사항 리뷰 (spec 대비 구현 완전성) |
+| `/sync-docs` | command | 레퍼런스 문서를 코드베이스와 동기화 (독립 호출 + /choiceexecutor 완료 시 제안) |
 | `systematic-debugging` | skill | 근본 원인 추적 프로토콜 (4-Phase) |
 | `verifyself` | skill | CoVe(Chain-of-Verification) 자기검증 (6차원) |
 | `writing-skills` | skill | 새 스킬 작성 메타 스킬 (TDD 기반) |
@@ -37,7 +38,7 @@ EZPowers는 개인 전용 Claude Code 스킬 플러그인.
 
 ```
 .claude-plugin/       # plugin.json
-commands/             # 슬래시 명령어 (setup, brainstorm, plan, choiceexecutor, executeharness, review)
+commands/             # 슬래시 명령어 (setup, brainstorm, plan, choiceexecutor, executeharness, review, sync-docs)
 skills/               # 독립 스킬
   systematic-debugging/
     SKILL.md          # 4-Phase 디버깅 프로토콜
