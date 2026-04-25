@@ -1,0 +1,36 @@
+case_id: "optimization.greenfield_cli_tool.001"
+split: optimization
+stratum:
+  command: brainstorm
+  difficulty: multi_step
+  pattern: greenfield
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    I want to build a CLI tool in Python that converts Markdown files to HTML.
+    It should support custom templates and watch mode for auto-rebuild.
+  initial_files: []
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "test -f docs/specs/*.md"
+      - "grep -cE '^- R[0-9]+:' docs/specs/*.md | awk -F: '{s+=$2} END {if(s>=3) exit 0; else exit 1}'"
+      - "grep -cE 'Verify:' docs/specs/*.md | awk -F: '{s+=$2} END {if(s>=3) exit 0; else exit 1}'"
+      - "grep -qE 'Verify-type:' docs/specs/*.md"
+      - "grep -qE 'Impact scope:' docs/specs/*.md"
+      - "grep -qE 'Edge cases:' docs/specs/*.md"
+  - type: banned_expression_scan
+    fail_on_match: true
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Spec asks domain-defining questions before implementation questions"
+      - "Each R has Input, Behavior, Output, Impact scope, AC, Edge cases"
+      - "Verify commands are executable shell commands with exit 0 semantics"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [r_count, verify_count, question_count]

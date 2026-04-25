@@ -1,0 +1,37 @@
+case_id: "optimization.executor_to_code_reviewer.004"
+split: optimization
+stratum:
+  command: choiceexecutor
+  difficulty: single_step
+  pattern: contract
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Verify that choiceexecutor passes diff range correctly to code-reviewer.
+  initial_files: []
+  mock_data:
+    dispatch_template: |
+      Agent tool:
+        subagent_type: "ezpowers:code-reviewer"
+        description: "Final code review"
+        prompt: |
+          **Plan file:** /absolute/path/to/docs/plans/2026-04-25-feature.md
+          **Diff range:** abc123..def456
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "echo 'grader placeholder — code-reviewer dispatch format check'"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Plan file path is absolute, not relative"
+      - "Diff range uses first-task-start-hash..HEAD format"
+      - "Dispatch uses subagent_type ezpowers:code-reviewer"
+      - "No plan/spec content pasted — only paths provided"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [dispatch_format_valid, diff_range_format_correct, path_is_absolute]

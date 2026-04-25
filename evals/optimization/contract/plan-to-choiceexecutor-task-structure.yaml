@@ -1,0 +1,63 @@
+case_id: "optimization.plan_to_executor_task_structure.002"
+split: optimization
+stratum:
+  command: plan
+  difficulty: multi_step
+  pattern: contract
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Verify that plan output task structure is parseable by choiceexecutor.
+  initial_files: []
+  mock_data:
+    plan_content: |
+      ## Coverage Matrix
+      | Requirement | Related Tasks |
+      |-------------|---------------|
+      | R1: Feature A | T1 |
+      | R2: Feature B | T2 |
+
+      ### Task 1: Implement Feature A [R1]
+      **Files:**
+      - Create: `src/featureA.ts`
+      - Test: `tests/featureA.test.ts`
+      **Depends on:** (none)
+      **Completion criteria (from spec):**
+      - [ ] (R1) Given: Input X, When: Action Y, Then: Result Z, Verify: `echo ok`, Verify-type: lib
+      **Verification method:** Run Verify command
+      - [ ] **Step 1: Write test**
+      - [ ] **Step 2: Run test (expect FAIL)**
+      - [ ] **Step 3: Implement**
+      - [ ] **Step 4: Run test (expect PASS)**
+      - [ ] **Step 5: Run Verify**
+      - [ ] **Step 6: Commit**
+
+      ### Task 2: Implement Feature B [R2]
+      **Files:**
+      - Create: `src/featureB.ts`
+      - Modify: `src/featureA.ts:10-20`
+      **Depends on:** Task 1
+      **File overlap with:** Task 1
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "grep -qE '### Task [0-9]+:' $PLAN_FILE"
+      - "grep -qE '\\*\\*Files:\\*\\*' $PLAN_FILE"
+      - "grep -qE '\\*\\*Completion criteria' $PLAN_FILE"
+      - "grep -qE '\\*\\*Depends on:\\*\\*' $PLAN_FILE"
+      - "grep -qE '\\*\\*Verification method:\\*\\*' $PLAN_FILE"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Task headers use '### Task N: [name] [R-refs]' format"
+      - "Files section uses Create/Modify/Test prefixes"
+      - "Depends on and File overlap markers present for dependent tasks"
+      - "Completion criteria tagged with R numbers"
+      - "Checkbox steps follow TDD order"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [task_header_valid, files_section_valid, dependency_markers_present]

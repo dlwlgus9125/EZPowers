@@ -1,0 +1,38 @@
+case_id: "optimization.brownfield_feature_add.002"
+split: optimization
+stratum:
+  command: brainstorm
+  difficulty: multi_step
+  pattern: brownfield
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    I have an existing Express.js REST API for a task management app.
+    I need to add a notification system — email and in-app notifications
+    when tasks are assigned or due dates approach.
+  initial_files:
+    - "src/routes/tasks.ts"
+    - "src/models/task.ts"
+    - "package.json"
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "test -f docs/specs/*.md"
+      - "grep -cE '^- R[0-9]+:' docs/specs/*.md | awk -F: '{s+=$2} END {if(s>=3) exit 0; else exit 1}'"
+      - "grep -qE 'Impact scope:' docs/specs/*.md"
+      - "grep -qE 'Verify-type: api' docs/specs/*.md"
+  - type: banned_expression_scan
+    fail_on_match: true
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Spec explores existing codebase before proposing architecture"
+      - "Impact scope references existing modules that will be modified"
+      - "Edge cases cover notification delivery failures"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [r_count, verify_count, existing_file_reads]

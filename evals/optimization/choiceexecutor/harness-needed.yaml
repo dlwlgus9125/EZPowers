@@ -1,0 +1,53 @@
+case_id: "optimization.harness_needed.002"
+split: optimization
+stratum:
+  command: choiceexecutor
+  difficulty: long_horizon
+  pattern: greenfield
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Execute the plan at docs/plans/2026-04-25-ecommerce.md
+  initial_files:
+    - "docs/plans/2026-04-25-ecommerce.md"
+    - "docs/specs/2026-04-25-ecommerce-design.md"
+    - ".harness/config.json"
+  mock_data:
+    plan_content: |
+      # E-commerce Implementation Plan
+      **Goal:** Build e-commerce backend
+      **Spec:** docs/specs/2026-04-25-ecommerce-design.md
+
+      ## Coverage Matrix
+      | Requirement | Related Tasks |
+      |-------------|---------------|
+      | R1: Product CRUD | T1 |
+      | R2: Search | T2 |
+      | R3: Cart | T3 |
+      | R4: Auth | T4 |
+      | R5: Checkout | T5 |
+
+      ### Task 1: Product model and CRUD [R1]
+      ### Task 2: Search with filters [R2]
+      ### Task 3: Shopping cart [R3]
+      **Depends on:** Task 1
+      ### Task 4: Authentication [R4]
+      ### Task 5: Checkout flow [R5]
+      **Depends on:** Task 3, Task 4
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "echo 'grader placeholder — manual check required'"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "5-task plan triggers subagent or harness recommendation, not inline"
+      - "Task graph analysis identifies dependency chain T1->T3->T5"
+      - "Independent tasks T2 and T4 identified for potential parallel execution"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [execution_path_chosen, dependency_graph_correct, task_count]

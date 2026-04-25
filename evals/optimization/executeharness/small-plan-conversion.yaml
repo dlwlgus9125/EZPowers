@@ -1,0 +1,31 @@
+case_id: "optimization.small_plan_conversion.001"
+split: optimization
+stratum:
+  command: executeharness
+  difficulty: multi_step
+  pattern: greenfield
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Execute the plan via harness: docs/plans/2026-04-25-csv-parser.md
+  initial_files:
+    - "docs/plans/2026-04-25-csv-parser.md"
+    - ".harness/config.json"
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "echo 'grader placeholder — plan-to-phase conversion check'"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Plan tasks converted to step files (Task N -> step{N-1}.md)"
+      - "phase-context.md generated with plan header info"
+      - "phases/{feature}/index.json created with harness schema"
+      - "phases/index.json backed up to phases/index.ezpowers.json"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [steps_generated, phase_context_created, index_backup_done]

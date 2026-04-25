@@ -1,0 +1,38 @@
+case_id: "optimization.multi_r_coverage.005"
+split: optimization
+stratum:
+  command: brainstorm
+  difficulty: long_horizon
+  pattern: greenfield
+  model_family: agnostic
+  language: ko_en_mixed
+
+input:
+  user_message: |
+    온라인 쇼핑몰 백엔드를 만들어야 합니다.
+    Features needed: product catalog with search, shopping cart,
+    checkout with payment integration (Stripe), order history,
+    and an admin dashboard for inventory management.
+    Tech stack: Node.js + PostgreSQL.
+  initial_files: []
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "test -f docs/specs/*.md"
+      - "grep -cE '^- R[0-9]+:' docs/specs/*.md | awk -F: '{s+=$2} END {if(s>=5) exit 0; else exit 1}'"
+      - "grep -cE 'Verify:' docs/specs/*.md | awk -F: '{s+=$2} END {if(s>=5) exit 0; else exit 1}'"
+      - "grep -cE 'Verify-type:' docs/specs/*.md | awk -F: '{s+=$2} END {if(s>=5) exit 0; else exit 1}'"
+  - type: banned_expression_scan
+    fail_on_match: true
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "At least 5 distinct requirements extracted"
+      - "Sub-project decomposition suggested if R count exceeds 10"
+      - "Mixed language input handled consistently in output"
+      - "Each R has verify-type appropriate to its nature (api for endpoints, data for DB)"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [r_count, verify_count, subproject_decomposition_suggested]

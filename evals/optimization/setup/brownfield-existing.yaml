@@ -1,0 +1,37 @@
+case_id: "optimization.brownfield_existing.002"
+split: optimization
+stratum:
+  command: setup
+  difficulty: multi_step
+  pattern: brownfield
+  model_family: agnostic
+  language: ko_en_mixed
+
+input:
+  user_message: |
+    이 프로젝트에 EZPowers를 셋업해주세요.
+  initial_files:
+    - "package.json"
+    - "src/index.ts"
+    - "src/routes/api.ts"
+    - "tsconfig.json"
+    - "CLAUDE.md"
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "test -f .harness/config.json"
+      - "test -f AGENTS.md"
+      - "test -f phases/index.json"
+      - "test -f docs/INDEX.md"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Setup detects existing project (package.json, src/) and enters Phase 2A"
+      - "Stack, test, build commands inferred from package.json"
+      - "Existing CLAUDE.md is preserved, not overwritten"
+      - "User asked to confirm inferred values"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [existing_files_detected, config_fields_inferred, user_confirmations]

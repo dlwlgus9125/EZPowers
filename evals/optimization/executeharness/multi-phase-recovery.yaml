@@ -1,0 +1,46 @@
+case_id: "optimization.multi_phase_recovery.002"
+split: optimization
+stratum:
+  command: executeharness
+  difficulty: long_horizon
+  pattern: brownfield
+  model_family: agnostic
+  language: ko
+
+input:
+  user_message: |
+    /executeharness user-auth --reset-step 2
+  initial_files:
+    - "phases/user-auth/step0.md"
+    - "phases/user-auth/step1.md"
+    - "phases/user-auth/step2.md"
+    - "phases/user-auth/index.json"
+    - "phases/index.ezpowers.json"
+    - ".harness/config.json"
+  mock_data:
+    harness_index: |
+      {
+        "project": "my-app",
+        "phase": "user-auth",
+        "steps": [
+          {"step": 0, "name": "User model", "status": "completed"},
+          {"step": 1, "name": "Auth routes", "status": "completed"},
+          {"step": 2, "name": "Token refresh", "status": "error"}
+        ]
+      }
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "echo 'grader placeholder — step reset and recovery check'"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Step 2 is reset to pending status"
+      - "Steps 0 and 1 remain completed"
+      - "Previous EZPowers index backup (index.ezpowers.json) detected"
+      - "Recovery path offered for previous abnormal termination"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [step_reset_done, completed_steps_preserved, recovery_offered]

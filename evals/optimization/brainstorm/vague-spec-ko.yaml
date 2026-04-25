@@ -1,0 +1,32 @@
+case_id: "optimization.vague_spec_ko.004"
+split: optimization
+stratum:
+  command: brainstorm
+  difficulty: multi_step
+  pattern: greenfield
+  model_family: agnostic
+  language: ko
+
+input:
+  user_message: |
+    게시판 만들어줘. 적절하게 처리해주면 돼.
+  initial_files: []
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "test -f docs/specs/*.md"
+      - "grep -cE '^- R[0-9]+:' docs/specs/*.md | awk -F: '{s+=$2} END {if(s>=3) exit 0; else exit 1}'"
+  - type: banned_expression_scan
+    fail_on_match: true
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Agent asks clarifying questions instead of accepting vague input"
+      - "Final spec replaces vague language with concrete behavior"
+      - "Agent does not use banned expressions like 적절히 in the spec output"
+      - "Domain-defining questions asked before implementation questions"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [r_count, verify_count, banned_expression_hits, clarification_questions]

@@ -1,0 +1,59 @@
+case_id: "optimization.brainstorm_to_plan_spec_format.001"
+split: optimization
+stratum:
+  command: brainstorm
+  difficulty: multi_step
+  pattern: contract
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Verify that the spec output from brainstorm is consumable by plan.
+  initial_files: []
+  mock_data:
+    spec_content: |
+      ## Extracted Requirements
+      - R1: User registration
+      - R2: User login
+
+      ### R1: User registration
+      **Input:** Name, email, password
+      **Behavior:** Validate input, hash password, create user record
+      **Output:** User object with ID
+      **Impact scope:** None -- new component
+      **Acceptance criteria:**
+      - [ ] Given: Valid registration data, When: POST /api/users, Then: 201 with user ID, Verify: `curl -s -o /dev/null -w '%{http_code}' -X POST localhost:3000/api/users -d '{}'`, Verify-type: api
+      **Edge cases:**
+      - Duplicate email returns 409
+
+      ### R2: User login
+      **Input:** Email, password
+      **Behavior:** Validate credentials, generate session token
+      **Output:** Session token
+      **Impact scope:** None -- new component
+      **Acceptance criteria:**
+      - [ ] Given: Registered user, When: POST /api/auth/login, Then: 200 with token, Verify: `curl -s -o /dev/null -w '%{http_code}' -X POST localhost:3000/api/auth/login -d '{}'`, Verify-type: api
+      **Edge cases:**
+      - Invalid credentials return 401
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "grep -cE '^- R[0-9]+:' $SPEC_FILE | awk '{if($1>=2) exit 0; else exit 1}'"
+      - "grep -qE '### R[0-9]+:' $SPEC_FILE"
+      - "grep -qE 'Verify:' $SPEC_FILE"
+      - "grep -qE 'Verify-type:' $SPEC_FILE"
+      - "grep -qE 'Impact scope:' $SPEC_FILE"
+      - "grep -qE 'Acceptance criteria:' $SPEC_FILE"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Extracted Requirements list uses R1, R2 format parseable by plan Coverage Matrix"
+      - "Each R section follows the 6-field structure plan.md expects"
+      - "Verify commands are shell commands that plan can copy to completion criteria"
+      - "Verify-type is one of {api,e2e,cli,lib,data,pure}"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [r_format_valid, verify_format_valid, structure_complete]

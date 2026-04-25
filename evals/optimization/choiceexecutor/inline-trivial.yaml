@@ -1,0 +1,54 @@
+case_id: "optimization.inline_trivial.001"
+split: optimization
+stratum:
+  command: choiceexecutor
+  difficulty: single_step
+  pattern: greenfield
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Execute the plan at docs/plans/2026-04-25-csv-parser.md
+  initial_files:
+    - "docs/plans/2026-04-25-csv-parser.md"
+    - "docs/specs/2026-04-25-csv-parser-design.md"
+    - ".harness/config.json"
+  mock_data:
+    plan_content: |
+      # CSV Parser Implementation Plan
+      **Goal:** Build a CSV parser library
+      **Spec:** docs/specs/2026-04-25-csv-parser-design.md
+
+      ## Coverage Matrix
+      | Requirement | Related Tasks |
+      |-------------|---------------|
+      | R1: Parse CSV | T1 |
+
+      ### Task 1: Implement CSV parser [R1]
+      **Files:**
+      - Create: `src/csv.ts`
+      - Test: `tests/csv.test.ts`
+      **Completion criteria (from spec):**
+      - [ ] (R1) Given: A CSV file, When: parse(), Then: Returns rows, Verify: `node -e "assert(true)"`, Verify-type: lib
+      **Verification method:** Run Verify command
+      - [ ] **Step 1: Write test**
+      - [ ] **Step 2: Run test (expect FAIL)**
+      - [ ] **Step 3: Implement**
+      - [ ] **Step 4: Run test (expect PASS)**
+      - [ ] **Step 5: Run Verify**
+      - [ ] **Step 6: Commit**
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "grep -qE 'inline|Inline|경로 3|인라인' $EXECUTOR_OUTPUT || true"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Single-task plan triggers inline execution recommendation"
+      - "Execution path selection presented to user with inline as recommendation"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [execution_path_chosen, task_pass_count]

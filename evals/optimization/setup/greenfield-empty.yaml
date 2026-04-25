@@ -1,0 +1,36 @@
+case_id: "optimization.greenfield_empty.001"
+split: optimization
+stratum:
+  command: setup
+  difficulty: single_step
+  pattern: greenfield
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Set up this empty project for development. It will be a Python CLI tool.
+  initial_files: []
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "test -f .harness/config.json"
+      - "test -f AGENTS.md"
+      - "test -f phases/index.json"
+      - "test -f docs/INDEX.md"
+      - "test -d docs/specs"
+      - "test -d docs/plans"
+      - "test -d docs/product"
+      - "test -d docs/reference"
+  - type: state_check
+    expect:
+      files_created:
+        - ".harness/config.json"
+        - "AGENTS.md"
+        - "phases/index.json"
+        - "docs/INDEX.md"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [files_created_count, config_fields_populated]

@@ -1,0 +1,39 @@
+case_id: "optimization.executor_to_security_reviewer.003"
+split: optimization
+stratum:
+  command: choiceexecutor
+  difficulty: single_step
+  pattern: contract
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Verify that choiceexecutor passes changed-files correctly to security-reviewer.
+  initial_files: []
+  mock_data:
+    dispatch_template: |
+      Agent tool:
+        subagent_type: "ezpowers:security-reviewer"
+        description: "Security review for Task 1"
+        prompt: |
+          ## Changed Files
+          src/auth/jwt.ts
+          src/auth/password.ts
+          tests/auth/jwt.test.ts
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "echo 'grader placeholder — security-reviewer dispatch format check'"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Changed files list derived from git diff --name-only <task-start-hash>..HEAD"
+      - "Dispatch uses subagent_type ezpowers:security-reviewer"
+      - "Changed files passed as newline-separated list under ## Changed Files"
+      - "No extra context beyond changed files (reviewer reads files independently)"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [dispatch_format_valid, changed_files_passed]

@@ -1,0 +1,37 @@
+case_id: "optimization.outdated_reference.002"
+split: optimization
+stratum:
+  command: sync-docs
+  difficulty: multi_step
+  pattern: brownfield
+  model_family: agnostic
+  language: ko
+
+input:
+  user_message: |
+    레퍼런스 문서를 코드베이스와 동기화해주세요.
+  initial_files:
+    - "AGENTS.md"
+    - ".harness/config.json"
+    - "docs/INDEX.md"
+    - "docs/reference/architecture.md"
+    - "docs/reference/protocol.md"
+    - "package.json"
+  mock_data:
+    drift_scenario: "architecture.md lists src/legacy-adapter/ module, but this directory was deleted. protocol.md lists GET /api/v1/users endpoint, but it was renamed to GET /api/v2/users."
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "echo 'grader placeholder — outdated reference detection check'"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Deleted module (src/legacy-adapter/) detected as [deleted]"
+      - "Renamed endpoint detected as [changed]"
+      - "Cascading update check performed across related documents"
+      - "Post-update verification confirms changes match code state"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [deleted_items_found, changed_items_found, cascade_check_done]

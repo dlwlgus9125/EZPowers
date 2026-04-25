@@ -1,0 +1,37 @@
+case_id: "optimization.plan_reviewer_verdict_parsing.006"
+split: optimization
+stratum:
+  command: plan
+  difficulty: single_step
+  pattern: contract
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Verify that plan correctly parses plan-reviewer Verdict header.
+  initial_files: []
+  mock_data:
+    reviewer_outputs:
+      - output: "## Verdict: PASS\n\nPlan is ready for implementation."
+        expected_parse: "PASS"
+      - output: "## Verdict: FAIL\n\n**Issues:**\n- Coverage Matrix missing R3"
+        expected_parse: "FAIL"
+      - output: "### Verdict: PASS\n\nApproved."
+        expected_parse: "FAIL (### not ##)"
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "echo 'grader placeholder — plan verdict parsing check'"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Only '## Verdict: PASS' parsed as PASS (level-2 heading)"
+      - "### Verdict: PASS (level-3) treated as FAIL"
+      - "Oscillation check applied from iteration 3 using {task}:{check_number} keys"
+      - "Tiered escalation: warn@3, stop@5"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [verdict_parsed_correctly, oscillation_key_format_valid]

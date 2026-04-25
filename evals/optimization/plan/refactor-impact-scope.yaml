@@ -1,0 +1,56 @@
+case_id: "optimization.refactor_impact_scope.004"
+split: optimization
+stratum:
+  command: plan
+  difficulty: multi_step
+  pattern: refactor
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Create a plan from docs/specs/2026-04-25-auth-refactor-design.md
+  initial_files:
+    - "docs/specs/2026-04-25-auth-refactor-design.md"
+    - "src/auth.ts"
+    - "src/routes/login.ts"
+    - "src/middleware/requireAuth.ts"
+    - "src/index.ts"
+  mock_data:
+    spec_content: |
+      ## Extracted Requirements
+      - R1: Extract JWT logic into src/auth/jwt.ts
+      - R2: Extract session logic into src/auth/session.ts
+      - R3: Create barrel export at src/auth/index.ts
+      - R4: Update all consumers to use new import paths
+
+      ### R1: Extract JWT logic into src/auth/jwt.ts
+      **Input:** JWT-related functions from src/auth.ts
+      **Behavior:** Move generateToken, verifyToken, refreshToken to new module
+      **Output:** src/auth/jwt.ts with exported functions
+      **Impact scope:**
+      - src/routes/login.ts: imports generateToken
+      - src/middleware/requireAuth.ts: imports verifyToken
+      **Acceptance criteria:**
+      - [ ] Given: Existing auth.ts, When: Extract JWT functions, Then: jwt.ts exports same interface, Verify: `node -e "const {generateToken}=require('./src/auth/jwt'); assert(typeof generateToken==='function')"`, Verify-type: lib
+      **Edge cases:**
+      - Ensure no circular dependencies between jwt.ts and session.ts
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "test -f docs/plans/*.md"
+      - "grep -qE 'Impact scope' docs/plans/*.md"
+      - "grep -qE 'Reference breakage' docs/plans/*.md"
+      - "grep -qE 'Code preservation' docs/plans/*.md"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Impact scope analysis identifies all consumers of auth.ts"
+      - "Re-export barrel file (src/auth/index.ts) is planned"
+      - "Reference breakage section lists files that import from auth.ts"
+      - "File overlap between tasks is identified"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [impact_scope_entries, reference_breakage_count, file_overlap_detected]

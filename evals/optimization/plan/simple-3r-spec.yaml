@@ -1,0 +1,50 @@
+case_id: "optimization.simple_three_r_spec.001"
+split: optimization
+stratum:
+  command: plan
+  difficulty: single_step
+  pattern: greenfield
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Create a plan from the spec at docs/specs/2026-04-25-csv-parser-design.md
+  initial_files:
+    - "docs/specs/2026-04-25-csv-parser-design.md"
+  mock_data:
+    spec_content: |
+      ## Extracted Requirements
+      - R1: Parse CSV files with configurable delimiter
+      - R2: Handle quoted fields with embedded delimiters
+      - R3: Stream large files without loading entire file into memory
+
+      ### R1: Parse CSV files with configurable delimiter
+      **Input:** File path and optional delimiter character
+      **Behavior:** Read file line by line, split each line by delimiter, return rows as arrays
+      **Output:** Array of string arrays representing rows
+      **Impact scope:** None -- new component
+      **Acceptance criteria:**
+      - [ ] Given: A CSV file with comma delimiter, When: parse("data.csv"), Then: Returns array of rows, Verify: `node -e "const {parse}=require('./csv'); assert(parse('test.csv').length===3)"`, Verify-type: lib
+      **Edge cases:**
+      - Empty file returns empty array
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "test -f docs/plans/*.md"
+      - "grep -qE 'Coverage Matrix' docs/plans/*.md"
+      - "grep -qE 'R1.*T[0-9]' docs/plans/*.md"
+      - "grep -qE 'R2.*T[0-9]' docs/plans/*.md"
+      - "grep -qE 'R3.*T[0-9]' docs/plans/*.md"
+      - "grep -qE 'Step 1:.*test' docs/plans/*.md"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Coverage Matrix maps all 3 Rs to tasks"
+      - "Tasks follow TDD order: test -> fail -> implement -> pass -> verify"
+      - "Task dependencies are correctly identified"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [task_count, coverage_matrix_complete, tdd_steps_present]
