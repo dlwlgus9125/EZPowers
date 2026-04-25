@@ -292,6 +292,36 @@ INDEX.md에 각 문서의 authority 마커를 `[canonical]`, `[supporting]`, `[d
 - `defaults.verifier`: `off` 또는 `sub-agent`
 - `defaults.verifier_max_rounds`: verifier 최대 라운드 수
 
+## Phase 3.5: Eval/Trace 인프라 (선택적 플래그)
+
+### `--with-evals` 플래그
+
+사용자가 `/setup --with-evals`로 호출하면 eval 디렉터리 트리를 생성한다:
+
+```bash
+mkdir -p evals/optimization evals/holdout evals/golden evals/honeypot
+mkdir -p evals/results/baselines evals/results/runs
+mkdir -p evals/rubrics
+```
+
+생성 파일:
+- `evals/INDEX.md` (eval 목차 템플릿)
+- `evals/schema.json` (플러그인에서 복사)
+- `evals/rubrics/spec_quality.md` (템플릿)
+
+`.claudeignore`에 추가: `evals/holdout/**`
+`.gitignore`에 추가: `evals/holdout/**`, `evals/results/runs/**`
+
+### `--enable-traces` 플래그
+
+사용자가 `/setup --enable-traces`로 호출하면 trace 수집 훅을 활성화한다:
+
+1. `hooks/hooks.json`이 존재하는지 확인 (없으면 플러그인에서 복사)
+2. `${CLAUDE_PLUGIN_DATA:-$HOME/.ezpowers-traces}/traces/` 디렉터리 생성
+3. `.gitignore`에 추가: `*.ezpowers-traces/`
+
+두 플래그는 독립적이다. eval만 원하고 trace 수집은 아직 원하지 않는 경우가 있다.
+
 ## Phase 4: 완료 안내
 
 생성이 끝나면:

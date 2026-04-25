@@ -68,12 +68,21 @@ docs/
   handoff-session1.md
   handoff-session2.md
 phases/               # /executeharness가 생성하는 phase 디렉터리 (하네스 경로 선택 시)
+hooks/
+  hooks.json          # opt-in trace collection hooks (/setup --enable-traces로 활성화)
+bin/
+  trace.sh            # observation-only JSONL trace writer (hooks에서 호출)
 ```
 
 ## Key Conventions
 
-- **스킬 체이닝 없음** — 각 스킬은 독립 호출, 필요하면 나중에 추가
-- **훅 없음** — 필요해지면 그때 추가
+- **스킬 체이닝 없음** — 각 스킬은 독립 호출, 필요하면 나중에 추가. Diagnostic subagent
+  (`agents/eval-diagnostician.md`)는 유일한 예외로, `scripts/propose_edit.py`에서만 호출되며
+  사용자 대면 커맨드에서는 호출되지 않는다.
+- **훅: opt-in observation-only** — 기본 상태: 훅 없음. `/eval`, 베이스라인 측정, 회귀 추적이
+  필요할 때 `/setup --enable-traces`로 활성화. 트레이스는 `${CLAUDE_PLUGIN_DATA}/traces/`에
+  기록된다 (기본 gitignored). 훅은 모델 동작을 변경해서는 안 된다 — 관찰과 로깅만 허용.
+  금지: 도구 입출력 변경, 도구 호출 차단, 시스템 명령 주입. 허용: append-only JSONL 쓰기.
 - **문서는 가볍게** — 어떤 에이전트가 와도 맥락을 이해할 수 있도록 필요한 곳에 배치
 - **증거 기반 검증** — "should work" 금지, 실행 결과로 증명
 - **가정 명시** — 설계/플래닝 전 가정을 선언하고 사용자 확인
