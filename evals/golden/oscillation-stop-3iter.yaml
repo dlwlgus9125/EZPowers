@@ -1,0 +1,76 @@
+# evals/golden/oscillation-stop-3iter.yaml
+# Golden invariant: Oscillation detection must trigger user escalation when the same
+# {file}:{issue_type} key appears in 2+ prior iterations (checked from iteration 3).
+# Source: commands/choiceexecutor.md L215-216
+# "이슈를 {file}:{issue_type} 키로 로깅. 현재 키가 2+ 이전 iteration에도 존재 -> 사용자 에스컬레이션"
+
+case_id: "golden.oscillation_stop_3iter.001"
+split: golden
+stratum:
+  command: choiceexecutor
+  difficulty: multi_step
+  pattern: oscillation_trap
+  model_family: agnostic
+  language: en
+  verify_type: pure
+
+input:
+  user_message: |
+    Simulate the review loop for a code review that oscillates on the same issue.
+  initial_files: []
+  mock_data:
+    # Simulated review loop: same {file}:{issue_type} key repeats across 3 iterations
+    iteration_1_issues:
+      - key: "src/auth.ts:missing-validation"
+        severity: "high"
+        description: "Input validation missing for email field"
+      - key: "src/db.ts:no-error-handling"
+        severity: "medium"
+        description: "Database query lacks error handling"
+
+    iteration_2_issues:
+      - key: "src/auth.ts:missing-validation"
+        severity: "high"
+        description: "Email validation still insufficient"
+      - key: "src/api.ts:no-rate-limit"
+        severity: "low"
+        description: "API endpoint lacks rate limiting"
+
+    iteration_3_issues:
+      - key: "src/auth.ts:missing-validation"
+        severity: "high"
+        description: "Validation logic incomplete for edge cases"
+
+    # Expected behavior at iteration 3:
+    # - "src/auth.ts:missing-validation" appeared in iterations 1, 2, and 3
+    # - At iteration 3, check: does current key exist in 2+ prior iterations?
+    # - "src/auth.ts:missing-validation" exists in iteration 1 AND 2 (= 2 prior) -> YES
+    # - TRIGGER: user escalation for oscillating issue
+    expected_escalation:
+      triggered: true
+      oscillating_key: "src/auth.ts:missing-validation"
+      iteration_detected: 3
+      prior_occurrences: [1, 2]
+      action: "user_escalation"
+
+graders:
+  - type: deterministic_tests
+    commands:
+      # The oscillating key must be detected at iteration 3
+      - "echo '$MOCK_iteration_3_issues' | grep -q 'src/auth.ts:missing-validation'"
+      # Verify the key appeared in both prior iterations
+      - "echo '$MOCK_iteration_1_issues' | grep -q 'src/auth.ts:missing-validation'"
+      - "echo '$MOCK_iteration_2_issues' | grep -q 'src/auth.ts:missing-validation'"
+      # Escalation must be triggered (3 occurrences across iterations 1,2,3)
+      - "test '$MOCK_expected_escalation_triggered' = 'true'"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Oscillation detected: same {file}:{issue_type} key in 3 consecutive iterations"
+      - "User escalation triggered at iteration 3, not earlier"
+      - "Only the oscillating key triggers escalation; non-repeating keys do not"
+      - "The system does not silently continue past iteration 3 for oscillating issues"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [oscillation_keys_detected, iterations_before_escalation, false_positive_escalations]

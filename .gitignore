@@ -1,0 +1,4 @@
+# Holdout eval cases — never commit, see blueprint Part B.2
+evals/holdout/**
+!evals/holdout/.gitkeep
+evals/results/runs/**

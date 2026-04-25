@@ -1,0 +1,26 @@
+{
+  "version": "0.6.0",
+  "date": "2026-04-25T00:00:00Z",
+  "model": "manual-trace-only",
+  "scores": {
+    "golden": {
+      "banned-expression-detection.001": {
+        "pass": true,
+        "trace_summary": "Mock spec contains all 14 banned expression categories (7 Korean: 적절히, 필요한 경우, 등등, 올바르게, 효율적으로, 가능하면, 상황에 맞게; 7 English: appropriately, if necessary, etc., properly, efficiently, if possible, as appropriate). All placed outside code blocks/blockquotes. spec-reviewer.md check #3 scans for these exact patterns. None exempted. Expected verdict: FAIL. Confirmed by tracing agents/spec-reviewer.md L41-45 logic."
+      },
+      "coverage-matrix-completeness.001": {
+        "pass": true,
+        "trace_summary": "Mock spec defines R1, R2, R3. Mock plan Coverage Matrix maps R1->T1, R2->T2 but omits R3 entirely. plan-reviewer.md check #1 requires every R in the matrix with at least one T mapping. R3 absent -> FAIL with 'R3' listed as unmapped. Confirmed by tracing agents/plan-reviewer.md L24-29 logic."
+      },
+      "verdict-parsing-format.001": {
+        "pass": true,
+        "trace_summary": "Four mock reviewer outputs tested. Case A '## Verdict: PASS' (level-2 heading) -> parsed as PASS. Case B 'Verdict: PASS' (no ## prefix) -> '## Verdict:' pattern not found -> treated as FAIL per choiceexecutor.md L430. Case C '### Verdict: PASS' (level-3) -> '^## Verdict:' regex won't match '###' -> treated as FAIL. Case D '## Verdict: FAIL' -> parsed as FAIL. Confirmed by tracing commands/choiceexecutor.md L428-430 logic."
+      },
+      "oscillation-stop-3iter.001": {
+        "pass": true,
+        "trace_summary": "Simulated 3-iteration review loop. Key 'src/auth.ts:missing-validation' appears in iterations 1, 2, 3. At iteration 3, oscillation check fires: current key found in 2+ prior iterations (iteration 1 and 2). User escalation triggered. Other keys (src/db.ts:no-error-handling, src/api.ts:no-rate-limit) appear only once, no escalation. Confirmed by tracing commands/choiceexecutor.md L215-216 logic."
+      }
+    }
+  },
+  "notes": "Phase 0 manual baseline. No automated runner yet. Each case verified by tracing the relevant EZPowers command/agent file logic against the mock input."
+}

@@ -1,0 +1,132 @@
+# evals/golden/banned-expression-detection.yaml
+# Golden invariant: spec-reviewer MUST detect all 14 banned expression patterns.
+# Source: commands/brainstorm.md L192-208, agents/spec-reviewer.md L41-45
+
+case_id: "golden.banned_expression_detection.001"
+split: golden
+stratum:
+  command: brainstorm
+  difficulty: single_step
+  pattern: banned_expression_trap
+  model_family: agnostic
+  language: ko_en_mixed
+  verify_type: pure
+
+input:
+  user_message: |
+    Review the following spec document for quality and completeness.
+  initial_files: []
+  mock_data:
+    spec_content: |
+      # Spec: User Management System
+
+      ## Extracted Requirements
+      - R1: 사용자 등록 기능
+      - R2: 사용자 프로필 수정
+      - R3: 사용자 삭제 기능
+      - R4: 권한 관리
+      - R5: 로그인 처리
+      - R6: 알림 시스템
+      - R7: 데이터 백업
+
+      ## R1: 사용자 등록 기능
+      Input: 사용자 이름, 이메일
+      Behavior: 시스템이 입력을 적절히 처리한다.
+      Output: 등록 완료 메시지
+      Impact scope: None -- new component
+      Acceptance criteria:
+      - Given: 유효한 입력, When: 등록 요청, Then: 성공 응답, Verify: `echo ok`, Verify-type: pure
+      Edge cases:
+      - 중복 이메일은 필요한 경우 거부한다.
+
+      ## R2: 사용자 프로필 수정
+      Input: 수정 데이터
+      Behavior: 프로필을 올바르게 업데이트한다. 등등의 필드가 수정 가능하다.
+      Output: 수정 결과
+      Impact scope: None -- new component
+      Acceptance criteria:
+      - Given: 로그인 상태, When: 수정 요청, Then: 업데이트 완료, Verify: `echo ok`, Verify-type: pure
+      Edge cases:
+      - 효율적으로 대량 업데이트를 처리한다.
+
+      ## R3: 사용자 삭제 기능
+      Input: 사용자 ID
+      Behavior: Handle user deletion appropriately. Process if necessary.
+      Output: 삭제 결과
+      Impact scope: None -- new component
+      Acceptance criteria:
+      - Given: 관리자 권한, When: 삭제 요청, Then: 삭제 완료, Verify: `echo ok`, Verify-type: pure
+      Edge cases:
+      - Check related data etc. and so on.
+
+      ## R4: 권한 관리
+      Input: 권한 설정
+      Behavior: 권한을 정상적으로 부여하고, 가능하면 세분화한다.
+      Output: 권한 변경 결과
+      Impact scope: None -- new component
+      Acceptance criteria:
+      - Given: 관리자, When: 권한 변경, Then: 적용, Verify: `echo ok`, Verify-type: pure
+      Edge cases:
+      - 상황에 맞게 기본 권한을 설정한다.
+
+      ## R5: 로그인 처리
+      Input: 인증 정보
+      Behavior: Validate credentials properly and correctly.
+      Output: 세션 토큰
+      Impact scope: None -- new component
+      Acceptance criteria:
+      - Given: 유효한 크레덴셜, When: 로그인, Then: 토큰 발급, Verify: `echo ok`, Verify-type: pure
+      Edge cases:
+      - Optimize token refresh efficiently.
+
+      ## R6: 알림 시스템
+      Input: 알림 대상
+      Behavior: Send notifications if possible, preferably in real-time.
+      Output: 전송 결과
+      Impact scope: None -- new component
+      Acceptance criteria:
+      - Given: 알림 이벤트, When: 트리거, Then: 전송, Verify: `echo ok`, Verify-type: pure
+      Edge cases:
+      - 최적화하여 배치 전송한다.
+
+      ## R7: 데이터 백업
+      Input: 백업 설정
+      Behavior: Run backup as appropriate, depending on schedule.
+      Output: 백업 결과
+      Impact scope: None -- new component
+      Acceptance criteria:
+      - Given: 스케줄, When: 트리거, Then: 백업 실행, Verify: `echo ok`, Verify-type: pure
+      Edge cases:
+      - 가급적 오프피크 시간에 실행한다.
+
+graders:
+  - type: deterministic_tests
+    commands:
+      # Verdict must be FAIL
+      - "grep -q '## Verdict: FAIL' $REVIEW_OUTPUT"
+      # All 7 Korean banned patterns detected
+      - "grep -q '적절히' $REVIEW_OUTPUT"
+      - "grep -q '필요한 경우' $REVIEW_OUTPUT"
+      - "grep -q '등등' $REVIEW_OUTPUT"
+      - "grep -q '올바르게' $REVIEW_OUTPUT"
+      - "grep -q '효율적으로' $REVIEW_OUTPUT"
+      - "grep -q '가능하면' $REVIEW_OUTPUT"
+      - "grep -q '상황에 맞게' $REVIEW_OUTPUT"
+      # All 7 English banned patterns detected
+      - "grep -q 'appropriately' $REVIEW_OUTPUT"
+      - "grep -q 'if necessary' $REVIEW_OUTPUT"
+      - "grep -q 'etc\\.' $REVIEW_OUTPUT"
+      - "grep -q 'properly' $REVIEW_OUTPUT"
+      - "grep -q 'efficiently' $REVIEW_OUTPUT"
+      - "grep -q 'if possible' $REVIEW_OUTPUT"
+      - "grep -q 'as appropriate' $REVIEW_OUTPUT"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Reviewer correctly identified ALL 14 banned expression categories"
+      - "Reviewer listed specific locations for each banned expression"
+      - "Verdict is FAIL, not PASS"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [banned_expression_hits, false_negatives]
