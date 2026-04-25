@@ -43,6 +43,116 @@ def discover_cases(evals_root: pathlib.Path, splits: list[str]) -> list[pathlib.
     return cases
 
 
+def _flatten_mock_data(data: dict, prefix: str = "") -> dict:
+    """Flatten nested mock_data dict into {key: string_value} pairs.
+
+    Nested dicts flatten with ``_`` separator; lists serialize to YAML text;
+    booleans lowercase (``true``/``false``).
+    """
+    result = {}
+    for k, v in data.items():
+        full_key = f"{prefix}_{k}" if prefix else k
+        if isinstance(v, dict):
+            result.update(_flatten_mock_data(v, full_key))
+        elif isinstance(v, list):
+            result[full_key] = yaml.dump(v, default_flow_style=False, allow_unicode=True)
+        elif isinstance(v, bool):
+            result[full_key] = str(v).lower()
+        elif isinstance(v, str):
+            result[full_key] = v
+        else:
+            result[full_key] = str(v)
+    return result
+
+
+def _prepare_mock_files(case: dict) -> tuple[dict, list]:
+    """Write mock_data fields to temp files and return (var_map, temp_file_paths).
+
+    Handles two variable conventions:
+      1. Named file vars: spec_content->$SPEC_FILE, plan_content->$PLAN_FILE, etc.
+      2. Generic $MOCK_<field>: any mock_data key, including nested (flattened with _).
+
+    Returns a dict of {placeholder_string: temp_path_or_value} and temp file list.
+    """
+    import tempfile
+
+    var_map = {}   # {placeholder: temp_path}
+    val_map = {}   # {placeholder: raw_string_value} — for inline substitution
+    temp_files = []
+    mock_data = case.get("input", {}).get("mock_data", {})
+    if not mock_data:
+        return var_map, val_map, temp_files
+
+    # 1. Named file variables
+    field_to_var = {
+        "spec_content": "$SPEC_FILE",
+        "plan_content": "$PLAN_FILE",
+        "review_output": "$REVIEW_OUTPUT",
+        "executor_output": "$EXECUTOR_OUTPUT",
+    }
+
+    for field, placeholder in field_to_var.items():
+        content = mock_data.get(field)
+        if content:
+            tf = tempfile.NamedTemporaryFile(
+                mode="w", suffix=".md", delete=False, encoding="utf-8",
+            )
+            tf.write(content)
+            tf.close()
+            var_map[placeholder] = tf.name.replace("\\", "/")
+            temp_files.append(tf.name)
+
+    # 2. Generic $MOCK_<field> variables (flattened)
+    flat = _flatten_mock_data(mock_data)
+    for key, value in flat.items():
+        mock_var = f"$MOCK_{key}"
+        # Write multi-line or long values to temp files
+        if "\n" in value or len(value) > 120:
+            tf = tempfile.NamedTemporaryFile(
+                mode="w", suffix=".txt", delete=False, encoding="utf-8",
+            )
+            tf.write(value)
+            tf.close()
+            var_map[mock_var] = tf.name.replace("\\", "/")
+            temp_files.append(tf.name)
+        else:
+            val_map[mock_var] = value
+
+    return var_map, val_map, temp_files
+
+
+def _substitute_vars(cmd: str, var_map: dict, val_map: dict) -> str:
+    """Replace variable placeholders in grader command strings.
+
+    - ``echo '$MOCK_X'`` / ``echo "$MOCK_X"`` → ``cat "temp_file"``
+    - ``'$MOCK_X'`` in comparisons → ``'value'`` (from val_map)
+    - ``$SPEC_FILE`` etc. → ``"temp_path"``
+    """
+    # 1. echo '$MOCK_X' �� cat "tempfile"  (file-backed mock vars)
+    for placeholder, path in var_map.items():
+        if placeholder.startswith("$MOCK_"):
+            for quote in ("'", '"'):
+                echo_pat = f"echo {quote}{placeholder}{quote}"
+                if echo_pat in cmd:
+                    cmd = cmd.replace(echo_pat, f'cat "{path}"')
+                    break
+
+    # 2. '$MOCK_X' → 'value' (simple inline vars from val_map)
+    for placeholder, value in val_map.items():
+        for quote in ("'", '"'):
+            quoted_pat = f"{quote}{placeholder}{quote}"
+            if quoted_pat in cmd:
+                cmd = cmd.replace(quoted_pat, f"{quote}{value}{quote}")
+                break
+
+    # 3. Standard file-path vars: $SPEC_FILE, $PLAN_FILE, etc.
+    for placeholder, path in var_map.items():
+        if placeholder in cmd:
+            cmd = cmd.replace(placeholder, f'"{path}"')
+
+    return cmd
+
+
 def run_deterministic_grader(commands: list[str], case: dict) -> dict:
     """Run deterministic_tests grader commands.
 
@@ -50,52 +160,60 @@ def run_deterministic_grader(commands: list[str], case: dict) -> dict:
     Commands are shell commands; exit 0 = pass.
     Variable substitution:
       $SPEC_FILE, $PLAN_FILE, $REVIEW_OUTPUT, $EXECUTOR_OUTPUT
-      -> mock_data paths if available, else placeholder.
+      -> mock_data temp file paths (string-replaced before execution).
     """
+    var_map, val_map, temp_files = _prepare_mock_files(case)
     results = []
     all_pass = True
 
-    for cmd in commands:
-        # Skip placeholder graders
-        if "grader placeholder" in cmd:
-            results.append({
-                "command": cmd,
-                "status": "skipped",
-                "reason": "placeholder grader",
-            })
-            continue
+    try:
+        for cmd in commands:
+            # Skip placeholder graders
+            if "grader placeholder" in cmd:
+                results.append({
+                    "command": cmd,
+                    "status": "skipped",
+                    "reason": "placeholder grader",
+                })
+                continue
 
-        try:
-            proc = subprocess.run(
-                cmd,
-                shell=True,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=os.getcwd(),
-            )
-            passed = proc.returncode == 0
-            if not passed:
+            resolved_cmd = _substitute_vars(cmd, var_map, val_map)
+            try:
+                proc = subprocess.run(
+                    ["bash", "-c", resolved_cmd],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    cwd=os.getcwd(),
+                )
+                passed = proc.returncode == 0
+                if not passed:
+                    all_pass = False
+                results.append({
+                    "command": cmd,
+                    "status": "pass" if passed else "fail",
+                    "returncode": proc.returncode,
+                    "stderr": proc.stderr[:200] if proc.stderr else "",
+                })
+            except subprocess.TimeoutExpired:
                 all_pass = False
-            results.append({
-                "command": cmd,
-                "status": "pass" if passed else "fail",
-                "returncode": proc.returncode,
-                "stderr": proc.stderr[:200] if proc.stderr else "",
-            })
-        except subprocess.TimeoutExpired:
-            all_pass = False
-            results.append({
-                "command": cmd,
-                "status": "timeout",
-            })
-        except Exception as e:
-            all_pass = False
-            results.append({
-                "command": cmd,
-                "status": "error",
-                "error": str(e)[:200],
-            })
+                results.append({
+                    "command": cmd,
+                    "status": "timeout",
+                })
+            except Exception as e:
+                all_pass = False
+                results.append({
+                    "command": cmd,
+                    "status": "error",
+                    "error": str(e)[:200],
+                })
+    finally:
+        for tf_path in temp_files:
+            try:
+                os.unlink(tf_path)
+            except OSError:
+                pass
 
     return {"pass": all_pass, "results": results}
 
@@ -311,7 +429,7 @@ def write_baseline(output_path: pathlib.Path, version: str, model: str,
 
     baseline = {
         "version": version,
-        "date": datetime.datetime.utcnow().isoformat() + "Z",
+        "date": datetime.datetime.now(datetime.UTC).isoformat() + "Z",
         "model": model,
         "git_sha": get_git_sha(),
         "scores": scores,
@@ -330,7 +448,7 @@ def write_run(output_dir: pathlib.Path, version: str, model: str,
     """Write run JSONL file."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+    timestamp = datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%S")
     git_sha = get_git_sha()
     output_path = output_dir / f"{timestamp}-{git_sha}.jsonl"
 
@@ -339,7 +457,7 @@ def write_run(output_dir: pathlib.Path, version: str, model: str,
         header = {
             "type": "run_header",
             "version": version,
-            "date": datetime.datetime.utcnow().isoformat() + "Z",
+            "date": datetime.datetime.now(datetime.UTC).isoformat() + "Z",
             "model": model,
             "git_sha": git_sha,
             "stats": stats,

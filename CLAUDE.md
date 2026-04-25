@@ -58,6 +58,7 @@ agents/               # 플러그인 에이전트 + 프롬프트 템플릿
   spec-reviewer.md          # Plugin Agent — Spec 문서 검증 (sonnet, Read/Grep/Glob)
   plan-reviewer.md          # Plugin Agent — Plan 문서 검증 (sonnet, Read/Grep/Glob)
   implementer-prompt.md     # Template — 구현 서브에이전트 (placeholder 치환 방식 유지)
+  eval-diagnostician.md     # Plugin Agent — 실패 eval 분석 + 1-line 변경 제안 (opus, Read/Grep/Glob)
 phases/               # /setup이 생성하는 phase 상태 추적
 docs/
   INDEX.md            # /setup이 생성하는 문서 내비게이션 맵
@@ -72,6 +73,8 @@ docs/
 phases/               # /executeharness가 생성하는 phase 디렉터리 (하네스 경로 선택 시)
 hooks/
   hooks.json          # opt-in trace collection hooks (/setup --enable-traces로 활성화)
+harness_versions/
+  changelog.jsonl     # append-only 구조화 변경 로그 (날짜, 버전, diff, eval delta)
 bin/
   trace.sh            # observation-only JSONL trace writer (hooks에서 호출)
 ```
