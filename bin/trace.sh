@@ -11,7 +11,14 @@
 # Exit: always 0 — never blocks Claude Code.
 
 EVENT_TYPE="${1:-unknown}"
-TRACE_DIR="${CLAUDE_PLUGIN_DATA:-$HOME/.ezpowers-traces}"
+TRACE_BASE="${CLAUDE_PLUGIN_DATA:-$HOME/.ezpowers-traces}"
+TRACE_DIR="$TRACE_BASE/traces"
+
+# Check python3 availability (required for JSON parsing)
+if ! command -v python3 &>/dev/null; then
+    echo "WARN: python3 not found — trace dropped for event=$EVENT_TYPE" >&2
+    exit 0
+fi
 
 # Save stdin to a temp file (safe for arbitrary JSON)
 TMPFILE="$(mktemp)"

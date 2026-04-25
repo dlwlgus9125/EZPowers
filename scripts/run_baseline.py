@@ -15,6 +15,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 
@@ -179,13 +180,20 @@ def run_deterministic_grader(commands: list[str], case: dict) -> dict:
 
             resolved_cmd = _substitute_vars(cmd, var_map, val_map)
             try:
-                proc = subprocess.run(
-                    ["bash", "-c", resolved_cmd],
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=os.getcwd(),
-                )
+                # Prefer bash for Unix-style grader commands; fall back to shell=True
+                bash_path = shutil.which("bash")
+                if bash_path:
+                    proc = subprocess.run(
+                        [bash_path, "-c", resolved_cmd],
+                        capture_output=True, text=True,
+                        timeout=30, cwd=os.getcwd(),
+                    )
+                else:
+                    proc = subprocess.run(
+                        resolved_cmd, shell=True,
+                        capture_output=True, text=True,
+                        timeout=30, cwd=os.getcwd(),
+                    )
                 passed = proc.returncode == 0
                 if not passed:
                     all_pass = False

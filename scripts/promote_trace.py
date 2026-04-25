@@ -56,22 +56,39 @@ def load_traces_with_negative_feedback(trace_dirs: list[pathlib.Path]) -> list[d
                     except json.JSONDecodeError:
                         continue
 
-            # Check last entry for negative feedback
+            # Only check the LAST entry per session for feedback (avoid re-promoting stale history)
+            if not entries:
+                continue
+
+            # Find the original user input from the first UserPromptSubmit or session_start
+            original_input = ""
+            original_command = "unknown"
             for entry in entries:
-                scores = entry.get("scores", [])
-                for score in scores:
-                    if (score.get("name") == "user-feedback"
-                            and score.get("value") == -1):
-                        candidates.append({
-                            "file": str(jsonl_file),
-                            "session_id": entry.get("session_id", "unknown"),
-                            "trace_id": entry.get("trace_id", "unknown"),
-                            "command": entry.get("ezpowers.command", "unknown"),
-                            "comment": score.get("comment", ""),
-                            "timestamp": entry.get("start_time_unix_ns", ""),
-                            "input": entry.get("tool_input", {}),
-                            "hook_event": entry.get("hook_event_name", ""),
-                        })
+                evt = entry.get("hook_event_name", "")
+                if evt in ("session_start", "UserPromptSubmit"):
+                    tool_input = entry.get("tool_input", {})
+                    if isinstance(tool_input, dict):
+                        original_input = tool_input.get("message", tool_input.get("user_message", ""))
+                    elif isinstance(tool_input, str):
+                        original_input = tool_input
+                if entry.get("ezpowers.command"):
+                    original_command = entry["ezpowers.command"]
+
+            last_entry = entries[-1]
+            scores = last_entry.get("scores", [])
+            for score in scores:
+                if (score.get("name") == "user-feedback"
+                        and score.get("value") == -1):
+                    candidates.append({
+                        "file": str(jsonl_file),
+                        "session_id": last_entry.get("session_id", "unknown"),
+                        "trace_id": last_entry.get("trace_id", "unknown"),
+                        "command": original_command,
+                        "comment": score.get("comment", ""),
+                        "timestamp": last_entry.get("start_time_unix_ns", ""),
+                        "original_input": original_input,
+                        "hook_event": last_entry.get("hook_event_name", ""),
+                    })
 
     return candidates
 
@@ -113,20 +130,27 @@ def build_case_yaml(candidate: dict, split: str, strata: dict,
     slug = slugify(candidate["comment"]) if candidate["comment"] else f"trace-{candidate['session_id'][:8]}"
     case_id = f"{split}.{slug.replace('-', '_')}.{case_seq:03d}"
 
+    # Use original user input as the eval case input, not the feedback comment
+    user_message = candidate.get("original_input", "")
+    if not user_message:
+        user_message = candidate["comment"] or "See trace for context"
+
     case = {
         "case_id": case_id,
         "split": split,
         "stratum": {
             "command": command,
+            "pattern": "trace_promoted",
             **strata,
         },
         "input": {
-            "user_message": candidate["comment"] or "See trace for context",
+            "user_message": user_message,
             "initial_files": [],
             "source_trace": {
                 "trace_id": candidate["trace_id"],
                 "session_id": candidate["session_id"],
                 "file": candidate["file"],
+                "feedback_comment": candidate["comment"],
             },
         },
         "graders": [

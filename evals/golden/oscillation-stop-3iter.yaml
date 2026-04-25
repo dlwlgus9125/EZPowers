@@ -56,13 +56,15 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      # The oscillating key must be detected at iteration 3
-      - "echo '$MOCK_iteration_3_issues' | grep -q 'src/auth.ts:missing-validation'"
-      # Verify the key appeared in both prior iterations
+      # Verify the oscillating key appears across all 3 iterations (input fixture sanity)
       - "echo '$MOCK_iteration_1_issues' | grep -q 'src/auth.ts:missing-validation'"
       - "echo '$MOCK_iteration_2_issues' | grep -q 'src/auth.ts:missing-validation'"
-      # Escalation must be triggered (3 occurrences across iterations 1,2,3)
+      - "echo '$MOCK_iteration_3_issues' | grep -q 'src/auth.ts:missing-validation'"
+      # Verify the escalation expectation is configured as true (fixture sanity)
       - "test '$MOCK_expected_escalation_triggered' = 'true'"
+      # Verify the choiceexecutor command actually documents oscillation detection logic
+      - "grep -qi 'oscillation' commands/choiceexecutor.md"
+      - "grep -qE 'iteration.*3|3.*iteration|2\\+.*이전|이전.*2\\+' commands/choiceexecutor.md"
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

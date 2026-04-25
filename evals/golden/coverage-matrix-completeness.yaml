@@ -101,10 +101,13 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      # Verdict must be FAIL
+      # Verdict must be FAIL (reviewer should detect incomplete coverage)
       - "grep -q '## Verdict: FAIL' $REVIEW_OUTPUT"
-      # R3 must be explicitly called out as unmapped
+      # R3 must be called out specifically in context of missing/unmapped coverage
       - "grep -q 'R3' $REVIEW_OUTPUT"
+      - "grep -iE 'R3.*(miss|unmapp|누락|미매핑|없|coverage)|( miss|unmapp|누락|미매핑).*R3' $REVIEW_OUTPUT"
+      # Verify plan.md documents Coverage Matrix as a structural requirement
+      - "grep -q 'Coverage Matrix' commands/plan.md"
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

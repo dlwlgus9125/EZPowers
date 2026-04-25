@@ -67,14 +67,18 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      # Case A: exact "## Verdict: PASS" present -> parsed as PASS
-      - "echo '$MOCK_reviewer_output_valid' | grep -cq '^## Verdict: PASS$'"
-      # Case B: "## Verdict:" pattern NOT present -> treated as FAIL
+      # Case A: valid mock contains exact "## Verdict: PASS" (fixture sanity)
+      - "echo '$MOCK_reviewer_output_valid' | grep -q '^## Verdict: PASS'"
+      # Case B: invalid mock (no ## prefix) must NOT match the required pattern
       - "! echo '$MOCK_reviewer_output_invalid_no_hash' | grep -q '^## Verdict:'"
-      # Case C: "## Verdict:" pattern NOT present (### is not ##) -> treated as FAIL
+      # Case C: wrong heading level (###) must NOT match ## pattern
       - "! echo '$MOCK_reviewer_output_invalid_wrong_level' | grep -q '^## Verdict:'"
-      # Case D: exact "## Verdict: FAIL" present -> parsed as FAIL
-      - "echo '$MOCK_reviewer_output_valid_fail' | grep -cq '^## Verdict: FAIL$'"
+      # Case D: valid FAIL mock contains exact "## Verdict: FAIL"
+      - "echo '$MOCK_reviewer_output_valid_fail' | grep -q '^## Verdict: FAIL'"
+      # Verify the parsing rule is documented in choiceexecutor.md
+      - "grep -qE '## Verdict.*PASS.*FAIL|Verdict.*패턴.*FAIL' commands/choiceexecutor.md"
+      # Verify brainstorm.md documents Verdict header parsing
+      - "grep -q '## Verdict:' commands/brainstorm.md"
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

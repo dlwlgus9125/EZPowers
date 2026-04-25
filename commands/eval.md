@@ -184,5 +184,5 @@ Reason: golden 3/4 — banned-expression-detection FAIL
 | 시도할 변명 | 왜 안 되는가 |
 |------------|-------------|
 | "golden이 1개만 실패했으니 베이스라인 기록해도 되지 않나" | golden은 inviolable invariant. 1개라도 실패하면 기록 차단. |
-| "manual 케이스는 무시하고 자동만 보면 되지 않나" | manual 케이스도 Total에 집계. 자동화 비율 자체가 eval 성숙도 지표. |
+| "manual 케이스는 무시하고 자동만 보면 되지 않나" | manual 케이스는 pass rate Total에서 제외하지만 별도 행으로 표시. 자동화 비율 자체가 eval 성숙도 지표. |
 | "이전 베이스라인이 없으니 diff를 건너뛰자" | 첫 실행이면 `--baseline`으로 기록부터. diff 없이도 per-split 결과는 항상 표시. |
