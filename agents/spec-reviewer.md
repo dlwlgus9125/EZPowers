@@ -79,6 +79,9 @@ For each Verify field:
 - Verify-type one of: api, e2e, cli, lib, data, pure?
 - If invalid -> FAIL.
 
+**8. Technology constraint resolution:**
+If spec's tech stack includes items with known compatibility constraints (keywords: ESM, native module, platform-specific, runtime-only, dynamic import), spec must include resolution strategy for each. Keyword found but no strategy → FAIL.
+
 ## Subjective Review (Advisory Only -- does NOT affect verdict)
 
 After hard gate checks, optionally note:
