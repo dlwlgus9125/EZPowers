@@ -1,3 +1,8 @@
+---
+description: Review changes against spec for completeness
+allowed-tools: [Bash, Read, Grep, Glob]
+---
+
 # /review — 변경사항 리뷰
 
 프로젝트 변경사항을 리뷰한다. 메인 플로우와 독립적으로 언제든 호출 가능.

@@ -1,3 +1,8 @@
+---
+description: Attach user scores to session traces
+allowed-tools: [Bash, Read, Write]
+---
+
 # /feedback -- 세션 트레이스에 사용자 점수 부착
 
 현재 세션의 트레이스에 사용자 피드백(점수 + 코멘트)을 기록한다. 메인 플로우와 독립적으로 언제든 호출 가능.

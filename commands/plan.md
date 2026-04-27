@@ -1,3 +1,8 @@
+---
+description: Decompose spec into task plans with agent assignments
+allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
+---
+
 # /plan — 작업순서 플래닝
 
 brainstorm에서 만든 설계 문서(spec)를 입력으로 받아 상세 task 문서로 분해하고 에이전트 배치를 결정한다. 코드는 작성하지 않는다.

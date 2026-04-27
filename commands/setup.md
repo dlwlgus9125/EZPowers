@@ -1,3 +1,8 @@
+---
+description: Initialize project harness with config and steering docs
+allowed-tools: [Bash, Read, Write, Glob, AskUserQuestion]
+---
+
 # /setup — 프로젝트 하네스 초기화
 
 프로젝트에 EZPowers 하네스를 셋업한다. 설정 파일과 steering 문서 뼈대를 만드는 대화형 절차. 코드는 작성하지 않는다.

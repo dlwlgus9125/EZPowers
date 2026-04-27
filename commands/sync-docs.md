@@ -1,3 +1,8 @@
+---
+description: Synchronize reference docs with codebase state
+allowed-tools: [Bash, Read, Write, Grep, Glob]
+---
+
 # /sync-docs — 레퍼런스 문서 동기화
 
 코드베이스의 현재 상태를 레퍼런스 문서에 반영한다. 메인 플로우와 독립적으로 언제든 호출 가능하며, `/choiceexecutor` 완료 단계에서도 자동 제안된다.

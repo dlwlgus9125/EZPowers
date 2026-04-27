@@ -1,3 +1,8 @@
+---
+description: Delegate plan execution to EasyPowersHarness executor
+allowed-tools: [Bash, Read, Write]
+---
+
 # /executeharness — EasyPowersHarness 실행 위임
 
 EasyPowersHarness의 Python executor(`scripts/execute.py`)를 통해 plan의 task를 step 단위로 실행한다.

@@ -1,3 +1,8 @@
+---
+description: Run guided design session to produce spec documents
+allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
+---
+
 # /brainstorm — 설계 문서 생성
 
 아이디어를 대화를 통해 설계 문서(spec)로 만든다. 구현 코드는 작성하지 않는다.

@@ -1,3 +1,8 @@
+---
+description: Select and run execution path for plan tasks
+allowed-tools: [Bash, Read, Write, Edit, Agent, AskUserQuestion]
+---
+
 # /choiceexecutor — 실행 경로 선택
 
 plan 문서의 task들을 실행한다. 실행 방식(서브에이전트 / 하네스 / 인라인)을 선택하고, 선택된 경로로 task를 실행 + AC 검증 + 조건부 보안 리뷰 + 최종 코드 리뷰.

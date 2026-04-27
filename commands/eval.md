@@ -1,3 +1,8 @@
+---
+description: Run eval suite and report scores per version
+allowed-tools: [Bash, Read, Write]
+---
+
 # /eval -- eval suite 실행 및 점수 보고
 
 EZPowers eval 케이스를 실행하고 버전별 점수를 보고한다. 메인 플로우와 독립적으로 언제든 호출 가능.
