@@ -188,6 +188,7 @@ Expected: exit 0
 - spec AC를 **원문 그대로 복사** — 의역 금지
 - task가 여러 R에 걸치면 해당 부분만 복사
 - 모든 task에 verification method 필수
+- 산출물이 실행 가능한 바이너리/앱이면 빌드 AC와 별도로 런타임 기동 AC 포함 필수 (프로세스 시작 → N초 생존 → 비정상 종료 없음)
 
 ### Task 의존성
 
