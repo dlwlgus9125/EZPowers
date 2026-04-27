@@ -62,7 +62,7 @@ Test strategy: {unit/integration/e2e 등}
 2. 기술 스택
 3. 테스트 전략
 4. build/lint/test 명령
-5. smoke.command 필요 여부
+5. smoke.command 설정 — `build.command`와 동일하면 경고. 스택별 가이드: CLI(`./dist/cli --version`), 서버(기동→health check→종료), 데스크톱(기동→N초 생존→종료), 라이브러리(`node -e "require('./dist')"` 또는 ESM import)
 6. `/choiceexecutor`에 사용할 실행 방식 선호도 (서브에이전트 vs 하네스 vs 인라인)
 
 가능하면 preset을 제안:
