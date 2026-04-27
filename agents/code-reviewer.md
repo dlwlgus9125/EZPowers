@@ -45,6 +45,8 @@ You will receive **Plan file path** and **Diff range** in the task prompt.
 - Check all import/require/use statements against project lockfile
 - Verify new dependency names are legitimate (not typosquats)
 - Flag imports without corresponding dependency entries
+- If bundler/build config changed: verify externalized dependencies are loadable by target runtime's module system (e.g., CJS require() cannot load ESM-only packages)
+- If new dependency added: verify its module system (CJS/ESM/dual via `exports` field) is compatible with project build pipeline and runtime
 
 ### 5. Spec Evidence Table (Required when plan file is provided)
 
