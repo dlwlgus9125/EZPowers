@@ -81,6 +81,9 @@ c. Verify step existence: Task must contain "Run Verify command" step.
 
 For tasks without test code: apply only check c.
 
+**6. Build config cross-validation:**
+If task modifies bundler/build config: verify externalize/exclude/alias strategy is compatible with dependency module systems (CJS/ESM). Flag blanket patterns (e.g., `externals: [/node_modules/]`) that may break ESM-only deps. No build config in task → skip.
+
 ## Advisory Checks (do NOT affect verdict)
 
 | Category | What to Look For |
