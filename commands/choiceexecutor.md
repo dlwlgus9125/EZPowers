@@ -479,7 +479,8 @@ git hash 기록 (git rev-parse HEAD)
 
 사용자가 1을 선택하면 `/sync-docs` 절차를 따른다. 스킵해도 나중에 독립 호출 가능.
 
-4. 다음 추천: `/review`
+4. **Smoke 검증:** `config.smoke.command`가 빈 문자열이 아니면 실행. 실패 시 사용자에게 보고하고 수정 루프 진입 (최대 3회). 빈 문자열이면 스킵.
+5. 다음 추천: `/review`
 
 `phases/index.json` 업데이트:
 - build: `status: "complete"`, `completed_at: "<ISO 8601>"`
