@@ -61,7 +61,7 @@ BANNED_EN_RE = [
 # Mock-output variables that need live execution (skip these grader commands)
 LIVE_EXEC_VARS = ("$REVIEW_OUTPUT", "$EXECUTOR_OUTPUT")
 
-MAX_DIFF_LINES = 50
+MAX_DIFF_LINES = 3
 
 
 # ---------------------------------------------------------------------------
