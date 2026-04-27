@@ -228,6 +228,7 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 | Implementer AC | choiceexecutor.md | 3 | — | 3 |
 | Security review | choiceexecutor.md | 5 | 3 | 5 |
 | Final code review | choiceexecutor.md | 10 | 5 | 10 |
+| Smoke test | choiceexecutor.md | 3 | — | 3 |
 
 모든 review type에서 Verdict 헤더 누락이 2회 연속 시 즉시 사용자 에스컬레이션.
 
