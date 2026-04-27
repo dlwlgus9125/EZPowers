@@ -141,6 +141,7 @@ Coverage Matrix 다음에, 프로젝트에 아키텍처 규칙(`.claude/rules/`,
 - [ ] (R1) Given: [조건] / When: [행동] / Then: [결과] / Verify: `[커맨드]`
 
 **Verification method:** spec의 Verify 커맨드 실행 (exit 0 = PASS)
+**Runtime verification (실행 가능 산출물만):** `<start-cmd> & sleep N && kill $! 2>/dev/null; test $? -eq 0` 패턴으로 기동 검증. 빌드 AC와 별도.
 
 - [ ] **Step 1: Write the failing test**
 
