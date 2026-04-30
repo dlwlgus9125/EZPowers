@@ -75,6 +75,12 @@ hooks/
   hooks.json          # opt-in trace collection hooks (/setup --enable-traces로 활성화)
 harness_versions/
   changelog.jsonl     # append-only 구조화 변경 로그 (날짜, 버전, diff, eval delta)
+scripts/
+  validate.py         # eval gate (pre-commit hook calls this)
+  run_baseline.py     # eval runner + baseline writer
+  promote_trace.py    # trace → eval case converter
+.githooks/
+  pre-commit          # runs validate.py when commands/ or agents/ staged
 bin/
   trace.sh            # observation-only JSONL trace writer (hooks에서 호출)
 ```
@@ -91,6 +97,19 @@ bin/
 - **문서는 가볍게** — 어떤 에이전트가 와도 맥락을 이해할 수 있도록 필요한 곳에 배치
 - **증거 기반 검증** — "should work" 금지, 실행 결과로 증명
 - **가정 명시** — 설계/플래닝 전 가정을 선언하고 사용자 확인
+
+## Eval Gate
+
+Commits touching `commands/` or `agents/` automatically run `scripts/validate.py`.
+The commit is blocked if:
+- Diff exceeds 3 lines per Better-Harness "한 번에 한 줄" rule
+- `evals/` files modified in the same commit (isolation)
+- Any golden eval codebase-invariant grader fails
+- Optimization average regresses vs latest baseline
+- Holdout average drops >5% vs latest baseline
+- Added text contains banned vague expressions
+
+Bypass (emergency only): `git commit --no-verify`
 
 ## Versioning
 
