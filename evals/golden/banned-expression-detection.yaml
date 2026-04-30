@@ -120,6 +120,10 @@ graders:
       - "grep -q 'efficiently' $REVIEW_OUTPUT"
       - "grep -q 'if possible' $REVIEW_OUTPUT"
       - "grep -q 'as appropriate' $REVIEW_OUTPUT"
+      # Codebase invariants: spec-reviewer must still contain banned expression scan
+      - "grep -q '적절히' agents/spec-reviewer.md"
+      - "grep -qE 'appropriately|if necessary' agents/spec-reviewer.md"
+      - "grep -qi 'banned' agents/spec-reviewer.md || grep -q '금지 표현' agents/spec-reviewer.md"
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

@@ -108,6 +108,8 @@ graders:
       - "grep -iE 'R3.*(miss|unmapp|누락|미매핑|없|coverage)|( miss|unmapp|누락|미매핑).*R3' $REVIEW_OUTPUT"
       # Verify plan.md documents Coverage Matrix as a structural requirement
       - "grep -q 'Coverage Matrix' commands/plan.md"
+      # Codebase invariant: plan-reviewer must check coverage completeness
+      - "grep -qi 'coverage' agents/plan-reviewer.md"
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:
