@@ -3,80 +3,80 @@ description: Decompose spec into task plans with agent assignments
 allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
 ---
 
-# /plan — 작업순서 플래닝
+# /plan — Task Sequencing
 
-brainstorm에서 만든 설계 문서(spec)를 입력으로 받아 상세 task 문서로 분해하고 에이전트 배치를 결정한다. 코드는 작성하지 않는다.
+Take the spec from /brainstorm as input, decompose it into detailed tasks, and determine agent assignments. No code is written.
 
-> **For agentic workers:** /choiceexecutor에서 서브에이전트 드리븐, 하네스, 또는 인라인 실행으로 이 plan의 task를 실행한다. Steps는 체크박스 구문으로 추적.
+> **For agentic workers:** /choiceexecutor runs tasks from this plan via subagent-driven, harness, or inline execution. Steps are tracked with checkbox syntax.
 
-## 1. 사전 확인
+## 1. Pre-flight Checks
 
-다음을 먼저 확인한다:
-1. `.harness/config.json` 존재 여부
-2. `AGENTS.md` 존재 여부
-3. spec 문서 존재 여부 (우선순위: 인자 > `phases/index.json`의 brainstorm.artifact > config의 `defaults.spec_location` 디렉터리에서 파일명의 `YYYY-MM-DD` 접두사를 기준으로 가장 최근 날짜의 파일 선택. 동일 날짜면 파일명 내림차순)
-4. 최근 git 변경사항
+Verify the following first:
+1. `.harness/config.json` exists
+2. `AGENTS.md` exists
+3. Spec document exists (priority: argument > `phases/index.json` brainstorm.artifact > latest file from config `defaults.spec_location` directory selected by `YYYY-MM-DD` prefix date, descending; ties broken by filename descending)
+4. Recent git changes
 
-없으면 해당 단계를 먼저 실행하라고 안내하고 종료:
-- config 없음 -> `/setup`
-- spec 없음 -> `/brainstorm`
+If missing, direct the user to the required step and stop:
+- No config -> `/setup`
+- No spec -> `/brainstorm`
 
-`phases/index.json`이 있으면 plan phase를 `in_progress`로 업데이트:
+If `phases/index.json` exists, update the plan phase to `in_progress`:
 ```json
 { "current_phase": "plan", "phases": { ..., "plan": { "status": "in_progress" } } }
 ```
 
-## 2. Spec 읽기 + 가정 선언
+## 2. Read Spec + Declare Assumptions
 
-spec을 읽은 후 가정을 선언한다:
+After reading the spec, declare assumptions:
 
 ```
 ASSUMPTIONS ABOUT THIS SPEC:
-1. [모호한 요구사항 해석에 대한 가정]
-2. [spec에 명시되지 않은 기술 접근에 대한 가정]
-3. [모듈 경계나 기존 코드 동작에 대한 가정]
--> 틀린 게 있으면 지금 알려주세요.
+1. [Assumption about interpreting ambiguous requirements]
+2. [Assumption about technical approach not stated in the spec]
+3. [Assumption about module boundaries or existing code behavior]
+-> Correct me if any of these are wrong.
 ```
 
-명확하지 않은 부분이 있으면 사용자와 짧게 합의한다. 한 번에 하나의 질문만.
+Clarify unclear parts with the user briefly. One question at a time.
 
 ## Scope Check
 
-spec이 여러 독립 서브시스템을 다루면 별도 plan으로 분할 제안. 각 plan은 독립적으로 작동하는 테스트 가능한 소프트웨어를 산출해야 한다.
+If the spec covers multiple independent subsystems, suggest splitting into separate plans. Each plan must produce independently working, testable software.
 
-## 3. 파일 구조 매핑
+## 3. File Structure Mapping
 
-태스크를 정의하기 전에 생성/수정할 파일을 먼저 매핑한다:
-- 각 파일의 책임을 명확히 — 하나의 파일, 하나의 명확한 책임
-- 단위가 명확한 경계와 인터페이스를 갖도록
-- 함께 변경되는 파일은 함께 배치
-- 기존 코드베이스라면 기존 패턴을 따름
-- 작고 집중된 파일 선호 — 파일이 커지면 역할이 과다한 신호
+Before defining tasks, map files to create/modify:
+- Clear responsibility per file — one file, one clear purpose
+- Units have well-defined boundaries and interfaces
+- Files that change together are grouped together
+- For existing codebases, follow existing patterns
+- Prefer small, focused files — large files signal overloaded roles
 
-## 4. Coverage Matrix (필수)
+## 4. Coverage Matrix (required)
 
-모든 plan은 이 매트릭스를 포함해야 한다:
+Every plan must include this matrix:
 
 ```markdown
 ## Coverage Matrix
 
 | Requirement | Related Tasks |
 |-------------|---------------|
-| R1: [제목] | T1, T3 |
-| R2: [제목] | T2 |
+| R1: [Title] | T1, T3 |
+| R2: [Title] | T2 |
 ```
 
-규칙:
-- spec의 모든 R이 매트릭스에 있어야 함
-- 모든 R이 최소 하나의 T에 매핑되어야 함
-- R에 대응 T가 없으면 task를 추가하거나 이유를 명시 (사용자 승인 필요)
-- T가 R에 매핑되지 않으면 경고 (불필요한 작업 가능성)
+Rules:
+- All Rs from the spec must appear in the matrix
+- Every R must map to at least one T
+- R without a matching T: add a task or justify (user approval required)
+- T without an R mapping: warn (possible unnecessary work)
 
-**Hard gate:** plan reviewer가 검증. 누락된 매트릭스 또는 매핑 안 된 R = FAIL.
+**Hard gate:** Plan reviewer verifies. Missing matrix or unmapped R = FAIL.
 
-## Structural Invariants (권장)
+## Structural Invariants (recommended)
 
-Coverage Matrix 다음에, 프로젝트에 아키텍처 규칙(`.claude/rules/`, AGENTS.md 제약, CLAUDE.md 규칙)이 있으면 추출하여 포함:
+After the Coverage Matrix, if the project has architecture rules (`.claude/rules/`, AGENTS.md constraints, CLAUDE.md rules), extract and include:
 
 ```markdown
 ## Structural Invariants
@@ -87,42 +87,42 @@ Coverage Matrix 다음에, 프로젝트에 아키텍처 규칙(`.claude/rules/`,
 | SI-2 | Shared module has no runtime dependencies | CLAUDE.md | `jq '.dependencies' shared/package.json` is empty |
 ```
 
-규칙:
-- 각 invariant은 검증 가능한 커맨드로 표현
-- Source에 규칙 파일/문서 참조
-- 프로젝트 규칙 없으면 이 섹션 생략 — 규칙을 만들어내지 않는다
-- code-reviewer가 구현 완료 후 검증
+Rules:
+- Each invariant expressed as a verifiable command
+- Source references the rule file/document
+- If no project rules exist, omit this section — do not invent rules
+- code-reviewer verifies after implementation
 
-## 5. Task 분해 원칙
+## 5. Task Decomposition Principles
 
-각 task는 독립적인 에이전트 세션에서 실행된다고 가정하고 작성한다.
+Write each task assuming it runs in an independent agent session.
 
-**반드시 지킬 것:**
-- 한 task는 하나의 명확한 목표
-- task 문서만 읽고도 작업을 시작할 수 있어야 함
-- "이전 대화에서" 같은 외부 문맥 참조 금지
-- 관련 문서와 파일 경로를 명시
-- AC는 관찰 가능한 결과 기준
+**Must follow:**
+- One task, one clear goal
+- Enough info in the task document alone to start work
+- No external context references like "from the previous conversation"
+- Specify relevant docs and file paths
+- AC based on observable results
 
 ### Token Budget
 
-- **경험칙:** 100 lines ≈ 500-1000 tokens
-- **목표:** task당 컨텍스트 비용을 모델 context window의 ~25% 이내
-- **분할 트리거:**
-  - 5+ 파일을 건드리는 task
-  - 10+ 파일을 읽어야 하는 task
-  - 인프라 변경 + 비즈니스 로직 혼합
-  - 새 파일 생성 + 기존 밀결합 파일 수정 혼합
+- **Rule of thumb:** 100 lines ≈ 500-1000 tokens
+- **Goal:** per-task context cost within ~25% of model context window
+- **Split triggers:**
+  - Task touches 5+ files
+  - Task requires reading 10+ files
+  - Mixes infrastructure changes + business logic
+  - Mixes new file creation + modifying tightly coupled existing files
 
-### Task 크기
+### Task Size
 
-- 각 step은 2-5분 단위 (테스트 작성, 실행, 구현, 검증, 커밋)
-- 인프라 변경과 비즈니스 로직 변경을 섞지 않음
+- Each step is 2-5 minute units (write test, run, implement, verify, commit)
+- Do not mix infrastructure and business logic changes
 
-### Task 구조
+### Task Structure
 
 ````markdown
-### Task N: [이름] [R1, R3]
+### Task N: [Name] [R1, R3]
 
 **Files:**
 - Create: `exact/path/to/file.py`
@@ -134,14 +134,14 @@ Coverage Matrix 다음에, 프로젝트에 아키텍처 규칙(`.claude/rules/`,
 - (b) Call site info (reference only — no verdict impact): [`path/to/other.py:30`] — calls `modified_function` (behavioral dependency only)
 - (c) Code preservation: [`path/to/existing.py:50-65`] — input validation logic, must be preserved
 
-**Depends on:** Task N (있으면)
-**File overlap with:** Task N (같은 파일 수정 시)
+**Depends on:** Task N (if applicable)
+**File overlap with:** Task N (if modifying the same file)
 
 **Completion criteria (from spec):**
-- [ ] (R1) Given: [조건] / When: [행동] / Then: [결과] / Verify: `[커맨드]`
+- [ ] (R1) Given: [condition] / When: [action] / Then: [result] / Verify: `[command]`
 
-**Verification method:** spec의 Verify 커맨드 실행 (exit 0 = PASS)
-**Runtime verification (실행 가능 산출물만):** `<start-cmd> & sleep N && kill $! 2>/dev/null; test $? -eq 0` 패턴으로 기동 검증. 빌드 AC와 별도.
+**Verification method:** Run spec's Verify commands (exit 0 = PASS)
+**Runtime verification (executable artifacts only):** `<start-cmd> & sleep N && kill $! 2>/dev/null; test $? -eq 0` pattern for startup verification. Separate from build AC.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -172,135 +172,135 @@ Expected: exit 0
 - [ ] **Step 6: Commit**
 ````
 
-### Impact scope 규칙
+### Impact Scope Rules
 
-- Modify 파일이 있는 task만 필수. Create-only task는 면제.
-- **(a) Reference breakage:** 변경 후 수정 없이는 깨지는 파일 목록.
-  - 직접 import + re-export chain 1단계
-  - 시그니처 변경 (파라미터 추가/제거/타입 변경, 반환 타입, 예외, 이름 변경)
-  - Re-export 패턴: JS/TS `export { X } from`/`export * from`, Python `__init__.py`, CommonJS `module.exports = require(...)`
-  - 불확실하면 (a)로 분류 (안전 > 효율)
-- **(b) Call site info:** 동작에만 의존, 수정 불필요. "reference only" 마커. 누락이 FAIL 유발 안 함.
-- **(c) Code preservation:** 수정 범위 내 방어 코드 (validation, error handling, auth). 없으면 "No defensive code patterns found" 명시.
+- Required only for tasks with Modify files. Create-only tasks are exempt.
+- **(a) Reference breakage:** Files that break without modification after the change.
+  - Direct imports + 1-level re-export chains
+  - Signature changes (parameter add/remove/type change, return type, exceptions, renames)
+  - Re-export patterns: JS/TS `export { X } from`/`export * from`, Python `__init__.py`, CommonJS `module.exports = require(...)`
+  - When uncertain, classify as (a) (safety > efficiency)
+- **(b) Call site info:** Depends only on behavior, no modification needed. "reference only" marker. Omission does not cause FAIL.
+- **(c) Code preservation:** Defensive code within modification scope (validation, error handling, auth). If none, state "No defensive code patterns found".
 
-### Completion criteria 규칙
+### Completion Criteria Rules
 
-- spec AC를 **원문 그대로 복사** — 의역 금지
-- task가 여러 R에 걸치면 해당 부분만 복사
-- 모든 task에 verification method 필수
-- 산출물이 실행 가능한 바이너리/앱이면 빌드 AC와 별도로 런타임 기동 AC 포함 필수 (프로세스 시작 → N초 생존 → 비정상 종료 없음)
+- Copy spec AC **verbatim** — no paraphrasing
+- If a task spans multiple Rs, copy only the relevant parts
+- Every task requires a verification method
+- If the artifact is an executable binary/app, include runtime startup AC separate from build AC (process starts → survives N seconds → no abnormal exit)
 
-### Task 의존성
+### Task Dependencies
 
-- `**Depends on:** Task N` — 선행 task 필수
-- `**File overlap with:** Task N` — 같은 파일 수정
-- 모든 task 독립이면 Coverage Matrix 뒤에 "All tasks are independent" 표기
+- `**Depends on:** Task N` — prerequisite task required
+- `**File overlap with:** Task N` — same file modified
+- If all tasks are independent, note "All tasks are independent" after Coverage Matrix
 
-## 6. 에이전트 배치
+## 6. Agent Assignment
 
 ```markdown
 ## Agent Assignment
 
 | Task | Agent | Mode | Reason |
 |------|-------|------|--------|
-| T1 | subagent | isolated | 독립 모듈 생성 |
-| T2 | subagent | isolated | 독립 테스트 |
-| T3 | inline | sequential | T1 결과에 의존 |
+| T1 | subagent | isolated | Independent module creation |
+| T2 | subagent | isolated | Independent tests |
+| T3 | inline | sequential | Depends on T1 results |
 ```
 
 Mode: `isolated` / `sequential` / `parallel`
 
 ## 7. Plan Review Loop
 
-Plan 작성 완료 후:
+After completing the plan:
 
-1. `ezpowers:plan-reviewer` 플러그인 에이전트를 `subagent_type`으로 지정하여 디스패치. 동적 정보만 prompt로 전달:
+1. Dispatch `ezpowers:plan-reviewer` plugin agent via `subagent_type`. Pass only dynamic info in the prompt:
 
    ```
    Agent tool:
      subagent_type: "ezpowers:plan-reviewer"
      description: "Review plan document"
      prompt: |
-       **Plan to review:** <plan 파일의 절대 경로>
-       **Spec for reference:** <spec 파일의 절대 경로>
+       **Plan to review:** <absolute path to plan file>
+       **Spec for reference:** <absolute path to spec file>
    ```
 
-2. reviewer 결과는 `## Verdict: PASS` 또는 `## Verdict: FAIL` 헤더만 판정 기준으로 파싱. 다른 위치의 `PASS`/`FAIL` 문자열은 무시. **Verdict 헤더가 없거나 형식이 다르면:** `FAIL`로 간주하되, 2회 연속 Verdict 헤더 누락 시 사용자에게 에스컬레이션 ("Reviewer가 표준 형식으로 판정을 반환하지 않습니다.")
-3. Issues Found -> fix -> fresh 서브에이전트 재디스패치 (동일 프롬프트, 이전 결과 전달 금지)
-4. 비공개 이슈 로그 유지 — oscillation 감지용. 각 이슈를 `{task}:{check_number}` 키로 기록 (예: `T2:coverage_matrix`, `T3:impact_scope`).
-5. **Oscillation check (iteration 3부터):** 현재 이슈의 `{task}:{check_number}` 키가 2+ 이전 iteration에도 존재 -> 즉시 사용자 에스컬레이션
-6. **Tiered escalation:** 3회 -> 경고. 5회 -> 중단.
+2. Parse reviewer result by `## Verdict: PASS` or `## Verdict: FAIL` header only. Ignore `PASS`/`FAIL` strings elsewhere. **If Verdict header is missing or malformed:** treat as `FAIL`, but on 2 consecutive missing Verdict headers, escalate to user ("Reviewer is not returning verdicts in the standard format.")
+3. Issues found -> fix -> fresh subagent re-dispatch (same prompt, do not pass previous results)
+4. Maintain a private issue log — for oscillation detection. Log each issue by `{task}:{check_number}` key (e.g., `T2:coverage_matrix`, `T3:impact_scope`).
+5. **Oscillation check (from iteration 3):** If a current issue's `{task}:{check_number}` key also appeared in 2+ prior iterations -> immediately escalate to user
+6. **Tiered escalation:** 3 rounds -> warn. 5 rounds -> stop.
 
-## Backward Transition: /brainstorm으로 복귀
+## Backward Transition: Return to /brainstorm
 
-plan 작성 중 spec이 불충분하면 — 누락 요구사항, 모순된 제약, 불분명한 범위 — 깨진 spec에 대해 plan을 계속 쓰지 않는다.
+If the spec is insufficient during planning — missing requirements, contradictory constraints, unclear scope — do not continue writing a plan against a broken spec.
 
-**트리거:**
-- task 분해 시 요구사항이 모호
-- 두 spec 요구사항이 모순
-- 중대한 기술 제약이 spec에서 탐색되지 않음
+**Triggers:**
+- Requirements are ambiguous during task decomposition
+- Two spec requirements contradict each other
+- A critical technical constraint was not explored in the spec
 
-**액션:**
-1. 이유 로그: "Returning to /brainstorm: [구체적 이유]"
-2. 사용자에게 보고: 무엇이 불충분하고 왜 plan 진행 불가
-3. `/brainstorm`으로 복귀하여 spec 갭 해결
-4. spec 업데이트 후 `/plan` 재개
+**Actions:**
+1. Log reason: "Returning to /brainstorm: [specific reason]"
+2. Report to user: what is insufficient and why planning cannot proceed
+3. Return to `/brainstorm` to resolve spec gaps
+4. Resume `/plan` after spec update
 
-## 8. 산출물
+## 8. Artifacts
 
-**저장 위치:** `AGENTS.md`의 `plan location:` 값. 없으면 `docs/plans/` 기본값.
-**파일명:** `YYYY-MM-DD-<feature-name>.md`
+**Save location:** Value of `plan location:` in `AGENTS.md`. Default: `docs/plans/`.
+**Filename:** `YYYY-MM-DD-<feature-name>.md`
 
-Plan 헤더:
+Plan header:
 ```markdown
 # [Feature Name] Implementation Plan
 
-**Goal:** [한 문장]
-**Architecture:** [2-3 문장]
-**Tech Stack:** [핵심 기술]
-**Spec:** [spec 파일 경로]
+**Goal:** [One sentence]
+**Architecture:** [2-3 sentences]
+**Tech Stack:** [Core technologies]
+**Spec:** [Spec file path]
 
 ---
 ```
 
-### INDEX.md 업데이트
+### INDEX.md Update
 
-Plan 커밋 시 `docs/INDEX.md`에 plan 항목을 추가:
+On plan commit, add the plan entry to `docs/INDEX.md`:
 
 ```markdown
 ## Plans
-- [YYYY-MM-DD-<feature-name>](plans/YYYY-MM-DD-<feature-name>.md): [derived] 구현 플랜
+- [YYYY-MM-DD-<feature-name>](plans/YYYY-MM-DD-<feature-name>.md): [derived] implementation plan
 ```
 
-기존 Plans 섹션이 있으면 항목 추가, 없으면 섹션 생성.
+If a Plans section exists, add the entry. Otherwise, create the section.
 
-## 9. 완료 안내
+## 9. Completion
 
-plan 작성이 끝나면:
-1. task 개수, 의존 관계 요약
-2. 리스크 있는 task
-3. 다음 명령: `/choiceexecutor`
+After the plan is written:
+1. Task count, dependency summary
+2. Risky tasks
+3. Next command: `/choiceexecutor`
 
-`phases/index.json` 업데이트:
-- plan: `status: "complete"`, `artifact: "<plan 파일 경로>"`, `completed_at: "<ISO 8601>"`
-- build: `status: "pending"` (변경 없음 확인)
+Update `phases/index.json`:
+- plan: `status: "complete"`, `artifact: "<plan file path>"`, `completed_at: "<ISO 8601>"`
+- build: `status: "pending"` (verify unchanged)
 
 ## Remember
 
-- 정확한 파일 경로 항상
-- plan에 완전한 코드 ("validation 추가" 금지)
-- 기대 출력이 있는 정확한 커맨드
-- DRY, YAGNI, TDD, 빈번한 커밋
+- Always use exact file paths
+- Complete code in the plan ("add validation" is banned)
+- Exact commands with expected output
+- DRY, YAGNI, TDD, frequent commits
 
 ## Common Rationalizations
 
-| 핑계 | 현실 |
-|------|------|
-| "spec이 명확해서 plan 불필요" | Spec은 WHAT, Plan은 HOW + 순서 + 파일. 둘 다 필요. |
-| "task 순서는 구현 중에" | 잘못된 순서 = 차단, 컨텍스트 스위치, 충돌. 지금 계획. |
-| "task가 너무 많아 그룹핑" | 그룹핑은 복잡성을 숨긴다. 5분 넘으면 분할. |
-| "impact scope 분석이 오래 걸린다" | 구현 중 깨진 호출자 찾기가 더 오래. 5분 분석이 수시간 디버깅 절약. |
-| "테스트는 당연해서 plan에 불필요" | 누구에게 당연? 구현자에게 정확한 테스트 코드와 커맨드 필요. |
-| "파일 구조는 자연스럽게" | 자연 발생 = 일관성 없는 경계. 경계를 미리 결정. |
-| "coverage matrix는 관료주의" | 매핑 안 된 요구사항 = 잊힌 요구사항. 매트릭스가 안전망. |
-| "이 task는 너무 작아서 step 불필요" | 작은 task도 step 누락 시 잘못 구현. 명시한다. |
+| Rationalization | Reality |
+|----------------|---------|
+| "Spec is clear enough, no plan needed" | Spec = WHAT, Plan = HOW + order + files. Both needed. |
+| "Task order during implementation" | Wrong order = blocking, context switches, conflicts. Plan now. |
+| "Too many tasks, let's group them" | Grouping hides complexity. If a task takes >5 min, split it. |
+| "Impact scope analysis takes too long" | Finding broken callers during implementation takes longer. 5 min of analysis saves hours of debugging. |
+| "Tests are obvious, don't need them in plan" | Obvious to whom? Implementer needs exact test code and commands. |
+| "File structure will emerge naturally" | Natural emergence = inconsistent boundaries. Decide boundaries upfront. |
+| "Coverage matrix is bureaucracy" | Unmapped requirement = forgotten requirement. Matrix is the safety net. |
+| "This task is too small for steps" | Small tasks with missing steps get misimplemented. Be explicit. |
