@@ -3,210 +3,210 @@ description: Synchronize reference docs with codebase state
 allowed-tools: [Bash, Read, Write, Grep, Glob]
 ---
 
-# /sync-docs — 레퍼런스 문서 동기화
+# /sync-docs — Reference Document Synchronization
 
-코드베이스의 현재 상태를 레퍼런스 문서에 반영한다. 메인 플로우와 독립적으로 언제든 호출 가능하며, `/choiceexecutor` 완료 단계에서도 자동 제안된다.
+Reflect the current codebase state in reference docs. Can be invoked independently at any time, and is automatically suggested at the `/choiceexecutor` completion step.
 
-## 1. 사전 확인
+## 1. Pre-flight Checks
 
-다음을 읽는다:
+Read the following:
 - `AGENTS.md`
 - `.harness/config.json`
 - `docs/INDEX.md`
 
-없으면 안내하고 종료: "`/setup`을 먼저 실행하세요."
+If missing, direct and stop: "Run `/setup` first."
 
-## 2. 코드베이스 스캔
+## 2. Codebase Scan
 
-현재 코드베이스의 실제 상태를 수집한다.
+Collect the actual current state of the codebase.
 
-### 2-1. 모듈 구조
+### 2-1. Module Structure
 
-- 소스 디렉터리 탐색 (매니페스트 기반: `src/`, `lib/`, `app/`, `packages/` 등)
-- 각 모듈/패키지: 이름, 역할(주요 export 기반 추론), 의존 관계
-- 엔트리포인트 파일 식별
+- Explore source directories (manifest-based: `src/`, `lib/`, `app/`, `packages/`, etc.)
+- Per module/package: name, role (inferred from main exports), dependencies
+- Identify entrypoint files
 
-### 2-2. 프로토콜/API
+### 2-2. Protocol/API
 
-- API 라우트 또는 엔드포인트 정의 파일 탐색
-- RPC, REST, GraphQL 등 프로토콜 인터페이스 수집
-- 이벤트/메시지 계약이 있으면 수집
+- Scan for API route or endpoint definition files
+- Collect RPC, REST, GraphQL protocol interfaces
+- Collect event/message contracts if present
 
-### 2-3. 스키마
+### 2-3. Schema
 
-- DB 마이그레이션 파일, ORM 모델, 스키마 정의 탐색
-- 주요 엔터티와 관계 식별
+- Scan DB migration files, ORM models, schema definitions
+- Identify key entities and relationships
 
-### 2-4. 설정
+### 2-4. Config
 
-- 환경변수 사용처 (`process.env`, `os.environ`, `std::env` 등)
-- 설정 파일 (`.env.example`, config 모듈 등)
+- Locate environment variable usage (`process.env`, `os.environ`, `std::env`, etc.)
+- Config files (`.env.example`, config modules, etc.)
 
-### 2-5. 스택/컨벤션
+### 2-5. Stack/Conventions
 
-- `AGENTS.md`의 Stack 섹션 vs 실제 의존성(매니페스트) 비교
-- 새로 추가된 주요 의존성 식별
+- Compare `AGENTS.md` Stack section vs actual dependencies (manifest)
+- Identify newly added key dependencies
 
-## 3. 문서 현재 상태 읽기
+## 3. Read Current Document State
 
-`docs/INDEX.md`에 등록된 레퍼런스 문서들을 읽는다:
+Read reference docs registered in `docs/INDEX.md`:
 - `docs/reference/architecture.md`
 - `docs/reference/protocol.md`
 - `docs/reference/schema.md`
 - `docs/reference/config.md`
-- `AGENTS.md` (Stack, Conventions 섹션)
+- `AGENTS.md` (Stack, Conventions sections)
 
-각 문서의 `status` frontmatter 확인: `draft` | `active` | `stale`
+Check each document's `status` frontmatter: `draft` | `active` | `stale`
 
-### 불일치 감지
+### Mismatch Detection
 
-- **인덱스에 있지만 파일 없음**: 경고 출력 후 사용자에게 보고. 삭제된 것인지, 경로 오류인지 확인 요청. 자동 삭제하지 않는다.
-- **파일 있지만 인덱스에 없음**: `docs/reference/` 하위에 `.md` 파일이 존재하는데 `INDEX.md`에 미등록이면 갱신 제안에 `[미등록]` 항목으로 포함한다.
+- **In index but file missing**: Warn and report to user. Ask whether it was deleted or a path error. Do not auto-delete.
+- **File exists but not in index**: If `.md` files exist under `docs/reference/` but are not in `INDEX.md`, include them as `[unregistered]` items in the update proposal.
 
-## 4. 차이 분석
+## 4. Diff Analysis
 
-스캔 결과와 기존 문서를 비교하여 **갱신이 필요한 항목**을 식별한다.
+Compare scan results with existing docs to identify **items needing update**.
 
-분류 기준:
-- **신규**: 코드에 존재하지만 문서에 없는 모듈/엔드포인트/엔터티/설정
-- **변경**: 코드와 문서 내용이 불일치 (이름, 구조, 역할 등)
-- **삭제**: 문서에 있지만 코드에서 제거된 항목
-- **정상**: 일치
+Classification:
+- **New**: Exists in code but not in docs (modules/endpoints/entities/config)
+- **Changed**: Code and doc content mismatch (name, structure, role, etc.)
+- **Deleted**: In docs but removed from code
+- **OK**: Matches
 
-문서별 아무 차이도 없으면 "동기화 완료 — 갱신 필요 없음."으로 종료.
+If no differences exist for any document, end with "Sync complete — no updates needed."
 
-## 5. 갱신 제안
+## 5. Update Proposal
 
-차이가 있는 문서별로 제안을 출력한다:
+Output proposals per document with differences:
 
 ```
-## 갱신 제안
+## Update Proposal
 
 ### docs/reference/architecture.md
-- [신규] `src/billing/` 모듈 추가 — 결제 처리 담당
-- [변경] `src/auth/` 모듈 — OAuth 외에 SAML 추가됨
-- [삭제] `src/legacy-adapter/` 제거됨
+- [New] `src/billing/` module added — handles payment processing
+- [Changed] `src/auth/` module — SAML added alongside OAuth
+- [Deleted] `src/legacy-adapter/` removed
 
 ### docs/reference/protocol.md
-- [신규] POST /api/billing/charge 엔드포인트
+- [New] POST /api/billing/charge endpoint
 
 ### AGENTS.md — Stack
-- [신규] 의존성 `stripe` 추가됨
+- [New] Dependency `stripe` added
 ```
 
-각 항목은 한 줄로, **무엇이 바뀌었는지**만 기술한다. 구현 세부사항이나 코드를 붙이지 않는다.
+Each item is one line, describing **only what changed**. No implementation details or code.
 
-## 6. 사용자 승인
+## 6. User Approval
 
-제안을 보여주고 묻는다:
+Show the proposal and ask:
 
-> **위 갱신을 적용할까요?**
+> **Apply the above updates?**
 >
-> 1. 전체 적용
-> 2. 문서별 선택 적용
-> 3. 스킵
+> 1. Apply all
+> 2. Select per document
+> 3. Skip
 
-**옵션 1:** 모든 제안 적용
-**옵션 2:** 문서 이름 나열, 사용자가 적용할 문서 선택
-**옵션 3:** 아무것도 수정하지 않음
+**Option 1:** Apply all proposals
+**Option 2:** List document names; user selects which to apply
+**Option 3:** No modifications
 
-### 연쇄 갱신 보호 (옵션 2 선택 시)
+### Cascading Update Protection (Option 2)
 
-같은 변경 사실이 여러 문서에 걸쳐 있을 수 있다 (예: 새 모듈 추가 → `architecture.md` + `AGENTS.md` Stack 동시 영향). 옵션 2에서 일부 문서만 선택하면 문서 간 불일치가 발생한다.
+The same change may span multiple documents (e.g., new module → `architecture.md` + `AGENTS.md` Stack both affected). Selecting only some documents in Option 2 can cause cross-document inconsistency.
 
-**규칙:**
-- 제안 항목 간 연쇄 관계를 분석하여, 같은 사실에 의존하는 문서들을 그룹으로 표시한다.
-- 그룹 내 일부만 선택하면 경고:
+**Rules:**
+- Analyze cascading relationships between proposal items; group documents that depend on the same fact.
+- If only part of a group is selected, warn:
 
-> "⚠ `architecture.md`와 `AGENTS.md (Stack)`은 같은 변경(`stripe` 의존성 추가)을 공유합니다. 하나만 적용하면 문서 간 불일치가 생깁니다. 그래도 진행할까요?"
+> "Warning: `architecture.md` and `AGENTS.md (Stack)` share the same change (`stripe` dependency added). Applying only one creates cross-document inconsistency. Proceed anyway?"
 
-- 사용자가 확인하면 진행, 아니면 그룹 전체 포함/제외를 다시 선택.
+- If user confirms, proceed. Otherwise, re-select to include/exclude the entire group.
 
-## 7. 적용
+## 7. Apply
 
-승인된 문서에 대해:
+For approved documents:
 
-### 7-1. 문서 갱신 원칙
+### 7-1. Document Update Principles
 
-- **기존 구조 유지** — 문서의 기존 섹션 구조와 포맷을 따른다
-- **사람이 쓴 내용 보존** — 수동 작성된 설명, 의도, 맥락은 건드리지 않는다
-- **사실만 갱신** — 모듈 목록, 엔드포인트 목록, 엔터티 목록 등 코드에서 파생 가능한 팩트만 갱신
-- **authority 유지** — `canonical` 문서의 authority를 변경하지 않는다
-- **status 갱신** — `draft` → `active` (첫 실질 내용 반영 시), 변경 적용 시 기존 status 유지
+- **Preserve existing structure** — follow the document's existing section layout and format
+- **Preserve human-written content** — do not touch manually authored descriptions, intent, or context
+- **Update facts only** — update only code-derivable facts: module lists, endpoint lists, entity lists, etc.
+- **Preserve authority** — do not change a `canonical` document's authority
+- **Update status** — `draft` → `active` (on first substantive content), preserve existing status on subsequent updates
 
-### 7-2. 빈 슬롯 문서 (status: draft, 본문 없음)
+### 7-2. Empty Slot Documents (status: draft, no body)
 
-`/setup`이 생성한 빈 슬롯에 첫 내용을 채우는 경우:
-- frontmatter의 `status`를 `active`로 변경
-- 스캔 결과를 기반으로 초기 섹션 구성
-- 과도한 구조 없이 현재 코드에 있는 것만 기술
+When populating a slot created by `/setup` for the first time:
+- Change frontmatter `status` to `active`
+- Compose initial sections based on scan results
+- Describe only what currently exists in code — no excessive structure
 
-### 7-3. 기존 내용이 있는 문서
+### 7-3. Documents with Existing Content
 
-- 신규 항목: 적절한 섹션에 추가
-- 변경 항목: 해당 줄/섹션 수정
-- 삭제 항목: 제거 (주석이나 히스토리 남기지 않음)
+- New items: add to appropriate section
+- Changed items: modify the relevant line/section
+- Deleted items: remove (no comments or history)
 
-### 7-4. AGENTS.md 갱신
+### 7-4. AGENTS.md Update
 
-- **Stack 섹션만** 자동 갱신 대상 (매니페스트에서 파생)
-- **Conventions, Boundaries 섹션은 건드리지 않는다** — 이 섹션들은 사용자가 의도적으로 작성한 규칙
+- **Only the Stack section** is auto-updated (derived from manifest)
+- **Do not touch Conventions or Boundaries sections** — these are user-authored intentional rules
 
-### 7-5. docs/INDEX.md 갱신
+### 7-5. docs/INDEX.md Update
 
-새 문서가 추가되었거나 authority가 변경된 경우에만 INDEX.md 업데이트.
+Update INDEX.md only when a new document is added or authority changes.
 
-## 8. 적용 후 검증
+## 8. Post-Apply Verification
 
-커밋 전에 각 갱신 항목이 코드와 실제로 일치하는지 재확인한다.
+Before committing, re-verify that each update item actually matches the code.
 
-### 검증 방법
+### Verification Method
 
-갱신된 문서를 다시 읽고, 각 변경 항목에 대해:
+Re-read the updated documents and for each change item:
 
-- **신규 항목**: 해당 코드 경로가 실제로 존재하는지 확인 (`ls` 또는 `glob`)
-- **변경 항목**: 문서에 기술된 내용이 코드의 현재 상태와 일치하는지 확인 (해당 파일/export/엔드포인트 읽기)
-- **삭제 항목**: 해당 코드 경로가 실제로 존재하지 않는지 확인
+- **New items**: Confirm the code path actually exists (`ls` or `glob`)
+- **Changed items**: Confirm the documented content matches the current code state (read the relevant file/export/endpoint)
+- **Deleted items**: Confirm the code path no longer exists
 
-### 검증 실패 시
+### On Verification Failure
 
-불일치 발견 시 해당 항목만 수정하고 재확인한다. 수정 후에도 불일치하면 사용자에게 보고하고 해당 항목은 커밋에서 제외한다.
+If a mismatch is found, fix that item only and re-verify. If still mismatched after fix, report to user and exclude that item from the commit.
 
-### 검증 통과
+### On Verification Pass
 
-모든 항목 통과 후 커밋 단계로 진행.
+Proceed to commit after all items pass.
 
-## 9. 커밋
+## 9. Commit
 
-갱신을 적용했으면 커밋:
+If updates were applied, commit:
 ```
 docs: sync reference docs with codebase
 ```
 
-갱신한 파일 목록을 커밋 메시지 본문에 포함.
+Include the list of updated files in the commit body.
 
-## 10. 출력
+## 10. Output
 
 ```
-## 동기화 결과
+## Sync Results
 
-| 문서 | 상태 | 변경 사항 |
-|------|------|-----------|
-| architecture.md | 갱신 | +2 모듈, ~1 변경, -1 삭제 |
-| protocol.md | 갱신 | +1 엔드포인트 |
-| schema.md | 변경 없음 | — |
-| config.md | 변경 없음 | — |
-| AGENTS.md (Stack) | 갱신 | +1 의존성 |
+| Document | Status | Changes |
+|----------|--------|---------|
+| architecture.md | Updated | +2 modules, ~1 changed, -1 deleted |
+| protocol.md | Updated | +1 endpoint |
+| schema.md | No change | — |
+| config.md | No change | — |
+| AGENTS.md (Stack) | Updated | +1 dependency |
 ```
 
-## /choiceexecutor 연동
+## /choiceexecutor Integration
 
-`/choiceexecutor`의 완료 단계(섹션 14)에서 final code review 통과 후:
+At the `/choiceexecutor` completion step (Section 14), after final code review passes:
 
-> **레퍼런스 문서를 코드베이스와 동기화할까요?** (`/sync-docs`)
+> **Sync reference docs with the codebase?** (`/sync-docs`)
 >
-> 1. 실행
-> 2. 스킵
+> 1. Run
+> 2. Skip
 
-사용자가 1을 선택하면 이 명령의 절차를 따른다.
-스킵해도 나중에 `/sync-docs`를 독립 호출할 수 있다.
+If user selects 1, follow this command's procedure.
+Can also be invoked independently later by running `/sync-docs`.
