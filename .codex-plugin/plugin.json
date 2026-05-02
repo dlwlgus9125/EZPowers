@@ -1,0 +1,49 @@
+{
+  "name": "ezpowers",
+  "version": "0.9.1",
+  "description": "Personal Codex workflow plugin for spec-driven development with setup, brainstorm, plan, and execution guidance.",
+  "author": {
+    "name": "dlwlgus9125",
+    "email": "dlwlgus9125@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/dlwlgus9125/EZPowers",
+  "repository": "https://github.com/dlwlgus9125/EZPowers",
+  "license": "MIT",
+  "keywords": [
+    "sdd",
+    "spec-driven",
+    "brainstorm",
+    "plan",
+    "choiceexecutor",
+    "executeharness",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "EZPowers",
+    "shortDescription": "Spec-driven planning and execution workflow for Codex.",
+    "longDescription": "EZPowers adapts the existing setup, brainstorm, plan, execution, review, sync, eval, and feedback workflow documents for Codex while preserving the original Claude plugin files.",
+    "developerName": "dlwlgus9125",
+    "category": "Productivity",
+    "capabilities": [
+      "Planning",
+      "Code Review",
+      "Workflow Guidance",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/dlwlgus9125/EZPowers",
+    "defaultPrompt": [
+      "Use EZPowers to set up this project.",
+      "Run an EZPowers brainstorm for this feature.",
+      "Turn the approved spec into an EZPowers plan."
+    ],
+    "brandColor": "#2563EB"
+  },
+  "metadata": {
+    "source_plugin": "claude",
+    "eval_version": "1.0.0",
+    "eval_baseline_path": "evals/results/baselines/0.8.0.json",
+    "harness_changelog": "harness_versions/changelog.jsonl",
+    "trace_collection": "opt-in"
+  }
+}
