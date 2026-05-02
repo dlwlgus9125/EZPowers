@@ -32,9 +32,12 @@ EZPowers는 개인 전용 Claude Code 스킬 플러그인.
 | `/sync-docs` | command | 레퍼런스 문서를 코드베이스와 동기화 (독립 호출 + /choiceexecutor 완료 시 제안) |
 | `/eval` | command | eval suite 실행, 버전별 점수 보고 |
 | `/feedback` | command | 현재 세션 트레이스에 사용자 점수 부착 |
-| `systematic-debugging` | skill | 근본 원인 추적 프로토콜 (4-Phase) |
+| `systematic-debugging` | skill | 근본 원인 추적 프로토콜 (4-Phase + Feedback Loop) |
 | `verifyself` | skill | CoVe(Chain-of-Verification) 자기검증 (6차원) |
 | `writing-skills` | skill | 새 스킬 작성 메타 스킬 (TDD 기반) |
+| `grill-me` | skill | 계획/설계 스트레스 테스트 (집요한 인터뷰) |
+| `zoom-out` | skill | 추상도 한 단계 올리기 (모듈 맵) |
+| `caveman` | skill | 토큰 절약 압축 커뮤니케이션 모드 |
 
 ## Directory Structure
 
@@ -43,7 +46,7 @@ EZPowers는 개인 전용 Claude Code 스킬 플러그인.
 commands/             # 슬래시 명령어 (setup, brainstorm, plan, choiceexecutor, executeharness, review, sync-docs, eval, feedback)
 skills/               # 독립 스킬
   systematic-debugging/
-    SKILL.md          # 4-Phase 디버깅 프로토콜
+    SKILL.md          # 4-Phase 디버깅 프로토콜 + Feedback Loop 구축
     root-cause-tracing.md
     defense-in-depth.md
   verifyself/
@@ -52,6 +55,12 @@ skills/               # 독립 스킬
     SKILL.md          # 스킬 작성 메타 스킬 (TDD 기반)
     anthropic-best-practices.md
     testing-skills-with-subagents.md
+  grill-me/
+    SKILL.md          # 계획/설계 스트레스 테스트
+  zoom-out/
+    SKILL.md          # 추상도 올리기 (prompt-only)
+  caveman/
+    SKILL.md          # 토큰 절약 압축 모드
 agents/               # 플러그인 에이전트 + 프롬프트 템플릿
   code-reviewer.md          # Plugin Agent — 최종 코드 리뷰 (inherit, Read/Grep/Glob/Bash)
   security-reviewer.md      # Plugin Agent — 보안 취약점 스캔 (inherit, Read/Grep/Glob/Bash)
@@ -64,7 +73,7 @@ docs/
   INDEX.md            # /setup이 생성하는 문서 내비게이션 맵
   product/            # PRD 등 제품 문서 슬롯
   reference/          # 아키텍처, 프로토콜, 스키마, 설정 슬롯
-  decisions/          # ADR (선택적)
+  decisions/          # ADR (3조건 게이트: 되돌리기 어려움 + 놀라움 + 트레이드오프)
   ux/                 # UI 프로젝트만 (선택적)
   specs/              # /brainstorm이 생성하는 spec 문서
   plans/              # /plan이 생성하는 plan 문서
