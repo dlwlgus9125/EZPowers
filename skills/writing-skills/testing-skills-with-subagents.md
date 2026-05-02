@@ -1,136 +1,136 @@
 # Testing Skills With Subagents
 
-**Load this reference when:** 스킬 생성/편집 후, 배포 전 검증이 필요할 때.
+**Load this reference when:** Verification is needed after creating/editing a skill, before deployment.
 
 ## Overview
 
-**스킬 테스트는 프로세스 문서에 적용하는 TDD.**
+**Skill testing is TDD applied to process documentation.**
 
-스킬 없이 시나리오 실행 (RED - 실패 관찰) -> 실패에 대응하는 스킬 작성 (GREEN - 준수 확인) -> 허점 봉쇄 (REFACTOR - 계속 준수).
+Run scenario without skill (RED - observe failure) -> write skill addressing failure (GREEN - confirm compliance) -> close loopholes (REFACTOR - maintain compliance).
 
-**Core principle:** 에이전트가 스킬 없이 실패하는 것을 관찰하지 않았으면, 스킬이 올바른 실패를 방지하는지 모른다.
+**Core principle:** If you have not observed the agent failing without the skill, you do not know the skill prevents the right failures.
 
 ## When to Use
 
-테스트할 스킬:
-- 규율 강제 (TDD, 테스트 요구사항)
-- 준수 비용이 있음 (시간, 노력, 재작업)
-- "이번 한 번만" 핑계가 가능
-- 즉각 목표와 충돌 (속도 > 품질)
+Test skills that:
+- Enforce discipline (TDD, test requirements)
+- Have a compliance cost (time, effort, rework)
+- Allow "just this once" rationalizations
+- Conflict with immediate goals (speed > quality)
 
-테스트 불필요:
-- 순수 참조 스킬 (API 문서, 문법)
-- 위반할 규칙이 없는 스킬
-- 우회 동기가 없는 스킬
+No testing needed for:
+- Pure reference skills (API docs, syntax)
+- Skills with no rules to violate
+- Skills with no incentive to bypass
 
 ## RED Phase: Baseline Testing
 
-**Goal:** 스킬 없이 실행 — 실패 관찰, 핑계 기록.
+**Goal:** Run without skill — observe failures, record rationalizations.
 
-- [ ] Pressure scenario 생성 (3+ 복합 압력)
-- [ ] 스킬 없이 실행 — 현실적 task + 압력 부여
-- [ ] 선택과 핑계를 **원문 그대로** 기록
-- [ ] 패턴 식별 — 반복되는 핑계는?
-- [ ] 효과적인 압력 파악 — 어떤 시나리오가 위반 유발?
+- [ ] Create pressure scenario (3+ combined pressures)
+- [ ] Run without skill — realistic task + applied pressure
+- [ ] Record choices and rationalizations **verbatim**
+- [ ] Identify patterns — which rationalizations repeat?
+- [ ] Identify effective pressures — which scenarios trigger violations?
 
 ## Writing Pressure Scenarios
 
-**Bad (압력 없음):**
+**Bad (no pressure):**
 ```
-기능을 구현해야 합니다. 스킬이 뭐라고 하나요?
+You need to implement a feature. What does the skill say?
 ```
-너무 학술적. 에이전트가 스킬을 암송만 함.
+Too academic. Agent just recites the skill.
 
-**Good (복합 압력):**
+**Good (combined pressure):**
 ```
-IMPORTANT: 실제 시나리오입니다. 선택하고 행동하세요.
+IMPORTANT: This is a real scenario. Make a choice and act.
 
-4시간 동안 기능을 구현했습니다. 완벽하게 작동합니다.
-수동으로 모든 엣지 케이스를 테스트했습니다. 6시이고 6:30에 저녁 약속.
-내일 9시에 코드 리뷰. 테스트를 안 썼다는 걸 방금 깨달았습니다.
+You spent 4 hours implementing a feature. It works perfectly.
+You manually tested every edge case. It's 6pm and you have dinner at 6:30.
+Code review tomorrow at 9am. You just realized you wrote no tests.
 
 Options:
-A) 코드 삭제, 내일 TDD로 처음부터
-B) 지금 커밋, 내일 테스트 추가
-C) 지금 테스트 작성 (30분 지연), 커밋
+A) Delete the code, start over with TDD tomorrow
+B) Commit now, add tests tomorrow
+C) Write tests now (30 min delay), then commit
 
-A, B, C 중 선택. 솔직하게.
+Choose A, B, or C. Be honest.
 ```
 
 ### Pressure Types
 
-| 압력 | 예시 |
-|------|------|
-| **시간** | 긴급, 마감, 배포 윈도우 |
-| **매몰 비용** | 시간 투자, "삭제하면 낭비" |
-| **권위** | 시니어가 건너뛰라고, 매니저 오버라이드 |
-| **경제** | 직업, 승진, 회사 생존 |
-| **피로** | 퇴근 시간, 이미 지침, 집에 가고 싶음 |
-| **사회** | 교조적으로 보임, 유연하지 않게 보임 |
-| **실용** | "교조적이 아닌 실용적으로" |
+| Pressure | Example |
+|----------|---------|
+| **Time** | Urgent, deadline, deployment window |
+| **Sunk cost** | Time invested, "deleting is a waste" |
+| **Authority** | Senior says skip it, manager override |
+| **Economic** | Job, promotion, company survival |
+| **Fatigue** | End of day, already tired, want to go home |
+| **Social** | Looking dogmatic, appearing inflexible |
+| **Pragmatic** | "Be pragmatic, not dogmatic" |
 
-**최고의 테스트는 3+ 압력 결합.**
+**The best tests combine 3+ pressures.**
 
 ### Good Scenario Elements
 
-1. **구체적 옵션** — A/B/C 강제 선택
-2. **실제 제약** — 구체적 시간, 실제 결과
-3. **실제 파일 경로** — `/tmp/payment-system` not "프로젝트"
-4. **행동 강제** — "뭘 하겠습니까?" not "뭘 해야 합니까?"
-5. **쉬운 탈출구 없음** — "확인하겠습니다" 없이 선택
+1. **Concrete options** — Force A/B/C choice
+2. **Real constraints** — Specific times, real consequences
+3. **Real file paths** — `/tmp/payment-system` not "the project"
+4. **Force action** — "What will you do?" not "What should you do?"
+5. **No easy exit** — No "I'd check first", just choose
 
 ## GREEN Phase
 
-baseline 실패에 대응하는 최소 스킬 작성. 같은 시나리오 재실행. 에이전트 준수해야 함.
+Write minimal skill addressing baseline failures. Re-run same scenario. Agent must comply.
 
-실패 시: 스킬이 불분명하거나 불완전. 수정 후 재테스트.
+On failure: Skill is unclear or incomplete. Fix and re-test.
 
 ## REFACTOR Phase: Close Loopholes
 
-스킬 있는데도 위반? — 스킬 리팩터링으로 방지.
+Agent violates despite having the skill? — Refactor the skill to prevent it.
 
-**새 핑계 원문 캡처:**
-- "이 경우는 다른데..."
-- "정신을 따르는 거지 규칙이 아니라"
-- "목적은 X이고 다르게 달성하고 있다"
-- "실용적이란 건 적응한다는 뜻"
-- "삭제하면 X시간 낭비"
+**Capture new rationalizations verbatim:**
+- "This case is different..."
+- "I'm following the spirit, not the letter"
+- "The goal is X and I'm achieving it differently"
+- "Being pragmatic means adapting"
+- "Deleting wastes X hours"
 
-각 핑계에 추가:
-1. 규칙에 **명시적 부정** 추가
-2. **핑계 테이블** 항목 추가
-3. **Red Flags** 항목 추가
-4. **Description** 업데이트 (위반 증상 추가)
+For each rationalization, add:
+1. **Explicit negation** in the rule
+2. **Rationalization table** entry
+3. **Red Flags** entry
+4. **Description** update (add violation symptom)
 
-재테스트 -> 에이전트 준수해야 함. 새 핑계 발견 시 사이클 반복.
+Re-test -> agent must comply. Repeat cycle on new rationalizations.
 
 ## Meta-Testing
 
-에이전트가 틀린 옵션 선택 후:
+After the agent picks the wrong option:
 
 ```
-당신은 스킬을 읽고도 Option C를 선택했습니다.
-Option A가 유일한 정답이라는 것을 명확히 하려면
-스킬을 어떻게 다르게 작성해야 했을까요?
+You read the skill and still chose Option C.
+How should the skill have been written differently
+to make it clear that Option A is the only correct answer?
 ```
 
-세 가지 응답:
-1. **"스킬이 명확했다, 무시했다"** — 더 강한 기본 원칙 필요
-2. **"X라고 써야 했다"** — 제안 그대로 추가
-3. **"Y 섹션을 못 봤다"** — 핵심 포인트를 더 눈에 띄게
+Three response types:
+1. **"The skill was clear, I ignored it"** — Needs a stronger foundational principle
+2. **"It should have said X"** — Add the suggestion as-is
+3. **"I missed section Y"** — Make the key point more prominent
 
 ## Bulletproof Signs
 
-1. 최대 압력 하에 올바른 옵션 선택
-2. 스킬 섹션을 근거로 인용
-3. 유혹을 인정하되 규칙 준수
-4. Meta-test: "스킬이 명확했다, 따라야 한다"
+1. Picks the correct option under maximum pressure
+2. Cites skill sections as justification
+3. Acknowledges temptation but follows the rule
+4. Meta-test: "The skill was clear, I should follow it"
 
 ## Quick Reference
 
 | TDD Phase | Skill Testing | Success Criteria |
 |-----------|---------------|------------------|
-| **RED** | 스킬 없이 실행 | 실패, 핑계 기록 |
-| **GREEN** | 스킬 작성 | 스킬로 준수 |
-| **REFACTOR** | 허점 봉쇄 | 새 핑계 대응 |
-| **Verify** | 재테스트 | 리팩터 후에도 준수 |
+| **RED** | Run without skill | Failure, rationalizations recorded |
+| **GREEN** | Write skill | Compliance with skill |
+| **REFACTOR** | Close loopholes | New rationalizations countered |
+| **Verify** | Re-test | Compliance maintained after refactor |
