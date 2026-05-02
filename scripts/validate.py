@@ -116,7 +116,7 @@ def get_added_lines(staged: bool, paths: list[str]) -> str:
         if text.strip().startswith(">"):
             continue
         # Skip table rows that define or list banned expressions
-        if re.search(r"\|.*금지.*\|", text):
+        if re.search(r"\|.*(금지|[Bb]anned).*\|", text):
             continue
         if re.match(r"\s*\|[-\s|]+\|", text):
             continue
