@@ -1,46 +1,46 @@
 # Architecture Decision Records (ADR)
 
-## 작성 기준 — 3조건 게이트
+## Writing Criteria — 3-Condition Gate
 
-ADR은 다음 **세 조건이 모두 참**일 때만 작성한다:
+Write an ADR only when **all three conditions are true**:
 
-1. **되돌리기 어려움** — 나중에 마음을 바꾸는 비용이 유의미하다
-2. **맥락 없이 놀라움** — 미래 독자가 "왜 이렇게 했지?"라고 의문을 가질 것이다
-3. **실제 트레이드오프** — 진짜 대안이 있었고 특정 이유로 하나를 선택했다
+1. **Hard to reverse** — the cost of changing your mind later is significant
+2. **Surprising without context** — a future reader would ask "why was this done this way?"
+3. **Real trade-off** — genuine alternatives existed and one was chosen for a specific reason
 
-하나라도 빠지면 ADR을 건너뛴다.
+Skip the ADR if any condition is missing.
 
-## 포맷
+## Format
 
-파일명: `NNNN-slug.md` (순번 4자리, 예: `0001-event-sourced-orders.md`)
+Filename: `NNNN-slug.md` (4-digit sequence, e.g. `0001-event-sourced-orders.md`)
 
 ```markdown
-# NNNN. 짧은 제목
+# NNNN. Short title
 
-[1~3문장: 맥락, 결정, 이유]
+[1-3 sentences: context, decision, rationale]
 ```
 
-### 선택 섹션 (필요시만)
+### Optional Sections (add only when needed)
 
 - **Status**: proposed / accepted / deprecated
-- **Considered Options**: 검토한 대안 목록
-- **Consequences**: 이 결정의 결과
+- **Considered Options**: list of alternatives reviewed
+- **Consequences**: outcomes of this decision
 
-## 번호 매기기
+## Numbering
 
-기존 최고 번호를 스캔하고 +1. 빈 번호를 채우지 않는다.
+Scan for the highest existing number and add +1. Do not fill gaps.
 
-## 예시 (ADR이 적합한 결정)
+## Examples (decisions that warrant an ADR)
 
-- 아키텍처 형태 (모놀리스 vs 마이크로서비스)
-- 통합 패턴 (이벤트 소싱 vs CRUD)
-- 기술 종속 (특정 DB, 프레임워크 선택)
-- 경계 결정 (모듈 분리 방식)
-- 의도적 일탈 (컨벤션을 의식적으로 어긴 경우)
-- 비자명한 이유의 거절된 대안
+- Architecture shape (monolith vs microservices)
+- Integration pattern (event sourcing vs CRUD)
+- Technology lock-in (specific DB or framework choice)
+- Boundary decision (module separation strategy)
+- Intentional deviation (consciously breaking a convention)
+- Rejected alternative with non-obvious rationale
 
-## 예시 (ADR이 불필요한 결정)
+## Examples (decisions that do NOT need an ADR)
 
-- 변수 명명 규칙 (쉽게 바꿈)
-- 라이브러리 마이너 버전 선택 (놀랍지 않음)
-- 표준적 패턴 따르기 (트레이드오프 없음)
+- Variable naming conventions (easy to change)
+- Library minor-version selection (not surprising)
+- Following a standard pattern (no trade-off)
