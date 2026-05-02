@@ -2,3 +2,5 @@
 evals/holdout/**
 !evals/holdout/.gitkeep
 evals/results/runs/**
+scripts/__pycache__/
+docs/*.exe

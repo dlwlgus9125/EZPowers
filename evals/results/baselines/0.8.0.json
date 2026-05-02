@@ -1,0 +1,313 @@
+{
+  "version": "0.8.0",
+  "date": "2026-04-25T12:14:59.730479+00:00Z",
+  "model": "claude-opus-4-5",
+  "git_sha": "a2ddf5a",
+  "scores": {
+    "golden": {
+      "golden.banned_expression_detection.001": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.coverage_matrix_completeness.001": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.oscillation_stop_3iter.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.verdict_parsing_format.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      }
+    },
+    "optimization": {
+      "optimization.brownfield_feature_add.002": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.greenfield_cli_tool.001": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.multi_r_coverage.005": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.refactor_narrow_scope.003": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.vague_spec_ko.004": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.harness_needed.002": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.inline_trivial.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.oscillation_trap.004": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.resume_mid_task.005": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.security_keyword_trip.003": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.brainstorm_to_plan_spec_format.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.code_reviewer_verdict_parsing.007": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.executor_to_code_reviewer.004": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.executor_to_security_reviewer.003": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.plan_reviewer_verdict_parsing.006": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.plan_to_executor_task_structure.002": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.spec_reviewer_verdict_parsing.005": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.multi_phase_recovery.002": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.small_plan_conversion.001": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.large_ten_r_spec.002": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.missing_verify.003": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.refactor_impact_scope.004": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.simple_three_r_spec.001": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.spec_drift.002": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.spec_match.001": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.brownfield_existing.002": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.greenfield_empty.001": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.monorepo_root.003": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.new_reference.001": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "optimization.outdated_reference.002": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      }
+    },
+    "holdout": {
+      "holdout.api_integration_ko.001": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "holdout.data_pipeline_mixed.002": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "holdout.ambiguous_scope_decision.004": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "holdout.single_task_with_test.005": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "holdout.brainstorm_to_plan_ko_format.007": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "holdout.plan_to_executor_missing_dependency.006": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available — requires live execution"
+      },
+      "holdout.dependency_chain_complex.003": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "holdout.conflicting_config.008": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      }
+    }
+  },
+  "stats": {
+    "total_cases": 42,
+    "automated": 24,
+    "manual": 18,
+    "auto_pass": 6,
+    "auto_fail": 18,
+    "auto_pass_rate": 0.25,
+    "by_command": {
+      "brainstorm": {
+        "total": 11,
+        "auto": 10,
+        "pass": 2,
+        "manual": 1
+      },
+      "plan": {
+        "total": 8,
+        "auto": 7,
+        "pass": 1,
+        "manual": 1
+      },
+      "choiceexecutor": {
+        "total": 13,
+        "auto": 3,
+        "pass": 3,
+        "manual": 10
+      },
+      "executeharness": {
+        "total": 2,
+        "auto": 0,
+        "pass": 0,
+        "manual": 2
+      },
+      "review": {
+        "total": 2,
+        "auto": 0,
+        "pass": 0,
+        "manual": 2
+      },
+      "setup": {
+        "total": 4,
+        "auto": 4,
+        "pass": 0,
+        "manual": 0
+      },
+      "sync-docs": {
+        "total": 2,
+        "auto": 0,
+        "pass": 0,
+        "manual": 2
+      }
+    },
+    "by_difficulty": {
+      "single_step": {
+        "total": 15,
+        "auto": 7,
+        "pass": 2
+      },
+      "multi_step": {
+        "total": 21,
+        "auto": 13,
+        "pass": 4
+      },
+      "long_horizon": {
+        "total": 6,
+        "auto": 4,
+        "pass": 0
+      }
+    },
+    "by_split": {
+      "golden": {
+        "total": 4,
+        "auto": 4,
+        "pass": 2,
+        "manual": 0
+      },
+      "optimization": {
+        "total": 30,
+        "auto": 15,
+        "pass": 3,
+        "manual": 15
+      },
+      "holdout": {
+        "total": 8,
+        "auto": 5,
+        "pass": 1,
+        "manual": 3
+      }
+    }
+  }
+}
