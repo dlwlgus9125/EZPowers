@@ -3,85 +3,85 @@ description: Initialize project harness with config and steering docs
 allowed-tools: [Bash, Read, Write, Glob, AskUserQuestion]
 ---
 
-# /setup — 프로젝트 하네스 초기화
+# /setup — Project Harness Initialization
 
-프로젝트에 EZPowers 하네스를 셋업한다. 설정 파일과 steering 문서 뼈대를 만드는 대화형 절차. 코드는 작성하지 않는다.
+Set up the EZPowers harness for a project. Interactive process to create config files and steering document scaffolding. No code is written.
 
-## Phase 1: 프로젝트 상태 판별
+## Phase 1: Project State Detection
 
-현재 작업 디렉터리를 읽고 기존/신규 프로젝트를 판단한다.
+Read the current working directory to determine if this is an existing or new project.
 
-확인 항목:
-1. 디렉터리 목록
-2. 매니페스트 존재 여부 (package.json / Cargo.toml / pyproject.toml / go.mod 등)
-3. 소스 디렉터리 존재 여부 (src/ / lib/ / app/)
-4. `.harness/config.json` 존재 여부
-5. `AGENTS.md` 존재 여부
-6. `CLAUDE.md` 존재 여부
+Check items:
+1. Directory listing
+2. Manifest file presence (package.json / Cargo.toml / pyproject.toml / go.mod etc.)
+3. Source directory presence (src/ / lib/ / app/)
+4. `.harness/config.json` presence
+5. `AGENTS.md` presence
+6. `CLAUDE.md` presence
 
-판별 규칙:
-- `.harness/config.json`이 이미 있으면 → 덮어쓸지 사용자에게 묻는다
-- 매니페스트 또는 소스 디렉터리가 있으면 → 기존 프로젝트
-- 둘 다 없으면 → 신규 프로젝트
+Detection rules:
+- `.harness/config.json` already exists → ask the user whether to overwrite
+- Manifest or source directory exists → existing project
+- Neither exists → new project
 
-`phases/index.json`이 아직 없으면 즉시 생성하여 setup phase를 `in_progress`로 설정:
+If `phases/index.json` does not exist yet, create immediately with setup phase set to `in_progress`:
 ```json
 { "current_phase": "setup", "phases": { "setup": { "status": "in_progress" } } }
 ```
 
-## Phase 2A: 기존 프로젝트 분석
+## Phase 2A: Existing Project Analysis
 
-기존 프로젝트라면 현재 상태를 분석한다.
+For existing projects, analyze the current state.
 
-읽을 것:
-- 매니페스트 파일
-- 상위 디렉터리 구조
-- 기존 test/build/lint 스크립트
-- `docs/` 내용
-- `AGENTS.md`가 있으면 그 내용
+Read:
+- Manifest files
+- Top-level directory structure
+- Existing test/build/lint scripts
+- `docs/` contents
+- `AGENTS.md` if present
 
-사용자에게 요약:
+Present summary to the user:
 ```
 Project: {name}
-Stack: {추론값}
-Test command: {추론값}
-Build command: {추론값}
-Lint command: {추론값}
-Smoke command: {추론값 또는 빈 문자열}
-Test strategy: {unit/integration/e2e 등}
+Stack: {inferred}
+Test command: {inferred}
+Build command: {inferred}
+Lint command: {inferred}
+Smoke command: {inferred or empty string}
+Test strategy: {unit/integration/e2e etc.}
 ```
 
-모르는 값은 추측하지 않고 사용자에게 직접 묻는다.
+For unknown values, ask the user directly — do not guess.
 
-## Phase 2B: 신규 프로젝트 설정
+## Phase 2B: New Project Setup
 
-신규 프로젝트라면 대화를 통해 기본 설정을 만든다.
+For new projects, create base settings through conversation.
 
-순서:
-1. 프로젝트 이름과 한 줄 설명
-2. 기술 스택
-3. 테스트 전략
-4. build/lint/test 명령
-5. smoke.command 설정 — `build.command`와 동일하면 경고. 스택별 가이드: CLI(`./dist/cli --version`), 서버(기동→health check→종료), 데스크톱(기동→N초 생존→종료), 라이브러리(`node -e "require('./dist')"` 또는 ESM import)
-6. `/choiceexecutor`에 사용할 실행 방식 선호도 (서브에이전트 vs 하네스 vs 인라인)
+Order:
+1. Project name and one-line description
+2. Tech stack
+3. Test strategy
+4. build/lint/test commands
+5. smoke.command — warn if same as `build.command`. Per-stack guide: CLI (`./dist/cli --version`), server (start → health check → stop), desktop (start → survive N seconds → stop), library (`node -e "require('./dist')"` or ESM import)
+6. Preferred execution mode for `/choiceexecutor` (subagent vs harness vs inline)
 
-가능하면 preset을 제안:
+Suggest presets when possible:
 - Next.js + TypeScript
 - Python + FastAPI
 - Rust + CLI
 - Library
 - MCP server
 
-## Phase 2.5: Executor 정보 확정
+## Phase 2.5: Executor Info
 
-`/plan`이 step 크기 예산을 계산할 수 있도록 executor 정보를 반드시 받는다.
+Collect executor info so `/plan` can compute step size budgets.
 
-필수 값:
-- `executor.agent` — 서브에이전트에 사용할 모델
-- `executor.context_window` — 컨텍스트 윈도우 크기
-- `executor.budget_ratio` — step당 허용 비율
+Required values:
+- `executor.agent` — model for subagents
+- `executor.context_window` — context window size
+- `executor.budget_ratio` — allowed ratio per step
 
-권장 기본값:
+Recommended defaults:
 ```json
 {
   "agent": "claude-sonnet-4-6",
@@ -90,22 +90,22 @@ Test strategy: {unit/integration/e2e 등}
 }
 ```
 
-## Phase 2.7: 문서 거버넌스 확인
+## Phase 2.7: Document Governance
 
-사용자에게 아래를 확인한다:
+Confirm with the user:
 
-- "이 프로젝트의 canonical product document가 있습니까?" (있으면 경로 확인)
-- "기존 아키텍처 문서가 있습니까?" (있으면 `docs/reference/`에 연결)
-- "ADR(Architecture Decision Record)을 사용하시겠습니까?"
-- "이 프로젝트에 UI가 있습니까?" (예이면 `docs/ux/` 슬롯 생성, 아니면 생략)
+- "Does this project have a canonical product document?" (if yes, get the path)
+- "Do existing architecture docs exist?" (if yes, link to `docs/reference/`)
+- "Use ADR (Architecture Decision Records)?"
+- "Does this project have a UI?" (if yes, create `docs/ux/` slot; otherwise skip)
 
-## Phase 3: 파일 생성
+## Phase 3: File Creation
 
-다음 파일을 만든다.
+Create the following files.
 
-### 디렉터리 생성 (파일 생성 전)
+### Directory Creation (before files)
 
-파일을 생성하기 전에 필요한 디렉터리를 먼저 만든다:
+Create required directories before writing files:
 
 ```bash
 mkdir -p .harness
@@ -116,36 +116,36 @@ mkdir -p docs/specs
 mkdir -p docs/plans
 ```
 
-ADR 사용 시: `mkdir -p docs/decisions`
-UI 프로젝트: `mkdir -p docs/ux`
+If using ADR: `mkdir -p docs/decisions`
+If UI project: `mkdir -p docs/ux`
 
-### 필수 파일
+### Required Files
 
-**`.harness/config.json`** — 프로젝트 설정 (전체 스키마는 아래 참고)
+**`.harness/config.json`** — project settings (full schema below)
 
-**`AGENTS.md`** — 에이전트 컨텍스트 문서:
+**`AGENTS.md`** — agent context document:
 ```markdown
 # {Project Name}
-> {한 줄 설명}
+> {One-line description}
 
 ## Steering
 - spec location: docs/specs/
 - plan location: docs/plans/
 
 ## Stack
-{기술 스택 요약}
+{Tech stack summary}
 
 ## Conventions
-{프로젝트별 규칙 — 네이밍, 구조, 에러 처리 패턴 등}
+{Project-specific rules — naming, structure, error handling patterns etc.}
 
 ## Boundaries
-{변경 금지 영역, 외부 계약, 주의사항}
+{No-change zones, external contracts, caveats}
 
 ## Review Settings
-review-skip: {리뷰 스킵할 파일 패턴 — 없으면 비워둠}
+review-skip: {File patterns to skip in review — leave empty if none}
 ```
 
-**`phases/index.json`** — phase 상태 추적:
+**`phases/index.json`** — phase state tracking:
 ```json
 {
   "current_phase": "setup",
@@ -158,48 +158,48 @@ review-skip: {리뷰 스킵할 파일 패턴 — 없으면 비워둠}
 }
 ```
 
-`status` 값: `pending` | `in_progress` | `complete` | `failed`
-`artifact`: 해당 phase가 생성한 산출물 경로 (spec, plan 등). `complete` 시 필수.
-`completed_at`: ISO 8601 타임스탬프. `complete` 시 필수.
+`status` values: `pending` | `in_progress` | `complete` | `failed`
+`artifact`: path to the phase's output (spec, plan, etc.). Required when `complete`.
+`completed_at`: ISO 8601 timestamp. Required when `complete`.
 
-**Backward transition 시:** 복귀 대상 phase를 `in_progress`로, 그 이후 phase들을 `pending`으로 리셋. artifact는 유지 (이전 산출물 참조용).
+**On backward transition:** Set the target phase to `in_progress` and reset subsequent phases to `pending`. Preserve artifacts (for referencing prior outputs).
 
-**`docs/INDEX.md`** — 문서 내비게이션 맵 (필수):
+**`docs/INDEX.md`** — document navigation map (required):
 ```markdown
 # {Project Name}
-> 프로젝트 한 줄 설명
+> One-line project description
 
 ## Product Contract
-- [PRD](product/PRD.md): [canonical] 제품 요구사항 정의
+- [PRD](product/PRD.md): [canonical] product requirements definition
 
 ## System Reference
-- [Architecture](reference/architecture.md): [canonical] 시스템 아키텍처
-- [Protocol](reference/protocol.md): [canonical] 프로토콜 계약
-- [Schema](reference/schema.md): [canonical] DB 스키마
-- [Config](reference/config.md): [canonical] 설정 계약
+- [Architecture](reference/architecture.md): [canonical] system architecture
+- [Protocol](reference/protocol.md): [canonical] protocol contract
+- [Schema](reference/schema.md): [canonical] DB schema
+- [Config](reference/config.md): [canonical] config contract
 
 ## Decisions
-- [ADR Index](decisions/README.md): 아키텍처 결정 기록
+- [ADR Index](decisions/README.md): architecture decision records
 
-## UX Spec (UI 프로젝트만)
-- [UX Index](ux/README.md): UI 스펙 인덱스
+## UX Spec (UI projects only)
+- [UX Index](ux/README.md): UI spec index
 ```
 
-### 문서 슬롯 (빈 파일 + frontmatter)
+### Document Slots (empty files + frontmatter)
 
 - `docs/product/PRD.md`
 - `docs/reference/architecture.md`
 - `docs/reference/protocol.md`
 - `docs/reference/schema.md`
 - `docs/reference/config.md`
-- `docs/decisions/README.md` (ADR 사용 시)
-- `docs/ux/README.md` (UI 프로젝트만)
-- `docs/specs/.gitkeep` (spec 문서 저장 디렉터리)
-- `docs/plans/.gitkeep` (plan 문서 저장 디렉터리)
+- `docs/decisions/README.md` (if using ADR)
+- `docs/ux/README.md` (UI projects only)
+- `docs/specs/.gitkeep` (spec document directory)
+- `docs/plans/.gitkeep` (plan document directory)
 
-### Frontmatter 스펙
+### Frontmatter Spec
 
-모든 docs 슬롯에 3-field YAML frontmatter 포함:
+All doc slots include 3-field YAML frontmatter:
 
 ```yaml
 ---
@@ -208,19 +208,19 @@ authority: canonical
 status: draft
 ---
 
-이 문서는 {주제}에 대한 SSOT(Single Source of Truth)입니다.
-내용은 사람이 작성합니다.
+This document is the SSOT (Single Source of Truth) for {topic}.
+Content is authored by humans.
 ```
 
-`authority` 값: `canonical` (SSOT) / `supporting` (보조) / `derived` (자동 생성)
+`authority` values: `canonical` (SSOT) / `supporting` (supplementary) / `derived` (auto-generated)
 
-INDEX.md에 각 문서의 authority 마커를 `[canonical]`, `[supporting]`, `[derived]`로 표시한다.
+Mark each document's authority in INDEX.md as `[canonical]`, `[supporting]`, or `[derived]`.
 
-### 기타 파일
+### Other Files
 
-- `CLAUDE.md` — 없으면 최소 가이드 생성
+- `CLAUDE.md` — if missing, generate a minimal guide
 
-## config.json 스키마
+## config.json Schema
 
 ```json
 {
@@ -269,39 +269,39 @@ INDEX.md에 각 문서의 authority 마커를 `[canonical]`, `[supporting]`, `[d
 }
 ```
 
-필드 설명:
-- `project`: 프로젝트 이름
-- `stack`: 기술 스택 목록 (배열)
-- `test.command`: 테스트 실행 명령
-- `test.strategy`: 테스트 전략 설명 (unit, integration, e2e 등)
-- `build.command`: 빌드 명령
-- `lint.command`: 린트 명령
-- `smoke.command`: 실제 엔트리포인트를 확인하는 smoke 명령
-- `smoke.description`: smoke가 무엇을 검증하는지 설명
-- `server.start_command`: Verify-type `api`/`e2e` 실행 전 서버 시작 명령 (빈 문자열이면 서버 관리 건너뜀)
-- `server.stop_command`: Verify 완료 후 서버 종료 명령
-- `server.health_check_url`: 서버 준비 확인 URL (예: `http://localhost:3000/health`)
-- `server.health_check_timeout`: health check 최대 대기 시간 (초, 기본 15)
-- `executor.agent`: `/choiceexecutor` 서브에이전트에 사용할 모델
-- `executor.context_window`: 컨텍스트 윈도우 크기
-- `executor.budget_ratio`: step당 허용 비율
-- `executor.backend`: `/executeharness` 실행 백엔드 (`claude-code` | `codex-cli` | `openai-api`, 기본 `claude-code`)
-- `executor.reviewer_backend`: verifier 서브에이전트 백엔드 (기본 `claude-code`)
-- `harness.root`: EasyPowersHarness 설치 경로 (빈 문자열이면 `/executeharness` 경로 비활성)
-- `defaults.spec_location`: spec 문서 저장 디렉터리
-- `defaults.plan_location`: plan 문서 저장 디렉터리
-- `defaults.max_retries`: step 재시도 횟수
-- `defaults.timeout`: step timeout (초)
-- `defaults.auto_push`: 완료 후 자동 push 여부
-- `defaults.prompt_logging`: 프롬프트 로그 저장 여부
-- `defaults.verifier`: `off` 또는 `sub-agent`
-- `defaults.verifier_max_rounds`: verifier 최대 라운드 수
+Field descriptions:
+- `project`: Project name
+- `stack`: Tech stack list (array)
+- `test.command`: Test execution command
+- `test.strategy`: Test strategy description (unit, integration, e2e, etc.)
+- `build.command`: Build command
+- `lint.command`: Lint command
+- `smoke.command`: Smoke command to verify the actual entrypoint
+- `smoke.description`: What the smoke test verifies
+- `server.start_command`: Server start command before Verify-type `api`/`e2e` execution (empty string = skip server management)
+- `server.stop_command`: Server stop command after Verify completion
+- `server.health_check_url`: URL to confirm server readiness (e.g., `http://localhost:3000/health`)
+- `server.health_check_timeout`: Max health check wait time (seconds, default 15)
+- `executor.agent`: Model for `/choiceexecutor` subagents
+- `executor.context_window`: Context window size
+- `executor.budget_ratio`: Allowed ratio per step
+- `executor.backend`: `/executeharness` execution backend (`claude-code` | `codex-cli` | `openai-api`, default `claude-code`)
+- `executor.reviewer_backend`: Verifier subagent backend (default `claude-code`)
+- `harness.root`: EasyPowersHarness install path (empty string = `/executeharness` path disabled)
+- `defaults.spec_location`: Spec document save directory
+- `defaults.plan_location`: Plan document save directory
+- `defaults.max_retries`: Step retry count
+- `defaults.timeout`: Step timeout (seconds)
+- `defaults.auto_push`: Auto-push after completion
+- `defaults.prompt_logging`: Save prompt logs
+- `defaults.verifier`: `off` or `sub-agent`
+- `defaults.verifier_max_rounds`: Verifier max rounds
 
-## Phase 3.5: Eval/Trace 인프라 (선택적 플래그)
+## Phase 3.5: Eval/Trace Infrastructure (optional flags)
 
-### `--with-evals` 플래그
+### `--with-evals` Flag
 
-사용자가 `/setup --with-evals`로 호출하면 eval 디렉터리 트리를 생성한다:
+If invoked with `/setup --with-evals`, create the eval directory tree:
 
 ```bash
 mkdir -p evals/optimization evals/holdout evals/golden evals/honeypot
@@ -309,27 +309,27 @@ mkdir -p evals/results/baselines evals/results/runs
 mkdir -p evals/rubrics
 ```
 
-생성 파일:
-- `evals/INDEX.md` (eval 목차 템플릿)
-- `evals/schema.json` (플러그인에서 복사)
-- `evals/rubrics/spec_quality.md` (템플릿)
+Generated files:
+- `evals/INDEX.md` (eval index template)
+- `evals/schema.json` (copied from plugin)
+- `evals/rubrics/spec_quality.md` (template)
 
-`.claudeignore`에 추가: `evals/holdout/**`
-`.gitignore`에 추가: `evals/holdout/**`, `evals/results/runs/**`
+Add to `.claudeignore`: `evals/holdout/**`
+Add to `.gitignore`: `evals/holdout/**`, `evals/results/runs/**`
 
-### `--enable-traces` 플래그
+### `--enable-traces` Flag
 
-사용자가 `/setup --enable-traces`로 호출하면 trace 수집 훅을 활성화한다:
+If invoked with `/setup --enable-traces`, enable trace collection hooks:
 
-1. `hooks/hooks.json`이 존재하는지 확인 (없으면 플러그인에서 복사)
-2. `${CLAUDE_PLUGIN_DATA:-$HOME/.ezpowers-traces}/traces/` 디렉터리 생성
-3. `.gitignore`에 추가: `*.ezpowers-traces/`
+1. Check if `hooks/hooks.json` exists (if not, copy from plugin)
+2. Create `${CLAUDE_PLUGIN_DATA:-$HOME/.ezpowers-traces}/traces/` directory
+3. Add to `.gitignore`: `*.ezpowers-traces/`
 
-두 플래그는 독립적이다. eval만 원하고 trace 수집은 아직 원하지 않는 경우가 있다.
+The two flags are independent. A user may want evals without trace collection.
 
-## Phase 4: 완료 안내
+## Phase 4: Completion
 
-생성이 끝나면:
-1. 만든 파일 목록
-2. 사용자가 채워야 할 항목 (특히 AGENTS.md의 Conventions, Boundaries)
-3. 다음 명령: `/brainstorm`
+After creation:
+1. List of created files
+2. Items the user needs to fill in (especially AGENTS.md Conventions and Boundaries)
+3. Next command: `/brainstorm`
