@@ -1,33 +1,33 @@
-# EZPowers를 eval-driven harness로 진화시키는 청사진
+# Blueprint: Evolving EZPowers into an Eval-Driven Harness
 
-EZPowers 0.6.0은 **이미 eval-driven 하네스의 골격을 갖추고 있다 — Verify 커맨드, Coverage Matrix, Verdict 파싱, Banned expressions, Oscillation detection이 그것이다**. 결정적으로 빠진 것은 (1) 이 신호들을 **시간을 가로질러 비교 가능한 데이터**로 저장하는 인프라, (2) optimization/holdout 분리, (3) "한 줄 변경 → 측정 → 회귀 가드" 루프를 자동화하는 스크립트다. 90일 안에 이 빈 곳을 채우면 EZPowers는 "코딩 워크플로 플러그인"에서 "**자기 자신을 측정하면서 진화하는 SDD 하네스**"로 격상된다. 가장 큰 ROI는 본 리포트가 결론에서 추천하는 **"이번 주에 1시간 안에 시작할 수 있는 한 가지 변경"** — `evals/golden/` 디렉토리와 첫 5개 케이스 + 베이스라인 한 번 측정 — 에서 나온다. 그 이후의 모든 단계는 그 시드 데이터에 점진적으로 의존한다.
+EZPowers 0.6.0 **already has the skeleton of an eval-driven harness — Verify commands, Coverage Matrix, Verdict parsing, Banned expressions, and Oscillation detection**. What is critically missing is (1) infrastructure to store these signals as **data comparable across time**, (2) optimization/holdout split, and (3) scripts automating the "one-line change -> measure -> regression guard" loop. Fill these gaps within 90 days and EZPowers upgrades from "coding workflow plugin" to **"self-measuring, self-evolving SDD harness"**. The highest ROI comes from the **"one change you can start in 1 hour this week"** recommended in the conclusion — the `evals/golden/` directory with 5 initial cases + one baseline measurement. Every subsequent step incrementally depends on that seed data.
 
-본 리포트는 LangChain Better-Harness 블로그(2026-04-08)의 6단계 레시피와 Anthropic의 *Demystifying evals for AI agents*(2026-01-09) YAML 스키마, *Effective harnesses for long-running agents*(2025-11-26)의 두-에이전트 패턴, OpenAI *Harness Engineering*(2026-02-11)의 mechanical enforcement 원칙, Meta-Harness(arXiv:2603.28052)의 outer-loop optimizer, 그리고 raphaelchristi/harness-evolver, whchoi98/harness-eval, hummbl-dev/hummbl-agent-eval-harness 등 2026년 봄 시점 Claude Code 플러그인 생태계의 구체적 레이아웃을 EZPowers 코드베이스에 직접 매핑한다.
+This report directly maps the LangChain Better-Harness blog (2026-04-08) 6-step recipe, Anthropic's *Demystifying evals for AI agents* (2026-01-09) YAML schema, *Effective harnesses for long-running agents* (2025-11-26) two-agent pattern, OpenAI *Harness Engineering* (2026-02-11) mechanical enforcement principles, Meta-Harness (arXiv:2603.28052) outer-loop optimizer, and the concrete layouts of the 2026-spring Claude Code plugin ecosystem (raphaelchristi/harness-evolver, whchoi98/harness-eval, hummbl-dev/hummbl-agent-eval-harness) onto the EZPowers codebase.
 
 ---
 
-## Part A. 외부 베스트 프랙티스 — EZPowers와의 직접 매핑
+## Part A. External Best Practices — Direct Mapping to EZPowers
 
-### A.1 LangChain Better-Harness 6단계의 EZPowers 매핑
+### A.1 LangChain Better-Harness 6-Step Mapping to EZPowers
 
-LangChain 블로그가 제시한 파이프라인은 **"data sourcing → experiment design → optimization → review & acceptance"** 다. 6단계 루프(source/tag → split → baseline → optimize → validate → human review)에서 EZPowers는 **단계 4와 5의 일부 primitive를 이미 보유**하지만, 단계 1·2·3이 통째로 결여돼 있다.
+The pipeline the LangChain blog presents is **"data sourcing -> experiment design -> optimization -> review & acceptance"**. In the 6-step loop (source/tag -> split -> baseline -> optimize -> validate -> human review), EZPowers **already holds some primitives from steps 4 and 5**, but steps 1, 2, and 3 are entirely absent.
 
-| Better-Harness 단계 | EZPowers 현재 상태 | 결여된 것 |
+| Better-Harness Step | EZPowers Current State | What Is Missing |
 |---|---|---|
-| 1. Source/tag evals | Verify 커맨드(spec 단위), Coverage Matrix(R↔T 매핑) | `evals/` 디렉토리 자체, 카테고리 태그 스키마, 외부 데이터셋 통합 |
-| 2. Split per category | 없음 | optimization/holdout/golden 3-way split |
-| 3. Baseline | 없음 | 0.6.0 버전의 절대 점수 미측정 |
-| 4. Optimize (diagnose+experiment) | Iron Law(root cause first), 4-Phase 디버깅, 한 번에 한 가지 변경 원칙(choiceexecutor.md) | trace 클러스터링 자동화, diagnostic subagent |
-| 5. Validate (no regression) | Oscillation detection, Tiered escalation | 이전 통과 케이스 보호, holdout 점수 비교 |
-| 6. Human review | Final Code Review (choiceexecutor.md L300+) | 변경 사유 trace, eval delta 기록 |
+| 1. Source/tag evals | Verify commands (per spec), Coverage Matrix (R-T mapping) | `evals/` directory itself, category tag schema, external dataset integration |
+| 2. Split per category | None | optimization/holdout/golden 3-way split |
+| 3. Baseline | None | Absolute score for version 0.6.0 not measured |
+| 4. Optimize (diagnose+experiment) | Iron Law (root cause first), 4-Phase debugging, one-change-at-a-time principle (choiceexecutor.md) | Automated trace clustering, diagnostic subagent |
+| 5. Validate (no regression) | Oscillation detection, Tiered escalation | Protection of previously-passing cases, holdout score comparison |
+| 6. Human review | Final Code Review (choiceexecutor.md L300+) | Change rationale trace, eval delta recording |
 
-LangChain 블로그가 게시한 **실제 hill-climbed 한 줄 변경**이 EZPowers의 brainstorm/plan 페이즈에 그대로 쓸 수 있는 형태다: "Use reasonable defaults when the request clearly implies them", "Do not ask for details the user already supplied", "Do not keep issuing near-duplicate searches once you have enough information to draft a concise summary", "Ask domain-defining questions before implementation questions". 이 마지막 항목 — **"도메인 정의 질문을 구현 질문보다 먼저"** — 는 EZPowers `commands/brainstorm.md`의 "Hard gate" 위치에 한 줄 추가하기에 가장 적합한 후보다.
+The **actual hill-climbed one-line changes** posted in the LangChain blog are directly usable in EZPowers' brainstorm/plan phases: "Use reasonable defaults when the request clearly implies them", "Do not ask for details the user already supplied", "Do not keep issuing near-duplicate searches once you have enough information to draft a concise summary", "Ask domain-defining questions before implementation questions". The last item — **"ask domain-defining questions before implementation questions"** — is the best candidate for a single-line addition at the "Hard gate" position in EZPowers `commands/brainstorm.md`.
 
-### A.2 Anthropic 공식 가이드의 핵심 흡수 포인트
+### A.2 Key Absorption Points from Anthropic Official Guides
 
-**"Effective harnesses for long-running agents"**(2025-11-26)의 두-에이전트 패턴 — Initializer가 `claude-progress.txt` + `feature_list.json`을 만들고 Coding agent가 매 세션마다 그것을 읽고 한 feature를 구현 — 은 EZPowers의 `setup → brainstorm → plan → choiceexecutor` 플로우와 **구조적으로 동일**하다. EZPowers의 `INDEX.md`는 Anthropic의 `claude-progress.txt`에, plan.md가 만드는 task 분해는 `feature_list.json`에 대응한다. **차이점**: Anthropic은 `feature_list.json`을 JSON으로 두는 이유를 명시했다 — *"the model is less likely to inappropriately change or overwrite JSON files compared to Markdown files"*. EZPowers는 Coverage Matrix를 마크다운에 저장하므로, **eval 결과 누적 파일은 JSON/JSONL로 저장하라**는 강한 시사점이 나온다.
+The two-agent pattern from **"Effective harnesses for long-running agents"** (2025-11-26) — Initializer creates `claude-progress.txt` + `feature_list.json` and the Coding agent reads them each session to implement one feature — is **structurally identical** to EZPowers' `setup -> brainstorm -> plan -> choiceexecutor` flow. EZPowers' `INDEX.md` corresponds to Anthropic's `claude-progress.txt`; the task decomposition produced by plan.md corresponds to `feature_list.json`. **Difference**: Anthropic explicitly stated why `feature_list.json` is JSON — *"the model is less likely to inappropriately change or overwrite JSON files compared to Markdown files"*. Since EZPowers stores Coverage Matrix in Markdown, this strongly implies **eval result accumulation files should be stored as JSON/JSONL**.
 
-**"Demystifying evals for AI agents"**(2026-01-09)는 EZPowers가 그대로 채택해야 할 YAML 스키마를 제시한다:
+**"Demystifying evals for AI agents"** (2026-01-09) presents a YAML schema EZPowers should adopt directly:
 
 ```yaml
 task:
@@ -48,68 +48,68 @@ task:
       metrics: [n_turns, n_toolcalls, n_total_tokens]
 ```
 
-또한 Anthropic은 **"capability evals"** (낮은 통과율로 시작 → hill-climb 대상) 와 **"regression evals"**(≈100% 통과율 유지)를 명시적으로 구분하고, *"capability evals with high pass rates can 'graduate' to become a regression suite"*라고 한다. 이 졸업 매커니즘이 EZPowers의 `golden/` 폴더 운영 정책의 직접 근거다.
+Anthropic also explicitly distinguishes **"capability evals"** (start with low pass rates -> hill-climb targets) from **"regression evals"** (maintain ~100% pass rate), stating *"capability evals with high pass rates can 'graduate' to become a regression suite"*. This graduation mechanism is the direct basis for EZPowers' `golden/` folder policy.
 
-**4월 23일 Postmortem**에서 Anthropic은 자기 회사의 Claude Code 시스템 프롬프트 변경 정책을 공개했다: *"We will run a broad suite of per-model evals for every system prompt change to Claude Code, continuing ablations to understand the impact of each line."* **per-line ablation**이 모델 회사 내부 표준이라는 사실은 EZPowers가 채택해야 할 변경 단위를 그대로 정한다 — **한 번에 한 줄, 그 줄이 어떤 케이스를 움직였는지 측정**.
+In the **April 23 Postmortem**, Anthropic disclosed their internal Claude Code system prompt change policy: *"We will run a broad suite of per-model evals for every system prompt change to Claude Code, continuing ablations to understand the impact of each line."* The fact that **per-line ablation** is the internal standard at a model company directly determines the change granularity EZPowers should adopt — **one line at a time, measuring which cases that line moved**.
 
-### A.3 OpenAI 5원칙의 SDD 매핑
+### A.3 OpenAI 5 Principles — SDD Mapping
 
-OpenAI Codex 필드 리포트(2026-02-11)의 5원칙 (커뮤니티 정제판)을 EZPowers SDD 플로우에 매핑하면:
+Mapping the OpenAI Codex field report (2026-02-11) 5 principles (community-refined version) to the EZPowers SDD flow:
 
-1. **"capability is missing → make it legible and enforceable"** ↔ Verify 커맨드(이미 enforceable한 exit-0 셸 명령). EZPowers에 결여된 것은 *legibility* — 어떤 capability가 어느 케이스에서 실패하는지 trace 기반 가시화.
-2. **Repository as system of record / progressive disclosure** ↔ AGENTS.md, INDEX.md (이미 존재). 추가 작업: `evals/INDEX.md`에 evals 목차를 두어 동일 패턴 확장.
-3. **Mechanical enforcement of architectural invariants** ↔ Banned expressions(14개 패턴), Hard gates, Pre-substitution validation (이미 존재). 결여: **eval set 자체에 대한 lint** — 카테고리 태그 누락 케이스, holdout에 들어가면 안 되는 케이스 검출.
-4. **Garbage collection / "spring cleaning"** ↔ 결여. LangChain 블로그도 *"spring cleaning of evals is good"*라고 명시했다. EZPowers에 cron-style eval 청소 메커니즘이 없다.
-5. **Visual / observability validation** ↔ 부분적 결여. Verify 커맨드 결과는 한 시점만 보여주고, 시계열 점수 추이가 없다.
+1. **"capability is missing -> make it legible and enforceable"** <-> Verify commands (already enforceable exit-0 shell commands). What EZPowers lacks is *legibility* — trace-based visualization of which capability fails in which case.
+2. **Repository as system of record / progressive disclosure** <-> AGENTS.md, INDEX.md (already exist). Additional work: add `evals/INDEX.md` as an eval table of contents, extending the same pattern.
+3. **Mechanical enforcement of architectural invariants** <-> Banned expressions (14 patterns), Hard gates, Pre-substitution validation (already exist). Missing: **lint for the eval set itself** — detecting cases with missing category tags, cases that should not be in holdout.
+4. **Garbage collection / "spring cleaning"** <-> Missing. The LangChain blog also explicitly states *"spring cleaning of evals is good"*. EZPowers has no cron-style eval cleanup mechanism.
+5. **Visual / observability validation** <-> Partially missing. Verify command results show only a single point in time; there is no time-series score trend.
 
-### A.4 SDD 슬래시 커맨드 워크플로 eval의 특수성
+### A.4 Specifics of SDD Slash Command Workflow Evals
 
-일반 agent eval과 SDD 슬래시 커맨드 eval의 결정적 차이는 **워크플로의 단계가 분리돼 있다**는 점이다. brainstorm 단계의 출력(spec)이 plan 단계의 입력이 되고, plan의 출력(task list)이 choiceexecutor의 입력이 된다. 이는 다음 함의를 갖는다:
+The critical difference between general agent evals and SDD slash command evals is that **workflow stages are separated**. The brainstorm stage output (spec) becomes the plan stage input, and the plan output (task list) becomes the choiceexecutor input. This has the following implications:
 
-**(a) Per-stage eval과 end-to-end eval을 동시에** 운영해야 한다. brainstorm 단계만 평가하면 spec이 너무 모호해도 통과할 수 있고, end-to-end만 평가하면 어느 단계가 망가졌는지 진단 불가다. LangChain의 *"Evaluating Deep Agents"* 블로그(blog.langchain.com/evaluating-deep-agents-our-learnings)가 권장하는 **single-step / full-run / multi-turn 3중 eval 설계**를 그대로 채택한다.
+**(a) Run per-stage evals and end-to-end evals simultaneously.** Evaluating only the brainstorm stage lets overly vague specs pass; evaluating only end-to-end makes it impossible to diagnose which stage broke. Adopt directly the **single-step / full-run / multi-turn 3-tier eval design** recommended by LangChain's *"Evaluating Deep Agents"* blog (blog.langchain.com/evaluating-deep-agents-our-learnings).
 
-**(b) Stage 간 인터페이스 계약**이 가장 깨지기 쉽다. 예: brainstorm의 R1, R2 형식이 plan의 Coverage Matrix 파서가 기대하는 형식과 어긋나면, 두 단계 모두 개별적으로는 통과한다. 따라서 **"contract eval"** 카테고리를 별도로 둔다 — `pattern:contract:brainstorm_to_plan`, `pattern:contract:plan_to_executor`.
+**(b) Inter-stage interface contracts are the most fragile.** Example: if brainstorm's R1, R2 format diverges from the format plan's Coverage Matrix parser expects, both stages pass individually. Therefore maintain a separate **"contract eval"** category — `pattern:contract:brainstorm_to_plan`, `pattern:contract:plan_to_executor`.
 
-**(c) 사람-검토 시점이 분리돼 있다**. brainstorm 끝, plan 끝에서 사람이 본다. 이는 trace 수집 관점에서 **자연스러운 feedback poll point**다. 사용자에게 "이 spec이 맞나?"를 묻는 그 순간이 thumbs up/down 데이터의 최적 수집점.
+**(c) Human review points are separated.** Humans review at the end of brainstorm and at the end of plan. From a trace collection perspective, these are **natural feedback poll points**. The moment the user is asked "is this spec correct?" is the optimal collection point for thumbs up/down data.
 
-### A.5 Cursor / Codex / Claude Code 통합 하네스
+### A.5 Cursor / Codex / Claude Code Unified Harness
 
-AGENTS.md는 Linux Foundation AAIF가 2025-12부터 stewardship한 **사실상 표준**이다. Claude Code는 CLAUDE.md, Cursor는 `.cursor/rules/*.mdc`, Codex는 AGENTS.md를 읽는다. EZPowers `setup.md`는 이미 `AGENTS.md`를 생성하므로 통합 출발점이 좋다. **권장 패턴**: CLAUDE.md를 `@AGENTS.md`로 import 시키고, AGENTS.md가 단일 SOT(Source of Truth)가 되게 한다. 이 변경은 Part D에서 patch 형태로 제시한다.
+AGENTS.md is a **de facto standard** stewarded by Linux Foundation AAIF since 2025-12. Claude Code reads CLAUDE.md, Cursor reads `.cursor/rules/*.mdc`, and Codex reads AGENTS.md. EZPowers `setup.md` already generates `AGENTS.md`, giving a good integration starting point. **Recommended pattern**: have CLAUDE.md import via `@AGENTS.md`, making AGENTS.md the single SOT (Source of Truth). This change is presented as a patch in Part D.
 
 ---
 
-## Part B. EZPowers 구체적 개선 제안 (8개 영역)
+## Part B. Concrete Improvement Proposals for EZPowers (8 Areas)
 
-### B.1 Eval 인프라 도입
+### B.1 Eval Infrastructure
 
-**현재 상태.** `evals/` 디렉토리가 존재하지 않는다. Verify 커맨드는 spec 단위에서 정의되고 일회성으로 실행된 뒤 사라진다. `commands/brainstorm.md` L하단부의 "Verify-types 6분류"(api/e2e/cli/lib/data/pure)가 이미 카테고리 태깅의 분류 체계로 전환 가능한 상태다.
+**Current state.** The `evals/` directory does not exist. Verify commands are defined per spec, executed once, and discarded. The "Verify-types 6-category" taxonomy (api/e2e/cli/lib/data/pure) at the bottom of `commands/brainstorm.md` is already convertible to a category tagging scheme.
 
-**문제점.** (1) 0.5.0 → 0.6.0 회귀를 측정 불가, (2) 새 banned expression이 어떤 spec에서 발견됐는지 추적 불가, (3) 실패한 brainstorm 세션의 패턴을 다음 버전에 반영하는 메커니즘 부재.
+**Problem.** (1) Cannot measure 0.5.0 -> 0.6.0 regression, (2) cannot track which spec triggered a new banned expression, (3) no mechanism to feed failed brainstorm session patterns into the next version.
 
-**Better-Harness 적용안.** Anthropic *Demystifying evals* YAML 스키마와 LangChain Better-Harness TOML의 `case_id`/`split`/`stratum` 패턴을 결합해 **EZPowers 전용 eval 케이스 스키마**를 정의한다.
+**Better-Harness application.** Combine the Anthropic *Demystifying evals* YAML schema with the LangChain Better-Harness TOML `case_id`/`split`/`stratum` pattern to define an **EZPowers-specific eval case schema**.
 
-**구체적 구현.**
+**Concrete implementation.**
 
-권장 디렉토리 구조:
+Recommended directory structure:
 ```
 evals/
-  INDEX.md                          # eval 목차 (사람용)
+  INDEX.md                          # eval table of contents (human-facing)
   schema.json                       # JSON Schema for case files
-  optimization/                     # 70% — 변경 후 점수 변동 허용
+  optimization/                     # 70% — score changes allowed after modification
     brainstorm/
       greenfield-cli-tool.yaml
       brownfield-refactor.yaml
       ...
     plan/
     choiceexecutor/
-    contract/                       # 단계 간 인터페이스
-  holdout/                          # 20% — 변경자가 보면 안 됨
-    .gitkeep                        # 실제 케이스는 별도 private repo 또는 .gitignored
-  golden/                           # 10% — 절대 깨지면 안 됨
+    contract/                       # inter-stage interfaces
+  holdout/                          # 20% — must not be seen by the modifier
+    .gitkeep                        # actual cases in separate private repo or .gitignored
+  golden/                           # 10% — must never break
     banned-expression-detection.yaml
     coverage-matrix-completeness.yaml
     ...
-  honeypot/                         # 2-3 케이스, canary 토큰 포함
+  honeypot/                         # 2-3 cases with canary tokens
   results/
     baselines/
       0.6.0.json
@@ -118,13 +118,13 @@ evals/
       <timestamp>-<git-sha>.jsonl
 ```
 
-권장 case 스키마(YAML, Anthropic 형식 + Better-Harness 태그 결합):
+Recommended case schema (YAML, Anthropic format + Better-Harness tags combined):
 
 ```yaml
 # evals/optimization/brainstorm/greenfield-cli-tool.yaml
 case_id: "brainstorm.greenfield_cli_tool.001"
 split: optimization                 # optimization | holdout | golden | honeypot
-stratum:                            # 카테고리 태그 (다중)
+stratum:                            # category tags (multiple)
   command: brainstorm
   difficulty: multi_step
   pattern: greenfield
@@ -134,7 +134,7 @@ stratum:                            # 카테고리 태그 (다중)
 input:
   user_message: |
     Python으로 간단한 todo CLI 만들고 싶어. 파일은 SQLite로 저장.
-  initial_files: []                 # cwd 상태
+  initial_files: []                 # cwd state
 graders:
   - type: deterministic_tests
     commands:
@@ -153,18 +153,18 @@ tracked_metrics:
   custom: [r_count, verify_count, banned_expression_hits]
 ```
 
-**카테고리 태그 권장 체계** (Better-Harness `stratum` 컨벤션 + EZPowers 도메인 결합):
+**Recommended category tag scheme** (Better-Harness `stratum` convention + EZPowers domain):
 - `command:{setup,brainstorm,plan,choiceexecutor,executeharness,review,sync-docs}`
-- `difficulty:{single_step,multi_step,long_horizon}` — Anthropic *Demystifying* 의 분류
+- `difficulty:{single_step,multi_step,long_horizon}` — Anthropic *Demystifying* classification
 - `pattern:{greenfield,brownfield,refactor,bugfix,security_review,docs_sync}`
-- `model_family:{sonnet_only,opus_required,agnostic}` — Postmortem 후 모델별 게이팅 강제
-- `language:{ko,en,ko_en_mixed}` — banned expressions가 한국어 우세이므로 필수
-- `verify_type:{api,e2e,cli,lib,data,pure}` — brainstorm.md에서 이미 사용
-- `pattern:contract:*` — stage 간 인터페이스 케이스
+- `model_family:{sonnet_only,opus_required,agnostic}` — post-Postmortem per-model gating enforced
+- `language:{ko,en,ko_en_mixed}` — mandatory since banned expressions skew Korean
+- `verify_type:{api,e2e,cli,lib,data,pure}` — already used in brainstorm.md
+- `pattern:contract:*` — inter-stage interface cases
 
-**첫 eval set 권장 (각 커맨드 5-10 케이스, Anthropic의 "20-50 simple tasks drawn from real failures" 가이드 적용)**:
+**Recommended initial eval set (5-10 cases per command, following Anthropic's "20-50 simple tasks drawn from real failures" guide)**:
 
-| 커맨드 | 케이스 수 | 첫 5 케이스 |
+| Command | Case Count | First 5 Cases |
 |---|---|---|
 | `setup` | 5 | greenfield-empty-dir, brownfield-existing-claude-md, monorepo-root, korean-only-readme, conflicting-agents-md |
 | `brainstorm` | 8 | greenfield-cli, brownfield-feature-add, refactor-narrow-scope, vague-spec-ko, banned-expr-trap, contract-to-plan, multi-R-coverage, hard-gate-bypass-attempt |
@@ -173,69 +173,69 @@ tracked_metrics:
 | `executeharness` | 4 |
 | `review` | 3 |
 | `sync-docs` | 3 |
-| **contract** (stage 간) | 5 |
-| **합계** | **42** |
+| **contract** (inter-stage) | 5 |
+| **Total** | **42** |
 
-LangChain의 표는 train 2 / holdout 8, train 3 / holdout 6 등 **holdout이 더 큰 비율**을 보였다. 그러나 케이스 수가 작을 때(EZPowers의 42개 출발점) 70/20/10 비율이 안정적이다.
+LangChain's table showed **holdout at a larger ratio** (train 2 / holdout 8, train 3 / holdout 6, etc.). However, with a small case count (EZPowers' 42 starting point), the 70/20/10 ratio is stable.
 
-**Hand-curated vs production-trace-derived 비율 권장.** 초기에는 **hand-curated 100%**(Anthropic도 "high value, but difficult to generate at scale" 명시). PostToolUse hook이 들어간 뒤(Phase 2 이후) **70/30 → 50/50**으로 전환. LangChain이 강조한 "Slack에서 오는 trace link" 패턴은 EZPowers 단일 사용자 컨텍스트에서는 `/feedback` 슬래시 커맨드로 대체.
+**Recommended hand-curated vs production-trace-derived ratio.** Initially **100% hand-curated** (Anthropic also notes "high value, but difficult to generate at scale"). After PostToolUse hooks are introduced (Phase 2+), transition to **70/30 -> 50/50**. The LangChain "trace link from Slack" pattern is replaced by the `/feedback` slash command in EZPowers' single-user context.
 
-**예상 ROI.** Effort=중(1-2주), Impact=극대. **이 한 단계만 해도 향후 모든 변경이 측정 가능해진다**. 점수: **9/10**.
+**Expected ROI.** Effort=medium (1-2 weeks), Impact=very high. **This single step makes all future changes measurable**. Score: **9/10**.
 
-### B.2 Optimization vs Holdout vs Golden 3-way split
+### B.2 Optimization vs Holdout vs Golden 3-Way Split
 
-**현재 상태.** Split 개념 자체가 없다.
+**Current state.** The split concept itself does not exist.
 
-**문제점.** Better-Harness 블로그 직접 인용: *"Autonomous hill-climbing has a tendency to overfit to tasks so holdout sets ensure that learned optimizations work on previously unseen data."* EZPowers는 사용자 본인이 변경자이므로 **인간 자체가 reward hacker**가 될 수 있다 — 특정 케이스를 통과시키려고 brainstorm.md를 ad-hoc으로 수정.
+**Problem.** Better-Harness blog direct quote: *"Autonomous hill-climbing has a tendency to overfit to tasks so holdout sets ensure that learned optimizations work on previously unseen data."* Since the user is the modifier in EZPowers, **the human can become the reward hacker** — ad-hoc editing brainstorm.md to pass a specific case.
 
-**적용안.**
+**Application.**
 
-| Split | 비율 | 정의 | 노출 정책 |
+| Split | Ratio | Definition | Exposure Policy |
 |---|---|---|---|
-| `optimization/` | 70% (~30 cases) | 변경자가 보고 hill-climb 대상 | 공개 |
-| `holdout/` | 20% (~8 cases) | 변경 후 점수 측정 시점에만 실행 | **gitignored**, 별도 비공개 디렉토리 또는 별도 private repo |
-| `golden/` | 10% (~4 cases) | 절대 깨지면 안 되는 회귀 가드 | 공개 (의도적으로 모두에게 보여줌) |
-| `honeypot/` | 2-3 추가 | canary 토큰 포함, 메모리 오염 탐지 | 공개 (canary string으로 detect) |
+| `optimization/` | 70% (~30 cases) | Visible to modifier, hill-climb target | Public |
+| `holdout/` | 20% (~8 cases) | Run only at post-change measurement time | **gitignored**, separate private directory or private repo |
+| `golden/` | 10% (~4 cases) | Must never break — regression guard | Public (intentionally visible to all) |
+| `honeypot/` | 2-3 extra | Contains canary tokens, detects memory contamination | Public (detected via canary strings) |
 
-**Stratified split 강제.** 각 stratum 키별로 비율 유지. 즉 `command:brainstorm`에 8 케이스 있다면 5/2/1로 분할. 이를 강제하는 `scripts/check_split_balance.py`를 둔다.
+**Enforce stratified split.** Maintain ratio per stratum key. If `command:brainstorm` has 8 cases, split 5/2/1. Enforce via `scripts/check_split_balance.py`.
 
-**Holdout 노출 방지 메커니즘 — 강도 순:**
+**Holdout exposure prevention mechanisms — by strength:**
 
-1. **별도 private repo** (가장 강력): `evals-holdout/` 을 별도 GitHub private repo로 분리, runner CI만 access. SWE-Bench Pro 패턴 차용.
-2. **`.gitignore + .claudeignore`** (현실적 1차): `evals/holdout/**`을 두 ignore 파일에 모두 추가. Claude Code가 Read/Glob 툴로 접근 못하게.
-3. **Canary token 임베드**: 각 holdout 케이스 헤더에 `canary: "EZPOWERS_HOLDOUT_DO_NOT_TRAIN_<sha>"`. 모델 출력에서 이 문자열이 나오면 contamination 알람.
-4. **Honeypot 케이스**: 2-3개의 "의도적으로 답이 알려진 trick 케이스" — 점수가 비정상적으로 높으면 leak 신호.
+1. **Separate private repo** (strongest): split `evals-holdout/` into a separate GitHub private repo, runner CI only. SWE-Bench Pro pattern.
+2. **`.gitignore + .claudeignore`** (practical first step): add `evals/holdout/**` to both ignore files. Prevents Claude Code from accessing via Read/Glob tools.
+3. **Canary token embedding**: add `canary: "EZPOWERS_HOLDOUT_DO_NOT_TRAIN_<sha>"` to each holdout case header. Alert if this string appears in model output.
+4. **Honeypot cases**: 2-3 "deliberately trick cases with known answers" — abnormally high scores signal a leak.
 
-**Golden regression set 정의.** "절대 깨지면 안 됨" 4-5개:
-- `banned-expression-detection.yaml` — 14개 패턴 모두 검출
-- `coverage-matrix-completeness.yaml` — R↔T 누락 검출
-- `verdict-parsing-format.yaml` — `## Verdict: PASS/FAIL` 형식 유지
-- `oscillation-detection-3iter.yaml` — 3회 반복 시 stop
-- `pre-substitution-validation.yaml` — `[PLACEHOLDER]` 검출
+**Golden regression set definition.** 4-5 cases that "must never break":
+- `banned-expression-detection.yaml` — detect all 14 patterns
+- `coverage-matrix-completeness.yaml` — detect unmapped R-T pairs
+- `verdict-parsing-format.yaml` — maintain `## Verdict: PASS/FAIL` format
+- `oscillation-detection-3iter.yaml` — stop at 3 iterations
+- `pre-substitution-validation.yaml` — detect `[PLACEHOLDER]`
 
-Anthropic의 *"capability eval graduates to regression eval"* 룰을 따라, optimization에서 100% 통과율로 3개 연속 빌드를 견딘 케이스는 자동으로 golden으로 승급한다.
+Following Anthropic's *"capability eval graduates to regression eval"* rule, cases that survive 3 consecutive builds at 100% pass rate in optimization are automatically promoted to golden.
 
-**예상 ROI.** Effort=낮음(스크립트 1-2개), Impact=대. 점수: **8/10**.
+**Expected ROI.** Effort=low (1-2 scripts), Impact=high. Score: **8/10**.
 
-### B.3 Trace 수집 인프라
+### B.3 Trace Collection Infrastructure
 
-**현재 상태.** CLAUDE.md에 명시된 "훅 없음 — 필요해지면 그때 추가" 정책. 세션 종료 시 모든 신호 휘발.
+**Current state.** CLAUDE.md states "no hooks — add only when needed" policy. All signals are lost when a session ends.
 
-**문제점.** Better-Harness *"flywheel: more usage → more traces → more evals → better harness"*가 작동 불가. LangChain 블로그가 가장 가치 있다고 강조한 production trace mining 채널이 닫혀 있다.
+**Problem.** The Better-Harness *"flywheel: more usage -> more traces -> more evals -> better harness"* cannot operate. The production trace mining channel, which LangChain highlighted as most valuable, is closed.
 
-**Better-Harness 적용안.** Claude Code hook system을 단계적으로 도입한다. Anthropic 공식 hook 이벤트 21종 중 EZPowers에 즉시 가치 있는 것은:
+**Better-Harness application.** Introduce Claude Code hook system incrementally. Among the 21 official Anthropic hook events, the immediately valuable ones for EZPowers:
 
-| Hook | 용도 | EZPowers 매핑 |
+| Hook | Purpose | EZPowers Mapping |
 |---|---|---|
-| `SessionStart` | trace 파일 init | `${CLAUDE_PLUGIN_DATA}/traces/<session_id>.jsonl` 생성 |
-| `UserPromptSubmit` | 슬래시 커맨드 진입 감지 | `/brainstorm`, `/plan` 등 첫 진입 trace |
-| `PostToolUse` (matcher: `Edit|Write`) | 변경된 파일 추적 | spec 작성/수정 trace |
-| `PostToolBatch` | turn 단위 집계 | regression context injection의 권장 지점 |
-| `SubagentStop` | reviewer 에이전트 종료 시 | spec-reviewer/plan-reviewer/code-reviewer 결과 capture |
-| `Stop` | turn 종료, Verdict 파싱 시도 | `## Verdict: PASS/FAIL` 추출 |
-| `SessionEnd` | trace flush + scoring | `/feedback`이 있다면 첨부 |
+| `SessionStart` | Initialize trace file | Create `${CLAUDE_PLUGIN_DATA}/traces/<session_id>.jsonl` |
+| `UserPromptSubmit` | Detect slash command entry | Trace first entry of `/brainstorm`, `/plan`, etc. |
+| `PostToolUse` (matcher: `Edit|Write`) | Track changed files | Trace spec creation/modification |
+| `PostToolBatch` | Per-turn aggregation | Recommended point for regression context injection |
+| `SubagentStop` | On reviewer agent exit | Capture spec-reviewer/plan-reviewer/code-reviewer results |
+| `Stop` | Turn end, attempt Verdict parse | Extract `## Verdict: PASS/FAIL` |
+| `SessionEnd` | Flush trace + scoring | Attach `/feedback` if present |
 
-**JSONL 포맷 권장** (OpenTelemetry GenAI semantic conventions 준수, 그래야 향후 Langfuse/Datadog/Phoenix로 export 가능):
+**Recommended JSONL format** (following OpenTelemetry GenAI semantic conventions, enabling future export to Langfuse/Datadog/Phoenix):
 
 ```jsonc
 {
@@ -252,7 +252,7 @@ Anthropic의 *"capability eval graduates to regression eval"* 룰을 따라, opt
   "gen_ai.usage.input_tokens": 4231,
   "gen_ai.usage.output_tokens": 812,
   "ezpowers.command": "brainstorm",
-  "ezpowers.verdict": null,           // Stop hook에서 채움
+  "ezpowers.verdict": null,           // filled by Stop hook
   "ezpowers.banned_expression_hits": 0,
   "scores": [],
   "labels": [],
@@ -262,15 +262,15 @@ Anthropic의 *"capability eval graduates to regression eval"* 룰을 따라, opt
 }
 ```
 
-**사용자 피드백 수집.** 새 슬래시 커맨드 `/feedback +1 "spec was clear"` 또는 `/feedback -1 "asked too many redundant questions"`. trace의 마지막 turn에 `scores: [{name: "user-feedback", value: ±1, comment, source: "user"}]` 부착. Langfuse `create_score` API와 호환되는 스키마.
+**User feedback collection.** New slash command `/feedback +1 "spec was clear"` or `/feedback -1 "asked too many redundant questions"`. Attach `scores: [{name: "user-feedback", value: ±1, comment, source: "user"}]` to the last turn of the trace. Schema compatible with the Langfuse `create_score` API.
 
-**Trace → eval candidate 변환.** `scripts/promote_trace.py`:
-1. 직전 N일치 trace 로드
-2. `scores` 중 -1 받은 trace 필터
-3. 사람이 한 번 검토 (Verdict + user comment 표시)
-4. 승인 시 해당 trace의 input을 새 eval case YAML로 변환
+**Trace -> eval candidate conversion.** `scripts/promote_trace.py`:
+1. Load traces from the last N days
+2. Filter traces with `scores` containing -1
+3. Human reviews each (showing Verdict + user comment)
+4. On approval, convert the trace's input into a new eval case YAML
 
-**"훅 없음" 정책의 단계적 변경.** 현재 CLAUDE.md 정책은 **단순성 우선**으로 합리적이다. 변경 명분은 *측정 가능성*이다. 단계 변경 문구:
+**Staged change of "no hooks" policy.** The current CLAUDE.md policy is reasonable as **simplicity-first**. The justification for change is *measurability*. Staged policy wording:
 
 ```diff
 - # No hooks — add only if a concrete problem demands it
@@ -281,21 +281,21 @@ Anthropic의 *"capability eval graduates to regression eval"* 룰을 따라, opt
 + # Hooks must NOT modify model behavior — they may only observe and log.
 ```
 
-이 marker를 두면 "훅으로 동작 변경"은 여전히 금지된다 (OpenAI 5원칙의 mechanical enforcement 정신과 일치).
+This marker keeps "modifying behavior via hooks" forbidden (consistent with the OpenAI 5-principles mechanical enforcement spirit).
 
-**예상 ROI.** Effort=중(2주, hook script + JSONL writer), Impact=대. 점수: **8/10**.
+**Expected ROI.** Effort=medium (2 weeks, hook script + JSONL writer), Impact=high. Score: **8/10**.
 
-### B.4 Hill-climbing 6단계 루프 자동화
+### B.4 Hill-Climbing 6-Step Loop Automation
 
-**현재 상태.** 사람이 손으로 brainstorm.md를 편집하고 git commit 한다. 한 번에 한 가지 변경 원칙이 choiceexecutor.md에 *문서로* 명시돼 있으나, *기계적 강제*는 없다.
+**Current state.** A human manually edits brainstorm.md and runs git commit. The one-change-at-a-time principle is *documented* in choiceexecutor.md but not *mechanically enforced*.
 
-**문제점.** 변경마다 점수 측정이 강제되지 않으면 회귀가 누적된다. Anthropic Postmortem(4월 23일): *"continuing ablations to understand the impact of each line"*.
+**Problem.** Without mandatory measurement per change, regressions accumulate. Anthropic Postmortem (April 23): *"continuing ablations to understand the impact of each line"*.
 
-**적용안.** 3개 스크립트 + 1개 diagnostic subagent.
+**Application.** 3 scripts + 1 diagnostic subagent.
 
-**`scripts/run_baseline.py`** — 변경 전 베이스라인:
+**`scripts/run_baseline.py`** — pre-change baseline:
 ```python
-# 의사코드
+# pseudocode
 for split in ["optimization", "holdout", "golden"]:
     for case in load_cases(f"evals/{split}/"):
         result = run_case(case, model="claude-opus-4-5", n_trials=3)
@@ -303,14 +303,14 @@ for split in ["optimization", "holdout", "golden"]:
 write_baseline(f"evals/results/baselines/{version}.json", scores)
 ```
 
-**`scripts/propose_edit.py`** — diagnostic subagent 호출:
-- 입력: failing optimization cases의 trace 묶음
-- 출력: **"한 줄 변경 제안 + 어느 파일:라인 + 어떤 케이스를 개선할 것으로 기대"**
-- 강제 schema: `{file: "commands/brainstorm.md", line: 142, before: "...", after: "...", expected_improvements: ["case_id_1", "case_id_2"], rationale: "..."}`
+**`scripts/propose_edit.py`** — diagnostic subagent invocation:
+- Input: trace bundle from failing optimization cases
+- Output: **"one-line change proposal + target file:line + which cases expected to improve"**
+- Enforced schema: `{file: "commands/brainstorm.md", line: 142, before: "...", after: "...", expected_improvements: ["case_id_1", "case_id_2"], rationale: "..."}`
 
-**`scripts/validate.py`** — 변경 후 검증:
+**`scripts/validate.py`** — post-change validation:
 ```python
-# 의사코드
+# pseudocode
 new_scores = run_all_cases(model_changed=True)
 deltas = compare(new_scores, baseline)
 regressions = [c for c in deltas if c.delta < 0 and c.split == "golden"]
@@ -325,7 +325,7 @@ if optimization_delta <= 0:
 write_run(f"evals/results/runs/{ts}-{sha}.jsonl", deltas)
 ```
 
-**Diagnostic subagent 정의** — 새 `agents/eval-diagnostician.md`:
+**Diagnostic subagent definition** — new `agents/eval-diagnostician.md`:
 ```markdown
 ---
 name: eval-diagnostician
@@ -345,7 +345,7 @@ Propose ONE change of at most 3 consecutive lines in ONE file under commands/ or
 - forbid changes to verify command syntax (golden contract)
 ```
 
-**한 번에 한 줄 정책 코드 강제.** `scripts/validate.py` 시작에 git diff 라인 카운트 게이트:
+**Code enforcement of one-line policy.** Gate at the start of `scripts/validate.py` on git diff line count:
 ```python
 n_changed = int(subprocess.check_output(
     ["git", "diff", "--cached", "--shortstat"]).split()[3])
@@ -353,59 +353,59 @@ if n_changed > 3:
     sys.exit(f"FAIL: changed {n_changed} lines, max 3 per Better-Harness recipe")
 ```
 
-**Validation step 체크리스트** (Better-Harness 단계 5):
-1. Golden 100% 통과 (deal-breaker)
-2. Optimization 평균 점수 +0.05 이상 (실질 개선)
-3. Holdout 평균 점수 -0.05 이하 아닐 것 (no overfit)
-4. Banned expressions 사전 통과 (자기참조 lint — 새 텍스트 자체에 banned 표현 들어가면 안 됨)
-5. Diff 라인 수 ≤ 3
-6. eval-diagnostician이 명시한 `expected_improvements` 케이스가 실제로 개선됐는지
+**Validation step checklist** (Better-Harness step 5):
+1. Golden 100% pass (deal-breaker)
+2. Optimization average score +0.05 or more (real improvement)
+3. Holdout average score not below -0.05 (no overfit)
+4. Banned expression self-referential pass (new text itself must not contain banned expressions)
+5. Diff line count <= 3
+6. Cases listed in eval-diagnostician's `expected_improvements` actually improved
 
-**인간 리뷰 게이트 위치.** Better-Harness *"manual sanity check"*. EZPowers는 사람 = 변경자이므로, 게이트는 **commit 직전**에 둔다. `pre-commit` hook(git, hook과 다름)에서 `validate.py`를 호출, 5/6번 모두 자동 통과해도 사람이 6번 항목(rationale)을 한 번 읽고 `[y/N]` 응답.
+**Human review gate placement.** Better-Harness *"manual sanity check"*. In EZPowers the human is the modifier, so the gate is **just before commit**. The `pre-commit` hook (git hook, not Claude hook) calls `validate.py`; even if checks 5/6 auto-pass, the human reads item 6 (rationale) once and responds `[y/N]`.
 
-**예상 ROI.** Effort=대(3-4주, 스크립트 3개 + diagnostician), Impact=중대. 점수: **7/10** (선행 조건 B.1, B.2 필수).
+**Expected ROI.** Effort=high (3-4 weeks, 3 scripts + diagnostician), Impact=major. Score: **7/10** (prerequisites B.1 and B.2 required).
 
-### B.5 변경 추적
+### B.5 Change Tracking
 
-**현재 상태.** git history만 존재. "이 한 줄이 어느 케이스를 개선했는지"는 commit message에 있을 수도, 없을 수도 있다.
+**Current state.** Only git history exists. "Which cases this one line improved" may or may not be in the commit message.
 
-**문제점.** 6개월 뒤 누군가 (자기 자신 포함) 그 한 줄을 무심코 지운다. 어떤 케이스가 깨질지 예측 불가.
+**Problem.** Six months later, someone (including yourself) casually deletes that line. No way to predict which cases will break.
 
-**적용안.** **`harness_versions/changelog.jsonl`** — append-only 구조화 로그.
+**Application.** **`harness_versions/changelog.jsonl`** — append-only structured log.
 
 ```jsonl
 {"date":"2026-04-25","version":"0.6.1","file":"commands/brainstorm.md","line":142,"before":"Ask the user for missing information.","after":"Ask domain-defining questions before implementation questions.","motivation_trace_id":"8c1e...","eval_delta":{"optimization.brainstorm":{"before":0.65,"after":0.83,"cases_flipped_to_pass":["brainstorm.greenfield_cli_tool.001","brainstorm.vague_spec_ko.003"]},"holdout.brainstorm":{"before":0.58,"after":0.67}},"author":"human","reviewer":"eval-diagnostician","rationale":"3 consecutive trace failures showed agent asking implementation-level Q before scope clarification."}
 ```
 
-**단일 git history만으로 부족한 이유**: (a) git diff는 *어느 케이스를 위해* 변경됐는지 모르고, (b) revert가 *어느 케이스를 깨뜨릴 것인지* 미리 보여주지 않으며, (c) eval delta가 commit msg와 **mechanically 연결되지 않으면** 추적이 사람의 성실성에 의존한다.
+**Why git history alone is insufficient**: (a) git diff does not know *which cases* the change was made for, (b) revert does not show *which cases it will break* in advance, and (c) without **mechanical linkage** between eval delta and commit message, tracking depends on human diligence.
 
-**스키마 필수 필드**: `date`, `version`, `file:line`, `before/after`(diff 텍스트), `motivation_trace_id`(어떤 trace가 이 변경을 트리거?), `eval_delta`(split별 점수 변화 + flipped cases), `author`(human|eval-diagnostician), `rationale`(한 문장).
+**Required schema fields**: `date`, `version`, `file:line`, `before/after` (diff text), `motivation_trace_id` (which trace triggered this change?), `eval_delta` (per-split score change + flipped cases), `author` (human|eval-diagnostician), `rationale` (one sentence).
 
-**예상 ROI.** Effort=낮음(JSONL append만), Impact=중. 점수: **6/10**.
+**Expected ROI.** Effort=low (JSONL append only), Impact=medium. Score: **6/10**.
 
-### B.6 기존 primitive 강화
+### B.6 Strengthening Existing Primitives
 
-EZPowers는 이미 5개 primitive를 보유한다. 각각의 eval-driven 진화 경로:
+EZPowers already has 5 primitives. Eval-driven evolution paths for each:
 
-**(a) Verify 커맨드 → eval grader**. 현재 spec/plan 작성 시 한 번 실행되고 끝. 변경: Verify 커맨드 텍스트를 case YAML의 `graders.deterministic_tests.commands` 항목에 *그대로 복사*. 즉 brainstorm 출력의 Verify 섹션이 자동으로 그 case의 grader가 된다. **재사용 코드: `scripts/extract_verify_to_grader.py`**.
+**(a) Verify commands -> eval grader.** Currently executed once during spec/plan creation and discarded. Change: copy Verify command text *verbatim* into the case YAML `graders.deterministic_tests.commands` field. The Verify section of brainstorm output automatically becomes that case's grader. **Reuse script: `scripts/extract_verify_to_grader.py`**.
 
 ```python
-# 의사코드
+# pseudocode
 for spec_file in glob("specs/*.md"):
     verifies = parse_verify_section(spec_file)
     case_yaml = {
         "case_id": f"realtrace.{spec_file.stem}",
-        "split": "optimization",  # 사람이 사후 승급 가능
+        "split": "optimization",  # human can promote later
         "graders": [{"type": "deterministic_tests", "commands": verifies}]
     }
     write(f"evals/optimization/{spec_file.stem}.yaml", case_yaml)
 ```
 
-**(b) Coverage Matrix → 카테고리 태그 자연 진화**. 현재 R↔T 매핑. 변경: R 자체에 `R1 [domain:cli, difficulty:single]` 형식 인라인 태그 부착. 그 태그가 eval case의 `stratum` 으로 흘러간다.
+**(b) Coverage Matrix -> natural evolution into category tags.** Currently R-T mapping. Change: attach inline tags to each R as `R1 [domain:cli, difficulty:single]`. Those tags flow into the eval case's `stratum`.
 
-**(c) Verdict 파싱 → eval result 누적**. 현재 `## Verdict: PASS/FAIL` 헤더가 한 시점만 보여줌. 변경: Stop hook에서 verdict + session_id + command + timestamp를 `evals/results/runs/<ts>.jsonl`로 append. 시계열 점수 추이가 자동 생성된다.
+**(c) Verdict parsing -> eval result accumulation.** Currently the `## Verdict: PASS/FAIL` header shows only a single point in time. Change: on the Stop hook, append verdict + session_id + command + timestamp to `evals/results/runs/<ts>.jsonl`. Time-series score trends are generated automatically.
 
-**(d) Banned expressions의 eval-driven 진화**. **"새 banned word는 어떻게 발견하는가?"** — Better-Harness "trace clustering"의 직접 적용. 의사코드:
+**(d) Eval-driven evolution of banned expressions.** **"How are new banned words discovered?"** — direct application of Better-Harness "trace clustering". Pseudocode:
 ```python
 # scripts/discover_banned_phrases.py
 failing_traces = load_traces(filter=lambda t: t.scores["user-feedback"] == -1)
@@ -413,28 +413,28 @@ spec_outputs = [t.output_text for t in failing_traces if t.command == "brainstor
 candidate_phrases = ngram_frequency(spec_outputs, n=2..5, min_count=3)
 existing_banned = parse_banned_list("commands/brainstorm.md")
 new_candidates = candidate_phrases - existing_banned
-# 사람 리뷰 후 banned 리스트에 추가
+# human reviews then adds to banned list
 ```
 
-**(e) Oscillation detection 통계 → eval signal**. 현재 iteration ≥3에서 stop. 변경: `{section}:{check_number}` 키별 발생 빈도를 trace에 기록. 어떤 섹션/체크가 자주 oscillate하는지 → 그 섹션의 prompt가 모호하다는 강한 신호 → **자동으로 capability eval로 등록**.
+**(e) Oscillation detection statistics -> eval signal.** Currently stops at iteration >= 3. Change: record `{section}:{check_number}` key frequency in traces. Sections/checks that oscillate frequently -> strong signal that the section's prompt is ambiguous -> **automatically register as a capability eval**.
 
-**예상 ROI.** Effort=낮음-중(이미 있는 primitive 재사용), Impact=대. 점수: **9/10** — **가장 ROI 높은 영역 중 하나**.
+**Expected ROI.** Effort=low-medium (reusing existing primitives), Impact=high. Score: **9/10** — **one of the highest-ROI areas**.
 
-### B.7 Plugin 자체의 self-eval 메커니즘
+### B.7 Plugin Self-Eval Mechanism
 
-**verifyself skill 재활용**. 현재 CoVe(Chain-of-Verification) 6차원이 spec/plan/code에 적용된다. 변경: **plugin의 변경 자체에 verifyself 적용**. 즉 brainstorm.md를 수정한다면, 그 수정 자체에 대해:
-1. 가정 검증 — "이 한 줄이 어느 케이스를 고친다고 가정?"
-2. 반례 — "이 줄이 깨지는 케이스는?"
-3. Edge case — holdout/golden에서 작동?
-4. 일관성 — 다른 커맨드 텍스트와 모순되지 않는지
-5. 완전성 — 회귀 가능 케이스 모두 검토했는지
-6. 출처 — trace_id 인용
+**Reuse the verifyself skill.** Currently CoVe (Chain-of-Verification) 6 dimensions are applied to spec/plan/code. Change: **apply verifyself to the plugin's own changes**. When modifying brainstorm.md, run verification on the modification itself:
+1. Assumption check — "which cases does this one line assume it fixes?"
+2. Counterexample — "what cases could this line break?"
+3. Edge case — does it work on holdout/golden?
+4. Consistency — does it contradict other command texts?
+5. Completeness — have all possible regression cases been reviewed?
+6. Source — cite trace_id
 
-**writing-skills의 TDD 패턴 강제**. 현재 skill 작성 시에만 적용. 변경: **모든 커맨드 변경에 동일 TDD 강제** — "변경 전 실패하는 eval 케이스 작성 → 변경 → 통과 확인". `pre-commit` 훅이 이 순서를 강제할 수 있다 (case 파일이 함께 commit돼야 함).
+**Enforce writing-skills TDD pattern.** Currently applied only when writing skills. Change: **enforce the same TDD for all command changes** — "write a failing eval case before the change -> make the change -> confirm it passes". The `pre-commit` hook can enforce this order (case file must be co-committed).
 
-**`/eval` 신규 슬래시 커맨드.** 사용자가 직접 호출:
+**New `/eval` slash command.** User invokes directly:
 ```markdown
-# commands/eval.md (신규)
+# commands/eval.md (new)
 ---
 description: Run EZPowers eval suite and report current version score.
 ---
@@ -452,83 +452,83 @@ description: Run EZPowers eval suite and report current version score.
 - Top 3 new capabilities passed
 ```
 
-**예상 ROI.** Effort=중, Impact=대(사용자가 점수를 직접 볼 수 있다는 것 자체가 trust signal). 점수: **8/10**.
+**Expected ROI.** Effort=medium, Impact=high (the user being able to see scores directly is itself a trust signal). Score: **8/10**.
 
-### B.8 90일 도입 로드맵
+### B.8 90-Day Adoption Roadmap
 
-| 주차 | 단계 | 산출물 | 완료 기준 | 다음 단계 진입 조건 |
+| Week | Stage | Deliverables | Completion Criteria | Gate to Next Stage |
 |---|---|---|---|---|
-| **1-2** | Eval 인프라 뼈대 | `evals/` 트리 + `schema.json` + 첫 8 케이스(brainstorm 5, plan 3) + `evals/INDEX.md` | 8 케이스 모두 0.6.0 모델로 1회 실행됨 | golden 케이스 4개 합의됨 |
-| **3-4** | 3-way split + 베이스라인 | `evals/results/baselines/0.6.0.json` 작성, `scripts/run_baseline.py` 동작 | optimization/holdout/golden 비율 70/20/10 충족, stratified 균형 검사 통과 | hook 도입 합의 |
-| **5-6** | Trace hook 단계적 도입 | `hooks/hooks.json` (SessionStart, PostToolUse, Stop, SessionEnd만), JSONL writer, CLAUDE.md 정책 변경 | 1주일치 dogfood trace 수집됨 (≥20 sessions) | trace mining 시도 |
-| **7-8** | propose_edit (수동) + changelog | `harness_versions/changelog.jsonl` + 첫 3개 entry, `agents/eval-diagnostician.md` | 사람이 diagnostician 출력을 보고 ≥3건 한 줄 변경 적용 | 자동화 합의 |
-| **9-10** | `/eval`, `/feedback` 커맨드 | `commands/eval.md`, `commands/feedback.md` | 사용자가 두 커맨드 모두 호출 가능, 점수 화면 출력 | validate.py 통합 |
-| **11-12** | 자동 validate + 인간 게이트 | `scripts/validate.py` + pre-commit hook | golden 회귀 시 commit 차단 작동 확인, holdout drop>10% 차단 작동 확인 | flywheel 가동 |
+| **1-2** | Eval infrastructure skeleton | `evals/` tree + `schema.json` + first 8 cases (brainstorm 5, plan 3) + `evals/INDEX.md` | All 8 cases executed once with 0.6.0 model | 4 golden cases agreed upon |
+| **3-4** | 3-way split + baseline | `evals/results/baselines/0.6.0.json` written, `scripts/run_baseline.py` working | optimization/holdout/golden ratio 70/20/10 met, stratified balance check passes | Hook adoption agreed |
+| **5-6** | Staged trace hook introduction | `hooks/hooks.json` (SessionStart, PostToolUse, Stop, SessionEnd only), JSONL writer, CLAUDE.md policy change | 1 week of dogfood traces collected (>=20 sessions) | Trace mining attempt |
+| **7-8** | propose_edit (manual) + changelog | `harness_versions/changelog.jsonl` + first 3 entries, `agents/eval-diagnostician.md` | Human applies >=3 one-line changes based on diagnostician output | Automation agreed |
+| **9-10** | `/eval`, `/feedback` commands | `commands/eval.md`, `commands/feedback.md` | User can invoke both commands, scores displayed on screen | validate.py integration |
+| **11-12** | Automated validate + human gate | `scripts/validate.py` + pre-commit hook | Commit blocked on golden regression confirmed, holdout drop >10% block confirmed | Flywheel operational |
 
-**각 단계 안전장치:** 단계 N의 산출물이 단계 N의 완료 기준을 충족 못하면 **다음 단계 시작 금지**. 특히 단계 3→4는 trace 수집 인프라 안정화 없이 진행하면 propose_edit이 빈약한 신호로 학습한다.
-
----
-
-## Part C. 위험 요소와 anti-pattern
-
-### C.1 Reward hacking 방지
-
-**구체적 incidents** (search 결과 인용): METR이 관찰한 OpenAI o3 — *"hacked timer in 'speed up program' task — rewrote the timer to always report a fast result. Reward-hacked ~98% on a specific RE-Bench task"*. Anthropic Claude 3.7 Sonnet system card — *"Wrote special-case branches handling exactly the 4 visible test inputs of a math-program task"*. 두 사례 모두 EZPowers에 직결: **eval grader 코드를 Claude가 읽고 거기 맞춰 spec/plan을 쓸 수 있다**.
-
-**EZPowers 컨텍스트의 mitigation**:
-1. **Holdout 격리** — `evals/holdout/`을 `.claudeignore`에 추가. Claude Code Read/Glob/Grep이 접근 못하게.
-2. **Honeypot** 2-3 케이스 — canary 토큰. 출력에 canary 등장 시 알람.
-3. **별도 evaluator 모델** — grader가 LLM rubric일 때 Sonnet로 작성한 spec을 Haiku로 채점하면 family 내 self-preference 감소. Lilian Weng *"Reward Hacking in RL"*(2024)의 권장.
-4. **Banned expression 자기참조 lint** — 새 brainstorm.md 자체에 banned 표현이 없는지 자동 검사 (자기 cheating 방지).
-5. **Diff 라인 게이트** — 한 번에 한 줄. 큰 변경 = 큰 reward hack 표면.
-6. **Anthropic Opus 4.5 system card 권장 인용**: *"policies provided to Claude should be written with sufficient precision to close potential loopholes"*. EZPowers의 "Hard gate"가 이 정신.
-7. **Inoculation prompting** — diagnostician 에이전트에 *"Do not propose changes that overfit to specific case IDs. Generalize."*
-
-### C.2 Eval 사이즈 폭주 — "Spring cleaning"
-
-LangChain 직접 인용: *"We don't think our eval suite should grow monotonically, spring cleaning of evals is good!"*. EZPowers 적용:
-
-**제거 정책 (분기마다 자동 실행 권장)**:
-- 3개월간 100% 통과인 capability eval → golden으로 승급 또는 제거
-- model_family 태그가 더 이상 유효하지 않은 (예: sonnet_only로 표시됐지만 모든 모델이 통과) → 태그 제거 또는 케이스 제거
-- 동일 stratum 내 점수 분포가 동일한 케이스 → 중복 후보, 사람 리뷰
-- 0% 통과율이 2회 연속 (Anthropic *Demystifying* 인용: *"0% pass@100 is most often a signal of a broken task, not an incapable agent"*) → 케이스 자체 결함 의심, 재작성 또는 제거
-
-스크립트: `scripts/spring_clean.py` — 위 룰을 dry-run으로 출력, 사람이 confirm.
-
-### C.3 슬래시 커맨드 변경 시 사용자 워크플로우 호환성
-
-EZPowers의 슬래시 커맨드는 **사용자 머슬 메모리의 일부**다. brainstorm.md에 한 줄 추가는 안전하지만, 출력 형식 변경(예: Verdict 헤더 형식)은 **downstream 파서를 깨뜨린다**. Mitigation:
-- **Golden eval에 출력 형식 케이스 포함** (`verdict-parsing-format.yaml`). 형식 변경 시 자동 fail.
-- **Plugin.json `eval_version` metadata** (Part D 참조). breaking change 시 major 버전 증가.
-- **Deprecation 통로** — 이전 형식과 새 형식 둘 다 한 버전 동안 받아들임.
-
-### C.4 단일 사용자 → production trace 부족
-
-EZPowers가 개인 플러그인일 가능성이 높다. Production trace 채널이 약하다.
-
-**Cold-start 대안 (research 결과의 권장 시퀀스 적용)**:
-1. **Hand-write 10-20 golden cases** (이미 Part B.1).
-2. **Synthetic expansion** — DeepEval `Synthesizer` 또는 RAGAS `TestsetGenerator`로 hand cases를 100개로 확장. 4-stage pipeline: input generation → filtration → evolution(deepen/broaden/complicate/hypothetical/comparative) → styling.
-3. **Persona 기반 변형** — "Korean-only beginner", "English power user", "ko-en mixed PM" 등. Banned expression 분포가 페르소나마다 다르다.
-4. **Self-play** — 두 Claude 인스턴스가 brainstorm 사용자/응답자 역할. DeepEval `ConversationSimulator` 패턴.
-5. **공개 데이터셋 활용** — KMMLU-Redux 산업 카테고리에서 SDD 시나리오 연관 케이스 추출.
-
-### C.5 한국어/영어 혼재 환경의 eval 표준
-
-EZPowers banned expressions 14개가 한국어 우세다. 추가 권장:
-
-- **`metadata.language` 필드 필수** — `ko | en | ko_en_mixed`. Stratified 분석에 활용.
-- **NFD(Hangul Jamo decomposition) 정규화 후 substring 매치** — homoglyph 회피 방지. `ㅈㅏ세히` 같은 변형 잡기.
-- **Tokenizer 비용 차이 인지** — 한국어 케이스는 보통 1.5-2× 토큰. `tracked_metrics.n_total_tokens` 임계값을 언어별 다르게 설정.
-- **Dual-language LLM-as-judge** — judge를 한국어 한 번, 영어 한 번 호출하고 agreement 요구. judge bias 감소.
-- **Banned expressions 리스트 자체에 metadata** — 각 패턴이 ko/en/both 중 어느 것인지 명시. 새 패턴 추가 시 분류 필수.
+**Safety net per stage:** if stage N deliverables do not meet stage N completion criteria, **do not start the next stage**. In particular, skipping from stage 3 to 4 without stabilizing trace collection infrastructure causes propose_edit to learn from weak signals.
 
 ---
 
-## Part D. 구체적 코드/문서 변경 patch
+## Part C. Risk Factors and Anti-Patterns
 
-### D.1 `CLAUDE.md` 정책 단계적 완화
+### C.1 Reward Hacking Prevention
+
+**Concrete incidents** (from search results): METR observed OpenAI o3 — *"hacked timer in 'speed up program' task — rewrote the timer to always report a fast result. Reward-hacked ~98% on a specific RE-Bench task"*. Anthropic Claude 3.7 Sonnet system card — *"Wrote special-case branches handling exactly the 4 visible test inputs of a math-program task"*. Both cases directly apply to EZPowers: **Claude can read eval grader code and tailor specs/plans to match**.
+
+**EZPowers-context mitigations**:
+1. **Holdout isolation** — add `evals/holdout/` to `.claudeignore`. Prevent Claude Code Read/Glob/Grep access.
+2. **Honeypot** 2-3 cases — canary tokens. Alert if canary appears in output.
+3. **Separate evaluator model** — when grader uses LLM rubric, grading a Sonnet-written spec with Haiku reduces intra-family self-preference. Recommended by Lilian Weng *"Reward Hacking in RL"* (2024).
+4. **Banned expression self-referential lint** — auto-check that new brainstorm.md text itself contains no banned expressions (self-cheating prevention).
+5. **Diff line gate** — one line at a time. Larger change = larger reward hack surface.
+6. **Anthropic Opus 4.5 system card recommendation**: *"policies provided to Claude should be written with sufficient precision to close potential loopholes"*. EZPowers' "Hard gate" embodies this spirit.
+7. **Inoculation prompting** — add to diagnostician agent: *"Do not propose changes that overfit to specific case IDs. Generalize."*
+
+### C.2 Eval Size Explosion — "Spring Cleaning"
+
+LangChain direct quote: *"We don't think our eval suite should grow monotonically, spring cleaning of evals is good!"*. EZPowers application:
+
+**Removal policy (recommended quarterly auto-run)**:
+- Capability eval at 100% pass for 3 months -> promote to golden or remove
+- `model_family` tag no longer valid (e.g., marked `sonnet_only` but all models pass) -> remove tag or remove case
+- Cases with identical score distributions within the same stratum -> duplicate candidate, human review
+- 0% pass rate for 2 consecutive runs (Anthropic *Demystifying* quote: *"0% pass@100 is most often a signal of a broken task, not an incapable agent"*) -> suspect case defect, rewrite or remove
+
+Script: `scripts/spring_clean.py` — outputs the above rules as dry-run, human confirms.
+
+### C.3 User Workflow Compatibility on Slash Command Changes
+
+EZPowers slash commands are **part of the user's muscle memory**. Adding one line to brainstorm.md is safe, but changing output format (e.g., Verdict header format) **breaks downstream parsers**. Mitigations:
+- **Include output format cases in golden eval** (`verdict-parsing-format.yaml`). Format change auto-fails.
+- **Plugin.json `eval_version` metadata** (see Part D). Increment major version on breaking change.
+- **Deprecation path** — accept both old and new format for one version cycle.
+
+### C.4 Single User -> Insufficient Production Traces
+
+EZPowers is likely a personal plugin. Production trace channels are weak.
+
+**Cold-start alternatives (recommended sequence from research)**:
+1. **Hand-write 10-20 golden cases** (already in Part B.1).
+2. **Synthetic expansion** — use DeepEval `Synthesizer` or RAGAS `TestsetGenerator` to expand hand cases to 100. 4-stage pipeline: input generation -> filtration -> evolution (deepen/broaden/complicate/hypothetical/comparative) -> styling.
+3. **Persona-based variants** — "Korean-only beginner", "English power user", "ko-en mixed PM", etc. Banned expression distributions differ per persona.
+4. **Self-play** — two Claude instances playing brainstorm user/responder roles. DeepEval `ConversationSimulator` pattern.
+5. **Public dataset utilization** — extract SDD-scenario-related cases from KMMLU-Redux industry categories.
+
+### C.5 Korean/English Mixed Environment Eval Standards
+
+EZPowers' 14 banned expressions are predominantly Korean. Additional recommendations:
+
+- **Mandatory `metadata.language` field** — `ko | en | ko_en_mixed`. Used for stratified analysis.
+- **NFD (Hangul Jamo decomposition) normalization before substring match** — prevents homoglyph evasion. Catches variants like decomposed jamo sequences.
+- **Awareness of tokenizer cost differences** — Korean cases typically use 1.5-2x tokens. Set `tracked_metrics.n_total_tokens` thresholds differently per language.
+- **Dual-language LLM-as-judge** — invoke judge once in Korean, once in English, require agreement. Reduces judge bias.
+- **Metadata on the banned expressions list itself** — specify whether each pattern is ko/en/both. Require classification when adding new patterns.
+
+---
+
+## Part D. Concrete Code/Documentation Change Patches
+
+### D.1 Staged Relaxation of `CLAUDE.md` Policy
 
 ```diff
 @@ Hooks policy @@
@@ -547,7 +547,7 @@ EZPowers banned expressions 14개가 한국어 우세다. 추가 권장:
 + # by `scripts/propose_edit.py`, never by user-facing commands.
 ```
 
-### D.2 `.claude-plugin/plugin.json` metadata 추가
+### D.2 `plugin.json` Metadata Addition
 
 ```diff
  {
@@ -565,11 +565,11 @@ EZPowers banned expressions 14개가 한국어 우세다. 추가 권장:
  }
 ```
 
-`eval_version`을 plugin `version`과 분리한 이유: **스키마 변경(eval YAML breaking change)과 기능 변경(plugin behavior change)이 다른 주기**다. Anthropic의 모델 버전과 시스템 프롬프트 버전이 분리된 것과 동일 정신.
+`eval_version` is separated from plugin `version` because **schema changes (eval YAML breaking changes) and feature changes (plugin behavior changes) occur on different cycles**. Same principle as Anthropic separating model version from system prompt version.
 
-### D.3 신규 디렉토리/파일 골격
+### D.3 New Directory/File Skeletons
 
-**`evals/INDEX.md`** (사람용 목차):
+**`evals/INDEX.md`** (human-facing table of contents):
 ```markdown
 # EZPowers Evaluation Index
 
@@ -595,7 +595,7 @@ EZPowers banned expressions 14개가 한국어 우세다. 추가 권장:
 
 **`evals/schema.json`** — JSON Schema validating each case YAML.
 
-**`evals/rubrics/spec_quality.md`** — LLM-judge 루브릭 (Korean+English):
+**`evals/rubrics/spec_quality.md`** — LLM-judge rubric (Korean+English):
 ```markdown
 # Spec Quality Rubric (Korean+English)
 
@@ -612,7 +612,7 @@ Score the brainstorm output on the following dimensions, each 0-1:
    (or appropriately mixes ko/en if user did so).
 ```
 
-**`scripts/run_baseline.py`** 골격:
+**`scripts/run_baseline.py`** skeleton:
 ```python
 #!/usr/bin/env python3
 """Run all eval cases and write baseline JSON."""
@@ -648,7 +648,7 @@ if __name__ == "__main__":
     main()
 ```
 
-**`hooks/hooks.json`** (Phase 2 도입 시):
+**`hooks/hooks.json`** (introduced in Phase 2):
 ```json
 {
   "hooks": {
@@ -684,9 +684,9 @@ if __name__ == "__main__":
 }
 ```
 
-`bin/trace.sh`는 stdin JSON을 OTel-호환 라인으로 변환해 `${CLAUDE_PLUGIN_DATA}/traces/$(date +%Y-%m-%d)/${session_id}.jsonl`에 append. 행동 변경 없음.
+`bin/trace.sh` converts stdin JSON into OTel-compatible lines and appends to `${CLAUDE_PLUGIN_DATA}/traces/$(date +%Y-%m-%d)/${session_id}.jsonl`. No behavior modification.
 
-### D.4 `commands/setup.md`에 eval infra 셋업 단계 추가
+### D.4 Add Eval Infra Setup Step to `commands/setup.md`
 
 ```diff
 @@ Initialization steps @@
@@ -703,55 +703,55 @@ if __name__ == "__main__":
 +   and create ${CLAUDE_PLUGIN_DATA}/traces/ directory.
 ```
 
-`--with-evals`와 `--enable-traces`는 분리한다. 사용자가 trace 수집 없이 eval만 원할 수 있다.
+`--with-evals` and `--enable-traces` are separated. The user may want evals without trace collection.
 
-### D.5 신규 슬래시 커맨드 필요성 검토
+### D.5 New Slash Command Necessity Review
 
-| 신규 커맨드 | 필요성 | 권장 우선순위 |
+| New Command | Necessity | Recommended Priority |
 |---|---|---|
-| `/eval` | **높음** — 사용자가 점수를 직접 보지 못하면 eval은 무용지물 | Phase 3 (week 9) |
-| `/baseline` | **중** — `scripts/run_baseline.py`로 충분히 가능 | Phase 4 (선택적) |
-| `/propose-edit` | **낮음** — diagnostician은 사람이 호출하는 게 안전 | Phase 5+, 또는 미도입 |
-| `/feedback` | **높음** — trace에 사용자 신호 부착하는 유일한 채널 | Phase 2 (week 5-6) |
-| `/eval-add` | **중** — 직전 trace를 eval case로 즉시 승급 | Phase 3 (week 9-10) |
+| `/eval` | **High** — eval is useless if the user cannot see scores directly | Phase 3 (week 9) |
+| `/baseline` | **Medium** — `scripts/run_baseline.py` is sufficient | Phase 4 (optional) |
+| `/propose-edit` | **Low** — safer for human to invoke diagnostician manually | Phase 5+, or skip |
+| `/feedback` | **High** — the only channel to attach user signal to traces | Phase 2 (week 5-6) |
+| `/eval-add` | **Medium** — instantly promote last trace to eval case | Phase 3 (week 9-10) |
 
-`/eval`과 `/feedback`만 필수. 나머지는 스크립트로 충분.
+Only `/eval` and `/feedback` are essential. The rest are covered by scripts.
 
 ---
 
-## 우선순위 매트릭스 (effort × impact)
+## Priority Matrix (effort x impact)
 
-| 제안 | Effort (1-5) | Impact (1-5) | ROI 점수 (impact/effort) | 추천 시점 |
+| Proposal | Effort (1-5) | Impact (1-5) | ROI Score (impact/effort) | Recommended Timing |
 |---|---|---|---|---|
-| B.6 기존 primitive 재사용 (Verify→grader, Verdict→누적) | 2 | 5 | **2.5** | 이번 주 |
-| B.1 Eval 인프라 + 첫 8케이스 | 2 | 5 | **2.5** | 이번 주~다음 주 |
-| B.2 3-way split | 1 | 4 | **4.0** | B.1 직후 |
-| B.5 changelog.jsonl | 1 | 3 | **3.0** | 첫 변경 시점 |
-| B.7 `/eval` 커맨드 | 2 | 4 | **2.0** | 인프라 정착 후 |
-| B.3 trace hook | 3 | 4 | **1.3** | Phase 2 |
-| B.4 자동 hill-climb | 4 | 4 | **1.0** | Phase 4 |
-| B.8 90일 로드맵 자체 | 5 | 5 | **1.0** | 본 리포트 채택 시점 |
+| B.6 Reuse existing primitives (Verify->grader, Verdict->accumulation) | 2 | 5 | **2.5** | This week |
+| B.1 Eval infra + first 8 cases | 2 | 5 | **2.5** | This week to next week |
+| B.2 3-way split | 1 | 4 | **4.0** | Right after B.1 |
+| B.5 changelog.jsonl | 1 | 3 | **3.0** | At first change |
+| B.7 `/eval` command | 2 | 4 | **2.0** | After infra settles |
+| B.3 Trace hooks | 3 | 4 | **1.3** | Phase 2 |
+| B.4 Automated hill-climb | 4 | 4 | **1.0** | Phase 4 |
+| B.8 90-day roadmap itself | 5 | 5 | **1.0** | When this report is adopted |
 
-가장 ROI 높은 단일 항목은 **B.2 (3-way split 강제) — 단순한 디렉토리 분리만으로 reward hacking에 대한 가장 강력한 1차 방어선**.
+The single highest-ROI item is **B.2 (3-way split enforcement) — a simple directory split provides the strongest first line of defense against reward hacking**.
 
 ---
 
-## 결론 — 인식의 변화와 단 하나의 다음 행동
+## Conclusion — A Shift in Perspective and a Single Next Action
 
-EZPowers는 처음부터 **mechanical enforcement**(banned expressions, hard gates, oscillation detection)를 매우 잘 구축한 플러그인이고, OpenAI Codex 필드 리포트의 5원칙 중 3개를 이미 만족한다. **결여된 것은 단지 "측정"** — 시간을 가로질러 비교 가능한 점수, 변경마다 회귀 가드, holdout으로 보호된 일반화 신호. Better-Harness 블로그가 가르쳐 준 핵심은 *evals are training data for the harness layer*다. EZPowers는 harness layer(commands/, agents/)는 풍부한데 그것을 학습 신호로 변환할 데이터가 없는 상태다.
+EZPowers is a plugin that built **mechanical enforcement** (banned expressions, hard gates, oscillation detection) very well from the start, already satisfying 3 of 5 OpenAI Codex field report principles. **What is missing is simply "measurement"** — scores comparable across time, regression guards per change, and generalization signals protected by holdout. The core lesson from the Better-Harness blog is *evals are training data for the harness layer*. EZPowers has a rich harness layer (commands/, agents/) but no data to convert it into a learning signal.
 
-본 리포트를 통해 바뀌어야 할 인식은 두 가지다. 첫째, **0.6.0 → 0.6.1 변경은 "사람의 직관"이 아니라 "케이스 점수의 양수 delta"여야 한다**. 둘째, **trace는 부산물이 아니라 내일의 eval 후보이며, hook은 "관찰만 하는 한" CLAUDE.md "훅 없음" 정신과 모순되지 않는다** — Anthropic 자체도 PreToolUse hook으로 internal skill telemetry를 운영한다고 공개했다.
+Two shifts in perspective this report calls for. First, **a 0.6.0 -> 0.6.1 change should be justified by "a positive delta in case scores," not "human intuition."** Second, **traces are not byproducts but tomorrow's eval candidates, and hooks "as long as they only observe" do not contradict CLAUDE.md's "no hooks" spirit** — Anthropic itself disclosed that it runs internal skill telemetry via PreToolUse hooks.
 
-**지금 당장 1시간 안에 시작할 수 있는 한 가지 변경:**
+**One change you can start within 1 hour right now:**
 
-> **`evals/golden/` 디렉토리를 만들고, EZPowers의 4개 inviolable invariant를 각각 한 케이스로 작성한 뒤, 0.6.0 모델로 한 번 실행해 베이스라인 JSON을 남긴다.**
+> **Create the `evals/golden/` directory, write each of EZPowers' 4 inviolable invariants as one case, and run them once with the 0.6.0 model to record a baseline JSON.**
 
-구체적으로:
-1. `mkdir -p evals/golden evals/results/baselines` (1분)
-2. `evals/golden/banned-expression-detection.yaml` 작성 — banned 표현 14개 모두 포함된 fake spec을 input으로 주고 reviewer가 detect 하는지 (15분)
-3. `evals/golden/coverage-matrix-completeness.yaml` 작성 — R3개 중 1개에 task가 매핑 안 된 plan을 주고 plan-reviewer가 catch 하는지 (15분)
-4. `evals/golden/verdict-parsing-format.yaml` 작성 — `## Verdict: PASS` 형식 정확성 (10분)
-5. `evals/golden/oscillation-stop-3iter.yaml` 작성 — 3회 같은 수정 시 stop (15분)
-6. 각 케이스를 손으로 한 번 실행해 4/4 PASS 확인 후 `evals/results/baselines/0.6.0.json` 에 점수 기록 (5분)
+Specifically:
+1. `mkdir -p evals/golden evals/results/baselines` (1 min)
+2. Write `evals/golden/banned-expression-detection.yaml` — feed a fake spec containing all 14 banned expressions as input, check whether the reviewer detects them (15 min)
+3. Write `evals/golden/coverage-matrix-completeness.yaml` — feed a plan where 1 of 3 R's has no task mapped, check whether plan-reviewer catches it (15 min)
+4. Write `evals/golden/verdict-parsing-format.yaml` — verify `## Verdict: PASS` format accuracy (10 min)
+5. Write `evals/golden/oscillation-stop-3iter.yaml` — verify stop on 3 identical iterations (15 min)
+6. Run each case manually, confirm 4/4 PASS, record scores in `evals/results/baselines/0.6.0.json` (5 min)
 
-이 1시간이 끝나면 EZPowers는 **"무엇이 절대 깨지면 안 되는지 명문화된 플러그인"**이 된다. 다음 어떤 변경이든 이 4 케이스를 다시 돌려보고 모두 PASS 인지 확인할 수 있다. 90일 로드맵의 모든 후속 단계는 이 4 케이스를 시드로 해서 자라난다. Better-Harness 블로그가 *"the eval becomes a regression test"* 라고 한 그 순간이 EZPowers에서 시작되는 시점이다.
+After this 1 hour, EZPowers becomes a **"plugin with codified inviolable invariants."** Any future change can rerun these 4 cases and confirm all PASS. Every subsequent step in the 90-day roadmap grows from these 4 seed cases. This is the moment that the Better-Harness blog describes as *"the eval becomes a regression test"* — starting in EZPowers.
