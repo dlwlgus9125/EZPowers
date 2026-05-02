@@ -3,223 +3,223 @@ description: Select and run execution path for plan tasks
 allowed-tools: [Bash, Read, Write, Edit, Agent, AskUserQuestion]
 ---
 
-# /choiceexecutor — 실행 경로 선택
+# /choiceexecutor — Execution Path Selection
 
-plan 문서의 task들을 실행한다. 실행 방식(서브에이전트 / 하네스 / 인라인)을 선택하고, 선택된 경로로 task를 실행 + AC 검증 + 조건부 보안 리뷰 + 최종 코드 리뷰.
+Execute tasks from the plan document. Choose an execution mode (subagent / harness / inline), then run tasks + AC verification + conditional security review + final code review.
 
-## 1. 사전 확인
+## 1. Pre-flight Checks
 
-다음을 먼저 확인한다:
-1. `.harness/config.json` 존재 여부
-2. plan 문서 존재 여부 (우선순위: 인자 > `phases/index.json`의 plan.artifact > config의 `defaults.plan_location`에서 최신 파일)
-3. plan이 참조하는 spec 문서 존재 여부
+Verify the following first:
+1. `.harness/config.json` exists
+2. Plan document exists (priority: argument > `phases/index.json` plan.artifact > latest file at config `defaults.plan_location`)
+3. Spec document referenced by the plan exists
 
-없으면 해당 단계를 먼저 실행하라고 안내:
-- config 없음 -> `/setup`
-- plan 없음 -> `/plan`
-- spec 없음 -> `/brainstorm`
+If missing, direct the user to the required step:
+- No config -> `/setup`
+- No plan -> `/plan`
+- No spec -> `/brainstorm`
 
-`phases/index.json`이 있으면 build phase를 `in_progress`로 업데이트:
+If `phases/index.json` exists, update the build phase to `in_progress`:
 ```json
 { "current_phase": "build", "phases": { "...": "...", "build": { "status": "in_progress" } } }
 ```
 
-### 이전 세션 재진입 감지
+### Previous Session Re-entry Detection
 
-`phases/index.json`의 build phase가 이미 `in_progress`이고, plan 문서에 `- [x]`로 체크된 task가 있으면 이전 세션에서 중단된 것으로 판단한다.
+If the build phase in `phases/index.json` is already `in_progress` and the plan has tasks checked with `- [x]`, treat it as a resumed session.
 
-사용자에게 옵션을 제시한다:
+Present options to the user:
 
-> **이전 세션에서 Task 1-{N} 완료, Task {N+1} 미완료.**
+> **Previous session: Tasks 1-{N} complete, Task {N+1} incomplete.**
 >
-> **1. 재개** — 완료 task 스킵, Task {N+1}부터 정상 흐름
+> **1. Resume** — skip completed tasks, continue from Task {N+1}
 >
-> **2. 해당 task 재실행** — Task {N+1} 체크박스 리셋 후 처음부터 재구현 (기존 커밋 유지, implementer가 현재 상태에서 재작업)
+> **2. Re-run that task** — reset Task {N+1} checkbox, re-implement from scratch (existing commits kept; implementer reworks on current state)
 >
-> **3. 전체 재실행** — 모든 체크박스 리셋(`- [x]` → `- [ ]`), `first-task-start-hash` 갱신, 전체 재실행
+> **3. Full re-run** — reset all checkboxes (`- [x]` → `- [ ]`), update `first-task-start-hash`, re-run everything
 >
-> **4. 중단** — 현재 상태 유지
+> **4. Abort** — keep current state
 
-옵션별 동작:
-- **재개:** Resume Protocol(섹션 13) 적용. `- [x]` task는 PASS로 간주.
-- **해당 task 재실행:** 미완 task의 `- [x]`를 `- [ ]`로 리셋. git revert 하지 않음 — implementer가 기존 코드 위에서 재구현하므로 충돌 없음.
-- **전체 재실행:** plan의 모든 체크박스를 `- [ ]`로 리셋. `**Resume hash:**` 마커 제거. 새 `first-task-start-hash` 기록.
-- **중단:** 아무 동작 없음.
+Option behavior:
+- **Resume:** Apply Resume Protocol (Section 13). Treat `- [x]` tasks as PASS.
+- **Re-run that task:** Reset the incomplete task's `- [x]` to `- [ ]`. No git revert — implementer re-implements on existing code without conflicts.
+- **Full re-run:** Reset all checkboxes to `- [ ]`. Remove `**Resume hash:**` marker. Record new `first-task-start-hash`.
+- **Abort:** No action.
 
-## 2. 실행 경로 선택
+## 2. Execution Path Selection
 
-사용자에게 실행 방식을 묻는다:
+Ask the user for the execution mode:
 
-> **Plan: `<plan-path>` — {task-count}개 task**
+> **Plan: `<plan-path>` — {task-count} tasks**
 >
-> **1. 서브에이전트 드리븐 (추천)** — task마다 fresh 에이전트 배치, 빠른 반복
+> **1. Subagent-driven (recommended)** — fresh agent per task, fast iteration
 >
-> **2. 하네스 실행** — EasyPowersHarness의 Python executor로 step 단위 실행 (`harness.root` 설정 필요)
+> **2. Harness execution** — step-by-step execution via EasyPowersHarness Python executor (`harness.root` required)
 >
-> **3. 인라인 실행** — 현재 세션에서 순차 실행
+> **3. Inline execution** — sequential execution in the current session
 >
-> **어떤 방식으로 하시겠습니까?**
+> **Which mode?**
 
-**추천 가이드:**
-- Task 1-3개, 독립적 → **인라인** 추천 (빠르고 가벼움)
-- Task 4+개 → **서브에이전트 드리븐** 추천 (컨텍스트 분리)
-- `harness.root` 설정됨 + step 단위 실행 로그 필요 → **하네스** 추천
+**Recommendation guide:**
+- 1-3 tasks, independent → **inline** (fast and lightweight)
+- 4+ tasks → **subagent-driven** (context isolation)
+- `harness.root` configured + step-level execution logs needed → **harness**
 
-경로 2 선택 시 `/executeharness` 커맨드의 절차를 따른다.
+Path 2 follows the `/executeharness` command procedure.
 
 ## 3. Task Graph Analysis
 
-실행 전 task들의 의존 관계를 분석하여 실행 전략 결정.
+Analyze task dependencies before execution to determine execution strategy.
 
 ### Step 1: Parse Dependencies
 
-각 task에서 식별:
-- **명시적 의존:** `Depends on: Task N` 마커
-- **파일 겹침 의존:** `**File overlap with:** Task N` 마커 — plan이 이미 계산해놓은 파일 겹침 정보. 존재하면 암시적 의존보다 우선 신뢰.
-- **암시적 의존:** 같은 파일 수정 (`Modify:` 항목 매칭) — `File overlap with` 마커가 없을 때 fallback
-  - 암시적 의존 감지: 각 task의 `Modify:` 경로를 정규화(trailing slash 제거, 대소문자 통일)한 뒤 정확 문자열 비교. 부분 경로 매칭 없음.
+Identify per task:
+- **Explicit dependency:** `Depends on: Task N` marker
+- **File overlap dependency:** `**File overlap with:** Task N` marker — pre-computed file overlap from /plan. Trust over implicit when present.
+- **Implicit dependency:** Same file modified (`Modify:` items match) — fallback when no `File overlap with` marker
+  - Detection: normalize each task's `Modify:` paths (strip trailing slash, unify case), then exact string comparison. No partial path matching.
 
 ### Step 2: Build Directed Graph
 
-방향 그래프 구성: Task A -> Task B = "B가 A에 의존"
+Construct directed graph: Task A -> Task B = "B depends on A"
 
 ### Step 3: Classify Task Groups
 
-| 분류 | 조건 | 실행 전략 |
-|------|------|-----------|
-| **독립 클러스터** | 그룹 내 의존 없음 | 순서 무관 순차 배치 |
-| **선형 체인** | A->B->C 엄격 순서 | Pipeline (순차 실행) |
-| **혼합** | 독립 + 체인 | 독립은 순서 무관, 체인은 순차 |
+| Classification | Condition | Execution Strategy |
+|----------------|-----------|-------------------|
+| **Independent cluster** | No intra-group dependencies | Order-agnostic sequential dispatch |
+| **Linear chain** | A->B->C strict order | Pipeline (sequential execution) |
+| **Mixed** | Independent + chain | Independent in any order, chains sequential |
 
 ### Step 4: Execute by Classification
 
-> **Note:** Claude Code의 Agent tool은 순차 실행만 지원한다. "독립"은 의존성 없는 task를 임의 순서로 실행할 수 있다는 의미이지, 동시에 배치한다는 뜻이 아니다.
+> **Note:** Claude Code's Agent tool supports sequential execution only. "Independent" means tasks can run in any order without dependency constraints, not that they dispatch concurrently.
 
-- **독립 클러스터 (2+ 독립 task):** 순차 배치하되 순서 무관. 완료 후 per-task AC 검증 + 보안 리뷰.
-- **Pipeline:** 엄격한 순차 동작.
-- **단일 독립 task:** 순차 배치.
+- **Independent cluster (2+ tasks):** Sequential dispatch in any order. Per-task AC verification + security review after each.
+- **Pipeline:** Strict sequential execution.
+- **Single independent task:** Sequential dispatch.
 
 ### Edge Cases
 
-- 의존 마커 없고 서로 다른 파일 수정 -> 독립으로 취급
-- **모든 task가 같은 파일 수정 -> 강제 순차**
-- **순환 의존 감지:** 위상 정렬(topological sort) 수행. 모든 task를 방문하지 못하면 사이클 존재. 사이클에 포함된 task 목록을 사용자에게 경고하고 순차 fallback.
-- **분석 불확실 -> 순차 fallback (안전)**
+- No dependency markers and different files modified -> treat as independent
+- **All tasks modify the same file -> force sequential**
+- **Cycle detection:** Perform topological sort. If not all tasks are visited, a cycle exists. Warn the user with the list of tasks in the cycle and fall back to sequential.
+- **Analysis uncertain -> sequential fallback (safe)**
 
 ### Failure Handling
 
-- **실패 전파:** task 실패 시, 해당 task에 의존하는 모든 하류 task를 `SKIPPED` 상태로 표기하고 실행하지 않음. 하류 task의 하류도 재귀적으로 SKIPPED.
-- 한 task 3회 실패 -> 해당 task만 사용자 에스컬레이션
-- 독립 task 실패가 다른 독립 task 차단 안 함
-- **부분 실패 보고:** 실행 완료 시 PASS/FAIL/SKIPPED 상태를 task별로 요약하여 사용자에게 제시
+- **Failure propagation:** On task failure, mark all downstream dependent tasks as `SKIPPED` and do not execute. Recursively SKIP downstream of downstream.
+- 3 failures on one task -> escalate that task to user
+- Independent task failure does not block other independent tasks
+- **Partial failure report:** On completion, present per-task PASS/FAIL/SKIPPED summary to user
 
-## 4. Per-Task Execution Loop (서브에이전트 드리븐)
+## 4. Per-Task Execution Loop (Subagent-Driven)
 
 ```
-git hash 기록 (git rev-parse HEAD)
-  -> Task 복잡도 평가
-  -> 서브에이전트 배치 (agents/implementer-prompt.md)
-  -> Implementer 상태 핸들링
-  -> 컨트롤러: AC 검증 (Verify 커맨드 실행)
-    -> ALL PASS -> 조건부 보안 리뷰
-    -> FAIL -> 실패 상세와 함께 재배치 (최대 3회)
-    -> 3회 실패 -> 사용자 에스컬레이션
-  -> changed-files 계산 -> 다음 task
+Record git hash (git rev-parse HEAD)
+  -> Assess task complexity
+  -> Dispatch subagent (agents/implementer-prompt.md)
+  -> Handle implementer status
+  -> Controller: AC verification (run Verify commands)
+    -> ALL PASS -> conditional security review
+    -> FAIL -> re-dispatch with failure details (max 3)
+    -> 3 failures -> escalate to user
+  -> Compute changed-files -> next task
 ```
 
 ### Git Hash Recording
 
-- **각 task 시작 전:** `git rev-parse HEAD` -> `<task-start-hash>` 저장
-- **첫 task:** `<first-task-start-hash>`도 저장 (최종 리뷰용)
-- **커밋 없는 상태:** `git rev-parse HEAD` 실패 시 빈 트리 해시 `4b825dc642cb6eb9a060e54bf899d8b2306e7304`를 사용. 이 해시는 git의 빈 트리를 나타내며 `git diff <empty-tree>..HEAD`로 전체 변경을 볼 수 있다.
-- **각 task 완료 후:** changed-files = `git diff --name-only <task-start-hash>..HEAD` + `git ls-files --others --exclude-standard` (합집합, 중복 제거)
+- **Before each task:** `git rev-parse HEAD` -> store as `<task-start-hash>`
+- **First task:** also store `<first-task-start-hash>` (for final review)
+- **No commits yet:** if `git rev-parse HEAD` fails, use empty tree hash `4b825dc642cb6eb9a060e54bf899d8b2306e7304`. This is git's empty tree; `git diff <empty-tree>..HEAD` shows all changes.
+- **After each task:** changed-files = `git diff --name-only <task-start-hash>..HEAD` + `git ls-files --others --exclude-standard` (union, deduplicated)
 
 ### Task Complexity Assessment
 
-배치 전 3차원으로 복잡도 평가:
+Assess complexity on 3 dimensions before dispatch:
 
 | Dimension | Low | Medium | High |
 |-----------|-----|--------|------|
 | **Scope** | 1-2 files, <50 lines | 3-5 files, 50-200 lines | 6+ files, 200+ lines |
-| **Coupling** | 독립 파일 | 2-3 상호 의존 | 밀결합 모듈 |
-| **Context breadth** | <5 files 읽기 | 5-10 files | 10+ files |
+| **Coupling** | Independent files | 2-3 interdependent | Tightly coupled modules |
+| **Context breadth** | <5 files to read | 5-10 files | 10+ files |
 
-- **Simple** (전부 low): 그대로 배치
-- **Medium** (2개 medium): 추가 컨텍스트와 함께 배치 — 아키텍처 노트, 인터페이스 계약, 의존성 설명 포함
-- **Complex** (하나라도 high): 분할 추천
+- **Simple** (all low): dispatch as-is
+- **Medium** (2+ medium): dispatch with extra context — architecture notes, interface contracts, dependency descriptions
+- **Complex** (any high): recommend splitting
 
 ### Implementer Status Handling
 
-- **DONE:** AC 검증 진행
-- **DONE_WITH_CONCERNS:** 정확성 영향 시 먼저 처리, cosmetic이면 AC 검증 진행
-- **BLOCKED:** 컨트롤러가 해결 (추가 컨텍스트, task 분할, 사용자 에스컬레이션). **절대 skip 금지**
-- **NEEDS_CONTEXT:** 요청된 컨텍스트 포함하여 재배치
+- **DONE:** Proceed to AC verification
+- **DONE_WITH_CONCERNS:** If accuracy-impacting, address first; if cosmetic, proceed to AC verification
+- **BLOCKED:** Controller resolves (additional context, task split, user escalation). **Never skip**
+- **NEEDS_CONTEXT:** Re-dispatch with requested context
 
-## 5. Acceptance Criteria Verification (컨트롤러)
+## 5. Acceptance Criteria Verification (Controller)
 
-**단위 테스트 통과는 완료 조건이 아니다.** 완료 판정은 반드시 plan의 Verify 커맨드를 실행하여 exit 0을 확인해야 한다.
+**Passing unit tests is NOT the completion condition.** Completion requires executing the plan's Verify commands and confirming exit 0.
 
-**Primary verification — Verify 커맨드 실행:**
+**Primary verification — run Verify commands:**
 
-1. Task의 completion criteria에서 Verify 커맨드 추출
-2. 각 Verify 커맨드 실행, exit code 확인 (exit 0 = PASS)
-3. **Verify-type별 타임아웃:**
-   - `pure` / `cli`: 30초
-   - `e2e`: 120초
-   - `api`: 30초
-   - `data`: 60초
+1. Extract Verify commands from the task's completion criteria
+2. Execute each Verify command, check exit code (exit 0 = PASS)
+3. **Timeout by Verify-type:**
+   - `pure` / `cli`: 30s
+   - `e2e`: 120s
+   - `api`: 30s
+   - `data`: 60s
 
-   **Bash tool timeout 매핑:**
-   | Verify-type | 타임아웃 | Bash tool timeout 파라미터 |
-   |-------------|----------|---------------------------|
-   | `pure` / `cli` | 30초 | `timeout: 30000` |
-   | `api` | 30초 | `timeout: 30000` |
-   | `data` | 60초 | `timeout: 60000` |
-   | `e2e` | 120초 | `timeout: 120000` |
+   **Bash tool timeout mapping:**
+   | Verify-type | Timeout | Bash tool timeout param |
+   |-------------|---------|------------------------|
+   | `pure` / `cli` | 30s | `timeout: 30000` |
+   | `api` | 30s | `timeout: 30000` |
+   | `data` | 60s | `timeout: 60000` |
+   | `e2e` | 120s | `timeout: 120000` |
 
 4. **Server management (e2e/api):**
-   - `config.server.start_command`가 비어있으면 서버 관리 건너뜀
-   - 서버 시작: `config.server.start_command` 실행 (background)
-   - Health check: `config.server.health_check_url`에 GET 요청 polling (최대 `config.server.health_check_timeout`초, 기본 15초)
-   - Health check URL 미설정 시 5초 대기로 fallback
-   - Verify 실행
-   - 서버 종료: `config.server.stop_command` 실행 (미설정 시 시작한 프로세스 kill)
-5. Verify 없는 기준: plan의 verification method로 fallback
-6. ALL PASS -> 조건부 보안 리뷰
-7. ANY FAIL -> 실패 상세와 함께 재배치
+   - If `config.server.start_command` is empty, skip server management
+   - Start server: run `config.server.start_command` (background)
+   - Health check: poll GET on `config.server.health_check_url` (max `config.server.health_check_timeout` seconds, default 15s)
+   - If health check URL not set, fall back to 5s wait
+   - Run Verify
+   - Stop server: run `config.server.stop_command` (if not set, kill the started process)
+5. No Verify commands: fall back to plan's verification method
+6. ALL PASS -> conditional security review
+7. ANY FAIL -> re-dispatch with failure details
 
-**Re-dispatch loop:** 최대 3회. 이후 사용자 에스컬레이션.
+**Re-dispatch loop:** max 3. Then escalate to user.
 
-**Manual verification items:** 자동화 불가 시 사용자에게 배치 전달. 체인 차단 안 함.
+**Manual verification items:** If not automatable, hand to user as a batch. Do not block the chain.
 
 ## 6. Conditional Security Review
 
-AC 검증 PASS 후 보안 리뷰 필요 여부 확인.
+After AC verification PASS, check whether security review is needed.
 
-**트리거:** 다음 중 ANY가 true:
-- Task 설명/요구사항에 보안 키워드 포함
-- 변경 파일 내용에 보안 키워드 포함
-- Task가 인증, 인가, 데이터 검증 로직 수정
+**Trigger:** ANY of the following is true:
+- Task description/requirements contain security keywords
+- Changed file content contains security keywords
+- Task modifies authentication, authorization, or data validation logic
 
-**27개 Security Keywords:**
+**27 Security Keywords:**
 auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, permission, role, sanitize, escape, injection, CORS, CSRF, API key, credential, certificate, OAuth, JWT, bearer, privilege, access control, rate limit, brute force
 
-**트리거됨:** `ezpowers:security-reviewer` 플러그인 에이전트를 `subagent_type`으로 지정하여 배치
-**트리거 안 됨:** 스킵. 로그: "Security review skipped — no security surface in Task N."
+**Triggered:** Dispatch `ezpowers:security-reviewer` plugin agent via `subagent_type`
+**Not triggered:** Skip. Log: "Security review skipped — no security surface in Task N."
 
-**False positive policy:** 의심되면 리뷰. 안전 > 효율.
+**False positive policy:** When in doubt, review. Safety > efficiency.
 
-**Security-spec conflict:** 보안 리뷰어가 spec과 충돌하는 이슈를 플래그하면 보안이 spec보다 우선. 로그: "Spec deviation: [description]. Security concern overrode spec requirement."
+**Security-spec conflict:** If the security reviewer flags an issue conflicting with the spec, security overrides spec. Log: "Spec deviation: [description]. Security concern overrode spec requirement."
 
 ## 7. Review Loop Protocol
 
-**Independent re-review:** 재디스패치 시 동일 프롬프트. 이전 결과 전달 금지.
+**Independent re-review:** On re-dispatch, use the same prompt. Do not pass previous results.
 
-**Controller issue log:** 비공개. iteration마다 이슈+fix 기록. 리뷰어와 공유 안 함.
+**Controller issue log:** Private. Record issues + fixes per iteration. Do not share with reviewers.
 
-**Oscillation detection (iteration 3부터):** 이슈를 `{file}:{issue_type}` 키로 로깅. 현재 키가 2+ 이전 iteration에도 존재 -> 사용자 에스컬레이션.
+**Oscillation detection (from iteration 3):** Log issues by `{file}:{issue_type}` key. If a current key also appeared in 2+ prior iterations -> escalate to user.
 
-**Tiered escalation (통합 참조표):**
+**Tiered escalation (unified reference table):**
 
 | Review type | Source | Max iterations | Warn at | Stop at |
 |-------------|--------|----------------|---------|---------|
@@ -230,43 +230,43 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 | Final code review | choiceexecutor.md | 10 | 5 | 10 |
 | Smoke test | choiceexecutor.md | 3 | — | 3 |
 
-모든 review type에서 Verdict 헤더 누락이 2회 연속 시 즉시 사용자 에스컬레이션.
+If the Verdict header is missing 2 consecutive times for any review type, immediately escalate to user.
 
-**Exemption check:** 리뷰 루프 진입 전:
-- `AGENTS.md`의 `review-skip:` 패턴?
-- 사용자가 명시적으로 리뷰 스킵?
+**Exemption check:** Before entering the review loop:
+- `AGENTS.md` has `review-skip:` pattern?
+- User explicitly requested review skip?
 - Auto-excluded: lock files, generated, binary, git metadata, <20-line configs
-- True이면 리뷰 루프 스킵.
+- If true, skip the review loop.
 
-**Large output handling:** 500-line diff 또는 10-file 초과 -> task 경계 또는 디렉터리로 분할 리뷰. 단일 파일 내 분할 금지. 모든 chunk PASS 필요.
+**Large output handling:** 500+ line diff or 10+ files -> split review by task boundary or directory. No splitting within a single file. All chunks must PASS.
 
 ## 8. Controller Context Hygiene
 
-**서브에이전트 프롬프트 사이징:**
-- Task 설명 + completion criteria는 원문 그대로 포함. 추가 컨텍스트(아키텍처 노트, 의존성 설명)는 ~2K tokens 이내
-- **해당 task 텍스트와 completion criteria는 프롬프트에 직접 포함** (implementer-prompt.md 템플릿 참조)
-- **전체 plan/spec 파일은 붙여넣지 않는다** — 경로만 제공, 서브에이전트가 필요 시 직접 읽음
-- 소스 파일 내용을 미리 읽어서 프롬프트에 넣지 않는다 — 서브에이전트가 fresh context로 직접 읽음
+**Subagent prompt sizing:**
+- Include task description + completion criteria verbatim. Extra context (architecture notes, dependency descriptions) ~2K tokens max
+- **Include the task text and completion criteria directly in the prompt** (see implementer-prompt.md template)
+- **Do not paste the full plan/spec** — provide paths only; subagent reads as needed
+- Do not pre-read source files into the prompt — subagent reads with fresh context
 
 **Between-task cleanup:**
-- 각 task 완료 후 보존: task 상태(pass/fail), 변경 파일, 미해결 이슈만
-- 서브에이전트 전체 출력, 리뷰 상세, 중간 추론 보존 안 함
+- Preserve after each task: task status (pass/fail), changed files, unresolved issues only
+- Do not preserve: subagent full output, review details, intermediate reasoning
 
 **Context pressure relief:**
-- Task 5 전: 압박 감지 시 컴팩트
-- Task 5 후: 무조건 프로액티브 컴팩트
-- **컴팩션 방법:** 컨트롤러는 자체 컨텍스트 윈도우를 직접 축소할 수 없다. "컴팩트"란 다음을 의미한다:
-  1. 이후 출력에서 이전 서브에이전트 출력/리뷰 상세/중간 추론을 다시 언급하지 않는다
-  2. 대신 아래 "작업 메모"만 참조하여 진행한다:
-     - 남은 task 번호와 제목 목록
-     - 지금까지 변경된 파일 목록 (누적)
-     - 미해결 이슈 요약 (있으면)
-     - 각 완료 task의 PASS/FAIL 상태
-  3. Task 10 이후에도 세션이 계속되면 사용자에게 `/compact` 사용 또는 fresh 세션 시작을 제안한다
+- Before Task 5: compact on pressure detection
+- After Task 5: proactive compact unconditionally
+- **Compaction method:** The controller cannot directly shrink its own context window. "Compact" means:
+  1. Stop referencing prior subagent output/review details/intermediate reasoning in subsequent output
+  2. Instead, proceed using only these "work notes":
+     - Remaining task numbers and titles
+     - Cumulative changed files list
+     - Unresolved issue summary (if any)
+     - PASS/FAIL status per completed task
+  3. If the session continues past Task 10, suggest `/compact` or a fresh session to the user
 
 ### Context Anchoring in Subagent Prompts
 
-기존 파일 수정 task의 implementer 프롬프트에 포함:
+Include in implementer prompts for tasks modifying existing files:
 
 > Before writing any code:
 > 1. Read the module's AGENTS.md (if it exists)
@@ -276,30 +276,30 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 
 ### Model Selection
 
-- **Implementer:** 최고 코딩 모델
-- **Security reviewer:** 분석 능력 필요한 모델
-- **Final code reviewer:** 판단력 필요한 모델
+- **Implementer:** Best coding model
+- **Security reviewer:** Model with strong analysis capability
+- **Final code reviewer:** Model with strong judgment
 
 ### Parallel Reviewer Limit
 
-3개 초과 `.md` 리뷰어 -> 순차 실행
+3+ `.md` reviewers -> sequential execution
 
-### Subagent Dispatch — Placeholder 치환 목록
+### Subagent Dispatch — Placeholder Substitution List
 
-각 서브에이전트 디스패치 시 템플릿 placeholder를 반드시 치환:
+Substitute template placeholders on every subagent dispatch:
 
 **Implementer (`agents/implementer-prompt.md`):**
-| Placeholder | 치환값 |
-|-------------|--------|
-| `[task name]` / `Task N` | 실제 task 번호와 이름 |
-| `[FULL TEXT of task from plan]` | plan에서 해당 task 전문 복사 |
-| `[Scene-setting...]` | 아키텍처 컨텍스트, 의존성, 선행 task 결과 |
-| `[PASTE COMPLETION CRITERIA FROM PLAN]` | plan의 completion criteria 원문 |
-| `[PASTE FROM PLAN]` | plan의 verification method 원문 |
-| `[directory]` | 작업 디렉터리 절대 경로 |
-| `[module-directory]` | 수정 대상 모듈 디렉터리 경로 |
+| Placeholder | Substitution |
+|-------------|-------------|
+| `[task name]` / `Task N` | Actual task number and name |
+| `[FULL TEXT of task from plan]` | Full task text copied from plan |
+| `[Scene-setting...]` | Architecture context, dependencies, prior task results |
+| `[PASTE COMPLETION CRITERIA FROM PLAN]` | Completion criteria verbatim from plan |
+| `[PASTE FROM PLAN]` | Verification method verbatim from plan |
+| `[directory]` | Absolute working directory path |
+| `[module-directory]` | Target module directory path |
 
-**Security Reviewer (`ezpowers:security-reviewer` 플러그인 에이전트):**
+**Security Reviewer (`ezpowers:security-reviewer` plugin agent):**
 
 ```
 Agent tool:
@@ -307,181 +307,181 @@ Agent tool:
   description: "Security review for Task N"
   prompt: |
     ## Changed Files
-    <git diff --name-only <task-start-hash>..HEAD 결과를 줄바꿈 목록으로>
+    <git diff --name-only <task-start-hash>..HEAD output as line-separated list>
 ```
 
-**Code Reviewer (`ezpowers:code-reviewer` 플러그인 에이전트):**
+**Code Reviewer (`ezpowers:code-reviewer` plugin agent):**
 
 ```
 Agent tool:
   subagent_type: "ezpowers:code-reviewer"
   description: "Final code review"
   prompt: |
-    **Plan file:** <plan 파일 절대 경로>
+    **Plan file:** <plan file absolute path>
     **Diff range:** <first-task-start-hash>..HEAD
 ```
 
-**Post-substitution validation:** 디스패치 전 완성된 프롬프트에서 `[` + 대문자/소문자 + `]` 패턴 (예: `[SPEC_FILE_PATH]`, `[directory]`)을 검색. 미치환 placeholder가 남아있으면 디스패치하지 않고 누락된 placeholder를 로그하여 수정.
+**Post-substitution validation:** Before dispatch, scan the completed prompt for `[` + alpha + `]` patterns (e.g., `[SPEC_FILE_PATH]`, `[directory]`). If unsubstituted placeholders remain, do not dispatch — log the missing placeholders and fix.
 
 ## 9. Degradation Detection and Response
 
-**5개 감지 시그널:**
-- Implementer가 같은 task에 NEEDS_CONTEXT 2회+
-- 같은 이슈 카테고리가 여러 task에서 반복
-- Implementer가 8+ 파일 읽기 self-report
-- 3+ re-dispatch 사이클
-- Task 5 이후 컴팩션 체크포인트 통과
+**5 detection signals:**
+- Implementer reports NEEDS_CONTEXT 2+ times on the same task
+- Same issue category recurs across multiple tasks
+- Implementer self-reports reading 8+ files
+- 3+ re-dispatch cycles
+- Compaction checkpoint reached after Task 5
 
-**시그널 추출 규칙:**
-- "NEEDS_CONTEXT 2회+" → 컨트롤러가 task별 NEEDS_CONTEXT 카운터 유지
-- "같은 이슈 카테고리 반복" → 리뷰어 Issues의 `[severity]` 키워드를 카테고리로 분류, task 간 중복 체크
-- "8+ 파일 읽기" → implementer report에서 "Files read:" 또는 "read N files" 패턴 매칭, 또는 self-report의 숫자 추출
-- "3+ re-dispatch" → 컨트롤러가 task별 dispatch 카운터 유지
-- "Task 5 이후 컴팩션" → task 완료 카운터 ≥ 5 시 트리거
+**Signal extraction rules:**
+- "NEEDS_CONTEXT 2+" → controller maintains per-task NEEDS_CONTEXT counter
+- "Same issue category repeats" → classify reviewer issues by `[severity]` keyword, check for cross-task duplicates
+- "8+ file reads" → pattern-match "Files read:" or "read N files" in implementer report, extract count
+- "3+ re-dispatch" → controller maintains per-task dispatch counter
+- "After Task 5 compaction" → triggers at task completion counter ≥ 5
 
 **Response protocol:**
-1. **Immediate:** 컨트롤러 컨텍스트 컴팩트
-2. **Per-task:** 2회 배치 후 실패 시 복잡도 재평가 + 분할 고려
-3. **Session-level:** 3+ task에서 degradation -> plan 분해 재검토
-4. **Escalation:** 컴팩션+분할 후에도 지속 -> 상태 저장 + fresh 세션 제안
+1. **Immediate:** Compact controller context
+2. **Per-task:** If failing after 2 dispatches, re-assess complexity + consider splitting
+3. **Session-level:** Degradation across 3+ tasks -> reconsider plan decomposition
+4. **Escalation:** If degradation persists after compaction + splitting -> save state + suggest fresh session
 
-## 10. 하네스 실행 (경로 2)
+## 10. Harness Execution (Path 2)
 
-사용자가 경로 2를 선택하면 `/executeharness` 커맨드로 위임한다.
+If the user selects Path 2, delegate to the `/executeharness` command.
 
-1. `harness.root` 확인 → 미설정 시 사용자에게 안내
-2. Git hash 캡처 (`git rev-parse HEAD` → `<harness-start-hash>`)
-3. Plan → Phase 변환 (task를 stepN.md로, plan 헤더를 phase-context.md로)
-4. `phases/{feature-name}/index.json` 생성 (하네스 스키마)
-5. `phases/index.json` 보호 (EZPowers 형식 백업)
-6. 변환 파일 커밋
-7. Step-by-step 실행 (`execute.py` 호출 루프)
-8. `phases/index.json` 복원 (EZPowers 형식)
-9. 완료 시 → 섹션 12(Final Code Review)로 진행, diff range: `<harness-start-hash>..HEAD`
+1. Verify `harness.root` → if not set, inform the user
+2. Capture git hash (`git rev-parse HEAD` → `<harness-start-hash>`)
+3. Plan → Phase conversion (tasks to stepN.md, plan header to phase-context.md)
+4. Create `phases/{feature-name}/index.json` (harness schema)
+5. Protect `phases/index.json` (backup EZPowers format)
+6. Commit converted files
+7. Step-by-step execution (`execute.py` call loop)
+8. Restore `phases/index.json` (EZPowers format)
+9. On completion → proceed to Section 12 (Final Code Review), diff range: `<harness-start-hash>..HEAD`
 
-상세 절차는 `commands/executeharness.md` 참조.
+See `commands/executeharness.md` for detailed procedure.
 
-## 11. 인라인 실행 (경로 3)
+## 11. Inline Execution (Path 3)
 
-현재 세션에서 task를 순차적으로 실행한다. 인라인은 모든 작업이 컨트롤러 컨텍스트에서 일어나므로, 서브에이전트 경로보다 컨텍스트 소비가 크다.
+Execute tasks sequentially in the current session. Inline runs all work in the controller's context, consuming more context than the subagent path.
 
-### 컨텍스트 사전 확인
+### Context Pre-check
 
-인라인 선택 시 plan의 task 수와 예상 복잡도를 기반으로 컨텍스트 소모량을 추정한다. **추정 소모량이 컨텍스트 윈도우의 40%를 초과할 것으로 판단되면** 사용자에게 질의한다:
+On inline selection, estimate context consumption based on task count and expected complexity. **If estimated consumption exceeds 40% of the context window**, ask the user:
 
-> "인라인 실행 시 컨텍스트 소모가 40%를 초과할 것으로 예상됩니다. `/compact`를 수행하고 진행할까요?"
+> "Inline execution is estimated to consume over 40% of the context window. Run `/compact` first?"
 >
-> 1. `/compact` 후 진행
-> 2. 그대로 진행
-> 3. 서브에이전트 드리븐으로 변경
+> 1. `/compact` then proceed
+> 2. Proceed as-is
+> 3. Switch to subagent-driven
 
-추정 기준:
-- Task당 약 3-5K 토큰 소비 (파일 읽기 + 구현 + 테스트 + Verify)
-- 현재 세션의 이미 소비된 컨텍스트도 감안
+Estimation basis:
+- ~3-5K tokens per task (file reads + implementation + tests + Verify)
+- Account for context already consumed in the current session
 
 ### Git Hash Recording
 
-- **첫 task 시작 전:** `git rev-parse HEAD` → `<first-task-start-hash>` 저장 (최종 리뷰용). 이후 task에서 이 값을 덮어쓰지 않는다.
-- **각 task 시작 전:** `git rev-parse HEAD` → `<task-start-hash>` 저장
-- **커밋 없는 상태:** 빈 트리 해시 `4b825dc642cb6eb9a060e54bf899d8b2306e7304` 사용
-- **각 task 완료 후:** changed-files = `git diff --name-only <task-start-hash>..HEAD` + `git ls-files --others --exclude-standard`
+- **Before first task:** `git rev-parse HEAD` → store as `<first-task-start-hash>` (for final review). Do not overwrite in subsequent tasks.
+- **Before each task:** `git rev-parse HEAD` → store as `<task-start-hash>`
+- **No commits yet:** use empty tree hash `4b825dc642cb6eb9a060e54bf899d8b2306e7304`
+- **After each task:** changed-files = `git diff --name-only <task-start-hash>..HEAD` + `git ls-files --others --exclude-standard`
 
-### Per-Task 실행 루프
+### Per-Task Execution Loop
 
-각 task마다:
+For each task:
 
 ```
-git hash 기록 (git rev-parse HEAD)
-  -> task 내용 읽기
-  -> TDD 순서로 구현 (테스트 -> 실패 확인 -> 구현 -> 통과 확인)
-  -> AC 검증 (Verify 커맨드 실행, exit 0 = PASS)
-    -> PASS -> 조건부 보안 리뷰
-    -> FAIL -> 실패 원인 분석 -> 코드 수정 -> 재검증 (최대 3회)
-    -> 3회 실패 -> 사용자 에스컬레이션
-  -> 커밋
-  -> changed-files 계산
-  -> 다음 task
+Record git hash (git rev-parse HEAD)
+  -> Read task content
+  -> Implement in TDD order (test -> confirm failure -> implement -> confirm pass)
+  -> AC verification (run Verify commands, exit 0 = PASS)
+    -> PASS -> conditional security review
+    -> FAIL -> analyze failure -> fix code -> re-verify (max 3)
+    -> 3 failures -> escalate to user
+  -> Commit
+  -> Compute changed-files
+  -> Next task
 ```
 
-### AC 검증
+### AC Verification
 
-섹션 5(Acceptance Criteria Verification)와 동일한 절차를 따른다. Verify 커맨드 실행, Verify-type별 타임아웃 적용.
+Follow the same procedure as Section 5 (Acceptance Criteria Verification). Run Verify commands with Verify-type timeouts.
 
-### 조건부 보안 리뷰
+### Conditional Security Review
 
-섹션 6(Conditional Security Review)와 동일한 트리거 조건(27개 키워드). 트리거 시 `ezpowers:security-reviewer` 플러그인 에이전트를 `subagent_type`으로 지정하여 배치.
+Same trigger conditions as Section 6 (27 keywords). On trigger, dispatch `ezpowers:security-reviewer` plugin agent via `subagent_type`.
 
-### 실패 처리
+### Failure Handling
 
-인라인은 서브에이전트 "재배치"가 아닌 **같은 컨텍스트에서 수정 → 재검증** 루프:
+Inline uses **fix-in-place → re-verify** loops instead of subagent re-dispatch:
 
-1. Verify 실패 → 실패 출력 분석
-2. 원인에 맞는 코드 수정
-3. Verify 재실행
-4. 최대 3회. 이후 사용자 에스컬레이션.
+1. Verify fails → analyze failure output
+2. Fix code based on root cause
+3. Re-run Verify
+4. Max 3 attempts. Then escalate to user.
 
 ### Final Code Review
 
-모든 task 완료 후 섹션 12(Final Code Review)로 진행한다. 서브에이전트 경로와 동일.
+After all tasks complete, proceed to Section 12 (Final Code Review). Same as subagent path.
 
 ## 12. Final Code Review
 
-모든 task 완료 후 `ezpowers:code-reviewer` 플러그인 에이전트를 `subagent_type`으로 지정하여 배치:
+After all tasks complete, dispatch `ezpowers:code-reviewer` plugin agent via `subagent_type`:
 
-- Plan 경로 제공
-- 전체 diff: `git diff <first-task-start-hash>..HEAD`
-- 구현 요약
-- `## Verdict: PASS` 또는 `## Verdict: FAIL` 출력 필요
-- FAIL -> fix + fresh 재디스패치. warn@5, stop@10. Oscillation check from iteration 3.
-- `## Verdict:` 패턴이 서브에이전트 반환에서 발견되지 않으면 FAIL로 처리하고 사용자에게 에스컬레이션: "Code reviewer가 표준 형식으로 판정을 반환하지 않았습니다."
+- Provide plan path
+- Full diff: `git diff <first-task-start-hash>..HEAD`
+- Implementation summary
+- Expect `## Verdict: PASS` or `## Verdict: FAIL` output
+- FAIL -> fix + fresh re-dispatch. Warn@5, stop@10. Oscillation check from iteration 3.
+- If `## Verdict:` pattern not found in subagent response, treat as FAIL and escalate: "Code reviewer did not return a verdict in the standard format."
 
-## 13. Backward Transition: /plan으로 복귀
+## 13. Backward Transition: Return to /plan
 
-실행 중 plan 분해가 부적절하면 — task가 너무 밀결합, 의존성 누락, 경계 불일치 — 깨진 plan을 강행하지 않는다.
+If plan decomposition proves inadequate during execution — tasks too tightly coupled, missing dependencies, misaligned boundaries — do not force a broken plan.
 
-**트리거:**
-- 2+ task가 같은 파일을 충돌하는 방식으로 수정
-- task의 prerequisites가 plan에 누락
-- task 순서 가정이 실제 코드베이스에서 오류
-- 연속 2+ task가 구조적 이유로 BLOCKED
+**Triggers:**
+- 2+ tasks modify the same file in conflicting ways
+- Task prerequisites missing from the plan
+- Task ordering assumptions are wrong given the actual codebase
+- 2+ consecutive tasks BLOCKED for structural reasons
 
-**액션:**
-1. 이유 로그: "Returning to /plan: [구체적 이유]"
-2. 사용자에게 보고
-3. 현재 진행 저장:
-   - 완료 task: plan 문서의 해당 task 체크박스(`- [x]`)를 체크하고 커밋
-   - 미완 task: 체크박스 미체크 상태 유지, 재계획 대상으로 표시
-   - `first-task-start-hash`를 plan 문서 헤더에 기록: `**Resume hash:** <first-task-start-hash>`
-   - 커밋 메시지: `wip: build progress saved before /plan return — Tasks 1-N complete`
-4. `phases/index.json` 업데이트: build를 `pending`으로, plan을 `in_progress`로 리셋
-5. `/plan`으로 복귀하여 plan 수정
-6. 업데이트된 plan으로 `/choiceexecutor` 재개
+**Actions:**
+1. Log reason: "Returning to /plan: [specific reason]"
+2. Report to user
+3. Save current progress:
+   - Completed tasks: check the task's checkbox (`- [x]`) in the plan and commit
+   - Incomplete tasks: leave checkboxes unchecked, mark as re-plan targets
+   - Record `first-task-start-hash` in plan header: `**Resume hash:** <first-task-start-hash>`
+   - Commit message: `wip: build progress saved before /plan return — Tasks 1-N complete`
+4. Update `phases/index.json`: set build to `pending`, reset plan to `in_progress`
+5. Return to `/plan` for plan revision
+6. Resume `/choiceexecutor` with updated plan
 
-### Resume Protocol (plan 복귀 후 /choiceexecutor 재개 시)
+### Resume Protocol (after returning from /plan)
 
-1. Plan 문서에서 `**Resume hash:**` 마커 확인
-2. 마커 있으면: 이전 `first-task-start-hash` 복원 (최종 리뷰 diff 범위 유지)
-3. `- [x]`로 체크된 task는 PASS로 간주하고 스킵
-4. `- [ ]`인 task만 실행 (새로 추가된 task 포함)
-5. 스킵된 task의 artifact(커밋)는 이미 존재하므로 의존성 충족으로 간주
-6. **주의:** plan이 기존 완료 task의 파일을 재수정하도록 변경했으면, 해당 task를 수동으로 `- [ ]`로 리셋해야 함 — /plan에서 사용자에게 안내
+1. Check for `**Resume hash:**` marker in plan document
+2. If present: restore previous `first-task-start-hash` (preserves final review diff range)
+3. Tasks checked `- [x]` are treated as PASS and skipped
+4. Execute only `- [ ]` tasks (including newly added tasks)
+5. Skipped tasks' artifacts (commits) already exist, so dependencies are satisfied
+6. **Caution:** If the revised plan modifies files from already-completed tasks, those tasks must be manually reset to `- [ ]` — /plan notifies the user
 
-## 14. 완료
+## 14. Completion
 
-모든 task + final review 완료 후:
-1. 전체 diff 요약 (`git diff <first-task-start-hash>..HEAD`)
-2. 완료/실패/SKIPPED task 목록
-3. 레퍼런스 문서 동기화 제안:
+After all tasks + final review complete:
+1. Full diff summary (`git diff <first-task-start-hash>..HEAD`)
+2. Completed/failed/SKIPPED task list
+3. Suggest reference doc sync:
 
-> **레퍼런스 문서를 코드베이스와 동기화할까요?** (`/sync-docs`)
+> **Sync reference docs with the codebase?** (`/sync-docs`)
 >
-> 1. 실행
-> 2. 스킵
+> 1. Run
+> 2. Skip
 
-사용자가 1을 선택하면 `/sync-docs` 절차를 따른다. 스킵해도 나중에 독립 호출 가능.
+If user selects 1, follow `/sync-docs` procedure. Can also be invoked independently later.
 
-4. **Smoke 검증:** `config.smoke.command`가 빈 문자열이 아니면 실행. 실패 시 사용자에게 보고하고 수정 루프 진입 (최대 3회). 빈 문자열이면 스킵.
-5. 다음 추천: `/review`
+4. **Smoke test:** If `config.smoke.command` is non-empty, run it. On failure, report to user and enter fix loop (max 3). If empty, skip.
+5. Next recommendation: `/review`
 
-`phases/index.json` 업데이트:
+Update `phases/index.json`:
 - build: `status: "complete"`, `completed_at: "<ISO 8601>"`
