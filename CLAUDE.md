@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Identity
 
-EZPowers는 개인 전용 Claude Code 스킬 플러그인.
-- 소스 프로젝트 2개를 참고하되 **새로 구성** (그대로 복사하지 않음)
-  - `C:\Working\EasyPowersHarness` (v0.7.7) — 하네스/실행 구조 참고
-  - `C:\Working\EasyPowers` (v3.1.5) — 스킬 패턴 참고
-- SDD(Spec-Driven Development) 기반: 사람은 설계와 리뷰, 에이전트는 구현
+EZPowers is a personal Claude Code skill plugin.
+- References 2 source projects for design patterns — **built fresh**, not copied
+  - `C:\Working\EasyPowersHarness` (v0.7.7) — harness/execution structure reference
+  - `C:\Working\EasyPowers` (v3.1.5) — skill pattern reference
+- SDD (Spec-Driven Development) based: humans design and review, agents implement
 
 ## Main Flow
 
@@ -16,74 +16,74 @@ EZPowers는 개인 전용 Claude Code 스킬 플러그인.
 /setup → /brainstorm → /plan → /choiceexecutor
 ```
 
-| Command | 역할 |
+| Command | Role |
 |---------|------|
-| `/setup` | 프로젝트 하네스 초기화 (config, steering 문서, agents.md) |
-| `/brainstorm` | 대화형 설계 → spec + plan 문서 생성 |
-| `/plan` | 설계문서 → step 분해 + 에이전트 배치 |
-| `/choiceexecutor` | 실행 경로 선택 (서브에이전트 / 하네스 / 인라인) |
-| `/executeharness` | EasyPowersHarness executor 위임 (plan → phase 변환 + step 실행) |
+| `/setup` | Initialize project harness (config, steering docs, agents.md) |
+| `/brainstorm` | Interactive design → spec + plan document generation |
+| `/plan` | Spec → step decomposition + agent assignment |
+| `/choiceexecutor` | Choose execution path (subagent / harness / inline) |
+| `/executeharness` | Delegate to EasyPowersHarness executor (plan → phase conversion + step execution) |
 
 ## Independent Utilities
 
-| 이름 | 유형 | 역할 |
+| Name | Type | Role |
 |------|------|------|
-| `/review` | command | 변경사항 리뷰 (spec 대비 구현 완전성) |
-| `/sync-docs` | command | 레퍼런스 문서를 코드베이스와 동기화 (독립 호출 + /choiceexecutor 완료 시 제안) |
-| `/eval` | command | eval suite 실행, 버전별 점수 보고 |
-| `/feedback` | command | 현재 세션 트레이스에 사용자 점수 부착 |
-| `systematic-debugging` | skill | 근본 원인 추적 프로토콜 (4-Phase + Feedback Loop) |
-| `verifyself` | skill | CoVe(Chain-of-Verification) 자기검증 (6차원) |
-| `writing-skills` | skill | 새 스킬 작성 메타 스킬 (TDD 기반) |
-| `grill-me` | skill | 계획/설계 스트레스 테스트 (집요한 인터뷰) |
-| `zoom-out` | skill | 추상도 한 단계 올리기 (모듈 맵) |
-| `caveman` | skill | 토큰 절약 압축 커뮤니케이션 모드 |
+| `/review` | command | Review changes (implementation completeness vs spec) |
+| `/sync-docs` | command | Sync reference docs with codebase (standalone + suggested after /choiceexecutor) |
+| `/eval` | command | Run eval suite, report scores by version |
+| `/feedback` | command | Attach user scores to current session trace |
+| `systematic-debugging` | skill | Root cause tracing protocol (4-Phase + Feedback Loop) |
+| `verifyself` | skill | CoVe (Chain-of-Verification) self-verification (6 dimensions) |
+| `writing-skills` | skill | Meta-skill for writing new skills (TDD-based) |
+| `grill-me` | skill | Plan/design stress test (relentless interview) |
+| `zoom-out` | skill | Raise abstraction one level (module map) |
+| `caveman` | skill | Token-saving compressed communication mode |
 
 ## Directory Structure
 
 ```
 .claude-plugin/       # plugin.json
-commands/             # 슬래시 명령어 (setup, brainstorm, plan, choiceexecutor, executeharness, review, sync-docs, eval, feedback)
-skills/               # 독립 스킬
+commands/             # Slash commands (setup, brainstorm, plan, choiceexecutor, executeharness, review, sync-docs, eval, feedback)
+skills/               # Independent skills
   systematic-debugging/
-    SKILL.md          # 4-Phase 디버깅 프로토콜 + Feedback Loop 구축
+    SKILL.md          # 4-Phase debugging protocol + Feedback Loop
     root-cause-tracing.md
     defense-in-depth.md
   verifyself/
-    SKILL.md          # CoVe 자기검증 (6차원)
+    SKILL.md          # CoVe self-verification (6 dimensions)
   writing-skills/
-    SKILL.md          # 스킬 작성 메타 스킬 (TDD 기반)
+    SKILL.md          # Skill-writing meta-skill (TDD-based)
     anthropic-best-practices.md
     testing-skills-with-subagents.md
   grill-me/
-    SKILL.md          # 계획/설계 스트레스 테스트
+    SKILL.md          # Plan/design stress test
   zoom-out/
-    SKILL.md          # 추상도 올리기 (prompt-only)
+    SKILL.md          # Raise abstraction (prompt-only)
   caveman/
-    SKILL.md          # 토큰 절약 압축 모드
-agents/               # 플러그인 에이전트 + 프롬프트 템플릿
-  code-reviewer.md          # Plugin Agent — 최종 코드 리뷰 (inherit, Read/Grep/Glob/Bash)
-  security-reviewer.md      # Plugin Agent — 보안 취약점 스캔 (inherit, Read/Grep/Glob/Bash)
-  spec-reviewer.md          # Plugin Agent — Spec 문서 검증 (sonnet, Read/Grep/Glob)
-  plan-reviewer.md          # Plugin Agent — Plan 문서 검증 (sonnet, Read/Grep/Glob)
-  implementer-prompt.md     # Template — 구현 서브에이전트 (placeholder 치환 방식 유지)
-  eval-diagnostician.md     # Plugin Agent — 실패 eval 분석 + 1-line 변경 제안 (opus, Read/Grep/Glob)
-phases/               # /setup이 생성하는 phase 상태 추적
+    SKILL.md          # Token-saving compressed mode
+agents/               # Plugin agents + prompt templates
+  code-reviewer.md          # Plugin Agent — final code review (inherit, Read/Grep/Glob/Bash)
+  security-reviewer.md      # Plugin Agent — security vulnerability scan (inherit, Read/Grep/Glob/Bash)
+  spec-reviewer.md          # Plugin Agent — spec document verification (sonnet, Read/Grep/Glob)
+  plan-reviewer.md          # Plugin Agent — plan document verification (sonnet, Read/Grep/Glob)
+  implementer-prompt.md     # Template — implementation subagent (placeholder substitution)
+  eval-diagnostician.md     # Plugin Agent — failing eval analysis + 1-line change proposal (opus, Read/Grep/Glob)
+phases/               # Phase state tracking generated by /setup
 docs/
-  INDEX.md            # /setup이 생성하는 문서 내비게이션 맵
-  product/            # PRD 등 제품 문서 슬롯
-  reference/          # 아키텍처, 프로토콜, 스키마, 설정 슬롯
-  decisions/          # ADR (3조건 게이트: 되돌리기 어려움 + 놀라움 + 트레이드오프)
-  ux/                 # UI 프로젝트만 (선택적)
-  specs/              # /brainstorm이 생성하는 spec 문서
-  plans/              # /plan이 생성하는 plan 문서
+  INDEX.md            # Document navigation map generated by /setup
+  product/            # PRD and product docs slot
+  reference/          # Architecture, protocol, schema, config slot
+  decisions/          # ADR (3-condition gate: hard to reverse + surprising + tradeoff)
+  ux/                 # UI projects only (optional)
+  specs/              # Spec documents generated by /brainstorm
+  plans/              # Plan documents generated by /plan
   handoff-session1.md
   handoff-session2.md
-phases/               # /executeharness가 생성하는 phase 디렉터리 (하네스 경로 선택 시)
+phases/               # Phase directories generated by /executeharness (harness path)
 hooks/
-  hooks.json          # opt-in trace collection hooks (/setup --enable-traces로 활성화)
+  hooks.json          # opt-in trace collection hooks (activate via /setup --enable-traces)
 harness_versions/
-  changelog.jsonl     # append-only 구조화 변경 로그 (날짜, 버전, diff, eval delta)
+  changelog.jsonl     # append-only structured change log (date, version, diff, eval delta)
 scripts/
   validate.py         # eval gate (pre-commit hook calls this)
   run_baseline.py     # eval runner + baseline writer
@@ -91,27 +91,28 @@ scripts/
 .githooks/
   pre-commit          # runs validate.py when commands/ or agents/ staged
 bin/
-  trace.sh            # observation-only JSONL trace writer (hooks에서 호출)
+  trace.sh            # observation-only JSONL trace writer (called from hooks)
 ```
 
 ## Key Conventions
 
-- **스킬 체이닝 없음** — 각 스킬은 독립 호출, 필요하면 나중에 추가. Diagnostic subagent
-  (`agents/eval-diagnostician.md`)는 유일한 예외로, `scripts/propose_edit.py`에서만 호출되며
-  사용자 대면 커맨드에서는 호출되지 않는다.
-- **훅: opt-in observation-only** — 기본 상태: 훅 없음. `/eval`, 베이스라인 측정, 회귀 추적이
-  필요할 때 `/setup --enable-traces`로 활성화. 트레이스는 `${CLAUDE_PLUGIN_DATA}/traces/`에
-  기록된다 (기본 gitignored). 훅은 모델 동작을 변경해서는 안 된다 — 관찰과 로깅만 허용.
-  금지: 도구 입출력 변경, 도구 호출 차단, 시스템 명령 주입. 허용: append-only JSONL 쓰기.
-- **문서는 가볍게** — 어떤 에이전트가 와도 맥락을 이해할 수 있도록 필요한 곳에 배치
-- **증거 기반 검증** — "should work" 금지, 실행 결과로 증명
-- **가정 명시** — 설계/플래닝 전 가정을 선언하고 사용자 확인
+- **No skill chaining** — each skill is invoked independently; add chaining only when needed. Diagnostic subagent
+  (`agents/eval-diagnostician.md`) is the sole exception: called only from `scripts/propose_edit.py`,
+  never from user-facing commands.
+- **Hooks: opt-in observation-only** — default: no hooks. Activate via `/setup --enable-traces` when
+  `/eval`, baseline measurement, or regression tracking is needed. Traces are written to
+  `${CLAUDE_PLUGIN_DATA}/traces/` (gitignored by default). Hooks must not alter model behavior — observe
+  and log only. Forbidden: modifying tool I/O, blocking tool calls, injecting system commands.
+  Allowed: append-only JSONL writes.
+- **Keep docs lightweight** — place context where any agent can find it
+- **Evidence-based verification** — "should work" is banned; prove with execution results
+- **State assumptions explicitly** — declare assumptions before design/planning and get user confirmation
 
 ## Eval Gate
 
 Commits touching `commands/` or `agents/` automatically run `scripts/validate.py`.
 The commit is blocked if:
-- Diff exceeds 3 lines per Better-Harness "한 번에 한 줄" rule
+- Diff exceeds 3 lines per Better-Harness "one line at a time" rule
 - `evals/` files modified in the same commit (isolation)
 - Any golden eval codebase-invariant grader fails
 - Optimization average regresses vs latest baseline
@@ -122,13 +123,13 @@ Bypass (emergency only): `git commit --no-verify`
 
 ## Versioning
 
-`git push` 전에 반드시 `.claude-plugin/plugin.json`의 `version` 필드를 patch 범프.
-- 커밋 메시지: `chore: bump version to X.Y.Z`
-- minor/major는 사용자 명시 요청 시에만
+Before `git push`, always patch-bump the `version` field in `.claude-plugin/plugin.json`.
+- Commit message: `chore: bump version to X.Y.Z`
+- Minor/major bumps only on explicit user request
 
 ## Design Principles
 
-1. **기존 구조에 매몰되지 않는다** — 소스 프로젝트는 참고 자료, 새로운 플로우 설계
-2. **YAGNI** — 당장 필요하지 않으면 만들지 않는다
-3. **한 번에 하나의 질문** — brainstorm에서 사용자를 압도하지 않는다
-4. **Steering** — /setup이 프로젝트 컨텍스트를 모든 단계에 자동 주입할 문서 생성
+1. **Don't get trapped by existing structure** — source projects are references; design new flows
+2. **YAGNI** — don't build it unless it's needed now
+3. **One question at a time** — don't overwhelm the user during brainstorm
+4. **Steering** — /setup generates documents that auto-inject project context into every step
