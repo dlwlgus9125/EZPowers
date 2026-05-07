@@ -177,6 +177,7 @@ review-skip: {File patterns to skip in review — leave empty if none}
 - [Protocol](reference/protocol.md): [canonical] protocol contract
 - [Schema](reference/schema.md): [canonical] DB schema
 - [Config](reference/config.md): [canonical] config contract
+- [Conventions](reference/conventions.md): [canonical] coding rules and conventions
 
 ## Decisions
 - [ADR Index](decisions/README.md): architecture decision records
@@ -192,6 +193,7 @@ review-skip: {File patterns to skip in review — leave empty if none}
 - `docs/reference/protocol.md`
 - `docs/reference/schema.md`
 - `docs/reference/config.md`
+- `docs/reference/conventions.md`
 - `docs/decisions/README.md` (if using ADR)
 - `docs/ux/README.md` (UI projects only)
 - `docs/specs/.gitkeep` (spec document directory)
@@ -332,4 +334,5 @@ The two flags are independent. A user may want evals without trace collection.
 After creation:
 1. List of created files
 2. Items the user needs to fill in (especially AGENTS.md Conventions and Boundaries)
-3. Next command: `/brainstorm`
+3. Optional: `/set-rules` to design coding rules and architecture constraints
+4. Next command: `/brainstorm`

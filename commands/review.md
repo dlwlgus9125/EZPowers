@@ -13,6 +13,7 @@ Read the following first:
 - `CLAUDE.md`
 - `AGENTS.md` (if present)
 - `.harness/config.json` (if present)
+- `docs/reference/conventions.md` (if present — coding rules and constraints)
 - Spec document (if path given as argument, or if a recent spec exists)
 
 Check changed files:
