@@ -108,6 +108,7 @@ bin/
 - **Keep docs lightweight** — place context where any agent can find it
 - **Evidence-based verification** — "should work" is banned; prove with execution results
 - **State assumptions explicitly** — declare assumptions before design/planning and get user confirmation
+- **Fully automated verification** — no user confirmation gates in the harness pipeline. e2e items without automated Verify commands are FAIL, not "manual batch". Code review uses tri-state verdicts (PASS / PASS_WITH_ISSUES / FAIL). Integration milestones require pipeline integration tests. GUI apps use multi-layer probes (process survival + stderr + window handle + optional vision oracle).
 
 ## Eval Gate
 

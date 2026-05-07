@@ -188,13 +188,62 @@ Expected: exit 0
 - Copy spec AC **verbatim** — no paraphrasing
 - If a task spans multiple Rs, copy only the relevant parts
 - Every task requires a verification method
-- If the artifact is an executable binary/app, include runtime startup AC separate from build AC (process starts → survives N seconds → no abnormal exit)
+- If the artifact is an executable binary/app, the plan MUST include a `**Runtime verification (executable artifacts only):**` line in each task that produces or modifies the executable entry point. Use the pattern: `<start-cmd> & sleep N && kill $! 2>/dev/null; test $? -eq 0`. N should be 3-5 seconds for CLI/desktop apps, matched to `config.server.health_check_timeout` for servers. This line is consumed by /choiceexecutor's runtime probe and is NOT optional for executable artifacts.
+  > **When to include:** ANY task whose Files section creates or modifies the project's entry point (main module, CLI binary, GUI launcher, server start script). Omit for library-only tasks with no executable artifact.
 
 ### Task Dependencies
 
 - `**Depends on:** Task N` — prerequisite task required
 - `**File overlap with:** Task N` — same file modified
 - If all tasks are independent, note "All tasks are independent" after Coverage Matrix
+
+## 5.5 Integration Pipeline Matrix
+
+After task decomposition, detect data pipelines that cross component boundaries.
+
+### Detection Rules
+
+A pipeline exists when:
+1. Task A's output is consumed by Task B (data, events, state, rendered UI)
+2. 3+ tasks form a layered chain (DB → ORM → API → Frontend)
+3. A UI task displays data originating from a non-UI task
+4. An executable artifact requires 2+ components to wire together
+
+### Pipeline Matrix Template
+
+````markdown
+## Integration Pipeline Matrix
+| Pipeline | Flow | First Connected | Contract Oracle | Integration Verify |
+|----------|------|-----------------|-----------------|-------------------|
+| P1 | PTY→Parser→Buffer→Renderer | Task 17 | DataReceived→bytes→cells→visual | `dotnet test --filter Integration` |
+````
+
+### Data Pipeline Contracts (per boundary)
+
+- **Producer contract:** A emits [schema/event/state] with [required fields]
+- **Consumer contract:** B consumes same contract without loss/reordering
+- **State/render delta:** observable output changes from [before] to [after]
+
+### Integration Milestone Task
+
+When a pipeline is detected, add an explicit integration task after the last component task:
+
+- **Depends on:** all component tasks in the pipeline
+- **Completion criteria:** Given/When/Then that exercises the FULL pipeline (not just individual components)
+- **Verify:** Integration test command (must be automated — no manual/placeholder)
+- **Verify-type:** e2e
+- **Contract assertions per boundary:**
+  - Producer→Consumer: [data format emitted] → [data format expected]. Verify: `[assertion command]`
+
+### Omit When
+
+- All tasks are independent (no cross-component data flow)
+- Single-task plan
+- Library-only project with no executable artifact
+
+### Coverage Matrix Integration
+
+Integration milestone tasks must appear in the Coverage Matrix. They typically cover multiple Rs (those depending on cross-component interaction).
 
 ## 6. Agent Assignment
 

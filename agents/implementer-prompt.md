@@ -26,6 +26,12 @@ Agent tool:
 
     You must run the verification method and confirm each criterion passes before reporting DONE.
 
+    **DONE is a claim, not a verdict.** The controller independently re-verifies all ACs.
+    For Verify-type `e2e`, `api`, integration milestones, or executable artifacts:
+    - Build/test-only evidence is insufficient
+    - Process survival alone is insufficient when Then describes rendered/observable output
+    - Include artifact paths in your report: logs, screenshots, probe output, exact exit codes
+
     ## Before You Begin
 
     If you have questions about:

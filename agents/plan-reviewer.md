@@ -84,6 +84,13 @@ For tasks without test code: apply only check c.
 **6. Build config cross-validation:**
 If task modifies bundler/build config: verify externalize/exclude/alias strategy is compatible with dependency module systems (CJS/ESM). Flag blanket patterns (e.g., `externals: [/node_modules/]`) that may break ESM-only deps. No build config in task → skip.
 
+**7. Integration milestone check:**
+If the plan has 3+ tasks AND any task's output is consumed by another task (detectable via `Depends on` markers + shared Modify/Create files + data flow described in AC text), an Integration Pipeline Matrix section and at least one integration milestone task MUST exist.
+- Missing Integration Pipeline Matrix → FAIL: "Data pipeline [A → B → C] detected but no Integration Pipeline Matrix."
+- Pipeline detected but no integration milestone task → FAIL: "Pipeline exists but no integration milestone task exercises the full flow."
+- Unit tests for individual components do not satisfy this gate.
+- Exemption: all-independent tasks (no `Depends on` markers and no shared files), single-task plans, library-only projects (no executable artifact).
+
 ## Advisory Checks (do NOT affect verdict)
 
 | Category | What to Look For |

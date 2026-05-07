@@ -63,7 +63,12 @@ Order:
 3. Test strategy
 4. build/lint/test commands
 5. smoke.command — warn if same as `build.command`. Per-stack guide: CLI (`./dist/cli --version`), server (start → health check → stop), desktop (start → survive N seconds → stop), library (`node -e "require('./dist')"` or ESM import)
-6. Preferred execution mode for `/choiceexecutor` (subagent vs harness vs inline)
+6. smoke.gui_strategy — auto-detect from tech stack:
+   - Avalonia, WPF, WinForms, Qt, GTK → `process_probe` (default for desktop GUI)
+   - Electron, Tauri → `headless` (Playwright-compatible)
+   - Console, server, library → `skip`
+   Inform the user: "UI framework detected: [name]. Setting gui_strategy to [value]."
+7. Preferred execution mode for `/choiceexecutor` (subagent vs harness vs inline)
 
 Suggest presets when possible:
 - Next.js + TypeScript
@@ -240,7 +245,15 @@ Mark each document's authority in INDEX.md as `[canonical]`, `[supporting]`, or 
   },
   "smoke": {
     "command": "",
-    "description": ""
+    "description": "",
+    "gui_strategy": "skip",
+    "startup_timeout_seconds": 15,
+    "survival_seconds": 8,
+    "stderr_fail_regex": "Unhandled exception|Fatal|Traceback|panic|XamlLoadException|segmentation fault",
+    "window_title_regex": "",
+    "screenshot_path": ".harness/artifacts/gui-smoke.png",
+    "vision_required": false,
+    "vision_prompt": "Return JSON only. PASS iff the app window shows visible content (text, UI elements), not blank/empty background."
   },
   "server": {
     "start_command": "",
@@ -280,6 +293,22 @@ Field descriptions:
 - `lint.command`: Lint command
 - `smoke.command`: Smoke command to verify the actual entrypoint
 - `smoke.description`: What the smoke test verifies
+- `smoke.gui_strategy`: GUI verification approach. `skip` (default, non-GUI), `process_probe` (survival + stderr + window handle), `screenshot_vision` (process_probe + vision oracle), `headless` (Playwright/FlaUI/Avalonia.Headless test runner)
+- `smoke.startup_timeout_seconds`: Max seconds to wait for app startup (default 15)
+- `smoke.survival_seconds`: Seconds app must survive without exit (default 8)
+- `smoke.stderr_fail_regex`: Regex pattern for fatal output detection
+- `smoke.window_title_regex`: Expected window title pattern (empty = any window)
+- `smoke.screenshot_path`: Path to save GUI screenshot artifact
+- `smoke.vision_required`: If true, screenshot must pass Claude vision oracle (default false)
+- `smoke.vision_prompt`: Prompt sent to Claude vision API for screenshot judgment
+
+**Framework-specific GUI verification guide:**
+- **Avalonia:** Prefer `Avalonia.Headless` for render-tree assertions. Smoke: `process_probe` + window handle.
+- **WPF:** UIAutomation/FlaUI for element assertions. Smoke: `process_probe` + window handle.
+- **Electron/Tauri:** Playwright for full e2e. Smoke: `headless`.
+- **Qt:** Qt Test offscreen where possible. Smoke: `process_probe`.
+- **Generic desktop:** `process_probe` (survival + stderr + window). Upgrade to `screenshot_vision` for render verification.
+
 - `server.start_command`: Server start command before Verify-type `api`/`e2e` execution (empty string = skip server management)
 - `server.stop_command`: Server stop command after Verify completion
 - `server.health_check_url`: URL to confirm server readiness (e.g., `http://localhost:3000/health`)

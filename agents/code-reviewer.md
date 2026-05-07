@@ -73,7 +73,11 @@ Execute each verification command from the plan's invariants table. Any FAIL mak
 ## Issue Severity
 
 - **Critical:** Must fix — blocks merge
-- **Important:** Should fix — affects quality
+- **Important:** Should fix — affects quality. Includes:
+  - Wiring gaps: created object not registered/subscribed/bound
+  - Missing event subscriptions or DI registration
+  - Missing UI binding or lifecycle hookup
+  - If any Important issue directly invalidates a spec AC, escalate to Critical
 - **Suggestion:** Nice to have
 
 ## Output Format
@@ -92,10 +96,24 @@ Execute each verification command from the plan's invariants table. Any FAIL mak
 ### Structural Invariants
 [results]
 
-Output exactly one of these two lines as your final heading:
+Output exactly one of these three lines as your final heading:
 
 ## Verdict: PASS
 
-or
+(No Critical or Important issues.)
+
+## Verdict: PASS_WITH_ISSUES
+
+(No Critical issues, but Important issues exist. List them above.)
 
 ## Verdict: FAIL
+
+(Any Critical issue, OR any MISSING in Spec Evidence table, OR any Structural Invariant FAIL.)
+
+**Verdict selection rules:**
+- Any Critical → FAIL
+- Any MISSING in Spec Evidence → FAIL
+- Any Structural Invariant FAIL → FAIL
+- Important issues only (no Critical, no MISSING) → PASS_WITH_ISSUES
+- Suggestions only → PASS
+- No issues → PASS

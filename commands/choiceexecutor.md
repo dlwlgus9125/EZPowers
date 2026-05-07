@@ -121,7 +121,11 @@ Record git hash (git rev-parse HEAD)
   -> Dispatch subagent (agents/implementer-prompt.md)
   -> Handle implementer status
   -> Controller: AC verification (run Verify commands)
-    -> ALL PASS -> conditional security review
+    -> ALL PASS -> Runtime probe (if applicable)
+      -> PASS -> AC Arbiter (integration/e2e tasks only)
+        -> PASS -> conditional security review
+        -> TEST_GAP/CODE_GAP/SPEC_GAP -> re-dispatch or return to /plan
+      -> FAIL -> re-dispatch with runtime error
     -> FAIL -> re-dispatch with failure details (max 3)
     -> 3 failures -> escalate to user
   -> Compute changed-files -> next task
@@ -190,11 +194,58 @@ Assess complexity on 3 dimensions before dispatch:
 
 **Re-dispatch loop:** max 3. Then escalate to user.
 
-**Manual verification items:** If not automatable, hand to user as a batch. Do not block the chain.
+**Runtime probe (executable artifacts only):**
+
+After all Verify commands PASS, if the task has a `Runtime verification:` line in the plan:
+1. Execute the runtime verification command (timeout: 30000ms)
+2. Exit 0 = runtime PASS. Non-zero = runtime FAIL.
+3. Runtime FAIL → re-dispatch with error output + exit code.
+4. No `Runtime verification:` line → skip.
+
+Runtime probe is separate from AC verification. AC verifies spec behavior; runtime probe verifies the artifact starts and survives. Both must pass.
+
+**GUI runtime probe (when `config.smoke.gui_strategy` is not `skip` or absent):**
+
+For GUI executable tasks, the runtime probe MUST include multi-layer verification:
+1. **Process survival:** app starts, survives `config.smoke.survival_seconds` (default 8s)
+2. **Fatal output check:** stderr/stdout must NOT match `config.smoke.stderr_fail_regex`
+3. **Window existence:** main window handle != 0 (platform-specific check)
+4. **Screenshot artifact:** capture to `config.smoke.screenshot_path`, verify non-blank (pixel variance > threshold)
+5. **Vision oracle (optional):** if `config.smoke.vision_required: true`, send screenshot to Claude vision API with `config.smoke.vision_prompt`, require `{"verdict":"PASS"}`
+
+All layers must PASS. Any layer FAIL → re-dispatch implementer with the specific layer and exit code.
+
+**Manual verification items are forbidden in automated harness mode.**
+If a Verify-type `e2e` item has no executable Verify command (empty or placeholder), mark AC verification as FAIL and re-dispatch implementer with: "AC [N] has Verify-type e2e but no executable verification command. Write an automated probe (process health, stdout/stderr pattern, window handle check, headless test, or integration test) and re-submit."
+
+Do not batch for human confirmation. Do not skip. No Verify command = FAIL.
+
+### Independent AC Arbiter (integration/e2e tasks only)
+
+After AC verification + runtime probe PASS, dispatch a fresh Agent as an independent arbiter for tasks that meet ANY of:
+- Verify-type `e2e`
+- `Depends on` 2+ tasks (integration milestones)
+- Task title contains "integration", "milestone", or "wiring"
+
+Simple `pure`/`cli`/`lib` tasks skip the arbiter and proceed directly to security review.
+
+**Arbiter input (ONLY these — no implementer narrative, no test code, no prior review results):**
+- Task AC text (Given/When/Then) verbatim from plan
+- Changed file list (`git diff --name-only`)
+- Verify command outputs (stdout/stderr + exit codes)
+- Runtime probe artifacts (logs, screenshots, exit codes)
+
+**Arbiter verdicts:**
+- **PASS** → proceed to conditional security review
+- **TEST_GAP** → re-dispatch implementer: "Verification does not prove the Then clause. Write a probe that directly observes [specific Then clause]."
+- **CODE_GAP** → re-dispatch implementer with verification evidence showing implementation fails
+- **SPEC_GAP** → return to /plan automatically (Section 13): plan lacks an automatable oracle for this AC
+
+**Arbiter dispatch limit:** max 2 rounds per task. If arbiter returns TEST_GAP or CODE_GAP twice, escalate to user.
 
 ## 6. Conditional Security Review
 
-After AC verification PASS, check whether security review is needed.
+After AC verification PASS (and arbiter PASS for integration/e2e tasks), check whether security review is needed.
 
 **Trigger:** ANY of the following is true:
 - Task description/requirements contain security keywords
@@ -231,6 +282,8 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 | Smoke test | choiceexecutor.md | 3 | — | 3 |
 
 If the Verdict header is missing 2 consecutive times for any review type, immediately escalate to user.
+
+**PASS_WITH_ISSUES handling:** PASS_WITH_ISSUES is a conditional PASS. It triggers exactly 1 additional fix-and-review round for Important issues. If the second review returns PASS or PASS_WITH_ISSUES, accept. If FAIL, enter the FAIL loop at iteration count 2. Max 3 PASS_WITH_ISSUES rounds total prevents endless Important-issue churn.
 
 **Exemption check:** Before entering the review loop:
 - `AGENTS.md` has `review-skip:` pattern?
@@ -431,8 +484,11 @@ After all tasks complete, dispatch `ezpowers:code-reviewer` plugin agent via `su
 - Provide plan path
 - Full diff: `git diff <first-task-start-hash>..HEAD`
 - Implementation summary
-- Expect `## Verdict: PASS` or `## Verdict: FAIL` output
-- FAIL -> fix + fresh re-dispatch. Warn@5, stop@10. Oscillation check from iteration 3.
+- Expect `## Verdict: PASS`, `## Verdict: PASS_WITH_ISSUES`, or `## Verdict: FAIL` output
+- **Verdict parsing:** Extract full value after `## Verdict: ` to end of line. Match exactly against `PASS`, `PASS_WITH_ISSUES`, `FAIL`. Unknown value → treat as FAIL.
+- PASS → complete.
+- PASS_WITH_ISSUES → extract Important findings, auto-fix (1 round), then fresh code-reviewer dispatch. If re-review returns PASS or PASS_WITH_ISSUES (same or fewer issues) → accept. If FAIL → enter FAIL loop. Max 3 PASS_WITH_ISSUES rounds total.
+- FAIL → fix + fresh re-dispatch. Warn@5, stop@10. Oscillation check from iteration 3.
 - If `## Verdict:` pattern not found in subagent response, treat as FAIL and escalate: "Code reviewer did not return a verdict in the standard format."
 
 ## 13. Backward Transition: Return to /plan
@@ -480,7 +536,30 @@ After all tasks + final review complete:
 
 If user selects 1, follow `/sync-docs` procedure. Can also be invoked independently later.
 
-4. **Smoke test:** If `config.smoke.command` is non-empty, run it. On failure, report to user and enter fix loop (max 3). If empty, skip.
+4. **Smoke test:** If `config.smoke.command` is non-empty, run it. On failure, enter fix loop (max 3). If empty, skip.
+
+   **GUI smoke (if `config.smoke.gui_strategy` is not `skip` and not absent):**
+   Execute the gui_strategy probe after smoke command:
+   - `process_probe`: start app → survive N seconds → no fatal stderr → window handle exists → kill. PASS/FAIL by exit code.
+   - `screenshot_vision`: process_probe + capture screenshot → vision oracle judgment. PASS/FAIL.
+   - `headless`: run `config.smoke.command` as headless test runner (Playwright, Avalonia.Headless, FlaUI). Exit 0 = PASS.
+   - GUI smoke FAIL → same fix loop (max 3). No user confirmation.
+
+   **Exit code convention:**
+
+   | Code | Meaning |
+   |------|---------|
+   | 0 | Pass |
+   | 10 | Start failed |
+   | 11 | Exited before survival window |
+   | 12 | Fatal output matched |
+   | 13 | No main window |
+   | 14 | Invisible/zero-size window |
+   | 15 | Screenshot capture failed |
+   | 16 | Blank screenshot (pixel variance below threshold) |
+   | 17 | Vision oracle verdict FAIL |
+   | 20 | Timeout |
+
 5. Next recommendation: `/review`
 
 Update `phases/index.json`:

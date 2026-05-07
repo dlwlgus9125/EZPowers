@@ -150,6 +150,7 @@ Each requirement follows this structure:
       Then: [Observable result]
       Verify: `[Shell command where exit 0 = pass]`
       Verify-type: [api | e2e | cli | lib | data | pure]
+      Automatable: [true | false]
 **Edge cases:**
 - [Condition]: [Expected behavior]
 ```
@@ -184,6 +185,12 @@ For Verify-type `pure`, Input/Transform/Output format is allowed instead of Give
 | `lib` | Run consumer code via inline script | `node -e "const {parse} = require('./lib'); assert(parse('k=v').k === 'v')"` |
 | `data` | Data migration, schema, ETL | Query `SELECT count(*) FROM users` returns expected count |
 | `pure` | Pure function, no side effects | `assertEquals(add(1, 2), 3)` |
+
+### Automatable Field
+
+- `Automatable: true` (default, omit if true) — the Verify command can run fully automated
+- `Automatable: false` — the AC requires human judgment (visual inspection, UX evaluation). `/plan` must detect these and replace with an automated probe (process health, screenshot + vision, headless test). If no automated replacement exists, `/choiceexecutor` treats the missing Verify command as FAIL and re-dispatches the implementer to write one.
+- **`Automatable: false` + `Verify-type: e2e`** = mandatory probe replacement in `/plan` (linked to /choiceexecutor's "no manual verification" rule)
 
 ### Re-export Awareness
 
