@@ -40,10 +40,12 @@ Read current project state first:
 
 If `.harness/config.json` is missing, direct the user to run `/setup` first and stop.
 
-If `phases/index.json` exists, update the brainstorm phase to `in_progress`:
-```json
-{ "current_phase": "brainstorm", "phases": { ..., "brainstorm": { "status": "in_progress" } } }
-```
+If `phases/index.json` exists:
+1. Update the brainstorm phase to `in_progress`:
+   ```json
+   { "current_phase": "brainstorm", "phases": { ..., "brainstorm": { "status": "in_progress" } } }
+   ```
+2. Delete the `audit` field if present (previous audit results are stale after spec changes)
 
 ## 2. Interactive Design
 
@@ -293,3 +295,9 @@ Update `phases/index.json`:
 - **Explore alternatives** — always propose 2-3 approaches before deciding
 - **Incremental validation** — present design, get approval, then proceed
 - **Stay flexible** — if it doesn't fit, go back and clarify
+
+## Next Steps
+
+After spec approval and commit:
+- **Recommended:** Run `/pipeline-audit` to verify spec completeness before planning
+- Then proceed to `/plan`

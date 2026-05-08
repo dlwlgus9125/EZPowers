@@ -13,13 +13,14 @@ EZPowers is a personal Claude Code skill plugin.
 ## Main Flow
 
 ```
-/setup → /brainstorm → /plan → /choiceexecutor
+/setup → /brainstorm → /pipeline-audit → /plan → /pipeline-audit → /choiceexecutor
 ```
 
 | Command | Role |
 |---------|------|
 | `/setup` | Initialize project harness (config, steering docs, agents.md) |
 | `/brainstorm` | Interactive design → spec + plan document generation |
+| `/pipeline-audit` | Cross-stage completeness gate (6 dimensions, mandatory before /plan and /choiceexecutor) |
 | `/plan` | Spec → step decomposition + agent assignment |
 | `/choiceexecutor` | Choose execution path (subagent / harness / inline) |
 | `/executeharness` | Delegate to EasyPowersHarness executor (plan → phase conversion + step execution) |
@@ -44,7 +45,7 @@ EZPowers is a personal Claude Code skill plugin.
 
 ```
 .claude-plugin/       # plugin.json
-commands/             # Slash commands (setup, brainstorm, plan, choiceexecutor, executeharness, set-rules, review, sync-docs, eval, feedback)
+commands/             # Slash commands (setup, brainstorm, pipeline-audit, plan, choiceexecutor, executeharness, set-rules, review, sync-docs, eval, feedback)
 skills/               # Independent skills
   systematic-debugging/
     SKILL.md          # 4-Phase debugging protocol + Feedback Loop

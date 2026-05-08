@@ -13,11 +13,16 @@ Verify the following first:
 1. `.harness/config.json` exists
 2. Plan document exists (priority: argument > `phases/index.json` plan.artifact > latest file at config `defaults.plan_location`)
 3. Spec document referenced by the plan exists
+4. `phases/index.json` audit gate:
+   - `audit.status` is `"FAIL"` → report `"pipeline-audit에서 미해결 항목 있음. 해결 후 /pipeline-audit 재실행하세요."` and stop
+   - `audit` field is missing → report `"/pipeline-audit를 먼저 실행하세요."` and stop
+   - `audit.status` is `"PASS"` or `"WARN"` → proceed
 
 If missing, direct the user to the required step:
 - No config -> `/setup`
 - No plan -> `/plan`
 - No spec -> `/brainstorm`
+- No audit or audit FAIL -> `/pipeline-audit`
 
 If `phases/index.json` exists, update the build phase to `in_progress`:
 ```json

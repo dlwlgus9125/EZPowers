@@ -16,15 +16,22 @@ Verify the following first:
 2. `AGENTS.md` exists
 3. Spec document exists (priority: argument > `phases/index.json` brainstorm.artifact > latest file from config `defaults.spec_location` directory selected by `YYYY-MM-DD` prefix date, descending; ties broken by filename descending)
 4. Recent git changes
+5. `phases/index.json` audit gate:
+   - `audit.status` is `"FAIL"` → report `"pipeline-audit에서 미해결 항목 있음. 해결 후 /pipeline-audit 재실행하세요."` and stop
+   - `audit` field is missing → report `"/pipeline-audit를 먼저 실행하세요."` and stop
+   - `audit.status` is `"PASS"` or `"WARN"` → proceed
 
 If missing, direct the user to the required step and stop:
 - No config -> `/setup`
 - No spec -> `/brainstorm`
+- No audit or audit FAIL -> `/pipeline-audit`
 
-If `phases/index.json` exists, update the plan phase to `in_progress`:
-```json
-{ "current_phase": "plan", "phases": { ..., "plan": { "status": "in_progress" } } }
-```
+If `phases/index.json` exists:
+1. Update the plan phase to `in_progress`:
+   ```json
+   { "current_phase": "plan", "phases": { ..., "plan": { "status": "in_progress" } } }
+   ```
+2. Delete the `audit` field if present (previous audit results are stale after plan changes)
 
 ## 2. Read Spec + Declare Assumptions
 
@@ -353,3 +360,9 @@ Update `phases/index.json`:
 | "File structure will emerge naturally" | Natural emergence = inconsistent boundaries. Decide boundaries upfront. |
 | "Coverage matrix is bureaucracy" | Unmapped requirement = forgotten requirement. Matrix is the safety net. |
 | "This task is too small for steps" | Small tasks with missing steps get misimplemented. Be explicit. |
+
+## Next Steps
+
+After plan approval and commit:
+- **Recommended:** Run `/pipeline-audit` to verify full pipeline readiness
+- Then proceed to `/choiceexecutor`
