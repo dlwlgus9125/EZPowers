@@ -1,6 +1,5 @@
 ---
 description: Select and run execution path for plan tasks
-disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Edit, Agent, AskUserQuestion]
 ---
 
