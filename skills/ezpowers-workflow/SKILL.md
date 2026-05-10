@@ -1,13 +1,21 @@
 ---
 name: ezpowers-workflow
-description: Use when the user wants to run or adapt an EZPowers workflow in Codex, including setup, brainstorm, pipeline-audit, plan, choiceexecutor, executeharness, review, sync-docs, eval, or feedback.
+description: Direct-invocation Codex adapter for EZPowers command documents. Use only when the user explicitly asks for the adapter itself or for a Codex translation of an EZPowers command; for named EZPowers commands, read the target commands/*.md file directly.
+disable-model-invocation: true
 ---
 
 # EZPowers Workflow
 
 ## Purpose
 
-This is the Codex adapter for the existing EZPowers workflow documents. Keep the workflow source of truth in `commands/`; this skill only maps user intent to the right command document and explains how to apply it from Codex.
+This is a direct-invocation Codex adapter for the existing EZPowers workflow
+documents. Keep the workflow source of truth in `commands/`; this skill only
+maps user intent to the right command document and explains how to apply it from
+Codex.
+
+Do not use this skill as a background router for normal EZPowers command
+execution. Named command execution should load the target `commands/*.md`
+document directly.
 
 ## Command Mapping
 

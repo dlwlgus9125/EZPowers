@@ -1,5 +1,6 @@
 ---
 description: Select and run execution path for plan tasks
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Edit, Agent, AskUserQuestion]
 ---
 
@@ -405,19 +406,13 @@ Agent tool:
 
 ## 10. Harness Execution (Path 2)
 
-If the user selects Path 2, delegate to the `/executeharness` command.
+When the user selects Path 2, load `commands/executeharness.md` and follow that
+command as the source of truth for all harness conversion, execution, recovery,
+and restoration behavior. Do not duplicate the harness procedure here.
 
-1. Verify `harness.root` → if not set, inform the user
-2. Capture git hash (`git rev-parse HEAD` → `<harness-start-hash>`)
-3. Plan → Phase conversion (tasks to stepN.md, plan header to phase-context.md)
-4. Create `phases/{feature-name}/index.json` (harness schema)
-5. Protect `phases/index.json` (backup EZPowers format)
-6. Commit converted files
-7. Step-by-step execution (`execute.py` call loop)
-8. Restore `phases/index.json` (EZPowers format)
-9. On completion → proceed to Section 12 (Final Code Review), diff range: `<harness-start-hash>..HEAD`
-
-See `commands/executeharness.md` for detailed procedure.
+After `/executeharness` reports all steps complete, continue at Section 12
+(Final Code Review) using the diff range returned by `/executeharness`
+(`<harness-start-hash>..HEAD`).
 
 ## 11. Inline Execution (Path 3)
 

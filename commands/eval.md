@@ -1,5 +1,6 @@
 ---
 description: Run eval suite and report scores per version
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Write]
 ---
 

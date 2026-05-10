@@ -1,5 +1,7 @@
 ---
 description: Delegate plan execution to EasyPowersHarness executor
+disable-model-invocation: true
+argument-hint: "[phase] [--status|--reset-step N|--push]"
 allowed-tools: [Bash, Read, Write]
 ---
 

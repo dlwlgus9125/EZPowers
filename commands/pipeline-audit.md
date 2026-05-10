@@ -1,5 +1,6 @@
 ---
 description: Cross-stage completeness gate — verify document traceability, spec depth, and execution readiness
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Write]
 ---
 

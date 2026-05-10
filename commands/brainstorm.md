@@ -1,5 +1,6 @@
 ---
 description: Run guided design session to produce spec documents
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
 ---
 

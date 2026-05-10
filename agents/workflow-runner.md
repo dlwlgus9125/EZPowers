@@ -22,11 +22,14 @@ The controller will provide:
 
 ## Required Loading Order
 
-1. Read `skills/ezpowers-workflow/SKILL.md`.
-2. Read the mapped command document:
+1. Read only the mapped command document:
    - `/pipeline-audit` -> `commands/pipeline-audit.md`
    - `/sync-docs` -> `commands/sync-docs.md`
-3. Execute that command document's procedure for the provided invocation mode.
+2. Execute that command document's procedure for the provided invocation mode.
+
+Do not read `skills/ezpowers-workflow/SKILL.md`; workflow-runner is already a
+scoped command runner, and the target command document is the procedure source
+of truth.
 
 If the target command is anything else, stop with `**Status:** FAIL`.
 

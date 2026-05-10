@@ -1,5 +1,6 @@
 ---
 description: Design project rules through guided conversation
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion]
 ---
 

@@ -1,5 +1,6 @@
 ---
 description: Review changes against spec for completeness
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Grep, Glob]
 ---
 
