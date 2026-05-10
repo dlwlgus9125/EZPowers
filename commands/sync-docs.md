@@ -1,6 +1,5 @@
 ---
 description: Synchronize reference docs with codebase state
-disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Grep, Glob]
 ---
 
