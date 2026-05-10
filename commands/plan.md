@@ -1,6 +1,5 @@
 ---
 description: Decompose spec into task plans with agent assignments
-disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
 ---
 
