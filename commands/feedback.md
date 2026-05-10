@@ -1,6 +1,5 @@
 ---
 description: Attach user scores to session traces
-disable-model-invocation: true
 allowed-tools: [Bash, Read, Write]
 ---
 
