@@ -1,0 +1,31 @@
+case_id: "optimization.sync_docs.003"
+split: optimization
+stratum:
+  command: sync-docs
+  difficulty: single_step
+  pattern: docs_sync
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Verify that sync-docs has an automated mode for workflow-runner invocation.
+  initial_files: []
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "grep -q 'Automated Invocation From `/choiceexecutor`' commands/sync-docs.md"
+      - "grep -q 'auto-from-choiceexecutor' commands/sync-docs.md"
+      - "grep -q 'Auto-apply only' commands/sync-docs.md"
+      - "grep -q 'NEEDS_USER' commands/sync-docs.md"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Standalone sync-docs still asks for user approval"
+      - "Auto mode applies safe New and Changed facts without approval"
+      - "Auto mode returns NEEDS_USER for destructive or ambiguous changes"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [auto_mode_present, standalone_approval_preserved]

@@ -1,0 +1,31 @@
+case_id: "optimization.workflow_runner.005"
+split: optimization
+stratum:
+  command: brainstorm
+  difficulty: single_step
+  pattern: contract
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Verify that brainstorm invokes pipeline-audit through workflow-runner after spec approval.
+  initial_files: []
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "grep -q 'subagent_type: \"ezpowers:workflow-runner\"' commands/brainstorm.md"
+      - "grep -q '\\*\\*Target command:\\*\\* /pipeline-audit' commands/brainstorm.md"
+      - "grep -q '\\*\\*Invocation mode:\\*\\* post-brainstorm' commands/brainstorm.md"
+      - "grep -q 'Run post-brainstorm pipeline audit' commands/brainstorm.md"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Brainstorm dispatches workflow-runner, not a reviewer-only subagent"
+      - "The dispatch occurs after user spec approval"
+      - "Planning proceeds only on pipeline-audit PASS or WARN"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [workflow_runner_dispatch_present, audit_mode_post_brainstorm]

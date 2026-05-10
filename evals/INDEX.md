@@ -1,7 +1,7 @@
 # EZPowers Evaluation Index
 
 ## Counts
-- Optimization: 30 cases (target 70%)
+- Optimization: 34 cases (target 70%)
 - Holdout: 8 cases (target 20%, gitignored)
 - Golden: 4 cases (target 10%)
 - Honeypot: 2 cases
@@ -9,15 +9,15 @@
 ## Coverage by command
 | Command | Opt | Hold | Gold | Total |
 |---|---|---|---|---|
-| brainstorm | 7 | 2 | 1 | 10 |
-| plan | 6 | 1 | 1 | 8 |
-| choiceexecutor | 10 | 2 | 2 | 14 |
+| brainstorm | 8 | 2 | 1 | 11 |
+| plan | 7 | 1 | 1 | 9 |
+| choiceexecutor | 11 | 2 | 2 | 15 |
 | setup | 3 | 1 | 0 | 4 |
 | executeharness | 2 | 0 | 0 | 2 |
 | review | 2 | 0 | 0 | 2 |
-| sync-docs | 2 | 0 | 0 | 2 |
+| sync-docs | 3 | 0 | 0 | 3 |
 
-Note: Contract cases (7 optimization + 2 holdout) are distributed across brainstorm/plan/choiceexecutor by their `stratum.command` field.
+Note: Contract cases (10 optimization + 2 holdout) are distributed across brainstorm/plan/choiceexecutor by their `stratum.command` field.
 
 ## Optimization case directories
 | Directory | Cases | Description |
@@ -28,8 +28,8 @@ Note: Contract cases (7 optimization + 2 holdout) are distributed across brainst
 | setup/ | 3 | greenfield-empty, brownfield-existing, monorepo-root |
 | executeharness/ | 2 | small-plan-conversion, multi-phase-recovery |
 | review/ | 2 | spec-match, spec-drift |
-| sync-docs/ | 2 | new-reference, outdated-reference |
-| contract/ | 7 | stage interface contracts |
+| sync-docs/ | 3 | new-reference, outdated-reference, auto-from-choiceexecutor |
+| contract/ | 10 | stage interface contracts |
 
 ## Last baseline
 - Version: 0.6.0
@@ -37,7 +37,7 @@ Note: Contract cases (7 optimization + 2 holdout) are distributed across brainst
 - File: evals/results/baselines/0.6.0.json
 - Git SHA: fe424cf
 - Automated pass rate: 0/25 (0%) — expected: graders check for live execution outputs
-- Manual-only cases: 19/44 — require live execution or LLM rubric
+- Manual-only cases: 23/48 — require live execution or LLM rubric
 - Golden: 0/4 automated (graders require $REVIEW_OUTPUT from live run)
 - Holdout: 0/5 automated, 3 manual — baseline recorded
 - Honeypot: 0/1 automated, 1 manual — baseline recorded

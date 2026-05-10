@@ -532,16 +532,7 @@ If plan decomposition proves inadequate during execution — tasks too tightly c
 After all tasks + final review complete:
 1. Full diff summary (`git diff <first-task-start-hash>..HEAD`)
 2. Completed/failed/SKIPPED task list
-3. Suggest reference doc sync:
-
-> **Sync reference docs with the codebase?** (`/sync-docs`)
->
-> 1. Run
-> 2. Skip
-
-If user selects 1, follow `/sync-docs` procedure. Can also be invoked independently later.
-
-4. **Smoke test:** If `config.smoke.command` is non-empty, run it. On failure, enter fix loop (max 3). If empty, skip.
+3. **Smoke test:** If `config.smoke.command` is non-empty, run it. On failure, enter fix loop (max 3). If empty, skip.
 
    **GUI smoke (if `config.smoke.gui_strategy` is not `skip` and not absent):**
    Execute the gui_strategy probe after smoke command:
@@ -564,6 +555,41 @@ If user selects 1, follow `/sync-docs` procedure. Can also be invoked independen
    | 16 | Blank screenshot (pixel variance below threshold) |
    | 17 | Vision oracle verdict FAIL |
    | 20 | Timeout |
+
+4. Dispatch `ezpowers:workflow-runner` to invoke `/sync-docs` in
+   `auto-from-choiceexecutor` mode:
+
+   ```
+   Agent tool:
+     subagent_type: "ezpowers:workflow-runner"
+     description: "Sync reference docs after implementation"
+     prompt: |
+       **Target command:** /sync-docs
+       **Invocation mode:** auto-from-choiceexecutor
+       **Working directory:** <absolute project root>
+       **Plan artifact:** <absolute path to plan file>
+       **Diff range:** <first-task-start-hash>..HEAD
+       **Completed tasks:** <completed/failed/SKIPPED task list>
+       **Changed files:** <newline-separated changed files>
+   ```
+
+   Status handling:
+   - `DONE`: docs were updated, verified, and committed.
+   - `NO_CHANGES`: docs already match the codebase.
+   - `NEEDS_USER`: report the required decision and pause build completion until it is resolved.
+   - `FAIL`: report the sync failure and route to `/sync-docs` for manual recovery.
+
+   After workflow-runner returns, record the result in `phases/index.json`:
+   ```json
+   {
+     "docs_sync": {
+       "status": "DONE | NO_CHANGES | NEEDS_USER | FAIL",
+       "timestamp": "<ISO 8601>",
+       "changed_docs": ["docs/reference/..."],
+       "commit": "<hash or null>"
+     }
+   }
+   ```
 
 5. Next recommendation: `/review`
 

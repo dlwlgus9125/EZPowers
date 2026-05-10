@@ -40,6 +40,7 @@ You will receive **Plan file path** and **Diff range** in the task prompt.
 - SOLID principles, established patterns
 - Separation of concerns, loose coupling
 - Integration with existing systems
+- ASR and quality-budget alignment from the plan
 
 ### 4. Package Verification
 - Check all import/require/use statements against project lockfile
@@ -70,6 +71,12 @@ Read the plan's Coverage Matrix, then for each R find the primary file:line(s) t
 
 Execute each verification command from the plan's invariants table. Any FAIL makes overall verdict FAIL.
 
+### 7. ASR Evidence Check (when plan has ASR Summary or task ASR fields)
+
+For each ASR referenced by tasks, identify the code, test, invariant, or
+verification output that satisfies the ASR target. Missing ASR evidence makes
+overall verdict FAIL.
+
 ## Issue Severity
 
 - **Critical:** Must fix — blocks merge
@@ -96,6 +103,9 @@ Execute each verification command from the plan's invariants table. Any FAIL mak
 ### Structural Invariants
 [results]
 
+### ASR Evidence
+[ASR evidence or N/A]
+
 Output exactly one of these three lines as your final heading:
 
 ## Verdict: PASS
@@ -108,9 +118,10 @@ Output exactly one of these three lines as your final heading:
 
 ## Verdict: FAIL
 
-(Any Critical issue, OR any MISSING in Spec Evidence table, OR any Structural Invariant FAIL.)
+(Any Critical issue, OR any MISSING in Spec Evidence table, OR any Structural Invariant FAIL, OR missing ASR evidence.)
 
 **Verdict selection rules:**
+- Missing ASR evidence has the same effect as missing Spec Evidence.
 - Any Critical → FAIL
 - Any MISSING in Spec Evidence → FAIL
 - Any Structural Invariant FAIL → FAIL

@@ -5,7 +5,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob]
 
 # /sync-docs — Reference Document Synchronization
 
-Reflect the current codebase state in reference docs. Can be invoked independently at any time, and is automatically suggested at the `/choiceexecutor` completion step.
+Reflect the current codebase state in reference docs. Can be invoked independently at any time. At the `/choiceexecutor` completion step, it is invoked by `ezpowers:workflow-runner` in automated mode after final review and smoke verification pass.
 
 ## 1. Pre-flight Checks
 
@@ -73,7 +73,7 @@ Classification:
 - **Deleted**: In docs but removed from code
 - **OK**: Matches
 
-If no differences exist for any document, end with "Sync complete — no updates needed."
+If no differences exist for any document, end with `**Status:** NO_CHANGES` and "Sync complete - no updates needed."
 
 ## 5. Update Proposal
 
@@ -96,9 +96,11 @@ Output proposals per document with differences:
 
 Each item is one line, describing **only what changed**. No implementation details or code.
 
-## 6. User Approval
+## 6. Approval Mode
 
-Show the proposal and ask:
+### Standalone Invocation
+
+When the user runs `/sync-docs` directly, show the proposal and ask:
 
 > **Apply the above updates?**
 >
@@ -122,9 +124,35 @@ The same change may span multiple documents (e.g., new module → `architecture.
 
 - If user confirms, proceed. Otherwise, re-select to include/exclude the entire group.
 
+### Automated Invocation From `/choiceexecutor`
+
+When `ezpowers:workflow-runner` invokes this command with
+`Invocation mode: auto-from-choiceexecutor`, do not ask for approval before
+safe fact-only updates.
+
+Auto-apply only:
+- `[New]` items that point to code paths, endpoints, schemas, config keys, or dependencies that exist now
+- `[Changed]` items where the current code state can be read and compared directly
+- `draft` -> `active` status changes for populated slot documents
+- `AGENTS.md` Stack updates derived from manifests
+
+Return `NEEDS_USER` without applying the affected group when any of these are
+present:
+- `[Deleted]` items
+- a file listed in `docs/INDEX.md` is missing
+- an unregistered reference document exists and needs an authority decision
+- a cascading group would be only partially updated
+- the update would touch human-authored intent, Conventions, Boundaries, or non-Stack AGENTS.md content
+- verification depends on judgment that cannot be derived from files
+
+If all proposal items are safe, apply all. If there is a mix of safe and
+`NEEDS_USER` items, apply the safe independent groups and report the blocked
+groups separately.
+
 ## 7. Apply
 
-For approved documents:
+For approved documents, or for auto-approved safe groups in
+`auto-from-choiceexecutor` mode:
 
 ### 7-1. Document Update Principles
 
@@ -172,6 +200,10 @@ Re-read the updated documents and for each change item:
 
 If a mismatch is found, fix that item only and re-verify. If still mismatched after fix, report to user and exclude that item from the commit.
 
+In `auto-from-choiceexecutor` mode, if a mismatch remains after one focused
+fix, return `**Status:** FAIL` with the mismatched item and do not mark docs
+sync complete.
+
 ### On Verification Pass
 
 Proceed to commit after all items pass.
@@ -188,6 +220,8 @@ Include the list of updated files in the commit body.
 ## 10. Output
 
 ```
+**Status:** DONE | NO_CHANGES | NEEDS_USER | FAIL
+
 ## Sync Results
 
 | Document | Status | Changes |
@@ -199,14 +233,23 @@ Include the list of updated files in the commit body.
 | AGENTS.md (Stack) | Updated | +1 dependency |
 ```
 
+Status meanings:
+- `DONE`: updates were applied, verified, and committed.
+- `NO_CHANGES`: scan completed and no differences were found.
+- `NEEDS_USER`: destructive or ambiguous changes need a user decision.
+- `FAIL`: required inputs are missing or verification failed.
+
 ## /choiceexecutor Integration
 
-At the `/choiceexecutor` completion step (Section 14), after final code review passes:
+At the `/choiceexecutor` completion step (Section 14), after final code review
+and smoke verification pass, `choiceexecutor` dispatches
+`ezpowers:workflow-runner` with:
 
-> **Sync reference docs with the codebase?** (`/sync-docs`)
->
-> 1. Run
-> 2. Skip
+```
+**Target command:** /sync-docs
+**Invocation mode:** auto-from-choiceexecutor
+```
 
-If user selects 1, follow this command's procedure.
-Can also be invoked independently later by running `/sync-docs`.
+The workflow-runner follows this command in automated mode. `/sync-docs` can
+also be invoked independently later, in which case the standalone approval flow
+is used.

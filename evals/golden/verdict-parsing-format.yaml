@@ -79,6 +79,9 @@ graders:
       - "grep -qE '## Verdict.*PASS.*FAIL|Verdict.*패턴.*FAIL' commands/choiceexecutor.md"
       # Verify brainstorm.md documents Verdict header parsing
       - "grep -q '## Verdict:' commands/brainstorm.md"
+      # Verify architecture-reviewer uses the same verdict contract
+      - "grep -q '^## Verdict: PASS' agents/architecture-reviewer.md"
+      - "grep -q '^## Verdict: FAIL' agents/architecture-reviewer.md"
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

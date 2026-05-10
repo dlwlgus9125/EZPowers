@@ -104,6 +104,32 @@ Confirm with the user:
 - "Use ADR (Architecture Decision Records)?"
 - "Does this project have a UI?" (if yes, create `docs/ux/` slot; otherwise skip)
 
+## Phase 2.8: Architecture Profile
+
+Collect a lightweight architecture profile. Do not leave these as blank
+placeholders; use repo evidence for existing projects and ask only for values
+that cannot be inferred.
+
+Required values:
+- `architecture.lifecycle_stage` -- `prototype` | `mvp` | `production` | `maintenance`
+- `architecture.quality_priorities` -- ordered list, e.g. `["maintainability", "reliability", "performance"]`
+- `architecture.performance_budgets` -- measurable budgets or `"none declared"`
+- `architecture.operational_constraints` -- deployment/runtime/support constraints
+- `architecture.compatibility_policy` -- backward compatibility, migration, and data retention policy
+- `architecture.adr_required` -- `true` when project uses ADRs or has hard-to-reverse decisions
+
+Default when the user has no preference:
+```json
+{
+  "lifecycle_stage": "mvp",
+  "quality_priorities": ["maintainability", "reliability", "performance"],
+  "performance_budgets": "none declared",
+  "operational_constraints": "local development only",
+  "compatibility_policy": "breaking changes allowed before production",
+  "adr_required": false
+}
+```
+
 ## Phase 3: File Creation
 
 Create the following files.
@@ -194,7 +220,7 @@ review-skip: {File patterns to skip in review — leave empty if none}
 ### Document Slots (empty files + frontmatter)
 
 - `docs/product/PRD.md`
-- `docs/reference/architecture.md`
+- `docs/reference/architecture.md` (use the Architecture Reference Template below)
 - `docs/reference/protocol.md`
 - `docs/reference/schema.md`
 - `docs/reference/config.md`
@@ -222,6 +248,64 @@ Content is authored by humans.
 `authority` values: `canonical` (SSOT) / `supporting` (supplementary) / `derived` (auto-generated)
 
 Mark each document's authority in INDEX.md as `[canonical]`, `[supporting]`, or `[derived]`.
+
+### Architecture Reference Template
+
+`docs/reference/architecture.md` is created with these sections, using the
+Architecture Profile values collected above:
+
+```markdown
+---
+doc_type: reference
+authority: canonical
+status: draft
+---
+
+# Architecture Reference
+
+This document is the SSOT (Single Source of Truth) for system architecture.
+Content is authored by humans.
+
+## System Context
+- Product purpose:
+- Primary users:
+- External systems:
+
+## Module Boundaries
+- Module:
+  - Responsibility:
+  - Public interface:
+  - May depend on:
+  - Must not depend on:
+
+## Data Flow
+- Source -> Transform -> Sink:
+- Ownership:
+- Persistence:
+
+## Lifecycle And Operations
+- Lifecycle stage:
+- Deployment/runtime:
+- Startup/shutdown:
+- Observability:
+- Recovery:
+
+## Quality Budgets
+- Maintainability:
+- Reliability:
+- Security:
+- Performance:
+- Cost:
+
+## Architecture Debt
+- Known debt:
+- Expiry or review trigger:
+- Owner:
+
+## Decision Log
+- ADR index: docs/decisions/README.md
+- Pending decisions:
+```
 
 ### Other Files
 
@@ -260,6 +344,14 @@ Mark each document's authority in INDEX.md as `[canonical]`, `[supporting]`, or 
     "stop_command": "",
     "health_check_url": "",
     "health_check_timeout": 15
+  },
+  "architecture": {
+    "lifecycle_stage": "mvp",
+    "quality_priorities": ["maintainability", "reliability", "performance"],
+    "performance_budgets": "none declared",
+    "operational_constraints": "local development only",
+    "compatibility_policy": "breaking changes allowed before production",
+    "adr_required": false
   },
   "executor": {
     "agent": "claude-sonnet-4-6",
@@ -313,6 +405,12 @@ Field descriptions:
 - `server.stop_command`: Server stop command after Verify completion
 - `server.health_check_url`: URL to confirm server readiness (e.g., `http://localhost:3000/health`)
 - `server.health_check_timeout`: Max health check wait time (seconds, default 15)
+- `architecture.lifecycle_stage`: Current project maturity. Drives how much lifecycle detail `/brainstorm` must collect.
+- `architecture.quality_priorities`: Ordered maintainability/reliability/security/performance/cost priorities for architecture tradeoffs.
+- `architecture.performance_budgets`: Concrete latency, memory, throughput, bundle size, or token/cost budgets. Use `"none declared"` when absent.
+- `architecture.operational_constraints`: Deployment, runtime, support, observability, and ownership constraints.
+- `architecture.compatibility_policy`: Backward compatibility, migration, and data retention expectations.
+- `architecture.adr_required`: Whether `/brainstorm` must create ADRs for hard-to-reverse architecture choices.
 - `executor.agent`: Model for `/choiceexecutor` subagents
 - `executor.context_window`: Context window size
 - `executor.budget_ratio`: Allowed ratio per step

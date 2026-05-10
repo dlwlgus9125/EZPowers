@@ -16,7 +16,8 @@ Verify the following first:
 2. `AGENTS.md` exists
 3. Spec document exists (priority: argument > `phases/index.json` brainstorm.artifact > latest file from config `defaults.spec_location` directory selected by `YYYY-MM-DD` prefix date, descending; ties broken by filename descending)
 4. Recent git changes
-5. `phases/index.json` audit gate:
+5. Architecture reference exists when the spec has architecture sections (`docs/reference/architecture.md`)
+6. `phases/index.json` audit gate:
    - `audit.status` is `"FAIL"` → report `"pipeline-audit에서 미해결 항목 있음. 해결 후 /pipeline-audit 재실행하세요."` and stop
    - `audit` field is missing → report `"/pipeline-audit를 먼저 실행하세요."` and stop
    - `audit.status` is `"PASS"` or `"WARN"` → proceed
@@ -33,9 +34,11 @@ If `phases/index.json` exists:
    ```
 2. Delete the `audit` field if present (previous audit results are stale after plan changes)
 
-## 2. Read Spec + Declare Assumptions
+## 2. Read Spec + Architecture Baseline + Declare Assumptions
 
-After reading the spec, declare assumptions:
+After reading the spec, also read its Architecture Baseline, ASR Ledger,
+Option Matrix, Lifecycle And Operations, Quality Budgets, and Decision Log.
+Then declare assumptions:
 
 ```
 ASSUMPTIONS ABOUT THIS SPEC:
@@ -46,6 +49,9 @@ ASSUMPTIONS ABOUT THIS SPEC:
 ```
 
 Clarify unclear parts with the user briefly. One question at a time.
+
+If the spec lacks architecture sections, return to `/brainstorm`. Do not write
+a plan that forces implementation agents to invent architecture.
 
 ## Scope Check
 
@@ -69,29 +75,32 @@ Every plan must include this matrix:
 
 | Requirement | Related Tasks |
 |-------------|---------------|
-| R1: [Title] | T1, T3 |
+| R1: [Title] (ASR-1) | T1, T3 |
 | R2: [Title] | T2 |
 ```
 
 Rules:
 - All Rs from the spec must appear in the matrix
 - Every R must map to at least one T
+- ASR IDs from each R must appear in the Requirement cell or be listed as `ASR: none`
 - R without a matching T: add a task or justify (user approval required)
 - T without an R mapping: warn (possible unnecessary work)
 
 **Hard gate:** Plan reviewer verifies. Missing matrix or unmapped R = FAIL.
 
-## Structural Invariants (recommended)
+## Structural Invariants (required when ASRs or architecture rules exist)
 
-After the Coverage Matrix, if the project has architecture rules (`.claude/rules/`, AGENTS.md constraints, CLAUDE.md rules), extract and include:
+After the Coverage Matrix, extract verifiable invariants from the ASR Ledger,
+Architecture Baseline boundary map, `docs/reference/architecture.md`, and
+project rules (`.claude/rules/`, AGENTS.md constraints, CLAUDE.md rules).
 
 ```markdown
 ## Structural Invariants
 
 | ID | Rule | Source | Verification |
 |----|------|--------|-------------|
-| SI-1 | DB layer must not import from API layer | .claude/rules/db.md | `grep -r "from.*api/" src/db/` returns no matches |
-| SI-2 | Shared module has no runtime dependencies | CLAUDE.md | `jq '.dependencies' shared/package.json` is empty |
+| SI-1 | DB layer must not import from API layer | ASR-1 / architecture.md | `grep -r "from.*api/" src/db/` returns no matches |
+| SI-2 | Shared module has no runtime dependencies | architecture.md | `jq '.dependencies' shared/package.json` is empty |
 ```
 
 Rules:
@@ -99,6 +108,7 @@ Rules:
 - Source references the rule file/document
 - If no project rules exist, omit this section — do not invent rules
 - code-reviewer verifies after implementation
+- ASR and boundary rules count as project rules for this section.
 
 ## 5. Task Decomposition Principles
 
@@ -131,6 +141,7 @@ Write each task assuming it runs in an independent agent session.
 ````markdown
 ### Task N: [Name] [R1, R3]
 
+**ASR:** ASR-1, ASR-3 (or none)
 **Files:**
 - Create: `exact/path/to/file.py`
 - Modify: `exact/path/to/existing.py:123-145`
@@ -313,6 +324,7 @@ Plan header:
 
 **Goal:** [One sentence]
 **Architecture:** [2-3 sentences]
+**ASR Summary:** [ASR IDs and quality targets carried from spec]
 **Tech Stack:** [Core technologies]
 **Spec:** [Spec file path]
 
@@ -335,11 +347,32 @@ If a Plans section exists, add the entry. Otherwise, create the section.
 After the plan is written:
 1. Task count, dependency summary
 2. Risky tasks
-3. Next command: `/choiceexecutor`
+3. Workflow-runner `/pipeline-audit` result
+4. Next command: `/choiceexecutor` when audit status is `PASS` or `WARN`
 
 Update `phases/index.json`:
 - plan: `status: "complete"`, `artifact: "<plan file path>"`, `completed_at: "<ISO 8601>"`
 - build: `status: "pending"` (verify unchanged)
+
+Then dispatch `ezpowers:workflow-runner` to invoke `/pipeline-audit` in
+`post-plan` mode:
+
+```
+Agent tool:
+  subagent_type: "ezpowers:workflow-runner"
+  description: "Run post-plan pipeline audit"
+  prompt: |
+    **Target command:** /pipeline-audit
+    **Invocation mode:** post-plan
+    **Working directory:** <absolute project root>
+    **Spec artifact:** <absolute path to spec file>
+    **Plan artifact:** <absolute path to plan file>
+```
+
+Status handling:
+- `DONE` with audit `PASS` or `WARN`: next step is **`/choiceexecutor`**.
+- `DONE` with audit `FAIL`, or runner `FAIL`: return to `/plan` using the runner's routing recommendations.
+- `NEEDS_USER`: resolve the requested decision, then rerun the same workflow-runner dispatch.
 
 ## Remember
 
@@ -364,5 +397,5 @@ Update `phases/index.json`:
 ## Next Steps
 
 After plan approval and commit:
-- **Recommended:** Run `/pipeline-audit` to verify full pipeline readiness
-- Then proceed to `/choiceexecutor`
+- `ezpowers:workflow-runner` automatically invokes `/pipeline-audit` to verify full pipeline readiness
+- Then proceed to `/choiceexecutor` only when audit status is `PASS` or `WARN`

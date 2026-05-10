@@ -1,0 +1,34 @@
+# Golden invariant: brainstorm and audit must enforce architecture readiness.
+
+case_id: "golden.architecture_readiness_gate.002"
+split: golden
+stratum:
+  command: brainstorm
+  difficulty: single_step
+  pattern: architecture_gate
+  model_family: agnostic
+  language: en
+  verify_type: pure
+
+input:
+  user_message: |
+    Verify that architecture readiness remains a mandatory gate.
+  initial_files: []
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "grep -q 'Architecture Inception Gate' commands/brainstorm.md"
+      - "grep -q 'ASR Ledger' commands/brainstorm.md"
+      - "grep -q 'Option Matrix' commands/brainstorm.md"
+      - "grep -q 'Lifecycle And Operations' commands/brainstorm.md"
+      - "grep -q 'Quality Budgets' commands/brainstorm.md"
+      - "grep -q 'Decision Log' commands/brainstorm.md"
+      - "grep -q 'architecture-reviewer' commands/brainstorm.md"
+      - "grep -q 'D7: Architecture Readiness' commands/pipeline-audit.md"
+      - "grep -q 'ASR carry-forward' agents/plan-reviewer.md"
+      - "grep -q 'ASR Evidence' agents/code-reviewer.md"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [architecture_gate_present]

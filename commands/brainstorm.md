@@ -19,15 +19,19 @@ Every project goes through this process. Including simple utils and config chang
 
 ```
 Understand project context
+  -> Build architecture baseline (ASR, lifecycle, quality budgets)
   -> Ask one question at a time (scope, constraints, success criteria)
   -> Propose 2-3 approaches + recommendation
+  -> Record architecture decision candidates + ADR triggers
   -> Present design section by section -> user approval
+  -> Grill-me gate (stress-test design before requirements)
   -> Extract requirements (R1, R2, ...)
   -> User confirms requirements
   -> Write spec document + commit
-  -> Spec review loop (subagent)
+  -> Spec review loop + architecture review loop (subagents)
   -> User spec review
-  -> Next step: /plan
+  -> Workflow-runner invokes /pipeline-audit
+  -> Next step: /plan if audit PASS/WARN
 ```
 
 ## 1. Understand Project Context
@@ -35,6 +39,9 @@ Understand project context
 Read current project state first:
 - `AGENTS.md` (steering information)
 - `.harness/config.json` (project settings)
+- `docs/reference/architecture.md` (canonical architecture)
+- `docs/reference/conventions.md` (rules and boundaries)
+- `docs/decisions/README.md` and existing ADRs when present
 - Directory structure, recent git changes
 - Existing docs under `docs/`
 
@@ -78,6 +85,41 @@ If `phases/index.json` exists:
 - Explore existing structure first and follow existing patterns
 - Include improvements only if they affect the current task; no unrelated refactoring
 
+### Architecture Inception Gate
+
+Before requirement extraction, produce and get user approval for an architecture
+baseline. This gate is mandatory for greenfield, brownfield, refactor, and
+bug-fix requests. Keep it short for small work, but do not skip it.
+
+Required outputs:
+- **ASR Ledger:** Architecturally Significant Requirements with measurable effect on structure, lifecycle, performance, reliability, security, compatibility, cost, or operations.
+- **Option Matrix:** 2-3 architecture approaches with tradeoffs, selected approach, rejected approaches, and reason.
+- **Lifecycle Plan:** startup/shutdown, deployment/runtime, migration path, backward compatibility, observability, recovery, and ownership.
+- **Quality Budgets:** concrete latency, memory, throughput, bundle size, token/cost, or supportability budgets. If absent, state `none declared` and explain the risk.
+- **Boundary Map:** modules/components, public interfaces, allowed dependencies, forbidden dependencies, and data ownership.
+- **Decision Log:** ADR candidates for hard-to-reverse, surprising, or high-tradeoff choices.
+
+Questioning rules for this gate:
+- Ask one architecture decision at a time.
+- Start from discovered repo facts. Ask only for product intent or tradeoffs not visible in files.
+- Do not ask for implementation details before lifecycle, boundary, and quality priorities are known.
+- If user asks for a quick fix that crosses a boundary, pause and explain the boundary risk before continuing.
+
+Approval text:
+
+```
+Architecture baseline:
+- Selected approach: ...
+- ASRs: ASR-1 ...
+- Lifecycle: ...
+- Quality budgets: ...
+- ADR candidates: ...
+
+Confirm this architecture baseline before I extract requirements.
+```
+
+After the user confirms the architecture baseline, invoke the `grill-me` skill before requirement extraction. Any unresolved issue blocks progress: revise the design or architecture baseline, confirm the affected section with the user, and rerun `grill-me` until the gate is clear.
+
 ## 3. Assumption Declaration
 
 Explicitly declare assumptions before proposing a design:
@@ -120,6 +162,60 @@ Write the spec document once requirements are confirmed.
 **Save location:** Value of `spec location:` in `AGENTS.md`. Default: `docs/specs/`.
 **Filename:** `YYYY-MM-DD-<topic>-design.md`
 
+### Architecture Sections (required)
+
+Every spec begins with these sections before `## Extracted Requirements`:
+
+```markdown
+## Architecture Baseline
+
+**Selected approach:** [short name]
+**Summary:** [2-4 sentences]
+**Existing constraints:** [repo/docs/config facts]
+**Boundary map:** [modules, public interfaces, allowed dependencies, forbidden dependencies]
+
+## ASR Ledger
+
+| ASR | Quality Attribute | Measurable Target | Design Impact | Verification |
+|-----|-------------------|-------------------|---------------|--------------|
+| ASR-1 | Maintainability | [metric or rule] | [boundary or module effect] | `[command or review check]` |
+
+## Option Matrix
+
+| Option | Tradeoffs | Selected |
+|--------|-----------|----------|
+| A | [pros/cons] | yes/no |
+
+## Lifecycle And Operations
+
+- Lifecycle stage:
+- Startup/shutdown:
+- Deployment/runtime:
+- Migration/compatibility:
+- Observability:
+- Recovery:
+- Ownership:
+
+## Quality Budgets
+
+- Performance:
+- Reliability:
+- Security:
+- Cost:
+- Maintainability:
+
+## Decision Log
+
+- ADR required: yes/no
+- ADR candidates:
+- Decisions deferred:
+```
+
+Rules:
+- Each R must reference relevant ASR IDs or state `ASR: none`.
+- Any hard-to-reverse, surprising, or high-tradeoff choice requires an ADR candidate.
+- A spec with `ADR required: yes` must create an ADR file under `docs/decisions/` in the same commit.
+
 ### Extracted Requirements Section (required)
 
 The spec file must include the requirement list from Section 4 at the top:
@@ -141,6 +237,7 @@ Each requirement follows this structure:
 ```markdown
 ### R[N]: [Title]
 
+**ASR:** [ASR IDs or none]
 **Input:** [Trigger or input]
 **Behavior:** [Step-by-step behavior description]
 **Output:** [Observable result]
@@ -157,7 +254,7 @@ Each requirement follows this structure:
 - [Condition]: [Expected behavior]
 ```
 
-**Hard gate:** Each R requires all 6 fields: Input, Behavior, Output, Impact scope, Acceptance criteria, Edge cases. Missing any = FAIL.
+**Hard gate:** Each R requires all 7 fields: ASR, Input, Behavior, Output, Impact scope, Acceptance criteria, Edge cases. Missing any = FAIL.
 
 ### Implementation Term Ban
 
@@ -197,6 +294,31 @@ For Verify-type `pure`, Input/Transform/Output format is allowed instead of Give
 ### Re-export Awareness
 
 If a symbol from an affected module is re-exported by another module (barrel files, `__init__.py`, etc.), include the re-exporting module in Impact scope.
+
+### ADR Generation
+
+When the Decision Log says `ADR required: yes`, create one ADR per accepted
+architecture decision under `docs/decisions/`:
+
+```markdown
+# ADR-NNN: [Decision title]
+
+## Status
+Accepted
+
+## Context
+[forces, constraints, lifecycle stage, ASRs]
+
+## Decision
+[chosen approach]
+
+## Consequences
+- Positive:
+- Negative:
+- Follow-up review trigger:
+```
+
+Add the ADR link to `docs/decisions/README.md` and `docs/INDEX.md`.
 
 ### Deletion Requirement Variant
 
@@ -242,7 +364,7 @@ On spec commit, add the spec entry to `docs/INDEX.md`:
 
 If a Specs section exists, add the entry. Otherwise, create the section.
 
-## 6. Spec Review Loop
+## 6. Spec + Architecture Review Loop
 
 After writing the spec:
 
@@ -262,17 +384,54 @@ After writing the spec:
 5. **Oscillation check (from iteration 3):** If a current issue's `{section}:{check_number}` key also appeared in 2+ prior iterations -> immediately escalate to user
 6. **Tiered escalation:** 3 rounds without approval -> warn user. 5 rounds -> stop.
 
+### Architecture Reviewer Dispatch
+
+The spec is not approved until both reviewers pass.
+
+Dispatch `ezpowers:architecture-reviewer` after writing or changing the spec:
+
+```
+Agent tool:
+  subagent_type: "ezpowers:architecture-reviewer"
+  description: "Review architecture baseline"
+  prompt: |
+    **Spec to review:** <absolute path to spec file>
+    **Architecture reference:** <absolute path to docs/reference/architecture.md>
+    **Config:** <absolute path to .harness/config.json>
+```
+
+Apply the same verdict parsing, fresh re-dispatch, oscillation, and escalation
+rules used for `spec-reviewer`. Log architecture issues by
+`architecture:{section}:{check_number}`.
+
 ## 7. User Spec Review
 
-After passing the spec review loop:
+After passing the spec and architecture review loops:
 
 > "Spec written and committed at `<path>`. Review it and let me know if any changes are needed."
 
-After user approval, next step: **`/plan`**
-
-Update `phases/index.json`:
+After user approval, update `phases/index.json`:
 - brainstorm: `status: "complete"`, `artifact: "<spec file path>"`, `completed_at: "<ISO 8601>"`
 - plan: `status: "pending"` (verify unchanged)
+
+Then dispatch `ezpowers:workflow-runner` to invoke
+`/pipeline-audit` in `post-brainstorm` mode:
+
+```
+Agent tool:
+  subagent_type: "ezpowers:workflow-runner"
+  description: "Run post-brainstorm pipeline audit"
+  prompt: |
+    **Target command:** /pipeline-audit
+    **Invocation mode:** post-brainstorm
+    **Working directory:** <absolute project root>
+    **Spec artifact:** <absolute path to spec file>
+```
+
+Status handling:
+- `DONE` with audit `PASS` or `WARN`: next step is **`/plan`**.
+- `DONE` with audit `FAIL`, or runner `FAIL`: return to `/brainstorm` using the runner's routing recommendations.
+- `NEEDS_USER`: resolve the requested decision, then rerun the same workflow-runner dispatch.
 
 ## Common Rationalizations
 
@@ -299,5 +458,5 @@ Update `phases/index.json`:
 ## Next Steps
 
 After spec approval and commit:
-- **Recommended:** Run `/pipeline-audit` to verify spec completeness before planning
-- Then proceed to `/plan`
+- `ezpowers:workflow-runner` automatically invokes `/pipeline-audit` to verify spec completeness before planning
+- Then proceed to `/plan` only when audit status is `PASS` or `WARN`

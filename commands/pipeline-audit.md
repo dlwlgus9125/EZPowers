@@ -15,7 +15,7 @@ Pipeline-audit is a mandatory gate. /plan and /choiceexecutor will not proceed w
 
 ```
 /brainstorm → /pipeline-audit → /plan → /pipeline-audit → /choiceexecutor
-                D2 + D6L1              D1-D6 full audit
+                D2 + D6L1 + D7         D1-D7 full audit
 ```
 
 ## 1. Detect Pipeline State
@@ -31,10 +31,12 @@ Read project state to determine which dimensions to run:
 
 | State | Condition | Dimensions |
 |-------|-----------|-----------|
-| **spec-only** | Spec(s) exist, no plan | D2 + D6 Layer 1 |
-| **spec+plan** | Both exist | D1-D6 all |
+| **spec-only** | Spec(s) exist, no plan | D2 + D6 Layer 1 + D7 |
+| **spec+plan** | Both exist | D1-D7 all |
 | **mid-build** | Build phase `in_progress` | D1-D6, completed tasks → INFO severity |
 | **no-documents** | Neither spec nor plan | Error: "No spec or plan found. Run /brainstorm first." → stop |
+
+For `mid-build`, include D7 in addition to the listed dimensions.
 
 5. Report state to user:
 
@@ -173,6 +175,36 @@ Each task's completion criteria must be specific enough for meaningful verificat
 5. **Milestone Verification Gate**: integration milestone tasks verify actual functionality, not just process survival.
    → **WARN**: Verify pattern is survival-only (`timeout N <cmd>`, "process survived N seconds") without functional output assertion
 
+### D7: Architecture Readiness (spec required)
+
+Purpose: Catch architecture gaps before `/plan` turns them into implementation
+tasks.
+
+**Checks:**
+1. Required sections: spec contains Architecture Baseline, ASR Ledger, Option
+   Matrix, Lifecycle And Operations, Quality Budgets, and Decision Log.
+   - **FAIL** when any section is missing.
+2. R-to-ASR linkage: every R has an `ASR:` field and every referenced ASR
+   exists in the ASR Ledger.
+   - **FAIL** when an R lacks ASR linkage or references an unknown ASR.
+3. Option tradeoffs: Option Matrix has at least two options and exactly one
+   selected option.
+   - **FAIL** when the selected architecture cannot be identified.
+4. Lifecycle coverage: startup/shutdown, deployment/runtime,
+   migration/compatibility, observability, recovery, and ownership are present.
+   - **WARN** when a field is `none declared`.
+   - **FAIL** when a field is missing.
+5. Quality budgets: performance, reliability, security, cost, and
+   maintainability each have a metric, rule, or `none declared` plus risk.
+   - **WARN** for `none declared` plus risk.
+   - **FAIL** for empty values.
+6. ADR traceability: `ADR required: yes` must reference ADR files under
+   `docs/decisions/`; each referenced file must exist.
+   - **FAIL** when required ADRs are absent.
+7. Post-plan carry-forward: when a plan exists, ASR IDs from spec must appear
+   in Coverage Matrix rows, task `**ASR:**` fields, or Structural Invariants.
+   - **FAIL** when an ASR has no plan task or invariant.
+
 ## 3. Output Report
 
 ```
@@ -203,6 +235,9 @@ Each task's completion criteria must be specific enough for meaningful verificat
 - [per-R signal findings grouped by spec file]
 #### Layer 2 — Plan Task (post-plan only)
 - [per-task sub-gate findings]
+
+### D7: Architecture Readiness ??PASS | WARN | FAIL
+- [architecture section, ASR, lifecycle, budget, ADR, and carry-forward findings]
 
 ---
 
@@ -269,6 +304,10 @@ Each finding maps to a specific routing action:
 | D6 L2: No completion criteria | /plan | Add Given/When/Then from spec |
 | D6 L2: Trivial Verify | /plan or /brainstorm | Write real verification command |
 | D6 L2: E2E not automatable | /plan | Add automated probe replacement |
+| D7: Missing architecture section | /brainstorm | Add architecture baseline sections |
+| D7: R has no ASR linkage | /brainstorm | Add `ASR:` field to R section |
+| D7: ASR not carried to plan | /plan | Map ASR to task or Structural Invariant |
+| D7: ADR missing | /brainstorm | Create ADR and link it from Decision Log |
 
 Present routing grouped by target command:
 

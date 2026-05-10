@@ -1,0 +1,31 @@
+case_id: "optimization.workflow_runner.007"
+split: optimization
+stratum:
+  command: choiceexecutor
+  difficulty: single_step
+  pattern: contract
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Verify that choiceexecutor invokes sync-docs through workflow-runner after final verification.
+  initial_files: []
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "grep -q 'subagent_type: \"ezpowers:workflow-runner\"' commands/choiceexecutor.md"
+      - "grep -q '\\*\\*Target command:\\*\\* /sync-docs' commands/choiceexecutor.md"
+      - "grep -q '\\*\\*Invocation mode:\\*\\* auto-from-choiceexecutor' commands/choiceexecutor.md"
+      - "grep -q 'docs_sync' commands/choiceexecutor.md"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Choiceexecutor dispatches workflow-runner to run sync-docs as work, not as a review"
+      - "Docs sync runs after final code review and smoke verification"
+      - "Docs sync result is recorded in phases/index.json"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [workflow_runner_dispatch_present, docs_sync_status_recorded]

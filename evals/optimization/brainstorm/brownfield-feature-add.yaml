@@ -24,6 +24,8 @@ graders:
       - "grep -cE '^- R[0-9]+:' docs/specs/*.md | awk -F: '{s+=$2} END {if(s>=3) exit 0; else exit 1}'"
       - "grep -qE 'Impact scope:' docs/specs/*.md"
       - "grep -qE 'Verify-type: api' docs/specs/*.md"
+      - "for s in 'Architecture Baseline' 'ASR Ledger' 'Option Matrix' 'Lifecycle And Operations' 'Quality Budgets' 'Decision Log'; do grep -q \"$s\" docs/specs/*.md || exit 1; done"
+      - "grep -qE '^\\*\\*ASR:\\*\\*' docs/specs/*.md"
   - type: banned_expression_scan
     fail_on_match: true
   - type: llm_rubric
@@ -32,6 +34,7 @@ graders:
       - "Spec explores existing codebase before proposing architecture"
       - "Impact scope references existing modules that will be modified"
       - "Edge cases cover notification delivery failures"
+      - "Architecture baseline compares notification delivery approaches and records ASRs"
 
 tracked_metrics:
   transcript: [n_turns, n_toolcalls, n_total_tokens]

@@ -26,7 +26,14 @@ You will receive **Plan file path** and **Spec file path** in the task prompt. R
 - Read the spec and list all R numbers
 - Is every R present in the Coverage Matrix?
 - Does every R map to at least one T?
+- Does every R's ASR field appear in the matrix or say `ASR: none`?
 - If any check fails -> FAIL. List unmapped R numbers.
+
+**1A. ASR carry-forward:**
+- Read the spec's ASR Ledger.
+- Every ASR referenced by an R must appear in at least one task `**ASR:**`
+  field or in the Structural Invariants table.
+- If an ASR has no task or invariant, FAIL and list the ASR ID.
 
 **2. Task completion criteria:**
 - Does every task have a "Completion criteria" section?

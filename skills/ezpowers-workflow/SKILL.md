@@ -1,6 +1,6 @@
 ---
 name: ezpowers-workflow
-description: Use when the user wants to run or adapt an EZPowers workflow in Codex, including setup, brainstorm, plan, choiceexecutor, executeharness, review, sync-docs, eval, or feedback.
+description: Use when the user wants to run or adapt an EZPowers workflow in Codex, including setup, brainstorm, pipeline-audit, plan, choiceexecutor, executeharness, review, sync-docs, eval, or feedback.
 ---
 
 # EZPowers Workflow
@@ -17,6 +17,7 @@ Use these files as the procedure reference:
 | --- | --- |
 | Initialize project harness or steering docs | `commands/setup.md` |
 | Turn an idea into a spec | `commands/brainstorm.md` |
+| Audit spec/plan readiness | `commands/pipeline-audit.md` |
 | Decompose an approved spec into tasks | `commands/plan.md` |
 | Choose and run an execution path | `commands/choiceexecutor.md` |
 | Delegate execution to EasyPowersHarness | `commands/executeharness.md` |
@@ -39,8 +40,10 @@ For a normal feature request:
 
 1. Use `commands/setup.md` only if the target project has no EZPowers harness context.
 2. Use `commands/brainstorm.md` to produce or refine the spec.
-3. Use `commands/plan.md` after the spec is accepted.
-4. Use `commands/choiceexecutor.md` to implement the plan.
-5. Use `commands/review.md` before final handoff when implementation changed code.
+3. Use `commands/pipeline-audit.md` after the spec is accepted.
+4. Use `commands/plan.md` after the audit passes.
+5. Use `commands/pipeline-audit.md` again after the plan is accepted.
+6. Use `commands/choiceexecutor.md` to implement the plan.
+7. Use `commands/review.md` before final handoff when implementation changed code.
 
 When a user asks for one named EZPowers command, use only that command's reference unless it explicitly requires an earlier artifact.

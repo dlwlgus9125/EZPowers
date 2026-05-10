@@ -16,10 +16,11 @@ input:
       ## Coverage Matrix
       | Requirement | Related Tasks |
       |-------------|---------------|
-      | R1: Feature A | T1 |
-      | R2: Feature B | T2 |
+      | R1: Feature A (ASR-1) | T1 |
+      | R2: Feature B (ASR: none) | T2 |
 
       ### Task 1: Implement Feature A [R1]
+      **ASR:** ASR-1
       **Files:**
       - Create: `src/featureA.ts`
       - Test: `tests/featureA.test.ts`
@@ -35,6 +36,7 @@ input:
       - [ ] **Step 6: Commit**
 
       ### Task 2: Implement Feature B [R2]
+      **ASR:** none
       **Files:**
       - Create: `src/featureB.ts`
       - Modify: `src/featureA.ts:10-20`
@@ -49,6 +51,7 @@ graders:
       - "grep -qE '\\*\\*Completion criteria' $PLAN_FILE"
       - "grep -qE '\\*\\*Depends on:\\*\\*' $PLAN_FILE"
       - "grep -qE '\\*\\*Verification method:\\*\\*' $PLAN_FILE"
+      - "grep -qE '\\*\\*ASR:\\*\\*' $PLAN_FILE"
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:
@@ -56,6 +59,7 @@ graders:
       - "Files section uses Create/Modify/Test prefixes"
       - "Depends on and File overlap markers present for dependent tasks"
       - "Completion criteria tagged with R numbers"
+      - "ASR field is present for each task"
       - "Checkbox steps follow TDD order"
 
 tracked_metrics:

@@ -23,6 +23,8 @@ graders:
       - "test -f docs/specs/*.md"
       - "grep -qE 'Impact scope:' docs/specs/*.md"
       - "grep -qE 'Before state|Input:' docs/specs/*.md"
+      - "for s in 'Architecture Baseline' 'ASR Ledger' 'Option Matrix' 'Lifecycle And Operations' 'Quality Budgets' 'Decision Log'; do grep -q \"$s\" docs/specs/*.md || exit 1; done"
+      - "grep -qE '^\\*\\*ASR:\\*\\*' docs/specs/*.md"
   - type: banned_expression_scan
     fail_on_match: true
   - type: llm_rubric
@@ -31,6 +33,7 @@ graders:
       - "Spec limits scope to auth module split only — no unrelated changes"
       - "Impact scope identifies all consumers of the current auth.ts"
       - "Re-export awareness is applied for barrel files"
+      - "Refactor architecture records module boundaries and ADR triggers"
 
 tracked_metrics:
   transcript: [n_turns, n_toolcalls, n_total_tokens]

@@ -11,3 +11,9 @@ Score the brainstorm output on the following dimensions, each 0-1:
 4. **Banned expression absence** — No vague phrases from the banned list.
 5. **Language consistency** — Output matches the user's input language
    (or appropriately mixes ko/en if user did so).
+6. **Architecture readiness** -- Does the spec include Architecture Baseline,
+   ASR Ledger, Option Matrix, Lifecycle And Operations, Quality Budgets, and
+   Decision Log with R-to-ASR linkage?
+7. **Lifecycle and quality budgets** -- Are lifecycle, operational constraints,
+   and performance/reliability/security/cost/maintainability budgets concrete
+   enough to guide planning?

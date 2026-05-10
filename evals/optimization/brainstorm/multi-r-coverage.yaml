@@ -23,6 +23,8 @@ graders:
       - "grep -cE '^- R[0-9]+:' docs/specs/*.md | awk -F: '{s+=$2} END {if(s>=5) exit 0; else exit 1}'"
       - "grep -cE 'Verify:' docs/specs/*.md | awk -F: '{s+=$2} END {if(s>=5) exit 0; else exit 1}'"
       - "grep -cE 'Verify-type:' docs/specs/*.md | awk -F: '{s+=$2} END {if(s>=5) exit 0; else exit 1}'"
+      - "for s in 'Architecture Baseline' 'ASR Ledger' 'Option Matrix' 'Lifecycle And Operations' 'Quality Budgets' 'Decision Log'; do grep -q \"$s\" docs/specs/*.md || exit 1; done"
+      - "grep -qE '^\\*\\*ASR:\\*\\*' docs/specs/*.md"
   - type: banned_expression_scan
     fail_on_match: true
   - type: llm_rubric
@@ -32,6 +34,7 @@ graders:
       - "Sub-project decomposition suggested if R count exceeds 10"
       - "Mixed language input handled consistently in output"
       - "Each R has verify-type appropriate to its nature (api for endpoints, data for DB)"
+      - "Architecture baseline separates commerce, payment, admin, and data lifecycle concerns"
 
 tracked_metrics:
   transcript: [n_turns, n_toolcalls, n_total_tokens]

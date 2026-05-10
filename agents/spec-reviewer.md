@@ -23,6 +23,12 @@ You will receive a **Spec file path** in the task prompt. Read the spec file at 
 
 These checks are pass/fail with no subjective judgment. ANY failure = FAIL verdict.
 
+**0. Architecture section presence:**
+- Verify the spec contains: Architecture Baseline, ASR Ledger, Option Matrix,
+  Lifecycle And Operations, Quality Budgets, Decision Log.
+- Verify every R section has an `ASR:` field with ASR IDs or `none`.
+- Missing architecture section or missing R-level ASR field -> FAIL.
+
 **1. Requirements coverage:**
 - Find the "Extracted Requirements" list (R1, R2, ...)
 - Verify EVERY R has its own section in the spec body
@@ -31,6 +37,7 @@ These checks are pass/fail with no subjective judgment. ANY failure = FAIL verdi
 **2. Structural completeness per R:**
 For each R section, verify these subsections exist and are non-empty:
 - Input (or "Before state" for deletion requirements)
+- ASR
 - Behavior (step-by-step, not a single sentence)
 - Output (or "After state" for deletion requirements)
 - Impact scope (at least 1 entry, or "None -- new component")

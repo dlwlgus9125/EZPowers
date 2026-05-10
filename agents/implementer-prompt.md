@@ -16,6 +16,12 @@ Agent tool:
 
     [Scene-setting: where this fits, dependencies, architectural context]
 
+    ## Architecture Constraints
+
+    Respect the task's `**ASR:**` field, Structural Invariants, and architecture
+    baseline from the plan. If implementation would violate an ASR, boundary,
+    lifecycle rule, or quality budget, report BLOCKED before editing.
+
     ## Acceptance Criteria
 
     This task is complete ONLY when ALL of these criteria are met:
