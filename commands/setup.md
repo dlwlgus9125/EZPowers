@@ -1,6 +1,5 @@
 ---
 description: Initialize project harness with config and steering docs
-disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Glob, AskUserQuestion]
 ---
 
