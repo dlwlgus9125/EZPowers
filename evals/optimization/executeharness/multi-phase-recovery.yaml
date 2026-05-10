@@ -40,7 +40,8 @@ graders:
       - "Steps 0 and 1 remain completed"
       - "Previous EZPowers index backup (index.ezpowers.json) detected"
       - "Recovery path offered for previous abnormal termination"
+      - "Existing wiring-gate.json status is preserved unless the reset step owns the gate probe"
 
 tracked_metrics:
   transcript: [n_turns, n_toolcalls, n_total_tokens]
-  custom: [step_reset_done, completed_steps_preserved, recovery_offered]
+  custom: [step_reset_done, completed_steps_preserved, recovery_offered, wiring_gate_preserved]

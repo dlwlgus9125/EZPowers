@@ -1,0 +1,37 @@
+case_id: "optimization.harness_smoke_gate.004"
+split: optimization
+stratum:
+  command: executeharness
+  difficulty: multi_step
+  pattern: smoke_gate
+  model_family: agnostic
+  language: en
+  verify_type: e2e
+
+input:
+  user_message: |
+    Complete harness steps, but the full feature smoke command fails.
+  initial_files:
+    - "phases/checkout/index.json"
+    - "phases/checkout/wiring-gate.json"
+    - ".harness/config.json"
+  mock_data:
+    smoke_output: |
+      {"status":"smoke_failed","exit_code":1}
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "python -c \"from pathlib import Path; t=Path('commands/executeharness.md').read_text(encoding='utf-8'); assert '--gate-on-smoke' in t; assert 'smoke failure sets' in t; assert 'status' in t; assert 'fail' in t\""
+      - "python -c \"from pathlib import Path; t=Path('commands/executeharness.md').read_text(encoding='utf-8'); assert 'do not mark build complete' in t; assert 'proceed to Final Code Review' in t\""
+      - "python -c \"from pathlib import Path; t=Path('commands/choiceexecutor.md').read_text(encoding='utf-8'); assert 'wiring gate PASS + Final Code' in t\""
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Smoke failure blocks harness completion"
+      - "Choiceexecutor Path 2 requires wiring gate PASS before final review"
+      - "Step completion alone is not enough"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [smoke_failure_blocks_completion, path2_gate_required]

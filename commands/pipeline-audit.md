@@ -120,7 +120,11 @@ Purpose: Verify that integration milestone tasks actually test the full pipeline
    → **WARN**: `"T8 Then clause mentions only Renderer output but pipeline is PTY→Parser→Buffer→Renderer"`
 4. **Pipeline without milestone:** Integration Pipeline Matrix lists pipeline P but no corresponding milestone task exists.
    → **FAIL**: `"Pipeline P1 (PTY→Parser→Buffer→Renderer) has no milestone task"`
-5. **No pipelines detected:** if plan has no Integration Pipeline Matrix and no tasks with integration/milestone keywords:
+5. **Full-feature wiring gate missing:** if a pipeline, milestone, or wiring task exists, the plan must contain `## Full-Feature Wiring Gate`.
+   → **FAIL**: `"Pipeline P1 has no Full-Feature Wiring Gate"`
+6. **Weak wiring gate Verify:** gate Verify is empty, placeholder-only, `echo`, `true`, `:`, or a unit-only command for one component.
+   → **FAIL**: `"Full-Feature Wiring Gate does not exercise the full feature"`
+7. **No pipelines detected:** if plan has no Integration Pipeline Matrix and no tasks with integration/milestone keywords:
    → **SKIP**
 
 ### D6: Step Specification Sufficiency (spec or plan required)

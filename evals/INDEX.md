@@ -1,19 +1,19 @@
 # EZPowers Evaluation Index
 
 ## Counts
-- Optimization: 34 cases (target 70%)
+- Optimization: 37 cases (target 70%)
 - Holdout: 8 cases (target 20%, gitignored)
-- Golden: 4 cases (target 10%)
+- Golden: 7 cases (target 10%)
 - Honeypot: 2 cases
 
 ## Coverage by command
 | Command | Opt | Hold | Gold | Total |
 |---|---|---|---|---|
-| brainstorm | 8 | 2 | 1 | 11 |
-| plan | 7 | 1 | 1 | 9 |
-| choiceexecutor | 11 | 2 | 2 | 15 |
+| brainstorm | 8 | 3 | 2 | 13 |
+| plan | 7 | 1 | 2 | 10 |
+| choiceexecutor | 9 | 3 | 3 | 15 |
 | setup | 3 | 1 | 0 | 4 |
-| executeharness | 2 | 0 | 0 | 2 |
+| executeharness | 5 | 0 | 0 | 5 |
 | review | 2 | 0 | 0 | 2 |
 | sync-docs | 3 | 0 | 0 | 3 |
 
@@ -26,7 +26,7 @@ Note: Contract cases (10 optimization + 2 holdout) are distributed across brains
 | plan/ | 4 | simple-3R, large-10R, missing-verify, refactor-impact-scope |
 | choiceexecutor/ | 5 | inline-trivial, harness-needed, security-keyword, oscillation, resume |
 | setup/ | 3 | greenfield-empty, brownfield-existing, monorepo-root |
-| executeharness/ | 2 | small-plan-conversion, multi-phase-recovery |
+| executeharness/ | 5 | small-plan-conversion, multi-phase-recovery, full-feature-wiring-gate, harness-smoke-gate, wiring-code-gap |
 | review/ | 2 | spec-match, spec-drift |
 | sync-docs/ | 3 | new-reference, outdated-reference, auto-from-choiceexecutor |
 | contract/ | 10 | stage interface contracts |

@@ -66,6 +66,7 @@ skills/               # Independent skills
 agents/               # Plugin agents + prompt templates
   code-reviewer.md          # Plugin Agent — final code review (inherit, Read/Grep/Glob/Bash)
   security-reviewer.md      # Plugin Agent — security vulnerability scan (inherit, Read/Grep/Glob/Bash)
+  wiring-reviewer.md        # Plugin Agent — full-feature wiring gate after harness execution
   spec-reviewer.md          # Plugin Agent — spec document verification (sonnet, Read/Grep/Glob)
   architecture-reviewer.md  # Plugin Agent — architecture readiness verification (sonnet, Read/Grep/Glob)
   plan-reviewer.md          # Plugin Agent — plan document verification (sonnet, Read/Grep/Glob)

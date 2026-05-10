@@ -410,9 +410,18 @@ When the user selects Path 2, load `commands/executeharness.md` and follow that
 command as the source of truth for all harness conversion, execution, recovery,
 and restoration behavior. Do not duplicate the harness procedure here.
 
-After `/executeharness` reports all steps complete, continue at Section 12
-(Final Code Review) using the diff range returned by `/executeharness`
-(`<harness-start-hash>..HEAD`).
+After `/executeharness` reports all steps complete, require its full-feature
+wiring gate verdict before continuing:
+
+- `PASS` -> continue at Section 12 (Final Code Review) using the diff range
+  returned by `/executeharness` (`<harness-start-hash>..HEAD`)
+- `TEST_GAP` -> stop and return to `/plan` or reset the probe-writing step
+- `CODE_GAP` -> reset the related harness step and rerun `/executeharness`
+- `SPEC_GAP` -> return to `/plan`
+- Missing or malformed wiring verdict -> treat as `TEST_GAP`
+
+Path 2 completion requires `all steps completed + wiring gate PASS + Final Code
+Review PASS`. Step completion alone is not enough.
 
 ## 11. Inline Execution (Path 3)
 

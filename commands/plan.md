@@ -264,6 +264,34 @@ When a pipeline is detected, add an explicit integration task after the last com
 
 Integration milestone tasks must appear in the Coverage Matrix. They typically cover multiple Rs (those depending on cross-component interaction).
 
+## 5.6 Full-Feature Wiring Gate
+
+After the Integration Pipeline Matrix, add this section when any of these are true:
+- The plan has 2+ tasks and a task consumes another task's output
+- The plan changes 2+ layers such as DB/API/UI, CLI/core/output, or service/adapter/view
+- The plan creates or modifies an executable artifact
+- Any task title or AC contains integration, milestone, wiring, route, registration, binding, subscription, or end-to-end
+
+Single-task library-only plans with no executable artifact may omit this section.
+
+Template:
+
+```markdown
+## Full-Feature Wiring Gate
+
+**Required:** yes
+**Verify-type:** e2e
+**Covers:** T1 -> T2 -> T3, P1
+**Expected observation:** [observable result from the user's entry point]
+**Verify:** `[single automated command that exercises the whole feature]`
+```
+
+Rules:
+- The Verify command must run from the user-facing entry point or an integration/e2e test that drives the same wiring.
+- The Verify command must not be empty, placeholder-only, `echo`, `true`, or only a unit test for one component.
+- If no automated command exists, add a task that creates the probe before implementation.
+- `/executeharness` treats a missing or failing gate as incomplete work even when every step is `completed`.
+
 ## 6. Agent Assignment
 
 ```markdown

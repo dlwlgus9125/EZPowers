@@ -98,6 +98,20 @@ If the plan has 3+ tasks AND any task's output is consumed by another task (dete
 - Unit tests for individual components do not satisfy this gate.
 - Exemption: all-independent tasks (no `Depends on` markers and no shared files), single-task plans, library-only projects (no executable artifact).
 
+**8. Full-feature wiring gate:**
+If the plan has 2+ connected tasks, changes 2+ layers, creates/modifies an
+executable artifact, or contains integration/milestone/wiring/route/
+registration/binding/subscription/end-to-end language, the plan MUST include
+`## Full-Feature Wiring Gate`.
+- Missing section -> FAIL.
+- `**Required:**` must be `yes`.
+- `**Verify-type:**` must be `e2e`, `api`, or `cli`.
+- `**Covers:**` must name the connected tasks or pipeline IDs.
+- `**Expected observation:**` must describe an observable user-facing result.
+- `**Verify:**` must contain a non-trivial automated command.
+- Reject empty commands, `echo`, `true`, `:`, placeholder text, and single-component unit tests as the only gate.
+- Exemption: single-task library-only plans with no executable artifact.
+
 ## Advisory Checks (do NOT affect verdict)
 
 | Category | What to Look For |
