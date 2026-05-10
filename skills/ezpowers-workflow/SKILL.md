@@ -1,7 +1,6 @@
 ---
 name: ezpowers-workflow
 description: Direct-invocation Codex adapter for EZPowers command documents. Use only when the user explicitly asks for the adapter itself or for a Codex translation of an EZPowers command; for named EZPowers commands, read the target commands/*.md file directly.
-disable-model-invocation: true
 ---
 
 # EZPowers Workflow
