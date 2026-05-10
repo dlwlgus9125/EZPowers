@@ -101,11 +101,12 @@ bin/
 
 ## Key Conventions
 
-- **Command lazy-loading**: EZPowers slash commands are direct-invocation
-  skills (`disable-model-invocation: true`). Load a command body only when the
-  user invokes that command or another command explicitly delegates to it.
-  `/executeharness` owns all EasyPowersHarness conversion/execution details;
-  `/choiceexecutor` only delegates to it for Path 2.
+- **Command lazy-loading**: EZPowers slash commands use default lazy-loading —
+  descriptions appear in context for discoverability, but command bodies load
+  only when the user explicitly invokes or another command delegates.
+  Commands are workflow procedures, not reactive triggers; the model should not
+  auto-invoke them. `/executeharness` owns all EasyPowersHarness
+  conversion/execution details; `/choiceexecutor` only delegates to it for Path 2.
 
 - **Explicit skill chaining only** — skills are independent unless a command names a gate. `/brainstorm`
   invokes `grill-me` after architecture baseline approval and before requirement extraction.
