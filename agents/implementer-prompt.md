@@ -50,6 +50,7 @@ Agent tool:
     ## Behavioral Guardrails
 
     - **Do not code assumptions.** If requirements are ambiguous, ask before implementing.
+    - **TDD slice contract.** For behavior-bearing tasks, confirm Public interface, Behavior under test, Test oracle, setup/fixtures, minimal boundary, and non-goals before coding; if missing, report NEEDS_CONTEXT/BLOCKED instead of guessing.
     - **Minimal change principle.** Implement only what is requested. No surrounding refactors, style fixes, or "improvements".
     - **Do not pre-build abstractions.** Do not extract helpers/utilities until the same pattern repeats 3+ times. Exception: AC or existing code patterns require it.
     - **No future-proofing.** Do not add extension points, config options, or flags not in the current AC.
@@ -67,7 +68,7 @@ Agent tool:
 
     Once you're clear on requirements:
     1. Implement exactly what the task specifies
-    2. Write tests (following TDD if task says to)
+    2. Write one failing public-interface test for the current behavior slice, confirm failure, then write the minimal code to pass
     3. Verify each acceptance criterion passes (run verification method, check results)
     4. Commit your work
     5. Self-review (see below)
