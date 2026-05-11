@@ -1,7 +1,7 @@
 # EZPowers Evaluation Index
 
 ## Counts
-- Optimization: 37 cases (target 70%)
+- Optimization: 38 cases (target 70%)
 - Holdout: 8 cases (target 20%, gitignored)
 - Golden: 7 cases (target 10%)
 - Honeypot: 2 cases
@@ -14,7 +14,7 @@
 | plan | 7 | 1 | 2 | 10 |
 | choiceexecutor | 9 | 3 | 3 | 15 |
 | setup | 3 | 1 | 0 | 4 |
-| executeharness | 5 | 0 | 0 | 5 |
+| executeharness | 6 | 0 | 0 | 6 |
 | review | 2 | 0 | 0 | 2 |
 | sync-docs | 3 | 0 | 0 | 3 |
 
@@ -29,7 +29,7 @@ Skill cases are intentionally separate from command cases. They guard skill hot-
 | plan/ | 4 | simple-3R, large-10R, missing-verify, refactor-impact-scope |
 | choiceexecutor/ | 5 | inline-trivial, harness-needed, security-keyword, oscillation, resume |
 | setup/ | 3 | greenfield-empty, brownfield-existing, monorepo-root |
-| executeharness/ | 5 | small-plan-conversion, multi-phase-recovery, full-feature-wiring-gate, harness-smoke-gate, wiring-code-gap |
+| executeharness/ | 6 | small-plan-conversion, multi-phase-recovery, full-feature-wiring-gate, harness-smoke-gate, wiring-code-gap, runtime-probe-live |
 | review/ | 2 | spec-match, spec-drift |
 | sync-docs/ | 3 | new-reference, outdated-reference, auto-from-choiceexecutor |
 | contract/ | 10 | stage interface contracts |

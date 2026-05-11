@@ -1,6 +1,6 @@
 # evals/golden/smoke-execution-on-completion.yaml
-# Golden invariant: choiceexecutor Section 14 MUST execute config.smoke.command when non-empty.
-# Source: commands/choiceexecutor.md Section 14
+# Golden invariant: choiceexecutor Section 14 MUST execute the runtime gate
+# for executable artifacts.
 
 case_id: "golden.smoke_execution_completion.001"
 split: golden
@@ -14,24 +14,25 @@ stratum:
 
 input:
   user_message: |
-    Verify that choiceexecutor completion phase includes smoke test execution.
+    Verify that choiceexecutor completion phase treats executable runtime smoke as a hard gate.
   initial_files: []
   mock_data:
     smoke_command_present: "npm run smoke"
-    smoke_command_empty: ""
+    required_smoke_missing: true
 
 graders:
   - type: deterministic_tests
     commands:
-      # Codebase invariant: choiceexecutor.md Section 14 must mention smoke
-      - "grep -qi 'smoke' commands/choiceexecutor.md"
-      # Must mention config.smoke.command execution
+      # Codebase invariant: choiceexecutor.md Section 14 must mention smoke/runtime gate.
+      - "grep -qi 'smoke/runtime gate' commands/choiceexecutor.md"
+      # Must mention config.smoke.command execution and required handling.
       - "grep -q 'config.smoke.command' commands/choiceexecutor.md"
-      # Must handle empty smoke.command (skip case)
-      - "grep -qiE '빈 문자열|empty|스킵' commands/choiceexecutor.md"
-      # Escalation table must include smoke test row
-      - "grep -qi 'smoke test' commands/choiceexecutor.md"
+      - "grep -q 'config.smoke.required' commands/choiceexecutor.md"
+      # Empty smoke is allowed only for docs/library, not executable artifacts.
+      - "grep -q 'artifact_kind: docs|library' commands/choiceexecutor.md"
+      # Exit table must include the deterministic GUI text/name oracle failure.
+      - "grep -q 'Expected UI text/name missing' commands/choiceexecutor.md"
 
 tracked_metrics:
   transcript: [n_turns, n_toolcalls, n_total_tokens]
-  custom: [smoke_mention_count, skip_handling_present]
+  custom: [required_smoke_gate_present, executable_skip_forbidden]

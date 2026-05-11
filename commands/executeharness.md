@@ -214,9 +214,11 @@ for each pending step:
   5. completed → next step
 ```
 
-If `.harness/config.json` has a non-empty `smoke.command` or smoke `checks`,
-append `--gate-on-smoke` to the final harness call so smoke failure exits
-non-zero before completion is reported.
+The final harness call must run in strict runtime-gate mode. Executable
+artifacts require `smoke.required: true` and a non-empty `smoke.command`;
+desktop artifacts also require `gui_strategy != "skip"`. Missing required
+runtime smoke is failure, not skip. Only docs/library artifacts with
+`smoke.required: false` may skip.
 
 ### Status Mapping
 
@@ -250,7 +252,7 @@ before reporting harness success.
 4. Execute every command from `commands` in the project root.
 5. Record each attempt with command, exit code, stdout/stderr tail, and timestamp.
 6. Any non-zero exit sets `status: "fail"` and stops completion.
-7. Run smoke from `.harness/config.json` when configured; smoke failure sets `status: "fail"`.
+7. Read `runtime-probe.json` / `smoke-output.json`; missing required runtime artifacts set `status: "test_gap"` and stop completion.
 8. Dispatch `ezpowers:wiring-reviewer` for an independent verdict.
 
 > **Dispatch protocol:** Read `docs/reference/dispatch-protocol.md` and follow the backend-appropriate dispatch path.

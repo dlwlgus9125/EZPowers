@@ -66,8 +66,12 @@ Order:
 6. smoke.gui_strategy — auto-detect from tech stack:
    - Avalonia, WPF, WinForms, Qt, GTK → `process_probe` (default for desktop GUI)
    - Electron, Tauri → `headless` (Playwright-compatible)
-   - Console, server, library → `skip`
+   - Console/server → `skip` GUI strategy, but still require a non-empty smoke command
+   - Docs/library → `skip` only with `smoke.required: false`
    Inform the user: "UI framework detected: [name]. Setting gui_strategy to [value]."
+   Executable artifacts (CLI, server, desktop) must set `smoke.required: true`
+   and provide a non-empty `smoke.command`. Only `artifact_kind: docs` or
+   `artifact_kind: library` may skip with `smoke.required: false`.
 7. Preferred execution mode for `/choiceexecutor` (subagent vs harness vs inline)
 
 Suggest presets when possible:
@@ -328,6 +332,8 @@ Content is authored by humans.
     "command": "npm run lint"
   },
   "smoke": {
+    "required": true,
+    "artifact_kind": "desktop",
     "command": "",
     "description": "",
     "gui_strategy": "skip",
@@ -335,9 +341,10 @@ Content is authored by humans.
     "survival_seconds": 8,
     "stderr_fail_regex": "Unhandled exception|Fatal|Traceback|panic|XamlLoadException|segmentation fault",
     "window_title_regex": "",
+    "expected_automation_name_regex": "",
+    "expected_text_regex": "",
     "screenshot_path": ".harness/artifacts/gui-smoke.png",
-    "vision_required": false,
-    "vision_prompt": "Return JSON only. PASS iff the app window shows visible content (text, UI elements), not blank/empty background."
+    "min_pixel_variance": 12.0
   },
   "server": {
     "start_command": "",
@@ -385,23 +392,26 @@ Field descriptions:
 - `test.strategy`: Test strategy description (unit, integration, e2e, etc.)
 - `build.command`: Build command
 - `lint.command`: Lint command
+- `smoke.required`: Runtime smoke hard gate. Must be true for CLI, server, and desktop artifacts.
+- `smoke.artifact_kind`: One of `desktop`, `server`, `cli`, `library`, or `docs`. Only `docs` and `library` may use `required: false`.
 - `smoke.command`: Smoke command to verify the actual entrypoint
 - `smoke.description`: What the smoke test verifies
-- `smoke.gui_strategy`: GUI verification approach. `skip` (default, non-GUI), `process_probe` (survival + stderr + window handle), `screenshot_vision` (process_probe + vision oracle), `headless` (Playwright/FlaUI/Avalonia.Headless test runner)
+- `smoke.gui_strategy`: GUI verification approach. `skip` (default, non-GUI), `process_probe` (survival + stderr + window handle + screenshot), `screenshot_vision` (reserved alias for process probe with deterministic screenshot checks in v1), `headless` (Playwright/FlaUI/Avalonia.Headless test runner)
 - `smoke.startup_timeout_seconds`: Max seconds to wait for app startup (default 15)
 - `smoke.survival_seconds`: Seconds app must survive without exit (default 8)
 - `smoke.stderr_fail_regex`: Regex pattern for fatal output detection
 - `smoke.window_title_regex`: Expected window title pattern (empty = any window)
+- `smoke.expected_automation_name_regex`: Expected UI Automation name or automation id pattern for desktop artifacts
+- `smoke.expected_text_regex`: Expected visible/UI Automation text pattern for desktop artifacts
 - `smoke.screenshot_path`: Path to save GUI screenshot artifact
-- `smoke.vision_required`: If true, screenshot must pass Claude vision oracle (default false)
-- `smoke.vision_prompt`: Prompt sent to Claude vision API for screenshot judgment
+- `smoke.min_pixel_variance`: Minimum screenshot variance; below this is treated as blank
 
 **Framework-specific GUI verification guide:**
 - **Avalonia:** Prefer `Avalonia.Headless` for render-tree assertions. Smoke: `process_probe` + window handle.
 - **WPF:** UIAutomation/FlaUI for element assertions. Smoke: `process_probe` + window handle.
 - **Electron/Tauri:** Playwright for full e2e. Smoke: `headless`.
 - **Qt:** Qt Test offscreen where possible. Smoke: `process_probe`.
-- **Generic desktop:** `process_probe` (survival + stderr + window). Upgrade to `screenshot_vision` for render verification.
+- **Generic desktop:** `process_probe` (survival + stderr + window + screenshot). Use expected UI text/name regex for render verification.
 
 - `server.start_command`: Server start command before Verify-type `api`/`e2e` execution (empty string = skip server management)
 - `server.stop_command`: Server stop command after Verify completion

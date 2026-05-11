@@ -22,7 +22,7 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "python -c \"from pathlib import Path; t=Path('commands/executeharness.md').read_text(encoding='utf-8'); assert '--gate-on-smoke' in t; assert 'smoke failure sets' in t; assert 'status' in t; assert 'fail' in t\""
+      - "python -c \"from pathlib import Path; t=Path('commands/executeharness.md').read_text(encoding='utf-8'); assert 'strict runtime-gate mode' in t; assert 'Missing required' in t; assert 'runtime-probe.json' in t\""
       - "python -c \"from pathlib import Path; t=Path('commands/executeharness.md').read_text(encoding='utf-8'); assert 'do not mark build complete' in t; assert 'proceed to Final Code Review' in t\""
       - "python -c \"from pathlib import Path; t=Path('commands/choiceexecutor.md').read_text(encoding='utf-8'); assert 'wiring gate PASS + Final Code' in t\""
   - type: llm_rubric

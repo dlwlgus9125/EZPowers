@@ -1,0 +1,31 @@
+case_id: "optimization.runtime_probe_live.006"
+split: optimization
+stratum:
+  command: executeharness
+  difficulty: multi_step
+  pattern: runtime_probe
+  model_family: agnostic
+  language: en
+  verify_type: e2e
+
+input:
+  user_message: |
+    Verify that the real harness runtime probe accepts a live CLI smoke and rejects missing/weak executable smoke.
+  initial_files:
+    - ".harness/config.json"
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - >-
+        python -c "from pathlib import Path; p=Path('..')/'EasyPowersHarness'/'scripts'/'probe_runtime.py'; assert p.exists(), p"
+      - >-
+        python -c "import json,subprocess,sys,tempfile; from pathlib import Path; root=Path(tempfile.mkdtemp()); (root/'.harness').mkdir(); phase=root/'phases'/'p'; phase.mkdir(parents=True); cmd='\"'+sys.executable+'\" -c \"print(123)\"'; (root/'.harness'/'config.json').write_text(json.dumps({'smoke':{'required':True,'artifact_kind':'cli','command':cmd,'timeout_sec':10}}), encoding='utf-8'); p=Path('..')/'EasyPowersHarness'/'scripts'/'probe_runtime.py'; out=phase/'runtime-probe.json'; r=subprocess.run([sys.executable,str(p),'--config',str(root/'.harness'/'config.json'),'--project-root',str(root),'--phase-dir',str(phase),'--output',str(out)]); data=json.loads(out.read_text(encoding='utf-8')); assert r.returncode==0 and data['status']=='completed', (r.returncode,data)"
+      - >-
+        python -c "import json,subprocess,sys,tempfile; from pathlib import Path; root=Path(tempfile.mkdtemp()); (root/'.harness').mkdir(); phase=root/'phases'/'p'; phase.mkdir(parents=True); (root/'.harness'/'config.json').write_text(json.dumps({'smoke':{'required':True,'artifact_kind':'desktop'}}), encoding='utf-8'); p=Path('..')/'EasyPowersHarness'/'scripts'/'probe_runtime.py'; out=phase/'runtime-probe.json'; r=subprocess.run([sys.executable,str(p),'--config',str(root/'.harness'/'config.json'),'--project-root',str(root),'--phase-dir',str(phase),'--output',str(out)]); data=json.loads(out.read_text(encoding='utf-8')); assert r.returncode==10 and data['status']=='smoke_failed', (r.returncode,data)"
+      - >-
+        python -c "import json,subprocess,sys,tempfile; from pathlib import Path; root=Path(tempfile.mkdtemp()); (root/'.harness').mkdir(); phase=root/'phases'/'p'; phase.mkdir(parents=True); cmd='\"'+sys.executable+'\" -c \"import time; time.sleep(2)\"'; (root/'.harness'/'config.json').write_text(json.dumps({'smoke':{'required':True,'artifact_kind':'desktop','gui_strategy':'skip','command':cmd,'survival_seconds':0}}), encoding='utf-8'); p=Path('..')/'EasyPowersHarness'/'scripts'/'probe_runtime.py'; out=phase/'runtime-probe.json'; r=subprocess.run([sys.executable,str(p),'--config',str(root/'.harness'/'config.json'),'--project-root',str(root),'--phase-dir',str(phase),'--output',str(out)]); data=json.loads(out.read_text(encoding='utf-8')); assert r.returncode==13 and data['status']=='smoke_failed', (r.returncode,data)"
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [runtime_probe_accepts_cli, runtime_probe_rejects_missing_required, desktop_skip_forbidden]

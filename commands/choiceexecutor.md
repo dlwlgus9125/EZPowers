@@ -210,16 +210,18 @@ After all Verify commands PASS, if the task has a `Runtime verification:` line i
 
 Runtime probe is separate from AC verification. AC verifies spec behavior; runtime probe verifies the artifact starts and survives. Both must pass.
 
-**GUI runtime probe (when `config.smoke.gui_strategy` is not `skip` or absent):**
+**GUI runtime probe (desktop executable artifacts):**
 
 For GUI executable tasks, the runtime probe MUST include multi-layer verification:
 1. **Process survival:** app starts, survives `config.smoke.survival_seconds` (default 8s)
 2. **Fatal output check:** stderr/stdout must NOT match `config.smoke.stderr_fail_regex`
 3. **Window existence:** main window handle != 0 (platform-specific check)
 4. **Screenshot artifact:** capture to `config.smoke.screenshot_path`, verify non-blank (pixel variance > threshold)
-5. **Vision oracle (optional):** if `config.smoke.vision_required: true`, send screenshot to Claude vision API with `config.smoke.vision_prompt`, require `{"verdict":"PASS"}`
+5. **UI oracle:** if `expected_text_regex` or `expected_automation_name_regex` is configured, the UI Automation tree must match it.
 
 All layers must PASS. Any layer FAIL → re-dispatch implementer with the specific layer and exit code.
+
+Desktop/server/CLI artifacts may not skip runtime smoke. Only `artifact_kind: docs|library` with `config.smoke.required: false` may skip.
 
 **Manual verification items are forbidden in automated harness mode.**
 If a Verify-type `e2e` item has no executable Verify command (empty or placeholder), mark AC verification as FAIL and re-dispatch implementer with: "AC [N] has Verify-type e2e but no executable verification command. Write an automated probe (process health, stdout/stderr pattern, window handle check, headless test, or integration test) and re-submit."
@@ -538,13 +540,14 @@ If plan decomposition proves inadequate during execution — tasks too tightly c
 After all tasks + final review complete:
 1. Full diff summary (`git diff <first-task-start-hash>..HEAD`)
 2. Completed/failed/SKIPPED task list
-3. **Smoke test:** If `config.smoke.command` is non-empty, run it. On failure, enter fix loop (max 3). If empty, skip.
+3. **Smoke/runtime gate:** Run the configured runtime probe. If `config.smoke.required: true`, missing `config.smoke.command` is FAIL. Empty smoke may skip only for `artifact_kind: docs|library` with `required: false`. Any failure enters the fix loop (max 3).
 
    **GUI smoke (if `config.smoke.gui_strategy` is not `skip` and not absent):**
    Execute the gui_strategy probe after smoke command:
    - `process_probe`: start app → survive N seconds → no fatal stderr → window handle exists → kill. PASS/FAIL by exit code.
-   - `screenshot_vision`: process_probe + capture screenshot → vision oracle judgment. PASS/FAIL.
+   - `screenshot_vision`: process_probe + capture screenshot + deterministic non-blank check. PASS/FAIL.
    - `headless`: run `config.smoke.command` as headless test runner (Playwright, Avalonia.Headless, FlaUI). Exit 0 = PASS.
+   - Vision is not a v1 hard gate; deterministic process/window/screenshot/UIA evidence is required.
    - GUI smoke FAIL → same fix loop (max 3). No user confirmation.
 
    **Exit code convention:**
@@ -559,8 +562,9 @@ After all tasks + final review complete:
    | 14 | Invisible/zero-size window |
    | 15 | Screenshot capture failed |
    | 16 | Blank screenshot (pixel variance below threshold) |
-   | 17 | Vision oracle verdict FAIL |
+   | 18 | Expected UI text/name missing |
    | 20 | Timeout |
+   | 30 | Unsupported platform |
 
 4. Dispatch `ezpowers:workflow-runner` to invoke `/sync-docs` in
    `auto-from-choiceexecutor` mode:

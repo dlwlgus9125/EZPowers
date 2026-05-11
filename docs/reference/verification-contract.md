@@ -97,7 +97,15 @@ A runtime probe passes only when:
 - the process starts
 - the process survives the configured interval
 - fatal stdout or stderr patterns are absent
-- GUI artifacts also satisfy configured window, screenshot, or vision checks
+- GUI artifacts also satisfy configured window, screenshot, non-blank pixel
+  variance, and optional UI Automation text/name checks
+
+Executable artifacts (`cli`, `server`, `desktop`) require runtime smoke. A
+missing required smoke command is failure, not skip. Only `docs` and `library`
+artifacts may skip runtime smoke with `smoke.required: false`.
+
+Vision checks may be used as advisory evidence, but the v1 hard gate is
+deterministic process/window/screenshot/UI Automation evidence.
 
 Runtime probe success never replaces a Verify command whose Then clause
 describes feature behavior.

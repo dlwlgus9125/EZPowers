@@ -80,6 +80,15 @@ Purpose: Pre-check that Verify commands can run in the project environment.
 5. **Server dependency** (Verify-type api or e2e): check `config.server.start_command` is non-empty.
    → **WARN** if empty: `"R2 AC-1: Verify-type api but config.server.start_command is empty"`
 
+6. **Executable runtime smoke**: if the plan or config identifies an executable
+   artifact (`cli`, `server`, or `desktop`), `config.smoke.required` must be
+   true and `config.smoke.command` must be non-empty.
+   -> **FAIL** if missing: `"Executable artifact has no required runtime smoke command"`
+7. **Desktop GUI smoke**: if `config.smoke.artifact_kind == "desktop"`,
+   `config.smoke.gui_strategy` must not be `skip`, and the probe must produce
+   a screenshot artifact.
+   -> **FAIL** if weak: `"Desktop artifact cannot skip GUI runtime probe"`
+
 ### D3: Semantic Granularity (spec+plan required)
 
 Purpose: Catch silent AC drops — task "covers" an R but skips some of its AC bullets.
@@ -123,7 +132,12 @@ Purpose: Verify that integration milestone tasks actually test the full pipeline
    → **FAIL**: `"Pipeline P1 has no Full-Feature Wiring Gate"`
 6. **Weak wiring gate Verify:** gate Verify is empty, placeholder-only, `echo`, `true`, `:`, or a unit-only command for one component.
    → **FAIL**: `"Full-Feature Wiring Gate does not exercise the full feature"`
-7. **No pipelines detected:** if plan has no Integration Pipeline Matrix and no tasks with integration/milestone keywords:
+7. **Missing runtime evidence for executable gates:** executable or desktop
+   wiring gates must mention `runtime-probe.json`, `smoke-output.json`, or an
+   equivalent runtime probe artifact; desktop gates must include screenshot
+   evidence.
+   -> **FAIL**: `"Full-Feature Wiring Gate lacks runtime artifact evidence"`
+8. **No pipelines detected:** if plan has no Integration Pipeline Matrix and no tasks with integration/milestone keywords:
    → **SKIP**
 
 ### D6: Step Specification Sufficiency (spec or plan required)

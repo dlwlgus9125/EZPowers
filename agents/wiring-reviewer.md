@@ -40,6 +40,9 @@ only the files needed to prove or disprove the gate.
 - `Covers` names the connected tasks or pipeline IDs.
 - The Verify output exercises the same entry point named in the gate.
 - A unit-only command for one component is not enough for a connected feature.
+- For executable or GUI work, runtime artifacts are present:
+  `runtime-probe.json`, `smoke-output.json`, and a screenshot path for desktop
+  artifacts.
 
 ### 2. Wiring Evidence
 Look for concrete connections in the diff:
@@ -52,6 +55,8 @@ Look for concrete connections in the diff:
 ### 3. Failure Classification
 - `TEST_GAP`: The implementation may be wired, but the Verify/smoke evidence
   does not observe the full Then clause or entry path.
+  Missing runtime artifacts, missing desktop screenshot, blank screenshot, or
+  missing expected UI text/name evidence are `TEST_GAP`.
 - `CODE_GAP`: Evidence shows the implementation is missing a connection,
   registration, binding, subscription, import, route, or call site.
 - `SPEC_GAP`: The plan lacks an automatable oracle or does not define the
