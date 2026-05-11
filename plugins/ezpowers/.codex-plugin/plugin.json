@@ -32,6 +32,8 @@
       "Write"
     ],
     "websiteURL": "https://github.com/dlwlgus9125/EZPowers",
+    "privacyPolicyURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/TERMS.md",
     "defaultPrompt": [
       "Use EZPowers to set up this project.",
       "Run an EZPowers brainstorm for this feature.",
