@@ -5,6 +5,7 @@ allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
 
 # /plan — Task Sequencing
 
+Source contracts: `docs/reference/domain-language.md`, `docs/reference/architecture-readiness-contract.md`, `docs/reference/verification-contract.md`, `docs/reference/dispatch-protocol.md`.
 Take the spec from /brainstorm as input, decompose it into detailed tasks, and determine agent assignments. No code is written.
 
 > **For agentic workers:** /choiceexecutor runs tasks from this plan via subagent-driven, harness, or inline execution. Steps are tracked with checkbox syntax.

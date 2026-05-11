@@ -3,6 +3,37 @@
 Backend-aware dispatch for reviewer subagents. Commands reference this document
 before dispatching any reviewer or workflow-runner agent.
 
+This document is also the canonical workflow dispatch contract for reviewer
+verdict parsing, retry handling, and workflow-runner scope. It complements
+`docs/reference/domain-language.md`, `docs/reference/verification-contract.md`,
+and `docs/reference/architecture-readiness-contract.md`.
+
+## Dispatch Interface
+
+Every dispatching command must provide only dynamic task inputs to the target
+agent: artifact paths, diff ranges, changed-file lists, invocation mode, and
+verification evidence. The target agent document remains the procedure source of
+truth.
+
+Do not paste whole specs, plans, or command files into dispatch prompts when a
+path is enough. Do not pass previous reviewer output into a fresh review.
+
+## Workflow Runner Interface
+
+`ezpowers:workflow-runner` is a scoped adapter for command-level chaining. It
+may run only `/pipeline-audit` or `/sync-docs`.
+
+For `/pipeline-audit`, allowed writes are limited to the `audit` field in
+`phases/index.json`.
+
+For `/sync-docs`, allowed writes are limited to fact-derived reference docs,
+`docs/INDEX.md` registration changes, and the `AGENTS.md` Stack section when
+the command procedure permits it.
+
+Workflow-runner responses must begin with exactly one status line:
+`**Status:** DONE`, `**Status:** NO_CHANGES`, `**Status:** NEEDS_USER`, or
+`**Status:** FAIL`.
+
 ## Config Read
 
 Read `.harness/config.json` → `executor` block:
@@ -119,6 +150,33 @@ Verdict parsing is identical for both paths:
 - **Codex timeout / connection failure:** Report the error to the user. Do not auto-fallback to claude-code (the backend choice is explicit).
 - **Parse failure (no verdict found):** Treat as `FAIL`. Log: "Codex reviewer output did not contain a valid verdict header."
 - **Codex returns empty output:** Treat as `FAIL`. Escalate after 2 consecutive empty responses.
+
+### Retry And Oscillation
+
+Each review loop must re-dispatch from fresh context after a fix. Track issue
+keys privately in the controller. If the same issue key appears in 2 or more
+prior iterations, escalate instead of continuing the loop.
+
+Default review loop limits:
+
+| Review type | Max rounds | Warn at | Stop at |
+| --- | --- | --- | --- |
+| Spec review | 5 | 3 | 5 |
+| Architecture review | 5 | 3 | 5 |
+| Plan review | 5 | 3 | 5 |
+| Security review | 5 | 3 | 5 |
+| Final code review | 10 | 5 | 10 |
+| Implementer acceptance criteria | 3 | N/A | 3 |
+| Runtime or smoke probe | 3 | N/A | 3 |
+
+`PASS_WITH_ISSUES` is a conditional pass for Important issues only. It permits
+one fix-and-review round. If the next review returns `PASS` or
+`PASS_WITH_ISSUES` with the same or fewer Important issues, accept it. If it
+returns `FAIL`, enter the failure loop.
+
+Wiring review uses the verdict interface from
+`docs/reference/verification-contract.md`: `PASS`, `TEST_GAP`, `CODE_GAP`, or
+`SPEC_GAP`.
 
 ## Agents NOT Covered by This Protocol
 

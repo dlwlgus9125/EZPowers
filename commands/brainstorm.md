@@ -5,6 +5,7 @@ allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
 
 # /brainstorm — Spec Document Generation
 
+Source contracts: `docs/reference/domain-language.md`, `docs/reference/architecture-readiness-contract.md`, `docs/reference/verification-contract.md`, `docs/reference/dispatch-protocol.md`.
 Turn ideas into spec documents through guided conversation. No implementation code is written.
 
 <HARD-GATE>

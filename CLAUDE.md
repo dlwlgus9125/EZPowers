@@ -101,6 +101,14 @@ bin/
 
 ## Key Conventions
 
+- **Canonical workflow contracts**: Use `docs/reference/domain-language.md`,
+  `docs/reference/verification-contract.md`,
+  `docs/reference/architecture-readiness-contract.md`, and
+  `docs/reference/dispatch-protocol.md` as the SSOT for workflow vocabulary,
+  verification evidence, architecture readiness, reviewer dispatch, verdicts,
+  retries, and workflow-runner scope. If command or agent wording conflicts
+  with these references, preserve behavior and update the stale local wording.
+
 - **Command lazy-loading**: EZPowers slash commands use default lazy-loading —
   descriptions appear in context for discoverability, but command bodies load
   only when the user explicitly invokes or another command delegates.

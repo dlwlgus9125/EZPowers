@@ -5,6 +5,7 @@ allowed-tools: [Bash, Read, Write, Edit, Agent, AskUserQuestion]
 
 # /choiceexecutor — Execution Path Selection
 
+Source contracts: `docs/reference/domain-language.md`, `docs/reference/verification-contract.md`, `docs/reference/dispatch-protocol.md`.
 Execute tasks from the plan document. Choose an execution mode (subagent / harness / inline), then run tasks + AC verification + conditional security review + final code review.
 
 ## 1. Pre-flight Checks
