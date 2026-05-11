@@ -88,6 +88,8 @@ c. Verify step existence: Task must contain "Run Verify command" step.
 
 For tasks without test code: apply only check c.
 
+**5A. TDD Slice Contract density:** Behavior-bearing tasks must include a `TDD Slice Contract` with public interface, behavior under test, test oracle, setup/fixtures, minimal implementation boundary, non-goals, and missing-info handling. If absent or replaced by verbose internal implementation prose, FAIL.
+
 **6. Build config cross-validation:**
 If task modifies bundler/build config: verify externalize/exclude/alias strategy is compatible with dependency module systems (CJS/ESM). Flag blanket patterns (e.g., `externals: [/node_modules/]`) that may break ESM-only deps. No build config in task → skip.
 
