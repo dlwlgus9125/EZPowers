@@ -253,6 +253,8 @@ before reporting harness success.
 7. Run smoke from `.harness/config.json` when configured; smoke failure sets `status: "fail"`.
 8. Dispatch `ezpowers:wiring-reviewer` for an independent verdict.
 
+> **Dispatch protocol:** Read `docs/reference/dispatch-protocol.md` and follow the backend-appropriate dispatch path.
+
 Wiring reviewer dispatch:
 
 ```

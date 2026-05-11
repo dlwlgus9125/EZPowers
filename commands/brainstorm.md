@@ -368,6 +368,8 @@ If a Specs section exists, add the entry. Otherwise, create the section.
 
 After writing the spec:
 
+> **Dispatch protocol:** Read `docs/reference/dispatch-protocol.md` and follow the backend-appropriate dispatch path for each reviewer below.
+
 1. Dispatch `ezpowers:spec-reviewer` plugin agent via `subagent_type`. Pass only dynamic info in the prompt:
 
    ```

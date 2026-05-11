@@ -342,6 +342,8 @@ Include in implementer prompts for tasks modifying existing files:
 
 3+ `.md` reviewers -> sequential execution
 
+> **Dispatch protocol:** Read `docs/reference/dispatch-protocol.md` and follow the backend-appropriate dispatch path for each reviewer below. Implementer dispatch is not affected.
+
 ### Subagent Dispatch — Placeholder Substitution List
 
 Substitute template placeholders on every subagent dispatch:

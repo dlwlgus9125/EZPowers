@@ -1,7 +1,7 @@
 {
   "name": "ezpowers",
   "description": "Personal Claude Code skill plugin — SDD-based workflow with brainstorm, plan, choiceexecutor flow",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
@@ -13,7 +13,8 @@
     "eval_version": "1.0.0",
     "eval_baseline_path": "evals/results/baselines/0.8.0.json",
     "harness_changelog": "harness_versions/changelog.jsonl",
-    "supported_models": ["claude-sonnet-4-6", "claude-opus-4-6"],
+    "supported_backends": ["claude-code", "codex-cli"],
+    "supported_models": ["claude-sonnet-4-6", "claude-opus-4-6", "gpt-5.5", "gpt-5.5-pro", "gpt-5.4", "gpt-5.3-codex-spark"],
     "trace_collection": "opt-in"
   }
 }

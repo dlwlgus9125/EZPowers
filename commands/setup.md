@@ -358,7 +358,9 @@ Content is authored by humans.
     "context_window": 200000,
     "budget_ratio": 0.40,
     "backend": "claude-code",
-    "reviewer_backend": "claude-code"
+    "reviewer_backend": "claude-code",
+    "reviewer_model": "",
+    "codex_reviewer_model": ""
   },
   "harness": {
     "root": ""
@@ -415,7 +417,9 @@ Field descriptions:
 - `executor.context_window`: Context window size
 - `executor.budget_ratio`: Allowed ratio per step
 - `executor.backend`: `/executeharness` execution backend (`claude-code` | `codex-cli` | `openai-api`, default `claude-code`)
-- `executor.reviewer_backend`: Verifier subagent backend (default `claude-code`)
+- `executor.reviewer_backend`: Verifier subagent backend (default `claude-code`). See `docs/reference/dispatch-protocol.md`
+- `executor.reviewer_model`: Claude backend model override for reviewer agents (`"sonnet"` | `"opus"` | `"haiku"`, empty = agent default)
+- `executor.codex_reviewer_model`: Codex backend model for reviewer agents (`"gpt-5.5"` | `"gpt-5.5-pro"` | `"gpt-5.4"` | `"spark"`, empty = Codex default)
 - `harness.root`: EasyPowersHarness install path (empty string = `/executeharness` path disabled)
 - `defaults.spec_location`: Spec document save directory
 - `defaults.plan_location`: Plan document save directory
