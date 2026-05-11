@@ -1,0 +1,20 @@
+{
+  "name": "ezpowers-dev",
+  "interface": {
+    "displayName": "EZPowers Dev"
+  },
+  "plugins": [
+    {
+      "name": "ezpowers",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
