@@ -147,6 +147,8 @@ Write each task assuming it runs in an independent agent session.
 - Modify: `exact/path/to/existing.py:123-145`
 - Test: `tests/exact/path/to/test.py`
 
+**TDD Slice Contract:** Public interface: [entry point/input/output]; Behavior under test: [observable Then]; Test oracle: [assertion/Verify]; Required setup/fixtures: [data/env]; Minimal implementation boundary: [files/functions]; Non-goals: [out of slice]; Missing-info handling: report NEEDS_CONTEXT/BLOCKED, do not guess.
+
 **Impact scope:**
 - (a) Reference breakage: [`path/to/consumer.py`] — imports `changed_function`; [`path/to/indirect.py`] — imports via re-export in `path/to/barrel.py`; [`path/to/caller.py`] — calls `modified_function` (signature change: added `timeout` param)
 - (b) Call site info (reference only — no verdict impact): [`path/to/other.py:30`] — calls `modified_function` (behavioral dependency only)
@@ -204,6 +206,7 @@ Expected: exit 0
 ### Completion Criteria Rules
 
 - Copy spec AC **verbatim** — no paraphrasing
+- Behavior-bearing tasks must include a TDD Slice Contract; keep it to implementation-critical facts, not prose or imagined internals.
 - If a task spans multiple Rs, copy only the relevant parts
 - Every task requires a verification method
 - If the artifact is an executable binary/app, the plan MUST include a `**Runtime verification (executable artifacts only):**` line in each task that produces or modifies the executable entry point. Use the pattern: `<start-cmd> & sleep N && kill $! 2>/dev/null; test $? -eq 0`. N should be 3-5 seconds for CLI/desktop apps, matched to `config.server.health_check_timeout` for servers. This line is consumed by /choiceexecutor's runtime probe and is NOT optional for executable artifacts.
