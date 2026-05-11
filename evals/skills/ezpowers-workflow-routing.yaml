@@ -1,0 +1,16 @@
+case_id: skill.ezpowers-workflow.routing
+skill: ezpowers-workflow
+prompt: "Translate the EZPowers brainstorm workflow for Codex."
+expected_first_action: Use this adapter only for adapter/translation requests; named commands load commands/*.md directly.
+invariants:
+  - Keep commands as source of truth.
+  - Do not become a background router.
+  - Preserve Claude-specific command files.
+forbidden_behaviors:
+  - Rewriting commands or hooks just to adapt workflow guidance.
+static:
+  max_words: 260
+  must_contain:
+    - "commands/*.md"
+    - "Do not use this skill as a background router"
+    - "commands/brainstorm.md"

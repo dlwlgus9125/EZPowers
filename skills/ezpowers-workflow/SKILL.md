@@ -5,52 +5,29 @@ description: Direct-invocation Codex adapter for EZPowers command documents. Use
 
 # EZPowers Workflow
 
-## Purpose
+This skill adapts EZPowers command documents for Codex. The source of truth stays in `commands/*.md`.
 
-This is a direct-invocation Codex adapter for the existing EZPowers workflow
-documents. Keep the workflow source of truth in `commands/`; this skill only
-maps user intent to the right command document and explains how to apply it from
-Codex.
+Do not use this skill as a background router. If the user invokes a named EZPowers command, read that command document directly and follow it.
 
-Do not use this skill as a background router for normal EZPowers command
-execution. Named command execution should load the target `commands/*.md`
-document directly.
+## Command Map
 
-## Command Mapping
-
-Use these files as the procedure reference:
-
-| User intent | Reference |
+| Intent | Source |
 | --- | --- |
-| Initialize project harness or steering docs | `commands/setup.md` |
-| Turn an idea into a spec | `commands/brainstorm.md` |
-| Audit spec/plan readiness | `commands/pipeline-audit.md` |
-| Decompose an approved spec into tasks | `commands/plan.md` |
-| Choose and run an execution path | `commands/choiceexecutor.md` |
-| Delegate execution to EasyPowersHarness | `commands/executeharness.md` |
-| Review implementation against spec | `commands/review.md` |
-| Sync references and docs | `commands/sync-docs.md` |
-| Run eval suite or inspect scores | `commands/eval.md` |
-| Promote feedback or traces into eval cases | `commands/feedback.md` |
+| Setup harness | `commands/setup.md` |
+| Brainstorm/spec | `commands/brainstorm.md` |
+| Pipeline audit | `commands/pipeline-audit.md` |
+| Plan tasks | `commands/plan.md` |
+| Choose execution | `commands/choiceexecutor.md` |
+| Execute harness | `commands/executeharness.md` |
+| Review | `commands/review.md` |
+| Sync docs | `commands/sync-docs.md` |
+| Eval | `commands/eval.md` |
+| Feedback | `commands/feedback.md` |
 
-## Codex Adaptation Rules
+## Adapter Rules
 
-- Read the matching `commands/*.md` file before acting, then follow its intent and gates.
-- Preserve existing Claude plugin behavior: do not rewrite `.claude-plugin/`, `commands/`, `agents/`, or `hooks/` just to adapt a workflow for Codex.
-- Translate Claude-specific tool names to Codex equivalents only at execution time. For example, use normal shell reads/searches for `Read` or `Grep`, and use Codex subagents only when the active Codex instructions allow delegation.
-- Treat Claude hook setup as Claude-specific. Do not enable or invoke `hooks/hooks.json` from Codex unless the user explicitly asks for Claude hook work.
-- Keep evidence-based verification from the referenced command: run the stated checks where possible and report any check that cannot run.
-
-## Default Flow
-
-For a normal feature request:
-
-1. Use `commands/setup.md` only if the target project has no EZPowers harness context.
-2. Use `commands/brainstorm.md` to produce or refine the spec.
-3. Use `commands/pipeline-audit.md` after the spec is accepted.
-4. Use `commands/plan.md` after the audit passes.
-5. Use `commands/pipeline-audit.md` again after the plan is accepted.
-6. Use `commands/choiceexecutor.md` to implement the plan.
-7. Use `commands/review.md` before final handoff when implementation changed code.
-
-When a user asks for one named EZPowers command, use only that command's reference unless it explicitly requires an earlier artifact.
+- Read the matching command before acting.
+- Translate Claude-specific tool names to Codex tools only at execution time.
+- Do not rewrite `.claude-plugin/`, `commands/`, `agents/`, or `hooks/` just to adapt a workflow.
+- Treat hooks as Claude-specific unless the user asks for hook work.
+- Preserve each command's evidence and verification gates.

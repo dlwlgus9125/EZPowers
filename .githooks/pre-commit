@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-# EZPowers eval gate: only fire when commands/ or agents/ are staged
-if git diff --cached --name-only | grep -qE '^(commands|agents)/'; then
-  echo "EZPowers eval gate: commands/agents changed, running validate.py"
+# EZPowers eval gate: fire when command, agent, skill, or skill-gate files are staged
+if git diff --cached --name-only | grep -qE '^(commands|agents|skills)/|^evals/skills/|^scripts/(run_skill_evals|validate)\.py$|^\.githooks/pre-commit$'; then
+  echo "EZPowers eval gate: relevant files changed, running validate.py"
   python scripts/validate.py --staged
 fi

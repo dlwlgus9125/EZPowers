@@ -1,6 +1,5 @@
 {
   "name": "ezpowers-dev",
-  "description": "Development marketplace for EZPowers skill plugin",
   "owner": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
@@ -9,7 +8,7 @@
     {
       "name": "ezpowers",
       "description": "Personal Claude Code skill plugin — SDD-based workflow with brainstorm, plan, choiceexecutor flow",
-      "version": "0.11.2",
+      "version": "1.1.1",
       "source": "./",
       "author": {
         "name": "dlwlgus9125",

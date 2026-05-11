@@ -1,0 +1,22 @@
+case_id: skill.verifyself.latest-proposal
+skill: verifyself
+prompt: "/verifyself"
+expected_first_action: Identify the most recent proposal or judgment and show it as the verification target.
+invariants:
+  - Use CoVe-style independent verification questions.
+  - Judge evidence without relying on the original conclusion.
+  - Return only PASS, CONCERN, or FAIL verdicts.
+  - Revise only when a FAIL or CONCERN exists.
+forbidden_behaviors:
+  - Passing on uncertainty.
+  - Treating subjective depth as evidence.
+static:
+  max_words: 360
+  must_contain:
+    - "Verification target:"
+    - "PASS | CONCERN | FAIL"
+    - "When uncertain, use CONCERN."
+  must_not_contain:
+    - "seems correct"
+  required_reference_links:
+    - "references/verification-playbook.md"

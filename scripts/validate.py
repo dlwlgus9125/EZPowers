@@ -82,7 +82,13 @@ def _diff_flag(staged: bool) -> list[str]:
 
 def get_changed_files(staged: bool) -> list[str]:
     out = _git("diff", *_diff_flag(staged), "--name-only")
-    return [f for f in out.split("\n") if f.strip()]
+    changed = [f.strip().replace("\\", "/") for f in out.split("\n") if f.strip()]
+    if not staged:
+        status = _git("status", "--porcelain")
+        for raw in status.split("\n"):
+            if raw.startswith("?? "):
+                changed.append(raw[3:].strip().replace("\\", "/"))
+    return sorted(set(changed))
 
 
 def get_diff_line_count(staged: bool, paths: list[str]) -> int:
@@ -439,6 +445,28 @@ def _check_expected_improvements_stub() -> tuple[bool, str]:
 
 
 # ---------------------------------------------------------------------------
+# Skill regression gate
+# ---------------------------------------------------------------------------
+def check_skill_evals(staged: bool) -> tuple[bool, str]:
+    cmd = [sys.executable, "scripts/run_skill_evals.py"]
+    if staged:
+        cmd.append("--staged")
+    proc = subprocess.run(
+        cmd,
+        cwd=str(REPO_ROOT),
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+    )
+    output = ((proc.stdout or "") + "\n" + (proc.stderr or "")).strip()
+    tail = " | ".join(line.strip() for line in output.splitlines()[-4:] if line.strip())
+    if proc.returncode != 0:
+        return False, tail or "skill eval runner failed"
+    return True, tail or "skill evals passed"
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main() -> None:
@@ -451,24 +479,33 @@ def main() -> None:
 
     changed = get_changed_files(args.staged)
     target = [f for f in changed if f.startswith(("commands/", "agents/"))]
+    skill_target = [
+        f for f in changed
+        if f.startswith(("skills/", "evals/skills/"))
+        or f in ("scripts/run_skill_evals.py", "scripts/validate.py", ".githooks/pre-commit")
+    ]
 
-    if not target:
-        print("No commands/ or agents/ files changed. Gate not applicable.")
+    if not target and not skill_target:
+        print("No commands/, agents/, or skill gate files changed. Gate not applicable.")
         sys.exit(0)
 
-    checks = [
-        ("diff_line_count", lambda: check_diff_lines(args.staged, changed)),
-        ("eval_isolation", lambda: check_eval_isolation(changed)),
-        ("golden_invariants", check_golden),
-        ("optimization_delta", check_optimization_delta),
-        ("holdout_delta", check_holdout_delta),
-        ("banned_self_ref", lambda: check_banned_self_ref(args.staged, changed)),
-        # Blueprint B.4 checklist #6 (expected_improvements) is intentionally
-        # deferred: it requires eval-diagnostician output which only exists in
-        # the propose_edit.py workflow, not in ad-hoc commits. When diagnostician
-        # is used, propose_edit.py will enforce this check separately.
-        ("expected_improvements", _check_expected_improvements_stub),
-    ]
+    checks = []
+    if target:
+        checks.extend([
+            ("diff_line_count", lambda: check_diff_lines(args.staged, changed)),
+            ("eval_isolation", lambda: check_eval_isolation(changed)),
+            ("golden_invariants", check_golden),
+            ("optimization_delta", check_optimization_delta),
+            ("holdout_delta", check_holdout_delta),
+            ("banned_self_ref", lambda: check_banned_self_ref(args.staged, changed)),
+            # Blueprint B.4 checklist #6 (expected_improvements) is intentionally
+            # deferred: it requires eval-diagnostician output which only exists in
+            # the propose_edit.py workflow, not in ad-hoc commits. When diagnostician
+            # is used, propose_edit.py will enforce this check separately.
+            ("expected_improvements", _check_expected_improvements_stub),
+        ])
+    if skill_target:
+        checks.append(("skill_evals", lambda: check_skill_evals(args.staged)))
 
     any_fail = False
     for name, fn in checks:

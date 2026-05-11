@@ -1,0 +1,33 @@
+case_id: skill.verifyself.file-target
+skill: verifyself
+prompt: "/verifyself docs/example.md"
+expected_first_action: Read the file target before generating verification questions.
+invariants:
+  - File-path targets are read from disk.
+  - Evidence cites concrete files, lines, sections, or facts.
+  - Missing evidence becomes Unverifiable or CONCERN, not PASS.
+forbidden_behaviors:
+  - Verifying from memory when a file path is available.
+static:
+  max_words: 360
+  must_contain:
+    - "With argument:"
+    - "read the file"
+    - "Evidence"
+  required_files:
+    - "evals/skills/fixtures/verifyself-target.md"
+  required_reference_links:
+    - "references/verification-playbook.md"
+live:
+  agent: claude
+  prompt: "/verifyself evals/skills/fixtures/verifyself-target.md. If the file contains a fixture sentinel, include that sentinel exactly in the Evidence field."
+  timeout_seconds: 120
+  max_budget_usd: "0.75"
+  tools:
+    - Read
+  must_contain:
+    - "VERIFYSELF_FIXTURE_SENTINEL_20260511"
+  must_match:
+    - "Verifyself Report"
+    - "Evidence"
+    - "PASS|CONCERN|FAIL"

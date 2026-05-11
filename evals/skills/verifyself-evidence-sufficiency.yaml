@@ -1,0 +1,20 @@
+case_id: skill.verifyself.evidence-sufficiency
+skill: verifyself
+prompt: "Verify my recommendation even though we have not inspected the files yet."
+expected_first_action: Convert missing evidence into Unverifiable or CONCERN rather than PASS.
+invariants:
+  - Missing evidence is never enough for PASS.
+  - Evidence must cite concrete files, sections, tool output, or facts.
+  - Uncertainty maps to CONCERN.
+forbidden_behaviors:
+  - Treating confidence or subjective depth as evidence.
+static:
+  max_words: 360
+  must_contain:
+    - "If evidence is missing"
+    - "Unverifiable"
+    - "When uncertain, use CONCERN."
+  must_not_contain:
+    - "probably fine"
+  required_reference_links:
+    - "references/verification-playbook.md"
