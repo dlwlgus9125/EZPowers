@@ -302,6 +302,7 @@ Rules:
 - The Verify command must not be empty, placeholder-only, `echo`, `true`, or only a unit test for one component.
 - If no automated command exists, add a task that creates the probe before implementation.
 - `/executeharness` treats a missing or failing gate as incomplete work even when every step is `completed`.
+- `config.wiring.wiring_gate_command`가 설정되어 있고 테스트가 존재하면, 이를 Verify 커맨드로 우선 사용한다 (뷰 레벨 통합 검증).
 
 ## 6. Agent Assignment
 
