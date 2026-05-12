@@ -579,7 +579,7 @@ After all tasks + final review complete:
    | 20 | Timeout |
    | 30 | Unsupported platform |
 
-4. Dispatch `ezpowers:workflow-runner` to invoke `/sync-docs` in
+5. Dispatch `ezpowers:workflow-runner` to invoke `/sync-docs` in
    `auto-from-choiceexecutor` mode:
 
    ```
