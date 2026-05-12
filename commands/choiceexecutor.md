@@ -614,7 +614,7 @@ After all tasks + final review complete:
    }
    ```
 
-5. Next recommendation: `/review`
+6. Next recommendation: `/review`
 
 Update `phases/index.json`:
 - build: `status: "complete"`, `completed_at: "<ISO 8601>"`
