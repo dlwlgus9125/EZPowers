@@ -252,6 +252,9 @@ Simple `pure`/`cli`/`lib` tasks skip the arbiter and proceed directly to securit
 
 **Arbiter dispatch limit:** max 2 rounds per task. If arbiter returns TEST_GAP or CODE_GAP twice, escalate to user.
 
+### View Wiring Test (Per-Task)
+**감지:** Task changed-files에 `config.wiring.view_extensions` 매칭 확장자 포함 여부. 비어있거나 미설정이면 skip.
+
 ## 6. Conditional Security Review
 
 After AC verification PASS (and arbiter PASS for integration/e2e tasks), check whether security review is needed.
