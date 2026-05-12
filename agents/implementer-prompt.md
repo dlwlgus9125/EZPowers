@@ -60,6 +60,9 @@ Agent tool:
     - Only modify files listed in the plan's **Files** section.
     - If you must modify an unlisted file, report **NEEDS_CONTEXT** and explain why. Do not expand scope without controller approval.
 
+    ## View Wiring Verification (task Files에 view 확장자 포함 시에만 삽입)
+    이 Task는 뷰 파일을 포함합니다. 모델 전용 테스트만으로는 불충분합니다. 반드시 다음을 작성하세요:
+
     ## Command Safety
 
     Do not invoke parent commands (`/choiceexecutor`, `/executeharness`, `/plan`, `/brainstorm`, `/setup`, `/review`). You are a single-task executor.
