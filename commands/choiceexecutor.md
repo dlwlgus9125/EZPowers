@@ -552,6 +552,7 @@ After all tasks + final review complete:
 3. **Wiring Gate Test (conditional):** `config.wiring.wiring_gate_command`가 설정되어 있고 plan에 `## Full-Feature Wiring Gate`의 `Required: yes`가 있으면 실행.
    `config.wiring.wiring_gate_command` 실행 (timeout: 120s). 미설정 시 plan의 Wiring Gate Verify 커맨드 사용. Exit 0 = PASS. Non-zero = FAIL.
    FAIL → 테스트 출력에서 실패 뷰/파이프라인 식별, Coverage Matrix로 Task 역추적, 해당 Task implementer 재디스패치. Max 3 retries → user 에스컬레이션.
+   `Required: yes` → skip 불가. 테스트 파일 미존재 → 테스트 작성 Task를 자동 추가.
 4. **Smoke/runtime gate:** Run the configured runtime probe. If `config.smoke.required: true`, missing `config.smoke.command` is FAIL. Empty smoke may skip only for `artifact_kind: docs|library` with `required: false`. Any failure enters the fix loop (max 3).
 
    **GUI smoke (if `config.smoke.gui_strategy` is not `skip` and not absent):**
