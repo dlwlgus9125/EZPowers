@@ -129,7 +129,8 @@ Record git hash (git rev-parse HEAD)
   -> Controller: AC verification (run Verify commands)
     -> ALL PASS -> Runtime probe (if applicable)
       -> PASS -> AC Arbiter (integration/e2e tasks only)
-        -> PASS -> conditional security review
+        -> PASS -> View Wiring Test (view tasks only)
+          -> PASS -> conditional security review
         -> TEST_GAP/CODE_GAP/SPEC_GAP -> re-dispatch or return to /plan
       -> FAIL -> re-dispatch with runtime error
     -> FAIL -> re-dispatch with failure details (max 3)
