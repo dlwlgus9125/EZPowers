@@ -54,6 +54,7 @@ Look for concrete connections in the diff:
 
 ### 2.5 Dynamic Wiring Verification
 `config.wiring.view_test_command`가 설정되어 있으면 해당 커맨드 실행 (timeout: 120s). 테스트 FAIL → 정적 분석 결과와 무관하게 reviewer verdict FAIL.
+뷰 파일이 diff에 있으나 wiring 테스트 미존재 → TEST_GAP: "View files changed but no wiring tests found"
 
 ### 3. Failure Classification
 - `TEST_GAP`: The implementation may be wired, but the Verify/smoke evidence
