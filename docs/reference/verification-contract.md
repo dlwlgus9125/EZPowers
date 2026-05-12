@@ -136,3 +136,69 @@ Independent arbiters and wiring reviewers classify gaps as:
 - `TEST_GAP`: implementation may be wired, but evidence does not prove the Then clause.
 - `CODE_GAP`: registration, route, import, binding, subscription, or call site is missing.
 - `SPEC_GAP`: the plan lacks an automatable oracle or enough path detail to judge wiring.
+
+## View Wiring Verification
+
+View를 포함하는 작업의 모델 레벨 테스트만으로는 5가지 와이어링 결함을 잡지
+못한다. 검증 계층 모델:
+
+```
+Layer 1: Model/ViewModel Unit Test  (기존 — Task AC)
+Layer 2: View Wiring Test           (이 섹션)
+Layer 3: Integration Probe          (Full-Feature Wiring Gate)
+Layer 4: Runtime Smoke              (config.smoke)
+```
+
+Layer 1만으로는 와이어링을 검증할 수 없다. Layer 2-3이 반드시 필요하다.
+
+### 적용 조건
+
+`config.wiring.view_extensions`에 해당하는 파일을 Create 또는 Modify하는 Task에
+의무 적용. 모델/로직 전용 Task는 면제.
+
+### Wiring Defect Taxonomy (W1-W5)
+
+| ID | 결함 유형 | 모델 테스트가 못 잡는 이유 | 실앱 증상 |
+|---|---|---|---|
+| W1 | Binding resolution | 뷰를 인스턴스화하지 않음 | 데이터 안 나옴 (조용한 실패) |
+| W2 | Handler connection | 뷰 상호작용 코드 미실행 | 버튼/이벤트 무반응 |
+| W3 | Dependency resolution | Mock 사용, 실제 DI 미검증 | 앱 시작 시 크래시 또는 null |
+| W4 | Activation state | 모델 속성과 무관하게 하드코딩 | 요소 비활성/숨김 |
+| W5 | Template resolution | 모델만 테스트 | 모델은 있으나 뷰 렌더 안 됨 |
+
+### Per-Task View Wiring Test (Layer 2)
+
+View를 생성하거나 수정하는 모든 Task에 의무 적용.
+모델만 생성하는 Task (View 없음)는 면제.
+
+Task의 AC 검증 통과 후, View Wiring Verify 커맨드를 실행한다.
+커맨드 소스: task의 `**View wiring verification**` 섹션 Verify 또는
+`config.wiring.view_test_command`. Exit 0 = PASS.
+
+5대 검증 항목:
+
+- **W1 Binding resolution**: 뷰 인스턴스화 후 핵심 데이터 바인딩 속성이
+  non-null 값으로 렌더됨
+- **W2 Handler connection**: 사용자 상호작용 핸들러를 프로그래밍으로 트리거 →
+  모델 상태 변경 확인
+- **W3 Dependency resolution**: 런타임 DI에서 모델/서비스 해석 → 뷰 컨텍스트
+  설정 → 크래시 없음
+- **W4 Activation state**: 사용자 상호작용 요소의 활성화 상태가 모델에 바인딩,
+  하드코딩 아님
+- **W5 Template resolution**: 모델→뷰 템플릿 매핑이 기대하는 뷰 타입으로 해석
+
+### Integration Probe (Layer 3)
+
+2개 이상의 Task가 완료된 빌드, executable artifact가 있는 빌드, 또는
+Full-Feature Wiring Gate가 plan에 정의된 빌드에서 적용.
+
+Full-Feature Wiring Gate의 Verify 커맨드로 전체 파이프라인 와이어링을 검증한다.
+`config.wiring.wiring_gate_command`가 설정되어 있으면 이를 우선 사용.
+기존 Wiring Gate 계약과 동일한 규칙 적용.
+
+Wiring Gate FAIL 시:
+1. 어떤 View/Pipeline에서 실패했는지 식별
+2. 어떤 유형의 결함인지 (W1-W5) 분류
+3. 해당 Task 역추적 → 재구현 디스패치
+4. Max 3 retries → user 에스컬레이션
+5. Wiring Gate 건너뛰기 불가 (Required: yes인 경우)

@@ -91,3 +91,22 @@ harness versus inline execution.
 A concrete implementation behind a seam, such as `claude-code` reviewer
 dispatch, `codex-cli` reviewer dispatch, harness execution, subagent execution,
 or inline execution.
+
+## View Wiring Terms
+
+**View Wiring Test**
+Per-task automated verification that a view file's bindings, handlers,
+dependency resolution, activation states, and templates resolve at the view
+instantiation level. Runs after AC verification for tasks containing view files
+(`config.wiring.view_extensions`). Layer 2 in the verification hierarchy.
+
+**Wiring Defect (W1-W5)**
+Five categories of view-level defects that model-only tests cannot catch:
+W1 binding resolution, W2 handler connection, W3 dependency resolution,
+W4 activation state, W5 template resolution.
+
+**Integration Probe**
+Post-completion automated test that exercises the full feature pipeline through
+the user-facing entry point, verifying cross-task wiring. Corresponds to
+Layer 3 and the Full-Feature Wiring Gate's dynamic verification.
+`config.wiring.wiring_gate_command` drives this probe when configured.
