@@ -167,6 +167,9 @@ Write each task assuming it runs in an independent agent session.
 **View wiring verification (conditional — task Files에 `config.wiring.view_extensions` 해당 확장자 포함 시):**
 - [ ] W1-binding: 뷰 인스턴스화 + 모델 컨텍스트 설정 후 데이터 바인딩 속성이 non-null 값으로 렌더
 - [ ] W2-handler: 사용자 상호작용 핸들러 프로그래밍 트리거 → 모델 상태 변경 확인
+- [ ] W3-dependency: 런타임 DI에서 모델/서비스 해석 → 뷰 컨텍스트 설정 → 크래시 없음
+- [ ] W4-activation: 사용자 상호작용 요소의 활성화 상태가 모델에 바인딩, 하드코딩 아님
+- [ ] W5-template: 모델→뷰 템플릿 매핑이 기대하는 뷰 타입으로 해석
 - [ ] **Step 1: Write the failing test**
 
 ```python
