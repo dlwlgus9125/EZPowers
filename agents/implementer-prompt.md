@@ -67,6 +67,7 @@ Agent tool:
     3. DI 컨테이너에서 모델/서비스를 해석하여 뷰 컨텍스트에 설정, 크래시 없음 확인 (W3)
     4. 상호작용 요소의 활성화 상태가 모델에 바인딩되어 있는지 확인, 하드코딩 아님 (W4)
     5. 템플릿 호스트에 모델 설정 후 기대하는 뷰 타입이 인스턴스화되는지 확인 (W5)
+    Task의 View wiring Verify 커맨드가 exit 0이어야 합니다. FAIL = task INCOMPLETE.
 
     ## Command Safety
 
