@@ -254,6 +254,8 @@ Simple `pure`/`cli`/`lib` tasks skip the arbiter and proceed directly to securit
 
 ### View Wiring Test (Per-Task)
 **감지:** Task changed-files에 `config.wiring.view_extensions` 매칭 확장자 포함 여부. 비어있거나 미설정이면 skip.
+**실행:** Task의 `**View wiring verification**` 섹션에서 Verify 커맨드 추출. 섹션 없으나 view 파일이 changed-files에 있음 → FAIL (plan에 wiring verification 누락).
+Verify 커맨드 실행 (timeout: 120s). Exit 0 = PASS. Non-zero = FAIL.
 
 ## 6. Conditional Security Review
 
