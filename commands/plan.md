@@ -164,6 +164,9 @@ Write each task assuming it runs in an independent agent session.
 **Verification method:** Run spec's Verify commands (exit 0 = PASS)
 **Runtime verification (executable artifacts only):** `<start-cmd> & sleep N && kill $! 2>/dev/null; test $? -eq 0` pattern for startup verification. Separate from build AC.
 
+**View wiring verification (conditional — task Files에 `config.wiring.view_extensions` 해당 확장자 포함 시):**
+- [ ] W1-binding: 뷰 인스턴스화 + 모델 컨텍스트 설정 후 데이터 바인딩 속성이 non-null 값으로 렌더
+- [ ] W2-handler: 사용자 상호작용 핸들러 프로그래밍 트리거 → 모델 상태 변경 확인
 - [ ] **Step 1: Write the failing test**
 
 ```python
