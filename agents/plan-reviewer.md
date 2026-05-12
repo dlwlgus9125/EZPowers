@@ -116,6 +116,8 @@ registration/binding/subscription/end-to-end language, the plan MUST include
 
 **9. View wiring verification check:**
 `.harness/config.json`의 `wiring.view_extensions`가 비어있지 않고, Task Files에 해당 확장자의 Create/Modify 항목이 있으면 `**View wiring verification**` 섹션(W1-W5)이 필수.
+- 뷰 파일 Task에 섹션 누락 → FAIL: "Task N modifies view files but has no View wiring verification section"
+- W1-W5 항목 불완전 → FAIL. 면제: 모델/로직 전용 파일만 수정하는 Task
 
 ## Advisory Checks (do NOT affect verdict)
 
