@@ -170,6 +170,8 @@ Write each task assuming it runs in an independent agent session.
 - [ ] W3-dependency: 런타임 DI에서 모델/서비스 해석 → 뷰 컨텍스트 설정 → 크래시 없음
 - [ ] W4-activation: 사용자 상호작용 요소의 활성화 상태가 모델에 바인딩, 하드코딩 아님
 - [ ] W5-template: 모델→뷰 템플릿 매핑이 기대하는 뷰 타입으로 해석
+Verify: `[config.wiring.view_test_command 또는 task별 커맨드]`
+
 - [ ] **Step 1: Write the failing test**
 
 ```python
