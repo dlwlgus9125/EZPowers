@@ -258,6 +258,7 @@ Simple `pure`/`cli`/`lib` tasks skip the arbiter and proceed directly to securit
 Verify 커맨드 실행 (timeout: 120s). Exit 0 = PASS. Non-zero = FAIL.
 FAIL → 테스트 출력에서 W1-W5 결함 유형 분류. implementer 재디스패치: "View Wiring Test failed. Defect type: [W1-W5]. [출력 발췌]. Fix the wiring defect."
 Max 3 retries → user 에스컬레이션. View 파일 존재 + `config.wiring.enabled: true` → skip 불가.
+**Inline execution (Path 3):** 동일 감지/실행. 재디스패치 대신 fix-in-place.
 
 ## 6. Conditional Security Review
 
