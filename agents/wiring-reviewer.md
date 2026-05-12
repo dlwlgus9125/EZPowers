@@ -52,6 +52,9 @@ Look for concrete connections in the diff:
 - UI state or data binding to the new behavior
 - Startup/lifecycle hookup for services, workers, jobs, or listeners
 
+### 2.5 Dynamic Wiring Verification
+`config.wiring.view_test_command`가 설정되어 있으면 해당 커맨드 실행 (timeout: 120s). 테스트 FAIL → 정적 분석 결과와 무관하게 reviewer verdict FAIL.
+
 ### 3. Failure Classification
 - `TEST_GAP`: The implementation may be wired, but the Verify/smoke evidence
   does not observe the full Then clause or entry path.
