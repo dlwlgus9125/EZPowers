@@ -549,7 +549,8 @@ If plan decomposition proves inadequate during execution — tasks too tightly c
 After all tasks + final review complete:
 1. Full diff summary (`git diff <first-task-start-hash>..HEAD`)
 2. Completed/failed/SKIPPED task list
-3. **Smoke/runtime gate:** Run the configured runtime probe. If `config.smoke.required: true`, missing `config.smoke.command` is FAIL. Empty smoke may skip only for `artifact_kind: docs|library` with `required: false`. Any failure enters the fix loop (max 3).
+3. **Wiring Gate Test (conditional):** `config.wiring.wiring_gate_command`가 설정되어 있고 plan에 `## Full-Feature Wiring Gate`의 `Required: yes`가 있으면 실행.
+4. **Smoke/runtime gate:** Run the configured runtime probe. If `config.smoke.required: true`, missing `config.smoke.command` is FAIL. Empty smoke may skip only for `artifact_kind: docs|library` with `required: false`. Any failure enters the fix loop (max 3).
 
    **GUI smoke (if `config.smoke.gui_strategy` is not `skip` and not absent):**
    Execute the gui_strategy probe after smoke command:
