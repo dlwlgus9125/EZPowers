@@ -6,6 +6,10 @@
 - [Architecture Readiness Contract](reference/architecture-readiness-contract.md): [canonical] architecture baseline, ASR, quality budget, and ADR readiness rules.
 - [Matt Pocock Harness Adapter](reference/mattpocock-harness-adapter.md): [canonical] mapping from Matt Pocock engineering skill principles to EZPowers harness positions.
 - [Reviewer Dispatch Protocol](reference/dispatch-protocol.md): [canonical] reviewer backend, workflow-runner, verdict, and retry protocol.
+- [Setup Contract](reference/setup-contract.md): [canonical] generated harness config, steering docs, smoke settings, and phase initialization rules.
+- [Spec Contract](reference/spec-contract.md): [canonical] brainstorm output, requirement schema, ADR, verify script, and spec review rules.
+- [Plan Contract](reference/plan-contract.md): [canonical] task plan shape, TDD slice, impact scope, pipeline, wiring gate, and plan review rules.
+- [Harness Execution Contract](reference/harness-execution-contract.md): [canonical] strict harness conversion, execution, recovery, wiring, and restoration rules.
 
 ## Decisions
 - [ADR Index](decisions/README.md): architecture decision record policy.

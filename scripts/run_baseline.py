@@ -15,15 +15,140 @@ import json
 import os
 import pathlib
 import re
+import signal
 import shutil
 import subprocess
 import sys
+import time
 
 try:
     import yaml
 except ImportError:
     print("ERROR: PyYAML required. Install with: pip install pyyaml", file=sys.stderr)
     sys.exit(1)
+
+
+DEFAULT_COMMAND_TIMEOUT_SECONDS = 30
+DEFAULT_CASE_TIMEOUT_SECONDS = 300
+
+
+def parse_timeout(value: str | int | None, default: int, label: str) -> int:
+    """Parse a positive timeout value from CLI args or environment."""
+    if value is None or value == "":
+        return default
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(f"{label} must be an integer") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError(f"{label} must be >= 1")
+    return parsed
+
+
+def env_timeout(name: str, default: int) -> int:
+    return parse_timeout(os.environ.get(name), default, name)
+
+
+def utc_timestamp() -> str:
+    return datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
+
+
+def write_progress(progress_file: str | pathlib.Path | None, payload: dict) -> None:
+    if not progress_file:
+        return
+    path = pathlib.Path(progress_file)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = {"timestamp": utc_timestamp(), **payload}
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _remaining_timeout(deadline: float | None, requested: int) -> float:
+    if deadline is None:
+        return float(requested)
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        return 0.0
+    return min(float(requested), remaining)
+
+
+def _default_progress_file(evals_root: pathlib.Path) -> pathlib.Path:
+    configured = os.environ.get("EZPOWERS_EVAL_PROGRESS_FILE")
+    if configured:
+        return pathlib.Path(configured)
+    return evals_root / "results" / "runs" / "last_eval_case.json"
+
+
+def _kill_process_tree(proc: subprocess.Popen) -> None:
+    if proc.poll() is not None:
+        return
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=5,
+                check=False,
+            )
+            return
+        except Exception:
+            pass
+    else:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+            return
+        except Exception:
+            pass
+    try:
+        proc.kill()
+    except Exception:
+        pass
+
+
+def run_command_with_timeout(
+    args,
+    *,
+    timeout: float,
+    cwd: str | pathlib.Path,
+    shell: bool = False,
+    input_text: str | None = None,
+) -> subprocess.CompletedProcess:
+    popen_kwargs = {
+        "cwd": str(cwd),
+        "shell": shell,
+        "stdout": subprocess.PIPE,
+        "stderr": subprocess.PIPE,
+        "text": True,
+        "encoding": "utf-8",
+        "errors": "replace",
+    }
+    if input_text is not None:
+        popen_kwargs["stdin"] = subprocess.PIPE
+    if os.name != "nt":
+        popen_kwargs["start_new_session"] = True
+    proc = subprocess.Popen(args, **popen_kwargs)
+    try:
+        stdout, stderr = proc.communicate(input=input_text, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        _kill_process_tree(proc)
+        try:
+            stdout, stderr = proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            stdout = exc.output or ""
+            stderr = exc.stderr or ""
+            for stream in (proc.stdin, proc.stdout, proc.stderr):
+                try:
+                    if stream:
+                        stream.close()
+                except Exception:
+                    pass
+        raise subprocess.TimeoutExpired(
+            cmd=args,
+            timeout=timeout,
+            output=stdout,
+            stderr=stderr,
+        ) from exc
+    return subprocess.CompletedProcess(args, proc.returncode, stdout, stderr)
 
 
 def load_case(path: pathlib.Path) -> dict:
@@ -154,7 +279,17 @@ def _substitute_vars(cmd: str, var_map: dict, val_map: dict) -> str:
     return cmd
 
 
-def run_deterministic_grader(commands: list[str], case: dict) -> dict:
+def run_deterministic_grader(
+    commands: list[str],
+    case: dict,
+    *,
+    command_timeout_seconds: int = DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    case_deadline: float | None = None,
+    case_id: str = "",
+    case_path: pathlib.Path | None = None,
+    progress_file: str | pathlib.Path | None = None,
+    progress_stream=None,
+) -> dict:
     """Run deterministic_tests grader commands.
 
     Returns dict with pass/fail and details.
@@ -166,6 +301,8 @@ def run_deterministic_grader(commands: list[str], case: dict) -> dict:
     var_map, val_map, temp_files = _prepare_mock_files(case)
     results = []
     all_pass = True
+    runnable_commands = [c for c in commands if "grader placeholder" not in c]
+    command_number = 0
 
     try:
         for cmd in commands:
@@ -178,21 +315,49 @@ def run_deterministic_grader(commands: list[str], case: dict) -> dict:
                 })
                 continue
 
+            command_number += 1
             resolved_cmd = _substitute_vars(cmd, var_map, val_map)
+            run_timeout = _remaining_timeout(case_deadline, command_timeout_seconds)
+            if run_timeout <= 0:
+                all_pass = False
+                results.append({
+                    "command": cmd,
+                    "status": "timeout",
+                    "timeout_seconds": 0,
+                    "reason": "case timeout reached before command started",
+                })
+                break
+
+            write_progress(progress_file, {
+                "runner": "run_baseline",
+                "phase": "grader_command_start",
+                "case_id": case_id or case.get("case_id", ""),
+                "case_path": str(case_path) if case_path else "",
+                "command_index": command_number,
+                "total_commands": len(runnable_commands),
+                "command": cmd,
+                "timeout_seconds": round(run_timeout, 3),
+            })
+            if progress_stream is not None:
+                print(
+                    f"[progress] {case_id or case.get('case_id', '')} "
+                    f"command {command_number}/{len(runnable_commands)} "
+                    f"timeout={run_timeout:.1f}s: {cmd}",
+                    file=progress_stream,
+                    flush=True,
+                )
             try:
                 # Prefer bash for Unix-style grader commands; fall back to shell=True
                 bash_path = shutil.which("bash")
                 if bash_path:
-                    proc = subprocess.run(
+                    proc = run_command_with_timeout(
                         [bash_path, "-c", resolved_cmd],
-                        capture_output=True, text=True,
-                        timeout=30, cwd=os.getcwd(),
+                        timeout=run_timeout, cwd=os.getcwd(),
                     )
                 else:
-                    proc = subprocess.run(
+                    proc = run_command_with_timeout(
                         resolved_cmd, shell=True,
-                        capture_output=True, text=True,
-                        timeout=30, cwd=os.getcwd(),
+                        timeout=run_timeout, cwd=os.getcwd(),
                     )
                 passed = proc.returncode == 0
                 if not passed:
@@ -203,11 +368,13 @@ def run_deterministic_grader(commands: list[str], case: dict) -> dict:
                     "returncode": proc.returncode,
                     "stderr": proc.stderr[:200] if proc.stderr else "",
                 })
-            except subprocess.TimeoutExpired:
+            except subprocess.TimeoutExpired as exc:
                 all_pass = False
                 results.append({
                     "command": cmd,
                     "status": "timeout",
+                    "timeout_seconds": round(run_timeout, 3),
+                    "stderr": (exc.stderr or "")[:200] if isinstance(exc.stderr, str) else "",
                 })
             except Exception as e:
                 all_pass = False
@@ -226,7 +393,16 @@ def run_deterministic_grader(commands: list[str], case: dict) -> dict:
     return {"pass": all_pass, "results": results}
 
 
-def run_graders(case: dict) -> dict:
+def run_graders(
+    case: dict,
+    *,
+    command_timeout_seconds: int = DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    case_deadline: float | None = None,
+    case_id: str = "",
+    case_path: pathlib.Path | None = None,
+    progress_file: str | pathlib.Path | None = None,
+    progress_stream=None,
+) -> dict:
     """Run all graders for a case. Returns aggregated result."""
     grader_results = []
     overall_pass = True
@@ -248,7 +424,16 @@ def run_graders(case: dict) -> dict:
                 continue
 
             has_runnable = True
-            result = run_deterministic_grader(commands, case)
+            result = run_deterministic_grader(
+                commands,
+                case,
+                command_timeout_seconds=command_timeout_seconds,
+                case_deadline=case_deadline,
+                case_id=case_id,
+                case_path=case_path,
+                progress_file=progress_file,
+                progress_stream=progress_stream,
+            )
             if not result["pass"]:
                 overall_pass = False
             grader_results.append({
@@ -328,23 +513,71 @@ def run_graders(case: dict) -> dict:
     }
 
 
-def run_case(case_path: pathlib.Path, model: str, n_trials: int = 1) -> dict:
+def run_case(
+    case_path: pathlib.Path,
+    model: str,
+    n_trials: int = 1,
+    *,
+    command_timeout_seconds: int | None = None,
+    case_timeout_seconds: int | None = None,
+    progress_file: str | pathlib.Path | None = None,
+    progress_stream=None,
+    case_index: int | None = None,
+    total_cases: int | None = None,
+) -> dict:
     """Run a single eval case and return results.
 
     In v1, this runs graders against current codebase state.
     Live execution (spawning Claude) is not yet implemented.
     """
+    command_timeout_seconds = (
+        DEFAULT_COMMAND_TIMEOUT_SECONDS
+        if command_timeout_seconds is None
+        else command_timeout_seconds
+    )
+    case_timeout_seconds = (
+        DEFAULT_CASE_TIMEOUT_SECONDS
+        if case_timeout_seconds is None
+        else case_timeout_seconds
+    )
     case = load_case(case_path)
 
     # Extract metadata
     case_id = case.get("case_id", case_path.stem)
     split = case.get("split", "unknown")
     stratum = case.get("stratum", {})
+    deadline = time.monotonic() + case_timeout_seconds
+
+    write_progress(progress_file, {
+        "runner": "run_baseline",
+        "phase": "case_start",
+        "case_id": case_id,
+        "case_path": str(case_path),
+        "case_index": case_index,
+        "total_cases": total_cases,
+        "timeout_seconds": case_timeout_seconds,
+    })
+    if progress_stream is not None:
+        prefix = f"[{case_index}/{total_cases}] " if case_index and total_cases else ""
+        print(
+            f"[progress] {prefix}{case_id} ({case_path}) "
+            f"case_timeout={case_timeout_seconds}s command_timeout={command_timeout_seconds}s",
+            file=progress_stream,
+            flush=True,
+        )
 
     # Run graders
-    grader_result = run_graders(case)
+    grader_result = run_graders(
+        case,
+        command_timeout_seconds=command_timeout_seconds,
+        case_deadline=deadline,
+        case_id=case_id,
+        case_path=case_path,
+        progress_file=progress_file,
+        progress_stream=progress_stream,
+    )
 
-    return {
+    result = {
         "case_id": case_id,
         "split": split,
         "stratum": stratum,
@@ -356,6 +589,17 @@ def run_case(case_path: pathlib.Path, model: str, n_trials: int = 1) -> dict:
         "graders": grader_result.get("graders", []),
         "reason": grader_result.get("reason", ""),
     }
+    write_progress(progress_file, {
+        "runner": "run_baseline",
+        "phase": "case_done",
+        "case_id": case_id,
+        "case_path": str(case_path),
+        "case_index": case_index,
+        "total_cases": total_cases,
+        "pass": result["pass"],
+        "mode": result["mode"],
+    })
+    return result
 
 
 def get_git_sha() -> str:
@@ -540,9 +784,36 @@ def main():
                         help="Root directory for eval cases")
     parser.add_argument("--dry-run", action="store_true",
                         help="List cases without running")
+    parser.add_argument(
+        "--timeout-seconds",
+        type=lambda value: parse_timeout(value, DEFAULT_CASE_TIMEOUT_SECONDS, "--timeout-seconds"),
+        default=env_timeout("EZPOWERS_EVAL_TIMEOUT_SECONDS", DEFAULT_CASE_TIMEOUT_SECONDS),
+        help=(
+            "Per-case timeout in seconds "
+            "(default: env EZPOWERS_EVAL_TIMEOUT_SECONDS or 300)"
+        ),
+    )
+    parser.add_argument(
+        "--command-timeout-seconds",
+        type=lambda value: parse_timeout(value, DEFAULT_COMMAND_TIMEOUT_SECONDS, "--command-timeout-seconds"),
+        default=env_timeout("EZPOWERS_EVAL_COMMAND_TIMEOUT_SECONDS", DEFAULT_COMMAND_TIMEOUT_SECONDS),
+        help=(
+            "Per-grader-command timeout in seconds "
+            "(default: env EZPOWERS_EVAL_COMMAND_TIMEOUT_SECONDS or 30)"
+        ),
+    )
+    parser.add_argument(
+        "--progress-file",
+        default=None,
+        help=(
+            "JSON file updated before each case/command "
+            "(default: env EZPOWERS_EVAL_PROGRESS_FILE or evals/results/runs/last_eval_case.json)"
+        ),
+    )
 
     args = parser.parse_args()
     evals_root = pathlib.Path(args.evals_root)
+    progress_file = pathlib.Path(args.progress_file) if args.progress_file else _default_progress_file(evals_root)
 
     # Discover cases
     if args.cases:
@@ -570,7 +841,16 @@ def main():
         case_id = case.get("case_id", path.stem)
         print(f"[{i}/{len(case_paths)}] {case_id} ... ", end="", flush=True)
 
-        result = run_case(path, args.model)
+        result = run_case(
+            path,
+            args.model,
+            command_timeout_seconds=args.command_timeout_seconds,
+            case_timeout_seconds=args.timeout_seconds,
+            progress_file=progress_file,
+            progress_stream=sys.stderr,
+            case_index=i,
+            total_cases=len(case_paths),
+        )
         results.append(result)
 
         status = "PASS" if result["pass"] else ("MANUAL" if result["pass"] is None else "FAIL")

@@ -26,6 +26,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 EVALS_ROOT = REPO_ROOT / "evals"
@@ -62,6 +63,8 @@ BANNED_EN_RE = [
 LIVE_EXEC_VARS = ("$REVIEW_OUTPUT", "$EXECUTOR_OUTPUT")
 
 MAX_DIFF_LINES = 3
+DEFAULT_VALIDATE_TIMEOUT_SECONDS = 300
+DEFAULT_EVAL_COMMAND_TIMEOUT_SECONDS = 30
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +168,22 @@ def _needs_live_exec(cmd: str) -> bool:
     return any(v in cmd for v in LIVE_EXEC_VARS)
 
 
-def check_golden() -> tuple[bool, str]:
+def _eval_progress_file(name: str) -> pathlib.Path:
+    configured = os.environ.get("EZPOWERS_EVAL_PROGRESS_FILE")
+    if configured:
+        return pathlib.Path(configured)
+    return EVALS_ROOT / "results" / "runs" / name
+
+
+def _print_progress(message: str) -> None:
+    print(f"[progress] {message}", file=sys.stderr, flush=True)
+
+
+def check_golden(
+    command_timeout_seconds: int = DEFAULT_EVAL_COMMAND_TIMEOUT_SECONDS,
+    case_timeout_seconds: int = DEFAULT_VALIDATE_TIMEOUT_SECONDS,
+    progress_file: str | pathlib.Path | None = None,
+) -> tuple[bool, str]:
     """Run golden eval deterministic graders that don't need live execution."""
     if not GOLDEN_DIR.exists():
         return True, "no golden directory"
@@ -181,6 +199,18 @@ def check_golden() -> tuple[bool, str]:
     for case_path in cases:
         case = rb.load_case(case_path)
         case_id = case.get("case_id", case_path.stem)
+        deadline = time.monotonic() + case_timeout_seconds
+        rb.write_progress(progress_file, {
+            "runner": "validate",
+            "phase": "golden_case_start",
+            "case_id": case_id,
+            "case_path": str(case_path),
+            "timeout_seconds": case_timeout_seconds,
+        })
+        _print_progress(
+            f"golden {case_id} ({case_path}) "
+            f"case_timeout={case_timeout_seconds}s command_timeout={command_timeout_seconds}s"
+        )
 
         for grader in case.get("graders", []):
             if grader.get("type") != "deterministic_tests":
@@ -199,26 +229,39 @@ def check_golden() -> tuple[bool, str]:
                         continue
 
                     total_run += 1
+                    run_timeout = rb._remaining_timeout(deadline, command_timeout_seconds)
+                    if run_timeout <= 0:
+                        failures.append(f"{case_id}: CASE TIMEOUT before {cmd}")
+                        break
+                    rb.write_progress(progress_file, {
+                        "runner": "validate",
+                        "phase": "golden_command_start",
+                        "case_id": case_id,
+                        "case_path": str(case_path),
+                        "command": cmd,
+                        "timeout_seconds": round(run_timeout, 3),
+                    })
+                    _print_progress(
+                        f"golden {case_id} command timeout={run_timeout:.1f}s: {cmd}"
+                    )
                     try:
                         bash = shutil.which("bash")
                         if bash:
-                            proc = subprocess.run(
+                            proc = rb.run_command_with_timeout(
                                 [bash, "-c", resolved],
-                                capture_output=True, text=True,
-                                timeout=30, cwd=str(REPO_ROOT),
+                                timeout=run_timeout, cwd=str(REPO_ROOT),
                             )
                         else:
-                            proc = subprocess.run(
+                            proc = rb.run_command_with_timeout(
                                 resolved, shell=True,
-                                capture_output=True, text=True,
-                                timeout=30, cwd=str(REPO_ROOT),
+                                timeout=run_timeout, cwd=str(REPO_ROOT),
                             )
                         if proc.returncode == 0:
                             total_pass += 1
                         else:
                             failures.append(f"{case_id}: {cmd}")
                     except subprocess.TimeoutExpired:
-                        failures.append(f"{case_id}: TIMEOUT {cmd}")
+                        failures.append(f"{case_id}: TIMEOUT after {run_timeout:.1f}s {cmd}")
                     except Exception as e:
                         failures.append(f"{case_id}: ERROR {e}")
             finally:
@@ -284,13 +327,33 @@ def _auto_pass_rate(scores: dict) -> float | None:
     return sum(1 for v in auto.values() if v) / len(auto)
 
 
-def _run_split(split: str) -> dict[str, bool | None]:
+def _run_split(
+    split: str,
+    *,
+    command_timeout_seconds: int = DEFAULT_EVAL_COMMAND_TIMEOUT_SECONDS,
+    case_timeout_seconds: int = DEFAULT_VALIDATE_TIMEOUT_SECONDS,
+    progress_file: str | pathlib.Path | None = None,
+) -> dict[str, bool | None]:
     split_dir = EVALS_ROOT / split
     if not split_dir.exists():
         return {}
     results = {}
-    for p in sorted(split_dir.rglob("*.yaml")):
-        r = rb.run_case(p, model="validate", n_trials=1)
+    paths = sorted(split_dir.rglob("*.yaml"))
+    for i, p in enumerate(paths, 1):
+        case = rb.load_case(p)
+        case_id = case.get("case_id", p.stem)
+        _print_progress(f"{split} {i}/{len(paths)} {case_id} ({p})")
+        r = rb.run_case(
+            p,
+            model="validate",
+            n_trials=1,
+            command_timeout_seconds=command_timeout_seconds,
+            case_timeout_seconds=case_timeout_seconds,
+            progress_file=progress_file,
+            progress_stream=sys.stderr,
+            case_index=i,
+            total_cases=len(paths),
+        )
         results[r["case_id"]] = r["pass"]
     return results
 
@@ -301,7 +364,11 @@ def _run_split(split: str) -> dict[str, bool | None]:
 MIN_OPT_DELTA = 0.05
 
 
-def check_optimization_delta() -> tuple[bool, str]:
+def check_optimization_delta(
+    command_timeout_seconds: int = DEFAULT_EVAL_COMMAND_TIMEOUT_SECONDS,
+    case_timeout_seconds: int = DEFAULT_VALIDATE_TIMEOUT_SECONDS,
+    progress_file: str | pathlib.Path | None = None,
+) -> tuple[bool, str]:
     baseline = _latest_baseline()
     if not baseline:
         return True, "no baseline found, skipping"
@@ -311,7 +378,12 @@ def check_optimization_delta() -> tuple[bool, str]:
     if bl_rate is None:
         return True, "no automated optimization cases in baseline"
 
-    current = _run_split("optimization")
+    current = _run_split(
+        "optimization",
+        command_timeout_seconds=command_timeout_seconds,
+        case_timeout_seconds=case_timeout_seconds,
+        progress_file=progress_file,
+    )
     cur_rate = _auto_pass_rate(current)
     if cur_rate is None:
         return True, "no automated optimization cases"
@@ -341,7 +413,11 @@ def check_optimization_delta() -> tuple[bool, str]:
 MAX_HOLDOUT_DROP = -0.05
 
 
-def check_holdout_delta() -> tuple[bool, str]:
+def check_holdout_delta(
+    command_timeout_seconds: int = DEFAULT_EVAL_COMMAND_TIMEOUT_SECONDS,
+    case_timeout_seconds: int = DEFAULT_VALIDATE_TIMEOUT_SECONDS,
+    progress_file: str | pathlib.Path | None = None,
+) -> tuple[bool, str]:
     baseline = _latest_baseline()
     if not baseline:
         return True, "no baseline found, skipping"
@@ -351,7 +427,12 @@ def check_holdout_delta() -> tuple[bool, str]:
     if bl_rate is None:
         return True, "no automated holdout cases in baseline"
 
-    current = _run_split("holdout")
+    current = _run_split(
+        "holdout",
+        command_timeout_seconds=command_timeout_seconds,
+        case_timeout_seconds=case_timeout_seconds,
+        progress_file=progress_file,
+    )
     cur_rate = _auto_pass_rate(current)
     if cur_rate is None:
         return True, "no automated holdout cases"
@@ -393,7 +474,11 @@ def check_banned_self_ref(staged: bool, changed: list[str]) -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 # Check 7 (stub): expected_improvements — deferred to propose_edit.py
 # ---------------------------------------------------------------------------
-def _check_expected_improvements_stub() -> tuple[bool, str]:
+def _check_expected_improvements_stub(
+    command_timeout_seconds: int = DEFAULT_EVAL_COMMAND_TIMEOUT_SECONDS,
+    case_timeout_seconds: int = DEFAULT_VALIDATE_TIMEOUT_SECONDS,
+    progress_file: str | pathlib.Path | None = None,
+) -> tuple[bool, str]:
     """Blueprint B.4 checklist #6: verify diagnostician's predicted improvements.
 
     This check only applies when a change was proposed by eval-diagnostician
@@ -429,7 +514,15 @@ def _check_expected_improvements_stub() -> tuple[bool, str]:
         if not p:
             missing.append(f"{cid} (case not found)")
             continue
-        result = rb.run_case(p, model="validate", n_trials=1)
+        result = rb.run_case(
+            p,
+            model="validate",
+            n_trials=1,
+            command_timeout_seconds=command_timeout_seconds,
+            case_timeout_seconds=case_timeout_seconds,
+            progress_file=progress_file,
+            progress_stream=sys.stderr,
+        )
         if not result["pass"]:
             missing.append(cid)
 
@@ -447,22 +540,36 @@ def _check_expected_improvements_stub() -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 # Skill regression gate
 # ---------------------------------------------------------------------------
-def check_skill_evals(staged: bool) -> tuple[bool, str]:
+def check_skill_evals(
+    staged: bool,
+    timeout_seconds: int = DEFAULT_VALIDATE_TIMEOUT_SECONDS,
+    progress_file: str | pathlib.Path | None = None,
+) -> tuple[bool, str]:
     cmd = [sys.executable, "scripts/run_skill_evals.py"]
     if staged:
         cmd.append("--staged")
-    proc = subprocess.run(
-        cmd,
-        cwd=str(REPO_ROOT),
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
-    )
-    output = ((proc.stdout or "") + "\n" + (proc.stderr or "")).strip()
-    tail = " | ".join(line.strip() for line in output.splitlines()[-4:] if line.strip())
+    cmd.extend(["--timeout-seconds", str(timeout_seconds)])
+    if progress_file:
+        cmd.extend(["--progress-file", str(progress_file)])
+    try:
+        proc = rb.run_command_with_timeout(
+            cmd,
+            cwd=str(REPO_ROOT),
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as exc:
+        output = ((exc.stdout or "") + "\n" + (exc.stderr or "")).strip()
+        tail = " | ".join(line.strip() for line in output.splitlines()[-4:] if line.strip())
+        where = f"; last progress file: {progress_file}" if progress_file else ""
+        detail = tail or "no output before timeout"
+        return False, f"timed out after {timeout_seconds}s running {' '.join(cmd)}{where}. {detail}"
     if proc.returncode != 0:
+        output = ((proc.stdout or "") + "\n" + (proc.stderr or "")).strip()
+        tail = " | ".join(line.strip() for line in output.splitlines()[-4:] if line.strip())
         return False, tail or "skill eval runner failed"
+    stdout_tail = " | ".join(line.strip() for line in (proc.stdout or "").splitlines()[-4:] if line.strip())
+    stderr_tail = " | ".join(line.strip() for line in (proc.stderr or "").splitlines()[-4:] if line.strip())
+    tail = stdout_tail or stderr_tail
     return True, tail or "skill evals passed"
 
 
@@ -475,7 +582,34 @@ def main() -> None:
         "--staged", action="store_true",
         help="Check staged changes (pre-commit mode)",
     )
+    parser.add_argument(
+        "--timeout-seconds",
+        type=lambda value: rb.parse_timeout(value, DEFAULT_VALIDATE_TIMEOUT_SECONDS, "--timeout-seconds"),
+        default=rb.env_timeout("EZPOWERS_VALIDATE_TIMEOUT_SECONDS", DEFAULT_VALIDATE_TIMEOUT_SECONDS),
+        help=(
+            "Per-case and child-runner timeout in seconds "
+            "(default: env EZPOWERS_VALIDATE_TIMEOUT_SECONDS or 300)"
+        ),
+    )
+    parser.add_argument(
+        "--command-timeout-seconds",
+        type=lambda value: rb.parse_timeout(value, DEFAULT_EVAL_COMMAND_TIMEOUT_SECONDS, "--command-timeout-seconds"),
+        default=rb.env_timeout("EZPOWERS_EVAL_COMMAND_TIMEOUT_SECONDS", DEFAULT_EVAL_COMMAND_TIMEOUT_SECONDS),
+        help=(
+            "Per deterministic grader command timeout in seconds "
+            "(default: env EZPOWERS_EVAL_COMMAND_TIMEOUT_SECONDS or 30)"
+        ),
+    )
+    parser.add_argument(
+        "--progress-file",
+        default=None,
+        help=(
+            "JSON file updated before each eval case/command "
+            "(default: env EZPOWERS_EVAL_PROGRESS_FILE or evals/results/runs/validate-last-case.json)"
+        ),
+    )
     args = parser.parse_args()
+    progress_file = pathlib.Path(args.progress_file) if args.progress_file else _eval_progress_file("validate-last-case.json")
 
     changed = get_changed_files(args.staged)
     target = [f for f in changed if f.startswith(("commands/", "agents/"))]
@@ -494,18 +628,46 @@ def main() -> None:
         checks.extend([
             ("diff_line_count", lambda: check_diff_lines(args.staged, changed)),
             ("eval_isolation", lambda: check_eval_isolation(changed)),
-            ("golden_invariants", check_golden),
-            ("optimization_delta", check_optimization_delta),
-            ("holdout_delta", check_holdout_delta),
+            (
+                "golden_invariants",
+                lambda: check_golden(
+                    args.command_timeout_seconds,
+                    args.timeout_seconds,
+                    progress_file,
+                ),
+            ),
+            (
+                "optimization_delta",
+                lambda: check_optimization_delta(
+                    args.command_timeout_seconds,
+                    args.timeout_seconds,
+                    progress_file,
+                ),
+            ),
+            (
+                "holdout_delta",
+                lambda: check_holdout_delta(
+                    args.command_timeout_seconds,
+                    args.timeout_seconds,
+                    progress_file,
+                ),
+            ),
             ("banned_self_ref", lambda: check_banned_self_ref(args.staged, changed)),
             # Blueprint B.4 checklist #6 (expected_improvements) is intentionally
             # deferred: it requires eval-diagnostician output which only exists in
             # the propose_edit.py workflow, not in ad-hoc commits. When diagnostician
             # is used, propose_edit.py will enforce this check separately.
-            ("expected_improvements", _check_expected_improvements_stub),
+            (
+                "expected_improvements",
+                lambda: _check_expected_improvements_stub(
+                    args.command_timeout_seconds,
+                    args.timeout_seconds,
+                    progress_file,
+                ),
+            ),
         ])
     if skill_target:
-        checks.append(("skill_evals", lambda: check_skill_evals(args.staged)))
+        checks.append(("skill_evals", lambda: check_skill_evals(args.staged, args.timeout_seconds, progress_file)))
 
     any_fail = False
     for name, fn in checks:

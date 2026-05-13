@@ -31,6 +31,24 @@ state, routing, reviewers, phase files, and automated gates.
 
 ## Position Rules
 
+### `/setup`
+
+- Keep setup as a small controller over generated project state.
+- Build a fast runtime smoke loop early: executable artifacts need a real
+  command and GUI strategy instead of a vague "manual check".
+- Keep config schemas and generated document templates in
+  `docs/reference/setup-contract.md`, not in the prompt body.
+- Ask for missing project facts one at a time after reading repo evidence.
+
+### `/brainstorm`
+
+- Treat design as the public interface for downstream agents.
+- Prefer short architecture options, explicit tradeoffs, and stop conditions
+  over a long procedure manual.
+- Use `grill-me` as the stress test before requirements are frozen.
+- Keep requirement schema, ADR rules, and vague-language exceptions in
+  `docs/reference/spec-contract.md`.
+
 ### `/plan`
 
 - Convert requirements into vertical slices, not layer batches.
@@ -73,9 +91,16 @@ state, routing, reviewers, phase files, and automated gates.
 
 This adapter is covered when:
 
+- `commands/setup.md` and `commands/brainstorm.md` read this adapter directly.
+- All four controller commands use Purpose, Read, Rules, Stop conditions, and
+  Outputs as their visible prompt surface.
 - `commands/plan.md` contains vertical red-green slice task rules.
 - `commands/executeharness.md` routes status, reset, preflight, conversion, and
   step/gate work through the PowerShell helpers.
+- `docs/reference/setup-contract.md`, `docs/reference/spec-contract.md`,
+  `docs/reference/plan-contract.md`, and
+  `docs/reference/harness-execution-contract.md` hold the long templates,
+  schemas, and exception rules.
 - `docs/reference/architecture-readiness-contract.md` defines the architecture
   vocabulary and Deletion test.
 - `.githooks/pre-commit` runs `check-harness-docs.ps1` for harness-only changes.

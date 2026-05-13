@@ -9,12 +9,15 @@ reference links, protected paths, and optional live smoke commands.
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
+import os
 import pathlib
 import re
 import shutil
 import subprocess
 import sys
+import time
 from typing import Any
 
 try:
@@ -22,6 +25,8 @@ try:
 except ImportError:
     print("ERROR: PyYAML required. Install with: pip install pyyaml", file=sys.stderr)
     sys.exit(1)
+
+import run_baseline as rb  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -39,6 +44,55 @@ PROTECTED_PATHS = (
 )
 DEFAULT_LIVE_PROVIDER = "claude"
 LIVE_PROVIDERS = ("claude", "codex", "auto")
+DEFAULT_TIMEOUT_SECONDS = 300
+
+
+def parse_timeout(value: str | int | None, default: int, label: str) -> int:
+    if value is None or value == "":
+        return default
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(f"{label} must be an integer") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError(f"{label} must be >= 1")
+    return parsed
+
+
+def env_timeout(name: str, default: int) -> int:
+    return parse_timeout(os.environ.get(name), default, name)
+
+
+def utc_timestamp() -> str:
+    return datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
+
+
+def write_progress(progress_file: str | pathlib.Path | None, payload: dict[str, Any]) -> None:
+    if not progress_file:
+        return
+    path = pathlib.Path(progress_file)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = {"timestamp": utc_timestamp(), **payload}
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def remaining_timeout(deadline: float | None, requested: int) -> float:
+    if deadline is None:
+        return float(requested)
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        return 0.0
+    return min(float(requested), remaining)
+
+
+def default_progress_file() -> pathlib.Path:
+    configured = os.environ.get("EZPOWERS_SKILL_EVAL_PROGRESS_FILE")
+    if configured:
+        return pathlib.Path(configured)
+    configured = os.environ.get("EZPOWERS_EVAL_PROGRESS_FILE")
+    if configured:
+        return pathlib.Path(configured)
+    return REPO_ROOT / "evals" / "results" / "runs" / "last_skill_eval_case.json"
 
 
 def repo_path(path: str) -> pathlib.Path:
@@ -274,7 +328,7 @@ def live_provider_order(requested: str, case: dict[str, Any]) -> list[str]:
     return result
 
 
-def run_claude_live(prompt: str, live: dict[str, Any]) -> tuple[int, str, str]:
+def run_claude_live(prompt: str, live: dict[str, Any], timeout_seconds: float | None = None) -> tuple[int, str, str]:
     exe = shutil.which("claude")
     if not exe:
         return 127, "", "claude executable not found on PATH"
@@ -299,20 +353,16 @@ def run_claude_live(prompt: str, live: dict[str, Any]) -> tuple[int, str, str]:
         "--tools",
         tools_arg,
     ]
-    proc = subprocess.run(
+    proc = rb.run_command_with_timeout(
         cmd,
         cwd=REPO_ROOT,
-        input=prompt,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
-        timeout=int(live.get("timeout_seconds", 120)),
+        timeout=timeout_seconds if timeout_seconds is not None else int(live.get("timeout_seconds", 120)),
+        input_text=prompt,
     )
     return proc.returncode, proc.stdout or "", proc.stderr or ""
 
 
-def run_codex_live(prompt: str, live: dict[str, Any]) -> tuple[int, str, str]:
+def run_codex_live(prompt: str, live: dict[str, Any], timeout_seconds: float | None = None) -> tuple[int, str, str]:
     exe = shutil.which("codex")
     if not exe:
         return 127, "", "codex executable not found on PATH"
@@ -332,24 +382,25 @@ def run_codex_live(prompt: str, live: dict[str, Any]) -> tuple[int, str, str]:
     if model:
         cmd.extend(["-m", str(model)])
     cmd.append("-")
-    proc = subprocess.run(
+    proc = rb.run_command_with_timeout(
         cmd,
         cwd=REPO_ROOT,
-        input=prompt,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
-        timeout=int(live.get("timeout_seconds", 120)),
+        timeout=timeout_seconds if timeout_seconds is not None else int(live.get("timeout_seconds", 120)),
+        input_text=prompt,
     )
     return proc.returncode, proc.stdout or "", proc.stderr or ""
 
 
-def run_provider(provider: str, prompt: str, live: dict[str, Any]) -> tuple[int, str, str]:
+def run_provider(
+    provider: str,
+    prompt: str,
+    live: dict[str, Any],
+    timeout_seconds: float | None = None,
+) -> tuple[int, str, str]:
     if provider == "claude":
-        return run_claude_live(prompt, live)
+        return run_claude_live(prompt, live, timeout_seconds)
     if provider == "codex":
-        return run_codex_live(prompt, live)
+        return run_codex_live(prompt, live, timeout_seconds)
     return 2, "", f"unknown live provider: {provider}"
 
 
@@ -369,16 +420,12 @@ def check_live_output(output: str, live: dict[str, Any]) -> tuple[bool, str]:
     return True, "live smoke passed"
 
 
-def run_legacy_live_command(live: dict[str, Any]) -> tuple[bool, str]:
-    proc = subprocess.run(
+def run_legacy_live_command(live: dict[str, Any], timeout_seconds: float | None = None) -> tuple[bool, str]:
+    proc = rb.run_command_with_timeout(
         live["command"],
         cwd=REPO_ROOT,
         shell=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
-        timeout=int(live.get("timeout_seconds", 120)),
+        timeout=timeout_seconds if timeout_seconds is not None else int(live.get("timeout_seconds", 120)),
     )
     output = (proc.stdout or "") + "\n" + (proc.stderr or "")
     if proc.returncode != 0:
@@ -387,7 +434,12 @@ def run_legacy_live_command(live: dict[str, Any]) -> tuple[bool, str]:
     return ok, detail
 
 
-def run_live_check(case: dict[str, Any], enabled: bool, provider: str) -> tuple[bool | None, str]:
+def run_live_check(
+    case: dict[str, Any],
+    enabled: bool,
+    provider: str,
+    timeout_seconds: float | None = None,
+) -> tuple[bool | None, str]:
     live = case.get("live") or {}
     if not live:
         return None, "no live smoke configured"
@@ -395,7 +447,7 @@ def run_live_check(case: dict[str, Any], enabled: bool, provider: str) -> tuple[
         return None, "live smoke skipped; pass --live to run"
     command = live.get("command")
     if command:
-        return run_legacy_live_command(live)
+        return run_legacy_live_command(live, timeout_seconds)
     if not any(key in live for key in ("prompt", "must_contain", "must_match", "must_not_contain", "must_not_match")):
         note = live.get("note", "no live smoke command configured")
         return None, f"live smoke not configured: {note}"
@@ -404,9 +456,10 @@ def run_live_check(case: dict[str, Any], enabled: bool, provider: str) -> tuple[
     errors: list[str] = []
     for candidate in live_provider_order(provider, case):
         try:
-            code, stdout, stderr = run_provider(candidate, prompt, live)
+            code, stdout, stderr = run_provider(candidate, prompt, live, timeout_seconds)
         except subprocess.TimeoutExpired:
-            errors.append(f"{candidate}: timed out after {live.get('timeout_seconds', 120)}s")
+            timeout_label = timeout_seconds if timeout_seconds is not None else live.get("timeout_seconds", 120)
+            errors.append(f"{candidate}: timed out after {timeout_label}s")
             continue
         except OSError as exc:
             errors.append(f"{candidate}: execution failed: {exc}")
@@ -422,16 +475,45 @@ def run_live_check(case: dict[str, Any], enabled: bool, provider: str) -> tuple[
     return False, " | ".join(errors)
 
 
-def run_case(path: pathlib.Path, case: dict[str, Any], live: bool, live_provider: str) -> dict[str, Any]:
+def run_case(
+    path: pathlib.Path,
+    case: dict[str, Any],
+    live: bool,
+    live_provider: str,
+    *,
+    live_timeout_seconds: float | None = None,
+    progress_file: str | pathlib.Path | None = None,
+    case_index: int | None = None,
+    total_cases: int | None = None,
+) -> dict[str, Any]:
+    case_id = str(case.get("case_id", path.stem))
+    write_progress(progress_file, {
+        "runner": "run_skill_evals",
+        "phase": "case_start",
+        "case_id": case_id,
+        "case_path": str(path),
+        "case_index": case_index,
+        "total_cases": total_cases,
+        "live_enabled": live,
+        "live_provider": live_provider,
+    })
     schema_errors = validate_case_schema(path, case)
     if schema_errors:
-        return {"case_id": case.get("case_id", path.stem), "pass": False, "errors": schema_errors}
+        result = {"case_id": case_id, "pass": False, "errors": schema_errors}
+        write_progress(progress_file, {
+            "runner": "run_skill_evals",
+            "phase": "case_done",
+            "case_id": case_id,
+            "case_path": str(path),
+            "pass": False,
+        })
+        return result
 
     static_pass, static_errors = run_static_checks(case)
-    live_pass, live_detail = run_live_check(case, live, live_provider)
+    live_pass, live_detail = run_live_check(case, live, live_provider, live_timeout_seconds)
     passed = static_pass and live_pass is not False
-    return {
-        "case_id": case["case_id"],
+    result = {
+        "case_id": case_id,
         "skill": case["skill"],
         "pass": passed,
         "static_pass": static_pass,
@@ -439,6 +521,14 @@ def run_case(path: pathlib.Path, case: dict[str, Any], live: bool, live_provider
         "live_pass": live_pass,
         "live_detail": live_detail,
     }
+    write_progress(progress_file, {
+        "runner": "run_skill_evals",
+        "phase": "case_done",
+        "case_id": case_id,
+        "case_path": str(path),
+        "pass": passed,
+    })
+    return result
 
 
 def main() -> int:
@@ -453,19 +543,71 @@ def main() -> int:
     )
     parser.add_argument("--staged", action="store_true", help="Check staged diff for protected paths")
     parser.add_argument("--json", action="store_true", help="Print JSON result")
+    parser.add_argument(
+        "--timeout-seconds",
+        type=lambda value: parse_timeout(value, DEFAULT_TIMEOUT_SECONDS, "--timeout-seconds"),
+        default=env_timeout("EZPOWERS_SKILL_EVAL_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS),
+        help=(
+            "Overall runner timeout in seconds; live commands use the remaining budget "
+            "(default: env EZPOWERS_SKILL_EVAL_TIMEOUT_SECONDS or 300)"
+        ),
+    )
+    parser.add_argument(
+        "--progress-file",
+        default=None,
+        help=(
+            "JSON file updated before each case "
+            "(default: env EZPOWERS_SKILL_EVAL_PROGRESS_FILE, EZPOWERS_EVAL_PROGRESS_FILE, "
+            "or evals/results/runs/last_skill_eval_case.json)"
+        ),
+    )
     args = parser.parse_args()
 
     case_paths = [repo_path(p) for p in args.cases] if args.cases else None
     cases = load_cases(case_paths)
     protected_ok, protected_detail = check_protected_paths(args.staged)
-    results = [run_case(path, case, args.live, args.live_provider) for path, case in cases]
+    progress_file = pathlib.Path(args.progress_file) if args.progress_file else default_progress_file()
+    deadline = time.monotonic() + args.timeout_seconds
+    results = []
+    timed_out = False
+    timeout_detail = ""
+
+    for i, (path, case) in enumerate(cases, 1):
+        live_config = case.get("live") if isinstance(case.get("live"), dict) else {}
+        remaining = remaining_timeout(deadline, int(live_config.get("timeout_seconds", 120)))
+        case_id = str(case.get("case_id", path.stem))
+        if remaining <= 0:
+            timed_out = True
+            timeout_detail = f"skill eval runner timed out before {case_id}"
+            break
+        print(f"[progress] skill case {i}/{len(cases)} {case_id}", file=sys.stderr, flush=True)
+        result = run_case(
+            path,
+            case,
+            args.live,
+            args.live_provider,
+            live_timeout_seconds=remaining,
+            progress_file=progress_file,
+            case_index=i,
+            total_cases=len(cases),
+        )
+        results.append(result)
+        if time.monotonic() > deadline:
+            timed_out = True
+            timeout_detail = f"skill eval runner timed out after {case_id}"
+            break
     all_pass = protected_ok and all(r["pass"] for r in results)
+    if timed_out:
+        all_pass = False
 
     summary = {
         "pass": all_pass,
         "protected_paths": {"pass": protected_ok, "detail": protected_detail},
         "total_cases": len(results),
         "passed_cases": sum(1 for r in results if r["pass"]),
+        "timeout_seconds": args.timeout_seconds,
+        "timed_out": timed_out,
+        "timeout_detail": timeout_detail,
         "results": results,
     }
 
@@ -480,8 +622,12 @@ def main() -> int:
             for error in result.get("static_errors", []):
                 print(f"  - {error}")
             print(f"  live: {result.get('live_detail')}")
+        if timed_out:
+            print(f"[FAIL] timeout: {timeout_detail}")
         print(f"Skill evals: {summary['passed_cases']}/{summary['total_cases']} passed")
 
+    if timed_out:
+        return 124
     return 0 if all_pass else 1
 
 

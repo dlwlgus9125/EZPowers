@@ -112,9 +112,13 @@ bin/
   `docs/reference/verification-contract.md`,
   `docs/reference/architecture-readiness-contract.md`, and
   `docs/reference/mattpocock-harness-adapter.md`, and
-  `docs/reference/dispatch-protocol.md` as the SSOT for workflow vocabulary,
+  `docs/reference/dispatch-protocol.md`, plus the command-specific contracts
+  `docs/reference/setup-contract.md`, `docs/reference/spec-contract.md`,
+  `docs/reference/plan-contract.md`, and
+  `docs/reference/harness-execution-contract.md` as the SSOT for workflow vocabulary,
   verification evidence, architecture readiness, Matt Pocock skill adaptation,
-  reviewer dispatch, verdicts, retries, and workflow-runner scope. If command or agent wording conflicts
+  reviewer dispatch, verdicts, retries, workflow-runner scope, and long
+  command templates. If command or agent wording conflicts
   with these references, preserve behavior and update the stale local wording.
 
 - **Command lazy-loading**: EZPowers slash commands use default lazy-loading —
@@ -142,9 +146,10 @@ bin/
 
 ## Eval Gate
 
-Harness-only doc changes run `scripts/check-harness-docs.ps1` and do not invoke
-the Python eval gate. Other commits touching `commands/`, `agents/`, skills, or
-skill-gate files run `scripts/validate.py`.
+Harness-only prompt and doc changes for setup, brainstorm, plan, and harness
+execution run `scripts/check-harness-docs.ps1` and do not invoke the Python eval
+gate. Other commits touching `commands/`, `agents/`, skills, or skill-gate
+files run `scripts/validate.py`.
 The commit is blocked if:
 - Harness doc contracts fail the PowerShell harness docs gate
 - Diff exceeds 3 lines per Better-Harness "one line at a time" rule
