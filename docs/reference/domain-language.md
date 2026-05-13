@@ -30,6 +30,11 @@ The implementation controller. Its interface is the selected execution path,
 per-task verification evidence, final review verdict, docs sync status, and
 phase completion state.
 
+**Execute Harness**
+The strict execution adapter for EasyPowersHarness. Its interface is a
+requested phase, converted step files, step status table, runtime/wiring
+evidence, recovery route, and final review diff range.
+
 **Workflow Runner**
 A scoped runner agent for command-level chaining. Its interface is a target
 command, invocation mode, artifact paths, status line, changed files, optional
@@ -91,6 +96,14 @@ harness versus inline execution.
 A concrete implementation behind a seam, such as `claude-code` reviewer
 dispatch, `codex-cli` reviewer dispatch, harness execution, subagent execution,
 or inline execution.
+
+**Light Path**
+Execution through inline work or task subagents when strict harness logs and
+runtime/wiring recovery are not needed.
+
+**Strict Path**
+Execution through `/executeharness` when the work needs external harness logs,
+step-level recovery, runtime smoke, or full-feature wiring evidence.
 
 ## View Wiring Terms
 

@@ -5,7 +5,7 @@ allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
 
 # /plan — Task Sequencing
 
-Source contracts: `docs/reference/domain-language.md`, `docs/reference/architecture-readiness-contract.md`, `docs/reference/verification-contract.md`, `docs/reference/dispatch-protocol.md`.
+Source contracts: `docs/reference/domain-language.md`, `docs/reference/architecture-readiness-contract.md`, `docs/reference/verification-contract.md`, `docs/reference/mattpocock-harness-adapter.md`, `docs/reference/dispatch-protocol.md`.
 Take the spec from /brainstorm as input, decompose it into detailed tasks, and determine agent assignments. No code is written.
 
 > **For agentic workers:** /choiceexecutor runs tasks from this plan via subagent-driven, harness, or inline execution. Steps are tracked with checkbox syntax.
@@ -216,6 +216,7 @@ Expected: exit 0
 
 - Copy spec AC **verbatim** — no paraphrasing
 - Behavior-bearing tasks must include a TDD Slice Contract; keep it to implementation-critical facts, not prose or imagined internals.
+- Do not batch all tests first; each task advances one vertical red-green slice before adding the next behavior.
 - If a task spans multiple Rs, copy only the relevant parts
 - Every task requires a verification method
 - If the artifact is an executable binary/app, the plan MUST include a `**Runtime verification (executable artifacts only):**` line in each task that produces or modifies the executable entry point. Use the pattern: `<start-cmd> & sleep N && kill $! 2>/dev/null; test $? -eq 0`. N should be 3-5 seconds for CLI/desktop apps, matched to `config.server.health_check_timeout` for servers. This line is consumed by /choiceexecutor's runtime probe and is NOT optional for executable artifacts.

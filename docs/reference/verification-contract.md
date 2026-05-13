@@ -139,6 +139,42 @@ Independent arbiters and wiring reviewers classify gaps as:
 
 ## View Wiring Verification
 
+The rules in this English subsection are canonical. If later legacy text in
+this section conflicts or is unreadable, ignore it and follow this subsection.
+
+Apply view wiring verification to tasks that create or modify files matching
+`config.wiring.view_extensions`. Logic-only tasks with no view file are exempt.
+
+Verification layers:
+
+1. Model/ViewModel test: existing task acceptance criteria.
+2. View Wiring Test: instantiate the view, attach the real model or view model,
+   and assert binding/handler/dependency/template behavior.
+3. Integration Probe: exercise the connected feature path through the
+   Full-Feature Wiring Gate.
+4. Runtime Smoke: prove the executable starts and survives according to
+   `config.smoke`.
+
+Layer 1 alone does not prove view wiring. A task that changes a view file must
+run either its task-level `View wiring verification` command or
+`config.wiring.view_test_command`; exit 0 is PASS.
+
+Classify view wiring failures with this taxonomy:
+
+| ID | Defect | Observable symptom |
+| --- | --- | --- |
+| W1 | Binding resolution | Expected rendered value is missing or null. |
+| W2 | Handler connection | User interaction does not change model state. |
+| W3 | Dependency resolution | Real DI/startup fails, nulls, or crashes. |
+| W4 | Activation state | Enabled/disabled state is hardcoded or stale. |
+| W5 | Template resolution | Model resolves to the wrong or no view/template. |
+
+Full-Feature Wiring Gate failures must identify the failed view or pipeline,
+classify W1-W5 when applicable, map the failure back to the responsible task,
+and retry at most 3 times before user escalation.
+
+### Legacy Notes
+
 View를 포함하는 작업의 모델 레벨 테스트만으로는 5가지 와이어링 결함을 잡지
 못한다. 검증 계층 모델:
 

@@ -26,6 +26,23 @@ allowed dependencies, forbidden dependencies, and data ownership when relevant.
 
 The selected approach must be traceable to the Option Matrix.
 
+## Architecture Vocabulary
+
+Use these terms consistently during architecture review:
+
+- **Module:** any unit with an interface and an implementation.
+- **Interface:** everything a caller must know to use a module, including
+  invariants, ordering, errors, and configuration.
+- **Depth:** leverage behind the interface. A deep module hides meaningful
+  behavior behind a small interface; a shallow module mostly passes complexity
+  through to callers.
+- **Adapter:** a concrete implementation selected at a module boundary.
+- **Locality:** how much change, bug fixing, and knowledge stay concentrated in
+  one module.
+- **Deletion test:** if deleting a module only removes pass-through code, it is
+  shallow; if deleting it spreads complexity across callers, it is earning its
+  interface.
+
 ## ASR Ledger
 
 Each ASR row must include:

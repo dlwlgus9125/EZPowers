@@ -69,7 +69,8 @@ Ask the user for the execution mode:
 **Recommendation guide:**
 - 1-3 tasks, independent → **inline** (fast and lightweight)
 - 4+ tasks → **subagent-driven** (context isolation)
-- `harness.root` configured + step-level execution logs needed → **harness**
+- `harness.root` configured + strict step logs/recovery/runtime gates needed → **harness**
+- Do not choose harness only because task count is high; harness is the strict path, not the default light path.
 
 Path 2 follows the `/executeharness` command procedure.
 
@@ -114,6 +115,7 @@ Construct directed graph: Task A -> Task B = "B depends on A"
 
 ### Failure Handling
 
+- Before re-dispatch or fix-in-place, identify the failing Verify/runtime/wiring signal that will prove the fix.
 - **Failure propagation:** On task failure, mark all downstream dependent tasks as `SKIPPED` and do not execute. Recursively SKIP downstream of downstream.
 - 3 failures on one task -> escalate that task to user
 - Independent task failure does not block other independent tasks

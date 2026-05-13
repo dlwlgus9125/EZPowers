@@ -93,8 +93,14 @@ scripts/
   validate.py         # eval gate (pre-commit hook calls this)
   run_baseline.py     # eval runner + baseline writer
   promote_trace.py    # trace → eval case converter
+  check-harness-docs.ps1 # non-Python harness contract check
+  harness-convert.ps1 # non-Python plan-to-phase conversion helper
+  harness-doctor.ps1  # non-Python /executeharness pre-flight helper
+  harness-gate.ps1    # non-Python wiring gate executor
+  harness-phase.ps1   # non-Python harness phase status/reset helper
+  harness-smoke.ps1   # non-Python helper flow smoke check
 .githooks/
-  pre-commit          # runs validate.py when commands/ or agents/ staged
+  pre-commit          # runs harness docs gate or validate.py by changed path
 bin/
   trace.sh            # observation-only JSONL trace writer (called from hooks)
 ```
@@ -104,9 +110,10 @@ bin/
 - **Canonical workflow contracts**: Use `docs/reference/domain-language.md`,
   `docs/reference/verification-contract.md`,
   `docs/reference/architecture-readiness-contract.md`, and
+  `docs/reference/mattpocock-harness-adapter.md`, and
   `docs/reference/dispatch-protocol.md` as the SSOT for workflow vocabulary,
-  verification evidence, architecture readiness, reviewer dispatch, verdicts,
-  retries, and workflow-runner scope. If command or agent wording conflicts
+  verification evidence, architecture readiness, Matt Pocock skill adaptation,
+  reviewer dispatch, verdicts, retries, and workflow-runner scope. If command or agent wording conflicts
   with these references, preserve behavior and update the stale local wording.
 
 - **Command lazy-loading**: EZPowers slash commands use default lazy-loading —
@@ -134,8 +141,11 @@ bin/
 
 ## Eval Gate
 
-Commits touching `commands/` or `agents/` automatically run `scripts/validate.py`.
+Harness-only doc changes run `scripts/check-harness-docs.ps1` and do not invoke
+the Python eval gate. Other commits touching `commands/`, `agents/`, skills, or
+skill-gate files run `scripts/validate.py`.
 The commit is blocked if:
+- Harness doc contracts fail the PowerShell harness docs gate
 - Diff exceeds 3 lines per Better-Harness "one line at a time" rule
 - `evals/` files modified in the same commit (isolation)
 - Any golden eval codebase-invariant grader fails

@@ -6,6 +6,8 @@ allowed-tools: [Bash, Read, Write, Agent]
 
 # /executeharness — EasyPowersHarness Execution Delegation
 
+Source contracts: `docs/reference/domain-language.md`, `docs/reference/verification-contract.md`, `docs/reference/mattpocock-harness-adapter.md`, `docs/reference/dispatch-protocol.md`.
+
 Execute plan tasks step-by-step through the EasyPowersHarness Python executor (`scripts/execute.py`).
 This command is a thin wrapper; the actual step execution is handled by the harness's Python executor.
 
@@ -13,7 +15,15 @@ This command is a thin wrapper; the actual step execution is handled by the harn
 Do not copy execute.py into EZPowers. Reference the harness install path and delegate.
 </HARD-GATE>
 
+Use `/executeharness` only for the strict path: external harness logs,
+step-level recovery, runtime smoke, or full-feature wiring evidence. For small
+or independent work, prefer `/choiceexecutor` Path 1 or Path 3.
+
 ## 1. Pre-flight Checks
+
+Run `scripts/harness-doctor.ps1 -ProjectRoot <project-root> -Phase <phase>` first.
+If it reports FAIL, stop and follow the reported fix. WARN items must be
+reported before continuing.
 
 Verify the following first:
 1. Harness path from `.harness/config.json` `harness.root` field
@@ -37,7 +47,7 @@ If `execute.py` not found:
 
 ## 2. Git Hash Capture
 
-Record the current commit hash before conversion:
+Record the current commit hash before conversion or execution:
 
 ```bash
 git rev-parse HEAD
@@ -46,9 +56,23 @@ git rev-parse HEAD
 Store as `<harness-start-hash>`. Used as the diff range for Final Code Review after execution.
 No commits yet: use empty tree hash `4b825dc642cb6eb9a060e54bf899d8b2306e7304`.
 
+## 2.5 Execution Mode Routing
+
+Avoid conversion work when a usable phase already exists.
+
+- `--status`: read `phases/{phase}/index.json`, print the status table, and stop.
+- `--status`: prefer `scripts/harness-phase.ps1 -Phase {phase} -Status`.
+- `--reset-step N`: prefer `scripts/harness-phase.ps1 -Phase {phase} -ResetStep N`.
+- Existing phase: if `phases/{phase}/index.json` exists and has pending steps,
+  skip Section 3 and continue at Section 4.
+- New plan: only run Section 3 when no usable phase exists for the requested
+  plan or phase.
+
 ## 3. Plan → Phase Conversion
 
 Convert plan tasks into harness step files.
+Prefer `scripts/harness-convert.ps1 -ProjectRoot <project-root> -PlanPath <plan-path>`.
+If the helper fails, use the manual mapping rules below and report the failure.
 
 ### 3-1. Phase Directory Creation
 
@@ -246,6 +270,11 @@ before reporting harness success.
 
 ### Gate Execution
 
+Prefer `scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>`.
+It reads `wiring-gate.json`, executes commands, records attempts, and updates
+`status`. If the helper fails, follow the manual rules below and report the
+failure.
+
 1. Read `wiring-gate.json`.
 2. If `required` is false, keep `status: "pass"` and continue.
 3. If `required` is true and `commands` is empty, set `status: "spec_gap"` and stop.
@@ -289,6 +318,8 @@ requires `all steps completed + wiring gate PASS + Final Code Review PASS`.
 ## 6. Failure Recovery
 
 On step failure, guide the user to recovery:
+First identify the failing Verify/runtime/wiring signal that will prove the
+root-cause fix. Do not reset a step without a concrete pass/fail signal.
 
 ```
 Step {N} failed: {error summary}

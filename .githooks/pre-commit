@@ -1,8 +1,32 @@
 #!/usr/bin/env bash
 set -e
 
-# EZPowers eval gate: fire when command, agent, skill, or skill-gate files are staged
-if git diff --cached --name-only | grep -qE '^(commands|agents|skills)/|^evals/skills/|^scripts/(run_skill_evals|validate)\.py$|^\.githooks/pre-commit$'; then
+staged_files="$(git diff --cached --name-only)"
+
+run_harness_docs_check() {
+  if command -v pwsh >/dev/null 2>&1; then
+    pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/check-harness-docs.ps1
+  elif command -v powershell.exe >/dev/null 2>&1; then
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/check-harness-docs.ps1
+  elif command -v powershell >/dev/null 2>&1; then
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-harness-docs.ps1
+  else
+    echo "PowerShell not found; cannot run scripts/check-harness-docs.ps1" >&2
+    exit 1
+  fi
+}
+
+# Lightweight non-Python gate for the harness contract docs. This path avoids
+# running the heavier Python eval gate for harness-only prompt/doc edits.
+if echo "$staged_files" | grep -qE '^(CLAUDE\.md|\.githooks/pre-commit|commands/(choiceexecutor|executeharness|plan)\.md|docs/INDEX\.md|docs/reference/(architecture-readiness-contract|domain-language|mattpocock-harness-adapter|verification-contract)\.md|harness_versions/changelog\.jsonl|scripts/(check-harness-docs|harness-convert|harness-doctor|harness-gate|harness-phase|harness-smoke)\.ps1)$'; then
+  echo "EZPowers harness docs gate: relevant files changed, running check-harness-docs.ps1"
+  run_harness_docs_check
+fi
+
+python_gate_files="$(echo "$staged_files" | grep -E '^(commands|agents|skills)/|^evals/skills/|^scripts/(run_skill_evals|validate)\.py$' | grep -vE '^commands/(choiceexecutor|executeharness|plan)\.md$' || true)"
+
+# EZPowers eval gate: fire when non-harness command, agent, skill, or skill-gate files are staged
+if [ -n "$python_gate_files" ]; then
   echo "EZPowers eval gate: relevant files changed, running validate.py"
   python scripts/validate.py --staged
 fi
