@@ -18,6 +18,7 @@ state, routing, reviewers, phase files, and automated gates.
 | `engineering/improve-codebase-architecture` | Architecture baseline and plan invariants | Use Module, Interface, Depth, Seam, Adapter, Locality, and Deletion test language when reviewing architecture and task boundaries. |
 | `engineering/improve-codebase-architecture` | Test surface selection | The interface is the test surface; tests should survive internal refactors. |
 | `engineering/to-issues` | `/plan` task decomposition | EZPowers plan tasks are the issue analogue. They must be independently grabbable vertical slices with explicit blockers. |
+| `engineering/grill-with-docs` | `CONTEXT.md` generation and maintenance | Target projects get a domain glossary at `CONTEXT.md`. Skills that challenge terminology (`grill-with-docs`, `improve-codebase-architecture`) update it inline. |
 | `misc/setup-pre-commit` | `.githooks/pre-commit` | Keep commit-time checks fast and targeted. Harness-only edits use the PowerShell harness docs gate instead of the heavier Python eval gate. |
 
 ## Rejected Or Deferred Skills
@@ -39,13 +40,14 @@ state, routing, reviewers, phase files, and automated gates.
 - Keep config schemas and generated document templates in
   `docs/reference/setup-contract.md`, not in the prompt body.
 - Ask for missing project facts one at a time after reading repo evidence.
+- Generate `CONTEXT.md` slot when domain terms are detected or user-confirmed.
 
 ### `/brainstorm`
 
 - Treat design as the public interface for downstream agents.
 - Prefer short architecture options, explicit tradeoffs, and stop conditions
   over a long procedure manual.
-- Use `grill-me` as the stress test before requirements are frozen.
+- Use `grill-with-docs` as the stress test before requirements are frozen.
 - Keep requirement schema, ADR rules, and vague-language exceptions in
   `docs/reference/spec-contract.md`.
 

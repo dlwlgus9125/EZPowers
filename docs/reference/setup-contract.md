@@ -20,7 +20,9 @@ Read the target repo before asking the user:
 - Manifests: `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, or peers.
 - Source roots: `src/`, `lib/`, `app/`, or framework-specific equivalents.
 - Existing `.harness/config.json`, `phases/index.json`, `AGENTS.md`, `CLAUDE.md`.
+- Existing `CONTEXT.md` at the project root.
 - Existing docs under `docs/`.
+- Domain vocabulary: scan for model/entity names, business terms in source files.
 
 Classification:
 
@@ -47,6 +49,7 @@ Infer first, then ask one question at a time for unknowns:
 - UI presence.
 - Architecture profile: lifecycle stage, quality priorities, performance
   budgets, operational constraints, compatibility policy, ADR requirement.
+- Domain vocabulary confirmation (after detection results are shown).
 
 Default executor values:
 
@@ -96,6 +99,26 @@ Conditional:
 - `docs/decisions/README.md`
 - `docs/ux/README.md`
 - `CLAUDE.md` only if missing.
+- `CONTEXT.md` when the project has domain-specific terms beyond pure
+  infrastructure.
+
+## CONTEXT.md Shape
+
+Generated as a draft slot at the project root. If `CONTEXT.md` already exists,
+preserve it and offer to merge new terms.
+
+No frontmatter — `CONTEXT.md` is a project artifact like `CLAUDE.md`, not a
+`docs/` reference slot. It is not listed in `docs/INDEX.md`.
+
+Sections:
+
+- **Language** — bold term, one-line definition, _Avoid:_ aliases.
+- **Relationships** — how terms relate (e.g. "An Order contains one or more
+  Line Items").
+- **Flagged Ambiguities** — unresolved terms with resolution status.
+
+Only include terms meaningful to domain experts. Do not couple to
+implementation details. Create lazily — only when the first term is resolved.
 
 ## Document Slot Frontmatter
 

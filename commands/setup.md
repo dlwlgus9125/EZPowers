@@ -16,7 +16,7 @@ steering docs, phase state, and reference doc slots. Do not write product code.
 - `docs/reference/setup-contract.md`
 - `docs/reference/domain-language.md`
 - `docs/reference/verification-contract.md`
-- Target repo root listing, manifests, source directories, `AGENTS.md`, `CLAUDE.md`
+- Target repo root listing, manifests, source directories, `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`
 - Existing `.harness/config.json`, `phases/index.json`, and `docs/` when present
 
 ## Rules
@@ -24,6 +24,7 @@ steering docs, phase state, and reference doc slots. Do not write product code.
 - Read repo evidence first. Ask only for values that cannot be inferred.
 - Ask one question at a time; prefer concrete choices.
 - If `.harness/config.json` already exists, ask before overwriting.
+- If `CONTEXT.md` already exists, preserve it; offer to merge new terms only.
 - Use `docs/reference/setup-contract.md` for generated files, config schema,
   smoke settings, optional eval/trace flags, and phase-state details.
 - Preserve EZPowers automation: `.harness/config.json`, `phases/index.json`,
@@ -44,7 +45,7 @@ steering docs, phase state, and reference doc slots. Do not write product code.
 
 ## Outputs
 
-- Created or updated file list.
+- Created or updated file list (including `CONTEXT.md` when generated).
 - Inferred and user-confirmed project settings.
 - Smoke/runtime verification settings and any unresolved values.
 - `phases/index.json` setup status.

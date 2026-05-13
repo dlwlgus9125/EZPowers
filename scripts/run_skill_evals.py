@@ -38,7 +38,7 @@ SKILLS_ROOT = REPO_ROOT / "skills"
 EVALS_ROOT = REPO_ROOT / "evals" / "skills"
 PROTECTED_PATHS = (
     "skills/writing-skills/",
-    "skills/grill-me/",
+    "skills/grill-with-docs/",
     "skills/caveman/",
     "skills/zoom-out/",
 )

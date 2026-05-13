@@ -29,7 +29,7 @@ post-brainstorm pipeline audit. Do not implement code.
 - Read project context before asking. Ask one question at a time.
 - Do not skip design because the request looks small.
 - Produce and confirm the architecture baseline before extracting requirements.
-- Use `grill-me` after architecture baseline approval and before requirement
+- Use `grill-with-docs` after architecture baseline approval and before requirement
   extraction; unresolved issues return to design.
 - Use `docs/reference/spec-contract.md` for required spec sections,
   requirement schema, banned vague wording, ADR handling, verify script, and

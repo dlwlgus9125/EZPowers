@@ -39,7 +39,7 @@ description: Use when creating new skills, editing existing skills, or verifying
 
 | Type | Description | Example |
 |------|-------------|---------|
-| **Technique** | Concrete method with steps | systematic-debugging |
+| **Technique** | Concrete method with steps | diagnose |
 | **Pattern** | Mental model for a problem | flatten-with-flags |
 | **Reference** | API docs, syntax, tool reference | office docs |
 
@@ -150,7 +150,7 @@ Use words Claude will search for:
 ```markdown
 # GOOD: requirement marker + skill name only
 **REQUIRED SUB-SKILL:** Use test-driven-development
-**REQUIRED BACKGROUND:** You MUST understand systematic-debugging
+**REQUIRED BACKGROUND:** You MUST understand diagnose
 
 # BAD: path reference — ambiguous
 See skills/testing/test-driven-development

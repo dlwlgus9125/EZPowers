@@ -73,8 +73,8 @@ class EvalRunnerSafetyTests(unittest.TestCase):
 
     def test_skill_live_smoke_is_skipped_by_default(self):
         case = {
-            "case_id": "skill.systematic-debugging.quick-fix",
-            "skill": "systematic-debugging",
+            "case_id": "skill.diagnose.quick-fix",
+            "skill": "diagnose",
             "prompt": "A failing test needs investigation.",
             "expected_first_action": "Start with a feedback loop.",
             "invariants": ["Do not run live smoke unless requested."],
@@ -82,7 +82,7 @@ class EvalRunnerSafetyTests(unittest.TestCase):
         }
 
         result = run_skill_evals.run_case(
-            REPO_ROOT / "evals" / "skills" / "systematic-debugging-quick-fix.yaml",
+            REPO_ROOT / "evals" / "skills" / "diagnose-quick-fix.yaml",
             case,
             live=False,
             live_provider="claude",

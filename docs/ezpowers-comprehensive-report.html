@@ -299,7 +299,7 @@
 │   ├── implementer-prompt.md    # Subagent template (placeholder substitution)
 │   └── eval-diagnostician.md    # Failure analysis (opus)
 ├── skills/                      # 3 independent skills
-│   ├── systematic-debugging/    # 4-Phase debugging protocol
+│   ├── diagnose/                # 6-Phase diagnosis loop
 │   ├── verifyself/              # CoVe 6-dimension self-verification
 │   └── writing-skills/          # TDD-based skill authoring
 ├── evals/                       # Eval case definitions
@@ -772,8 +772,8 @@ After:  Restore phases/index.json from backup; delete backup
 
 <div class="card">
   <div class="card-header">
-    <span class="card-title">systematic-debugging</span>
-    <span class="badge badge-skill">skill &middot; 4-Phase</span>
+    <span class="card-title">diagnose</span>
+    <span class="badge badge-skill">skill &middot; 6-Phase</span>
   </div>
   <p><strong>Iron Law:</strong> "NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST"</p>
   <table>

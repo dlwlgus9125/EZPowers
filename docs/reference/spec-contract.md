@@ -31,7 +31,7 @@ Use this order:
 3. Ask one question at a time.
 4. Produce an architecture baseline.
 5. Confirm the architecture baseline.
-6. Run `grill-me`.
+6. Run `grill-with-docs`.
 7. Extract requirements.
 8. Confirm requirements.
 9. Write spec, ADRs, verify script, and docs index entry.
@@ -77,7 +77,7 @@ Architecture baseline:
 Confirm this architecture baseline before I extract requirements.
 ```
 
-After confirmation, invoke `grill-me`. Any unresolved issue blocks requirement
+After confirmation, invoke `grill-with-docs`. Any unresolved issue blocks requirement
 extraction until the design is revised and reconfirmed.
 
 ## Requirement Extraction

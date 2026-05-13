@@ -34,10 +34,11 @@ EZPowers is a personal Claude Code skill plugin.
 | `/sync-docs` | command | Sync reference docs with codebase (standalone + suggested after /choiceexecutor) |
 | `/eval` | command | Run eval suite, report scores by version |
 | `/feedback` | command | Attach user scores to current session trace |
-| `systematic-debugging` | skill | Root cause tracing protocol (4-Phase + Feedback Loop) |
+| `diagnose` | skill | 6-phase diagnosis loop (feedback-loop-first + post-mortem) |
+| `grill-with-docs` | skill | Plan/design stress test with CONTEXT.md and ADR side effects |
+| `improve-codebase-architecture` | skill | Find deepening opportunities (Module/Depth/Seam vocabulary) |
 | `verifyself` | skill | CoVe (Chain-of-Verification) self-verification (6 dimensions) |
 | `writing-skills` | skill | Meta-skill for writing new skills (TDD-based) |
-| `grill-me` | skill | Plan/design stress test (relentless interview) |
 | `zoom-out` | skill | Raise abstraction one level (module map) |
 | `caveman` | skill | Token-saving compressed communication mode |
 
@@ -47,18 +48,23 @@ EZPowers is a personal Claude Code skill plugin.
 .claude-plugin/       # plugin.json
 commands/             # Slash commands (setup, brainstorm, pipeline-audit, plan, choiceexecutor, executeharness, set-rules, review, sync-docs, eval, feedback)
 skills/               # Independent skills
-  systematic-debugging/
-    SKILL.md          # 4-Phase debugging protocol + Feedback Loop
-    root-cause-tracing.md
-    defense-in-depth.md
+  diagnose/
+    SKILL.md          # 6-Phase diagnosis loop (feedback-loop-first + post-mortem)
+    references/debugging-playbook.md
+  grill-with-docs/
+    SKILL.md          # Plan/design stress test with CONTEXT.md and ADR side effects
+    references/context-format.md
+  improve-codebase-architecture/
+    SKILL.md          # Find deepening opportunities (Module/Depth/Seam vocabulary)
+    references/architecture-language.md
+    references/interface-design.md
+    references/deepening.md
   verifyself/
     SKILL.md          # CoVe self-verification (6 dimensions)
   writing-skills/
     SKILL.md          # Skill-writing meta-skill (TDD-based)
     anthropic-best-practices.md
     testing-skills-with-subagents.md
-  grill-me/
-    SKILL.md          # Plan/design stress test
   zoom-out/
     SKILL.md          # Raise abstraction (prompt-only)
   caveman/
@@ -129,7 +135,7 @@ bin/
   conversion/execution details; `/choiceexecutor` only delegates to it for Path 2.
 
 - **Explicit skill chaining only** — skills are independent unless a command names a gate. `/brainstorm`
-  invokes `grill-me` after architecture baseline approval and before requirement extraction.
+  invokes `grill-with-docs` after architecture baseline approval and before requirement extraction.
   `/brainstorm` and `/plan` dispatch `ezpowers:workflow-runner` for `/pipeline-audit`;
   `/choiceexecutor` dispatches it for `/sync-docs` after final verification. Diagnostic
   subagent (`agents/eval-diagnostician.md`) is called only from `scripts/propose_edit.py`, never from user-facing commands.
