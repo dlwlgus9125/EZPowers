@@ -1,5 +1,5 @@
-case_id: skill.systematic-debugging.failed-test
-skill: systematic-debugging
+case_id: skill.diagnose.failed-test
+skill: diagnose
 prompt: "The unit test fails in CI but passes locally. Fix the failing assertion."
 expected_first_action: Establish a reproducible feedback loop or state exactly why reproduction failed before proposing any fix.
 invariants:
@@ -12,7 +12,7 @@ static:
   max_words: 520
   must_contain:
     - "failing test"
-    - "environment differences"
-    - "wrong value first appears"
+    - "feedback loop"
+    - "Phase 1 complete:"
   required_reference_links:
     - "references/debugging-playbook.md"

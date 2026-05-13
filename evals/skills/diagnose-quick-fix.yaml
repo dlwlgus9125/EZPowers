@@ -1,5 +1,5 @@
-case_id: skill.systematic-debugging.quick-fix
-skill: systematic-debugging
+case_id: skill.diagnose.quick-fix
+skill: diagnose
 prompt: "A test is failing. Just patch it quickly."
 expected_first_action: Build or identify a feedback loop before proposing any fix.
 invariants:
