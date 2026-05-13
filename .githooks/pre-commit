@@ -18,7 +18,7 @@ run_harness_docs_check() {
 
 # Lightweight non-Python gate for the harness contract docs. This path avoids
 # running the heavier Python eval gate for harness-only prompt/doc edits.
-if echo "$staged_files" | grep -qE '^(CLAUDE\.md|\.githooks/pre-commit|commands/(choiceexecutor|executeharness|plan)\.md|docs/INDEX\.md|docs/reference/(architecture-readiness-contract|domain-language|mattpocock-harness-adapter|verification-contract)\.md|harness_versions/changelog\.jsonl|scripts/(check-harness-docs|harness-convert|harness-doctor|harness-gate|harness-phase|harness-smoke)\.ps1)$'; then
+if echo "$staged_files" | grep -qE '^(CLAUDE\.md|\.githooks/pre-commit|commands/(choiceexecutor|executeharness|plan)\.md|docs/INDEX\.md|docs/reference/(architecture-readiness-contract|domain-language|mattpocock-harness-adapter|verification-contract)\.md|harness_versions/changelog\.jsonl|scripts/(check-harness-docs|harness-convert|harness-doctor|harness-gate|harness-phase|harness-run|harness-smoke)\.ps1)$'; then
   echo "EZPowers harness docs gate: relevant files changed, running check-harness-docs.ps1"
   run_harness_docs_check
 fi

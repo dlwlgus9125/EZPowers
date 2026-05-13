@@ -14,7 +14,7 @@ state, routing, reviewers, phase files, and automated gates.
 | `engineering/tdd` | `/plan` task shape | Each task is one vertical red-green slice through a public interface. Do not write all tests first and then all implementation. |
 | `engineering/tdd` | Verify evidence | Tests and Verify commands must assert observable behavior through the public interface, not internal call shape. |
 | `engineering/diagnose` | `/executeharness` failure recovery | Build or identify a fast pass/fail signal before resetting steps or redispatching agents. |
-| `engineering/diagnose` | Harness helper scripts | Prefer deterministic, narrow, agent-runnable feedback loops such as `harness-smoke.ps1`, `harness-doctor.ps1`, and `harness-gate.ps1`. |
+| `engineering/diagnose` | Harness helper scripts | Prefer deterministic, narrow, agent-runnable feedback loops such as `harness-smoke.ps1`, `harness-doctor.ps1`, `harness-run.ps1`, and `harness-gate.ps1`. |
 | `engineering/improve-codebase-architecture` | Architecture baseline and plan invariants | Use Module, Interface, Depth, Seam, Adapter, Locality, and Deletion test language when reviewing architecture and task boundaries. |
 | `engineering/improve-codebase-architecture` | Test surface selection | The interface is the test surface; tests should survive internal refactors. |
 | `engineering/to-issues` | `/plan` task decomposition | EZPowers plan tasks are the issue analogue. They must be independently grabbable vertical slices with explicit blockers. |
@@ -48,6 +48,8 @@ state, routing, reviewers, phase files, and automated gates.
   environment signal.
 - Use `harness-phase.ps1` for status and reset so operators do not manually edit
   phase state.
+- Use `harness-run.ps1` for step execution so Python executor calls have an
+  explicit timeout, progress check, and attempt log.
 - Use `harness-gate.ps1` for full-feature evidence. A completed step table is
   not enough.
 - Before any reset or redispatch, identify the failing Verify, runtime, or
@@ -73,7 +75,7 @@ This adapter is covered when:
 
 - `commands/plan.md` contains vertical red-green slice task rules.
 - `commands/executeharness.md` routes status, reset, preflight, conversion, and
-  wiring gate work through the PowerShell helpers.
+  step/gate work through the PowerShell helpers.
 - `docs/reference/architecture-readiness-contract.md` defines the architecture
   vocabulary and Deletion test.
 - `.githooks/pre-commit` runs `check-harness-docs.ps1` for harness-only changes.

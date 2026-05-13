@@ -223,15 +223,24 @@ chore: convert plan to harness phase — {feature-name}
 
 ## 4. Step-by-Step Execution
 
-Due to Bash tool timeout limits (max 600s), run steps individually in a loop rather than the entire phase at once.
+Due to shell timeout limits, run steps through the controlled runner rather
+than calling the Python executor directly.
+
+Prefer:
+
+```powershell
+scripts/harness-run.ps1 -ProjectRoot <project-root> -Phase <phase> -TimeoutSeconds 600
+```
+
+The runner executes one pending step at a time, captures stdout/stderr tails,
+writes `phases/{feature-name}/harness-run.json`, stops on timeout, and refuses
+to continue when the executor makes no status progress.
 
 ### Execution Loop
 
 ```
 for each pending step:
-  1. python "{harness_root}/scripts/execute.py" {feature-name}
-     (executor runs the first pending step and exits)
-     Bash timeout: 600000
+  1. scripts/harness-run.ps1 -ProjectRoot <project-root> -Phase {feature-name}
   2. Read phases/{feature-name}/index.json to check step status
   3. Map status + report
   4. error/blocked → escalate to user, break loop

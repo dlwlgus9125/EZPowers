@@ -98,6 +98,7 @@ scripts/
   harness-doctor.ps1  # non-Python /executeharness pre-flight helper
   harness-gate.ps1    # non-Python wiring gate executor
   harness-phase.ps1   # non-Python harness phase status/reset helper
+  harness-run.ps1     # controlled /executeharness step runner with timeout/logging
   harness-smoke.ps1   # non-Python helper flow smoke check
 .githooks/
   pre-commit          # runs harness docs gate or validate.py by changed path

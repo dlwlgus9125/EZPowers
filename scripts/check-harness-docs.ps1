@@ -257,6 +257,71 @@ function Assert-HarnessGate {
     }
 }
 
+function Assert-HarnessRun {
+    $TempRoot = Join-Path $env:TEMP ("ezpowers-harness-run-" + [guid]::NewGuid().ToString("N"))
+    $PhaseDir = Join-Path $TempRoot 'phases/sample'
+    $FakeExecutor = Join-Path $TempRoot 'fake-executor.ps1'
+    New-Item -ItemType Directory -Force -Path $PhaseDir | Out-Null
+
+    try {
+        @'
+{
+  "project": "sample",
+  "phase": "sample",
+  "steps": [
+    { "step": 0, "name": "first", "status": "pending", "step_md": "step0.md" },
+    { "step": 1, "name": "second", "status": "pending", "step_md": "step1.md" }
+  ]
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'index.json') -Encoding UTF8
+
+        @'
+param(
+    [string] $ProjectRoot,
+    [string] $Phase
+)
+
+$IndexPath = Join-Path $ProjectRoot "phases/$Phase/index.json"
+$Index = Get-Content -LiteralPath $IndexPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$Step = $Index.steps | Where-Object { $_.status -eq 'pending' } | Sort-Object { [int]$_.step } | Select-Object -First 1
+if (-not $Step) {
+    Write-Output 'no pending step'
+    exit 0
+}
+$Step.status = 'completed'
+$Index | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $IndexPath -Encoding UTF8
+Write-Output "completed step $($Step.step)"
+'@ | Set-Content -LiteralPath $FakeExecutor -Encoding UTF8
+
+        & (Join-Path $RepoRoot 'scripts/harness-run.ps1') `
+            -ProjectRoot $TempRoot `
+            -Phase 'sample' `
+            -ExecutorCommand "& '$FakeExecutor' -ProjectRoot '$TempRoot' -Phase 'sample'" `
+            -TimeoutSeconds 10 | Out-Null
+
+        $Index = Get-Content -LiteralPath (Join-Path $PhaseDir 'index.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        $Pending = @($Index.steps | Where-Object { $_.status -eq 'pending' }).Count
+        if ($Pending -ne 0) {
+            throw "[FAIL] harness run: expected all steps completed"
+        }
+
+        $RunLog = Get-Content -LiteralPath (Join-Path $PhaseDir 'harness-run.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if (@($RunLog.attempts).Count -ne 2) {
+            throw "[FAIL] harness run: expected two recorded attempts"
+        }
+        if (@($RunLog.attempts | Where-Object { $_.exit_code -eq 0 }).Count -ne 2) {
+            throw "[FAIL] harness run: expected successful attempt exit codes"
+        }
+
+        Write-Output "[PASS] harness run controlled execution"
+    }
+    finally {
+        if (Test-Path -LiteralPath $TempRoot) {
+            Remove-Item -LiteralPath $TempRoot -Recurse -Force
+        }
+    }
+}
+
 function Assert-HarnessSmoke {
     $SmokeOutput = & (Join-Path $RepoRoot 'scripts/harness-smoke.ps1')
     if (($SmokeOutput -join "`n") -notlike '*Harness smoke passed.*') {
@@ -272,6 +337,7 @@ Assert-Contains 'commands/executeharness.md' 'scripts/harness-convert.ps1 -Proje
 Assert-Contains 'commands/executeharness.md' 'scripts/harness-doctor.ps1 -ProjectRoot <project-root> -Phase <phase>' 'executeharness runs doctor first'
 Assert-Contains 'commands/executeharness.md' 'scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>' 'executeharness uses gate helper'
 Assert-Contains 'commands/executeharness.md' 'scripts/harness-phase.ps1 -Phase {phase} -Status' 'executeharness uses phase helper for status'
+Assert-Contains 'commands/executeharness.md' 'scripts/harness-run.ps1 -ProjectRoot <project-root> -Phase <phase>' 'executeharness uses run helper'
 Assert-Contains 'commands/executeharness.md' 'Do not reset a step without a concrete pass/fail signal' 'executeharness recovery requires signal'
 Assert-Contains 'commands/executeharness.md' 'mattpocock-harness-adapter.md' 'executeharness reads Matt adapter'
 Assert-Contains 'commands/plan.md' 'vertical red-green slice' 'plan enforces vertical TDD slices'
@@ -280,6 +346,7 @@ Assert-Contains 'docs/reference/architecture-readiness-contract.md' 'Deletion te
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'EZPowers automation wins' 'Matt adapter preserves EZPowers automation'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'engineering/tdd' 'Matt adapter maps TDD skill'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'engineering/diagnose' 'Matt adapter maps diagnose skill'
+Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'harness-run.ps1' 'Matt adapter maps run helper'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'engineering/improve-codebase-architecture' 'Matt adapter maps architecture skill'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'engineering/to-issues' 'Matt adapter maps issue slicing skill'
 Assert-Contains 'docs/INDEX.md' 'Matt Pocock Harness Adapter' 'docs index links Matt adapter'
@@ -297,6 +364,7 @@ Assert-Contains '.githooks/pre-commit' 'harness-convert' 'pre-commit watches har
 Assert-Contains '.githooks/pre-commit' 'harness-doctor' 'pre-commit watches harness doctor'
 Assert-Contains '.githooks/pre-commit' 'harness-gate' 'pre-commit watches harness gate helper'
 Assert-Contains '.githooks/pre-commit' 'harness-phase' 'pre-commit watches harness phase helper'
+Assert-Contains '.githooks/pre-commit' 'harness-run' 'pre-commit watches harness run helper'
 Assert-Contains '.githooks/pre-commit' 'harness-smoke' 'pre-commit watches harness smoke helper'
 Assert-Contains '.githooks/pre-commit' 'non-harness command, agent, skill, or skill-gate files' 'pre-commit keeps python gate scoped'
 Assert-Contains 'CLAUDE.md' 'runs harness docs gate or validate.py by changed path' 'root guide documents split gate'
@@ -306,6 +374,7 @@ Assert-HarnessPhaseHelper
 Assert-HarnessDoctor
 Assert-HarnessConvert
 Assert-HarnessGate
+Assert-HarnessRun
 Assert-HarnessSmoke
 
 Write-Output 'Harness doc checks passed.'
