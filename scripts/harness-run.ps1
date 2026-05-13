@@ -177,7 +177,51 @@ while ($true) {
         Select-Object -First 1
     $AfterStatus = if ($AfterStep) { [string]$AfterStep.status } else { 'missing' }
 
-    $RunAttempts += New-Attempt $StepNumber $DisplayCommand $Result.exit_code $Result.timed_out $BeforeStatus $AfterStatus $Result.stdout $Result.stderr
+    $AttemptRecord = New-Attempt $StepNumber $DisplayCommand $Result.exit_code $Result.timed_out $BeforeStatus $AfterStatus $Result.stdout $Result.stderr
+
+    # Multi-dimensional verify-step.py integration (optional, backwards-compatible)
+    # Use index step_md field if available, fall back to convention
+    $StepMdName = if ($AfterStep -and $AfterStep.PSObject.Properties.Name -contains 'step_md' -and -not [string]::IsNullOrWhiteSpace([string]$AfterStep.step_md)) {
+        [string]$AfterStep.step_md
+    } else {
+        "step${StepNumber}.md"
+    }
+    $StepMdPath = Join-Path $ProjectRoot "phases/$Phase/$StepMdName"
+    if ($AfterStatus -eq 'completed' -and (Test-Path -LiteralPath $StepMdPath)) {
+        $VerifyScript = Join-Path $PSScriptRoot 'verify-step.py'
+        if (Test-Path -LiteralPath $VerifyScript) {
+            $VerifyId = [guid]::NewGuid().ToString("N")
+            $VerifyOutFile = Join-Path $env:TEMP ("ezpowers-verify-out-$VerifyId.txt")
+            $VerifyErrFile = Join-Path $env:TEMP ("ezpowers-verify-err-$VerifyId.txt")
+            try {
+                $VerifyProc = Start-Process -FilePath 'python' `
+                    -ArgumentList @($VerifyScript, '--step-md', $StepMdPath, '--project-root', $ProjectRoot, '--phase', $Phase, '--timeout', '30') `
+                    -WorkingDirectory $ProjectRoot `
+                    -PassThru -Wait -WindowStyle Hidden `
+                    -RedirectStandardOutput $VerifyOutFile `
+                    -RedirectStandardError $VerifyErrFile
+                $VerifyOut = if (Test-Path -LiteralPath $VerifyOutFile) { Get-Content -LiteralPath $VerifyOutFile -Raw -Encoding UTF8 } else { '' }
+                $VerifyErr = if (Test-Path -LiteralPath $VerifyErrFile) { Get-Content -LiteralPath $VerifyErrFile -Raw -Encoding UTF8 } else { '' }
+                if ($VerifyOut) {
+                    try {
+                        $AttemptRecord | Add-Member -NotePropertyName verify_result -NotePropertyValue ($VerifyOut | ConvertFrom-Json) -Force
+                    } catch {
+                        $AttemptRecord | Add-Member -NotePropertyName verify_result -NotePropertyValue $VerifyOut -Force
+                    }
+                }
+                $AttemptRecord | Add-Member -NotePropertyName verify_exit_code -NotePropertyValue ([int]$VerifyProc.ExitCode) -Force
+                if ($VerifyProc.ExitCode -ne 0) {
+                    Write-Output "verify-step.py reported issues for step $StepNumber (exit $($VerifyProc.ExitCode)) -- see verify_result in harness-run.json"
+                }
+            } catch {
+                Write-Output "verify-step.py skipped: $($_.Exception.Message)"
+            } finally {
+                Remove-Item -LiteralPath $VerifyOutFile, $VerifyErrFile -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    $RunAttempts += $AttemptRecord
     Save-RunLog $RunAttempts $RunLogPath
 
     if ($Result.timed_out) {

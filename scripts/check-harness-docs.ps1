@@ -431,6 +431,19 @@ Assert-Contains '.githooks/pre-commit' 'non-harness command, agent, skill, or sk
 Assert-Contains 'CLAUDE.md' 'runs harness docs gate or validate.py by changed path' 'root guide documents split gate'
 Assert-Contains 'CLAUDE.md' 'mattpocock-harness-adapter.md' 'root guide documents Matt adapter'
 Assert-Contains 'harness_versions/changelog.jsonl' 'harness_light_path_refactor' 'harness changelog records refactor'
+Assert-Contains '.githooks/pre-commit' 'smoke-plugin' 'pre-commit watches smoke-plugin helper'
+Assert-Contains '.githooks/pre-commit' 'verify-step' 'pre-commit watches verify-step script'
+
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/verify-step.py'))) {
+    throw '[FAIL] verify-step.py: missing scripts/verify-step.py'
+}
+Write-Output '[PASS] verify-step.py exists'
+
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/smoke-plugin.ps1'))) {
+    throw '[FAIL] smoke-plugin.ps1: missing scripts/smoke-plugin.ps1'
+}
+Write-Output '[PASS] smoke-plugin.ps1 exists'
+
 Assert-HarnessPhaseHelper
 Assert-HarnessDoctor
 Assert-HarnessConvert

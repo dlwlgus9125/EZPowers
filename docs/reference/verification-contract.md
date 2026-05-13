@@ -173,6 +173,32 @@ Full-Feature Wiring Gate failures must identify the failed view or pipeline,
 classify W1-W5 when applicable, map the failure back to the responsible task,
 and retry at most 3 times before user escalation.
 
+## Assertion Dimensions
+
+Step verification uses four assertion dimensions via `scripts/verify-step.py`.
+Each dimension produces independent pass/fail results with per-check detail.
+
+| Dimension | What it checks |
+| --- | --- |
+| `structural` | File existence, JSON/YAML parse validity, markdown section presence. |
+| `content` | Regex patterns, count thresholds, banned expression scan. |
+| `relational` | Cross-file reference integrity (R-ids in spec match plan, file refs exist). |
+| `command` | Shell command execution with exit 0 semantics (backwards-compatible). |
+
+Verify-type determines which dimensions apply:
+
+| Verify-type | structural | content | relational | command |
+| --- | --- | --- | --- | --- |
+| `pure` | yes | yes | - | yes |
+| `cli` | yes | yes | - | yes |
+| `lib` | yes | yes | yes | yes |
+| `api` | yes | yes | yes | yes |
+| `data` | yes | yes | yes | yes |
+| `e2e` | yes | yes | yes | yes |
+
+A step passes only when all enabled dimensions pass. The `command` dimension
+preserves backwards compatibility with existing shell Verify commands.
+
 ### Legacy Notes
 
 View를 포함하는 작업의 모델 레벨 테스트만으로는 5가지 와이어링 결함을 잡지

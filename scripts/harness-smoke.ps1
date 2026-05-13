@@ -105,6 +105,9 @@ Write-Output "completed step $($Step.step)"
     }
 
     Write-Output 'Harness smoke passed.'
+
+    # Plugin structure probe (self-test against the EZPowers repo)
+    & (Join-Path $RepoRoot 'scripts/smoke-plugin.ps1')
 }
 finally {
     if (Test-Path -LiteralPath $TempRoot) {
