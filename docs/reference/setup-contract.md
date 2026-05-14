@@ -233,6 +233,13 @@ can be inferred or asked.
     "prompt_logging": false,
     "verifier": "off",
     "verifier_max_rounds": 1
+  },
+  "wiring": {
+    "enabled": true,
+    "exempt_reason": "",
+    "view_extensions": [],
+    "view_test_command": "",
+    "wiring_gate_command": ""
   }
 }
 ```
@@ -252,6 +259,40 @@ GUI strategy defaults:
 - Docs/library: `skip` only when runtime smoke is explicitly not required.
 
 Warn if the smoke command is the same as the build command.
+
+## Wiring Rules
+
+Projects with UI presence require `wiring.enabled: true` and a non-empty
+`wiring.view_extensions` array. Auto-detect view extensions from the tech
+stack. `wiring.view_test_command` and `wiring.wiring_gate_command` may be
+empty at setup time — per-task and per-plan commands serve as fallbacks.
+
+Only `docs` and `library` artifacts may set `wiring.enabled: false`. Setting
+`enabled: false` requires a non-empty `wiring.exempt_reason`; auto-fill for
+docs/library (e.g., `"pure library, no UI components"`).
+
+A missing `wiring` block is a configuration error. All downstream gates
+(plan-reviewer, choiceexecutor, wiring-reviewer, pipeline-audit) treat a
+missing block as FAIL, not skip.
+
+Stack auto-detection defaults:
+
+| Stack | view_extensions |
+|-------|----------------|
+| React, Next.js | `[".tsx", ".jsx"]` |
+| Vue, Nuxt | `[".vue"]` |
+| Angular | `[".component.ts", ".component.html"]` |
+| Svelte, SvelteKit | `[".svelte"]` |
+| WPF, Avalonia | `[".xaml"]` |
+| WinForms | `[".cs"]` (form classes) |
+| Qt | `[".qml", ".ui"]` |
+| GTK | `[".glade", ".ui"]` |
+| Electron, Tauri | `[".tsx", ".jsx", ".html"]` |
+| Flutter | `[".dart"]` |
+| SwiftUI | `[".swift"]` |
+
+After auto-detection, present the inferred `view_extensions` to the user for
+confirmation. If the user declares no UI presence, require an `exempt_reason`.
 
 ## Phase Index
 

@@ -114,10 +114,16 @@ registration/binding/subscription/end-to-end language, the plan MUST include
 - Reject empty commands, `echo`, `true`, `:`, placeholder text, and single-component unit tests as the only gate.
 - Exemption: single-task library-only plans with no executable artifact.
 
-**9. View wiring verification check:**
-`.harness/config.json`의 `config.wiring.view_extensions`가 비어있지 않고, Task Files에 해당 확장자의 Create/Modify 항목이 있으면 `**View wiring verification**` 섹션(W1-W5)이 필수.
-- 뷰 파일 Task에 섹션 누락 → FAIL: "Task N modifies view files but has no View wiring verification section"
-- W1-W5 항목 불완전 → FAIL. 면제: 모델/로직 전용 파일만 수정하는 Task
+**9. View wiring verification check (fail-closed):**
+Read `.harness/config.json` `wiring` block.
+- `wiring` block missing → FAIL: `"config.json has no wiring block. Run /setup to regenerate."`
+- `wiring.enabled: true` + `wiring.view_extensions` empty → skip only the view wiring verification check. CLI/server/headless projects may have an empty `view_extensions` array. The Full-Feature Wiring Gate requirements still apply.
+- `wiring.enabled: false` + `wiring.exempt_reason` empty → FAIL: `"wiring disabled without exempt_reason."`
+- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` not `docs` or `library` → FAIL: `"wiring exemption not allowed for artifact_kind: {kind}"`
+- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` is `docs` or `library` → exempt from view wiring checks. Log: `"View wiring exempt: [reason]"`
+- `wiring.enabled: true` + Task Files contain Create/Modify for `view_extensions` matches → `**View wiring verification**` 섹션(W1-W5) 필수.
+  - 뷰 파일 Task에 섹션 누락 → FAIL: `"Task N modifies view files but has no View wiring verification section"`
+  - W1-W5 항목 불완전 → FAIL. 면제: 모델/로직 전용 파일만 수정하는 Task
 
 ## Advisory Checks (do NOT affect verdict)
 

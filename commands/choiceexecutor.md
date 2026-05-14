@@ -284,12 +284,19 @@ Simple `pure`/`cli`/`lib` tasks skip the arbiter and proceed directly to securit
 
 **Arbiter dispatch limit:** max 2 rounds per task. If arbiter returns TEST_GAP or CODE_GAP twice, escalate to user.
 
-### View Wiring Test (Per-Task)
-**감지:** Task changed-files에 `config.wiring.view_extensions` 매칭 확장자 포함 여부. 비어있거나 미설정이면 skip.
+### View Wiring Test (Per-Task, fail-closed)
+**Config validation:** Read `config.wiring` block.
+- `wiring` block missing → FAIL: `"config.json has no wiring block. Run /setup to regenerate."`
+- `wiring.enabled: false` + `wiring.exempt_reason` empty → FAIL: `"wiring disabled without exempt_reason."`
+- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` not `docs` or `library` → FAIL: `"wiring exemption not allowed for artifact_kind: {kind}"`
+- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` is `docs` or `library` → skip. Log: `"View wiring exempt: [reason]"`
+- `wiring.enabled: true` + `wiring.view_extensions` empty → skip only the View Wiring Test. CLI/server/headless projects may have an empty `view_extensions` array. The Full-Feature Wiring Gate still runs when required.
+
+**감지:** `wiring.enabled: true` → Task changed-files에 `config.wiring.view_extensions` 매칭 확장자 포함 여부.
 **실행:** Task의 `**View wiring verification**` 섹션에서 Verify 커맨드 추출. 섹션 없으나 view 파일이 changed-files에 있음 → FAIL (plan에 wiring verification 누락).
 Verify 커맨드 실행 (timeout: 120s). Exit 0 = PASS. Non-zero = FAIL.
 FAIL → 테스트 출력에서 W1-W5 결함 유형 분류. implementer 재디스패치: "View Wiring Test failed. Defect type: [W1-W5]. [출력 발췌]. Fix the wiring defect."
-Max 3 retries → user 에스컬레이션. View 파일 존재 + `config.wiring.enabled: true` → skip 불가.
+Max 3 retries → user 에스컬레이션. `wiring.enabled: true` with non-empty `view_extensions` and changed view files → skip 불가.
 **Inline execution (Path 3):** 동일 감지/실행. 재디스패치 대신 fix-in-place.
 
 ## 6. Conditional Security Review
@@ -584,8 +591,18 @@ If plan decomposition proves inadequate during execution — tasks too tightly c
 After all tasks + final review complete:
 1. Full diff summary (`git diff <first-task-start-hash>..HEAD`)
 2. Completed/failed/SKIPPED task list
-3. **Wiring Gate Test (conditional):** `config.wiring.wiring_gate_command`가 설정되어 있고 plan에 `## Full-Feature Wiring Gate`의 `Required: yes`가 있으면 실행.
-   `config.wiring.wiring_gate_command` 실행 (timeout: 120s). 미설정 시 plan의 Wiring Gate Verify 커맨드 사용. Exit 0 = PASS. Non-zero = FAIL.
+3. **Wiring Gate Test (fail-closed):**
+   Read `config.wiring` block.
+   - `wiring` block missing → FAIL: `"config.json has no wiring block. Run /setup to regenerate."`
+   - `wiring.enabled: false` + `wiring.exempt_reason` empty → FAIL: `"wiring disabled without exempt_reason."`
+   - `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` not `docs` or `library` → FAIL: `"wiring exemption not allowed for artifact_kind: {kind}"`
+   - `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` is `docs` or `library` → skip wiring gate. Log: `"View wiring exempt: [reason]"`
+   - Plan `## Full-Feature Wiring Gate` with `Required: yes`:
+     - `config.wiring.wiring_gate_command` non-empty → 실행 (timeout: 120s).
+     - `config.wiring.wiring_gate_command` empty → plan의 Wiring Gate Verify 커맨드 사용.
+     - 양쪽 모두 empty → FAIL: `"Required wiring gate has no executable command."`
+   - `wiring.enabled: true` + plan에 2개 이상 연결된 task 존재 + `## Full-Feature Wiring Gate` 없음 → FAIL: `"Connected tasks exist but plan has no Full-Feature Wiring Gate. Return to /plan."`
+   Exit 0 = PASS. Non-zero = FAIL.
    FAIL → 테스트 출력에서 실패 뷰/파이프라인 식별, Coverage Matrix로 Task 역추적, 해당 Task implementer 재디스패치. Max 3 retries → user 에스컬레이션.
    `Required: yes` → skip 불가. 테스트 파일 미존재 → 테스트 작성 Task를 자동 추가.
 4. **Smoke/runtime gate:** Run the configured runtime probe. If `config.smoke.required: true`, missing `config.smoke.command` is FAIL. Empty smoke may skip only for `artifact_kind: docs|library` with `required: false`. Any failure enters the fix loop (max 3).

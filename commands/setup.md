@@ -31,6 +31,9 @@ steering docs, phase state, and reference doc slots. Do not write product code.
   docs slots, smoke config, and executor settings are first-class outputs.
 - Executable artifacts require runtime smoke unless the setup contract allows
   an explicit `docs` or `library` exemption.
+- Use `docs/reference/setup-contract.md` Wiring Rules for auto-detecting and
+  configuring `wiring` based on stack and UI presence. UI projects must have
+  `wiring.enabled: true`; `docs`/`library` exemptions require `exempt_reason`.
 - Mark setup `in_progress` before writes and `complete` only after required
   files exist.
 - Keep human-authored docs as slots unless the user provides real content.

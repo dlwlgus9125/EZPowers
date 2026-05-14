@@ -52,9 +52,16 @@ Look for concrete connections in the diff:
 - UI state or data binding to the new behavior
 - Startup/lifecycle hookup for services, workers, jobs, or listeners
 
-### 2.5 Dynamic Wiring Verification
-`config.wiring.view_test_command`가 설정되어 있으면 해당 커맨드 실행 (timeout: 120s). 테스트 FAIL → 정적 분석 결과와 무관하게 reviewer verdict FAIL.
-뷰 파일이 diff에 있으나 wiring 테스트 미존재 → TEST_GAP: "View files changed but no wiring tests found"
+### 2.5 Dynamic Wiring Verification (fail-closed)
+Read `config.wiring` block.
+- `wiring` block missing → TEST_GAP: `"config.json has no wiring block. Cannot verify wiring."`
+- `wiring.enabled: false` + `wiring.exempt_reason` empty → TEST_GAP: `"wiring disabled without exempt_reason."`
+- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` not `docs` or `library` → FAIL: `"wiring exemption not allowed for artifact_kind: {kind}"`
+- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` is `docs` or `library` → skip dynamic verification. Log: `"View wiring exempt: [reason]"`
+- `wiring.enabled: true`:
+  - `config.wiring.view_test_command` non-empty → 해당 커맨드 실행 (timeout: 120s). 테스트 FAIL → 정적 분석 결과와 무관하게 reviewer verdict FAIL.
+  - `config.wiring.view_test_command` empty + 뷰 파일이 diff에 있음 → TEST_GAP: `"View files changed but no view_test_command configured and no per-task wiring test found"`
+  - `config.wiring.view_test_command` empty + 뷰 파일이 diff에 없음 → proceed to static analysis only.
 
 ### 3. Failure Classification
 - `TEST_GAP`: The implementation may be wired, but the Verify/smoke evidence

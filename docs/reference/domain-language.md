@@ -112,6 +112,9 @@ Per-task automated verification that a view file's bindings, handlers,
 dependency resolution, activation states, and templates resolve at the view
 instantiation level. Runs after AC verification for tasks containing view files
 (`config.wiring.view_extensions`). Layer 2 in the verification hierarchy.
+The `wiring` block in `config.json` is required. A missing block is a
+configuration error (FAIL), not a skip condition. `wiring.enabled: false`
+requires a non-empty `exempt_reason`; only `docs`/`library` artifacts qualify.
 
 **Wiring Defect (W1-W5)**
 Five categories of view-level defects that model-only tests cannot catch:

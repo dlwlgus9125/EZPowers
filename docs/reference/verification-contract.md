@@ -152,6 +152,12 @@ this section conflicts or is unreadable, ignore it and follow this subsection.
 Apply view wiring verification to tasks that create or modify files matching
 `config.wiring.view_extensions`. Logic-only tasks with no view file are exempt.
 
+The `wiring` block in `config.json` is required for all projects. A missing
+`wiring` block is a configuration error, not a skip condition. If
+`wiring.enabled` is `false`, `wiring.exempt_reason` must be non-empty;
+otherwise the project fails verification. Only `docs` and `library` artifact
+kinds may set `wiring.enabled: false`.
+
 Verification layers:
 
 1. Model/ViewModel test: existing task acceptance criteria.

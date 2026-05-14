@@ -32,11 +32,11 @@ Read project state to determine which dimensions to run:
 | State | Condition | Dimensions |
 |-------|-----------|-----------|
 | **spec-only** | Spec(s) exist, no plan | D2 + D6 Layer 1 + D7 |
-| **spec+plan** | Both exist | D1-D7 all |
-| **mid-build** | Build phase `in_progress` | D1-D6, completed tasks → INFO severity |
+| **spec+plan** | Both exist | D1-D8 all |
+| **mid-build** | Build phase `in_progress` | D1-D6 + D8, completed tasks → INFO severity |
 | **no-documents** | Neither spec nor plan | Error: "No spec or plan found. Run /brainstorm first." → stop |
 
-For `mid-build`, include D7 in addition to the listed dimensions.
+For `mid-build`, include D7 and D8 in addition to the listed dimensions.
 
 5. Report state to user:
 
@@ -137,8 +137,10 @@ Purpose: Verify that integration milestone tasks actually test the full pipeline
    equivalent runtime probe artifact; desktop gates must include screenshot
    evidence.
    -> **FAIL**: `"Full-Feature Wiring Gate lacks runtime artifact evidence"`
-8. **No pipelines detected:** if plan has no Integration Pipeline Matrix and no tasks with integration/milestone keywords:
-   → **SKIP**
+8. **No pipelines detected:** if plan has no Integration Pipeline Matrix and no tasks with integration/milestone/wiring keywords:
+   - If `config.wiring.enabled: true` and plan has 2+ tasks with file dependencies (`Depends on` or shared `Modify` files) → **WARN**: `"No Integration Pipeline Matrix but task dependencies exist. Consider adding integration verification."`
+   - If `config.wiring.enabled: false` with valid `exempt_reason`, or plan has truly independent single-file tasks → **PASS**
+   - If `config.wiring` block missing → **FAIL**: `"config.json has no wiring block. Run /setup to regenerate."`
 
 ### D6: Step Specification Sufficiency (spec or plan required)
 
@@ -223,6 +225,30 @@ tasks.
    in Coverage Matrix rows, task `**ASR:**` fields, or Structural Invariants.
    - **FAIL** when an ASR has no plan task or invariant.
 
+### D8: Sensor Completeness (plan required)
+
+Purpose: Verify that expected verification layers are configured and plan-aligned. Meta-verification — checks the verification pipeline itself.
+
+1. **Wiring config presence:** `.harness/config.json` has a `wiring` block.
+   → **FAIL**: `"config.json has no wiring block. Run /setup to regenerate."`
+2. **Exemption validity:** `wiring.enabled: false` requires non-empty `wiring.exempt_reason`.
+   - Missing reason → **FAIL**: `"wiring disabled without exempt_reason."`
+   - Non-empty reason with `artifact_kind` not `docs` or `library` → **FAIL**: `"wiring exemption not allowed for artifact_kind: {kind}"`
+   - Only `docs` and `library` artifacts may use the wiring exemption.
+3. **View extension coverage:** `wiring.enabled: true` with empty `wiring.view_extensions` skips only the L2 view-layer wiring check.
+   - CLI/server/headless projects may have an empty `view_extensions` array.
+   - The Full-Feature Wiring Gate still runs when required; do not fail D8 solely because `view_extensions` is empty.
+4. **Expected sensor count:** Report expected verification layers:
+   - L1 (AC verification): always expected. Count = task count.
+   - L2 (View Wiring Test): expected if `wiring.enabled: true`, `wiring.view_extensions` is non-empty, and any task creates/modifies view files. Count = view-touching task count.
+   - L3 (Wiring Gate): expected if plan has `## Full-Feature Wiring Gate` with `Required: yes`. Count = 1.
+   - L4 (Runtime Smoke): expected if `config.smoke.required: true`. Count = 1.
+   → Report: `"Expected sensors: L1=N, L2=M, L3=P, L4=Q"`
+5. **L2 sensor-plan alignment:** For each expected L2 sensor, the corresponding task must have a `**View wiring verification**` section.
+   → **FAIL**: `"T3 modifies view files but has no View wiring verification section. Expected L2 sensor missing."`
+6. **L3 sensor-plan alignment:** If L3 expected, `## Full-Feature Wiring Gate` must have a non-trivial Verify command (not echo/true/:/placeholder).
+   → **FAIL**: `"Expected L3 sensor (wiring gate) has no executable command."`
+
 ## 3. Output Report
 
 ```
@@ -245,8 +271,8 @@ tasks.
 ### D4: File Mutation Consistency — PASS | WARN | FAIL
 - [file conflict findings per path]
 
-### D5: Integration Readiness — PASS | WARN | FAIL | SKIP
-- [milestone/pipeline findings or "No pipelines detected"]
+### D5: Integration Readiness — PASS | WARN | FAIL
+- [milestone/pipeline findings]
 
 ### D6: Step Specification Sufficiency — PASS | WARN | FAIL
 #### Layer 1 — Spec Depth
@@ -254,8 +280,11 @@ tasks.
 #### Layer 2 — Plan Task (post-plan only)
 - [per-task sub-gate findings]
 
-### D7: Architecture Readiness ??PASS | WARN | FAIL
+### D7: Architecture Readiness — PASS | WARN | FAIL
 - [architecture section, ASR, lifecycle, budget, ADR, and carry-forward findings]
+
+### D8: Sensor Completeness — PASS | WARN | FAIL
+- [wiring config, sensor count, sensor-plan alignment findings]
 
 ---
 
@@ -263,15 +292,17 @@ tasks.
 - FAIL: N dimensions
 - WARN: N dimensions
 - PASS: N dimensions
-- SKIP: N dimensions
 
 ## Routing Recommendations
+
+### Return to /setup (config gaps)
+- [D8: missing wiring block, invalid exemption]
 
 ### Return to /brainstorm (spec-level gaps)
 - [specific R/AC references with reason]
 
 ### Return to /plan (plan-level gaps)
-- [specific T/AC references with reason]
+- [specific T/AC references with reason, D8 missing View wiring sections]
 
 ### Proceed to [/plan | /choiceexecutor]
 - [conditions met, or all gaps are WARN-level only]
@@ -280,7 +311,7 @@ tasks.
 **Verdict aggregation rules:**
 - Any dimension FAIL → Overall **FAIL** (block next stage)
 - No FAIL + any WARN → Overall **WARN** (proceed with caution)
-- All PASS/SKIP → Overall **PASS**
+- All PASS → Overall **PASS**
 
 ## 4. Write Verdict
 
