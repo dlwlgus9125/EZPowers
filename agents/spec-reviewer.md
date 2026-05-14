@@ -29,6 +29,15 @@ These checks are pass/fail with no subjective judgment. ANY failure = FAIL verdi
 - Verify every R section has an `ASR:` field with ASR IDs or `none`.
 - Missing architecture section or missing R-level ASR field -> FAIL.
 
+**0A. Wiring Map (executable artifacts only):**
+- Read `config.smoke.artifact_kind` from `.harness/config.json`.
+- If `cli`, `server`, or `desktop`: Architecture Baseline must contain a Wiring
+  Map table with at least one WM-EP entry, one WM-REG or WM-DF entry, and one
+  WM-C entry. Each row must have a unique ID.
+- Table without IDs -> FAIL.
+- Missing contracts (no WM-C row with signature/event/token) -> FAIL.
+- `docs` or `library` artifact -> skip.
+
 **1. Requirements coverage:**
 - Find the "Extracted Requirements" list (R1, R2, ...)
 - Verify EVERY R has its own section in the spec body

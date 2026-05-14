@@ -17,8 +17,9 @@ Quality Budgets, Decision Log, and Extracted Requirements.
 
 **Plan**
 The implementation artifact produced by `/plan`. Its interface is the Coverage
-Matrix, Structural Invariants, tasks, dependency metadata, verification method,
-Integration Pipeline Matrix, Full-Feature Wiring Gate, and Agent Assignment.
+Matrix, Structural Invariants, tasks (with task categories and wiring
+handoffs), dependency metadata, verification method, Integration Contract
+Matrix, Full-Feature Wiring Gate, and Agent Assignment.
 
 **Pipeline Audit**
 The cross-stage completeness gate. Its interface is an audit verdict written to
@@ -126,3 +127,39 @@ Post-completion automated test that exercises the full feature pipeline through
 the user-facing entry point, verifying cross-task wiring. Corresponds to
 Layer 3 and the Full-Feature Wiring Gate's dynamic verification.
 `config.wiring.wiring_gate_command` drives this probe when configured.
+
+## Wiring Design Terms
+
+**Wiring Map**
+Spec-level declaration within Architecture Baseline for executable artifacts.
+Lists entry points (WM-EP), registration sites (WM-REG), data flow paths
+(WM-DF), and integration contracts (WM-C) with unique IDs. Input to plan
+decomposition and wiring coverage verification.
+
+**Integration Contract Matrix**
+Plan-level table mapping Wiring Map items to tasks, wiring handoffs, and
+verify commands. Required for executable plans with 2+ tasks. Extends the
+Integration Pipeline Matrix for executable artifacts with WM-ID traceability.
+
+**Skeleton Task**
+Plan Task 1 for new executable artifacts. Creates a minimal runnable vertical
+slice through a real entry point — not stub scaffolding. Must pass runtime
+smoke AND prove one feature path (e.g., CLI command returns expected output,
+health route resolves, window renders text). All subsequent tasks extend this
+slice. Maps to at least one spec requirement.
+
+**Task Category**
+Plan task classification: `skeleton`, `feature`, `wiring`, `integration-test`.
+Determines verification obligations and wiring handoff requirements. Appears
+in the task header as `{category}`.
+
+**Incremental Runnability**
+Post-skeleton gate that runs `config.smoke.command` after every task to
+prevent regression of the running application. Separate from per-task
+`Runtime verification:` which tests task-specific behavior.
+
+**Wiring Handoff**
+Per-task declaration of integration contracts produced or consumed — DI tokens,
+routes, events, exports, message schemas. Mandatory for any task that publishes
+something consumed by a downstream task or by the app entry point. References
+Wiring Map IDs.

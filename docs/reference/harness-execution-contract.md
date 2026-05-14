@@ -72,6 +72,8 @@ Step files include:
 
 - Files to Read.
 - Full task text.
+- Task category (`skeleton`/`feature`/`wiring`/`integration-test`).
+- Wiring handoff (if present in the plan task).
 - Acceptance Criteria.
 - Verification.
 - tools.
@@ -167,6 +169,10 @@ to continue when status makes no progress.
 
 The final harness call must enforce runtime smoke for executable artifacts.
 Missing required smoke evidence is a failure, not a skip.
+
+After a `{skeleton}` step passes runtime smoke, every subsequent step must also
+pass `config.smoke.command` before advancing. Failure sets step status to
+`error` and triggers the recovery route.
 
 ## Wiring Gate Execution
 

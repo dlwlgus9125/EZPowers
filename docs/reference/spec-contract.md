@@ -51,6 +51,7 @@ Every spec starts with these sections before requirements:
 - Option Matrix.
 - Lifecycle And Operations.
 - Quality Budgets.
+- Wiring Map (executable artifacts only).
 - Decision Log.
 - Extracted Requirements.
 
@@ -62,6 +63,28 @@ Each ASR must affect structure, lifecycle, performance, reliability, security,
 compatibility, cost, or operations. If a quality budget is not declared, state
 `none declared` and explain the risk.
 
+## Wiring Map (executable artifacts only)
+
+Required when `config.smoke.artifact_kind` is `cli`, `server`, or `desktop`.
+Omit for `docs` or `library`.
+
+Declares how components connect. Part of the Architecture Baseline.
+
+| ID | Aspect | Value |
+|----|--------|-------|
+| WM-EP1 | Entry point | `main()` in `src/cli.ts` |
+| WM-REG1 | Registration | `yargs.command()` in `src/commands/index.ts` |
+| WM-DF1 | Data flow | CLI args → CommandHandler → FileSystem → stdout |
+| WM-C1 | Contract | `CommandHandler.execute(args: ParsedArgs): Result` |
+
+Rules:
+
+- Every entry point, registration site, and cross-module boundary gets a unique
+  ID (WM-EP, WM-REG, WM-DF, WM-C prefix).
+- IDs are referenced in plan Coverage Matrix and Integration Contract Matrix.
+- Contracts specify the function signature, event name, DI token, or message
+  format at each boundary.
+
 ## Architecture Approval Text
 
 Use this shape before requirement extraction:
@@ -72,6 +95,7 @@ Architecture baseline:
 - ASRs:
 - Lifecycle:
 - Quality budgets:
+- Wiring map: (executable artifacts only)
 - ADR candidates:
 
 Confirm this architecture baseline before I extract requirements.

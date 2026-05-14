@@ -16,6 +16,14 @@ Agent tool:
 
     [Scene-setting: where this fits, dependencies, architectural context]
 
+    ## Prior Task Wiring
+
+    [If this task has `Depends on:` another task, paste the dependency's
+    `**Wiring handoff:**` here. Also include relevant Integration Contract
+    Matrix rows where this task is the Consumer. Include referenced Wiring Map
+    entries. If no dependency or no handoff, state "No wiring handoff from
+    dependency."]
+
     ## Architecture Constraints
 
     Respect the task's `**ASR:**` field, Structural Invariants, and architecture

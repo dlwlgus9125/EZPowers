@@ -224,6 +224,10 @@ tasks.
 7. Post-plan carry-forward: when a plan exists, ASR IDs from spec must appear
    in Coverage Matrix rows, task `**ASR:**` fields, or Structural Invariants.
    - **FAIL** when an ASR has no plan task or invariant.
+8. Wiring Map (executable artifacts only): if `config.smoke.artifact_kind` is
+   `cli`, `server`, or `desktop`, spec must contain a Wiring Map table with at
+   least one WM-EP entry, one WM-REG or WM-DF entry, and one WM-C entry.
+   - **FAIL** when Wiring Map is missing or incomplete for executable artifacts.
 
 ### D8: Sensor Completeness (plan required)
 

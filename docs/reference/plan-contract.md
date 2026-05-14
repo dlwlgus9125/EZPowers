@@ -77,12 +77,34 @@ Add this section when ASRs, architecture rules, or project rules are verifiable:
 
 Do not invent invariants when no rule source exists.
 
+## Task Categories
+
+- `skeleton`: Minimal runnable vertical slice through a real entry point.
+  Wires WM-EP and WM-REG items from the spec's Wiring Map with real (not stub)
+  minimal implementations. Must pass runtime smoke AND prove one feature path
+  via its Verify command. Maps to at least one spec requirement.
+- `feature`: Extends the skeleton with real behavior. Default category.
+- `wiring`: Explicitly connects components from different feature tasks when
+  implicit registration is insufficient.
+- `integration-test`: Validates cross-task integration. Maps to Integration
+  Contract Matrix milestones.
+
+Category appears in the task header:
+
+    ### Task 1: Project Skeleton [R1] {skeleton}
+
+Skeleton tasks are vertical slices — they must map to a spec requirement in
+the Coverage Matrix, not be requirement-free scaffolding. Assign `skeleton`
+to Task 1 when the plan produces an executable artifact and the project has
+no existing runnable app. Plans for existing runnable projects may omit the
+skeleton.
+
 ## Task Shape
 
 Tasks are independently grabbable vertical slices. Use this template:
 
 ```markdown
-### Task N: Name [R1, R3]
+### Task N: Name [R1, R3] {feature}
 
 **ASR:** ASR-1 or none
 **Files:**
@@ -99,6 +121,9 @@ Tasks are independently grabbable vertical slices. Use this template:
 
 **Depends on:** Task N or none
 **File overlap with:** Task N or none
+**Wiring handoff:** (mandatory when task publishes routes, DI tokens, events, exports, or registrations consumed downstream; references WM IDs)
+  WM-REG1: DI token `IFooService` registered in `startup.ts`
+  WM-C1: Route `/api/foo` added in `routes.ts`, contract: `GET /api/foo -> FooResponse`
 
 **Completion criteria (from spec):**
 - [ ] Given: ... / When: ... / Then: ... / Verify: `command`
@@ -145,21 +170,27 @@ When uncertain, classify as reference breakage.
 - View tasks require view wiring verification from
   `docs/reference/verification-contract.md`.
 
-## Integration Pipeline Matrix
+## Integration Contract Matrix
 
-Add when task outputs are consumed by other tasks, when three or more layers
-connect, when UI displays non-UI data, or when an executable artifact needs two
-or more components.
+Required when the plan has two or more tasks and produces an executable
+artifact (`cli`/`server`/`desktop`). Optional for single-task plans or
+`docs`/`library`. Also required when task outputs are consumed by other
+tasks, when three or more layers connect, or when UI displays non-UI data.
 
 ```markdown
-## Integration Pipeline Matrix
+## Integration Contract Matrix
 
-| Pipeline | Flow | First Connected | Contract Oracle | Integration Verify |
-|----------|------|-----------------|-----------------|-------------------|
-| P1 | A -> B -> C | T3 | emitted state equals consumed state | `command` |
+| WM ID | Producer Task | Consumer Task | Contract | First Connected | Verify |
+|-------|---------------|---------------|----------|-----------------|--------|
+| WM-C1 | T1 | T3 | `CommandHandler.execute(args): Result` | T3 | `command` |
+| WM-REG1 | T1 | T2 | DI token `IFooService` | T2 | `command` |
 ```
 
-Add an integration milestone task after the last component task when needed.
+Rules:
+
+- Every WM-C and WM-REG item from the spec's Wiring Map must appear.
+- Unmapped WM items indicate a plan gap (plan-reviewer FAIL).
+- Add an integration milestone task after the last component task when needed.
 
 ## Full-Feature Wiring Gate
 

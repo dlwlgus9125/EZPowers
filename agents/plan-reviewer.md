@@ -93,12 +93,14 @@ For tasks without test code: apply only check c.
 **6. Build config cross-validation:**
 If task modifies bundler/build config: verify externalize/exclude/alias strategy is compatible with dependency module systems (CJS/ESM). Flag blanket patterns (e.g., `externals: [/node_modules/]`) that may break ESM-only deps. No build config in task → skip.
 
-**7. Integration milestone check:**
-If the plan has 3+ tasks AND any task's output is consumed by another task (detectable via `Depends on` markers + shared Modify/Create files + data flow described in AC text), an Integration Pipeline Matrix section and at least one integration milestone task MUST exist.
-- Missing Integration Pipeline Matrix → FAIL: "Data pipeline [A → B → C] detected but no Integration Pipeline Matrix."
+**7. Integration Contract Matrix check:**
+If plan has 2+ tasks AND `config.smoke.artifact_kind` is `cli`/`server`/`desktop`, an Integration Contract Matrix is required regardless of explicit `Depends on` markers. Executable applications always have implicit integration through their entry point.
+- Missing Integration Contract Matrix → FAIL: "Executable plan with 2+ tasks requires Integration Contract Matrix."
+- Every WM-C and WM-REG item from the spec's Wiring Map must appear in the matrix. Unmapped WM item → FAIL: "WM item [ID] from spec not mapped in Integration Contract Matrix."
 - Pipeline detected but no integration milestone task → FAIL: "Pipeline exists but no integration milestone task exercises the full flow."
 - Unit tests for individual components do not satisfy this gate.
-- Exemption: all-independent tasks (no `Depends on` markers and no shared files), single-task plans, library-only projects (no executable artifact).
+- Exemption: single-task plans, `docs`/`library` artifacts.
+Also applies when any task's output is consumed by another (detectable via `Depends on` markers + shared files + AC data flow), even for non-executable artifacts with 3+ tasks.
 
 **8. Full-feature wiring gate:**
 If the plan has 2+ connected tasks, changes 2+ layers, creates/modifies an
@@ -113,6 +115,17 @@ registration/binding/subscription/end-to-end language, the plan MUST include
 - `**Verify:**` must contain a non-trivial automated command.
 - Reject empty commands, `echo`, `true`, `:`, placeholder text, and single-component unit tests as the only gate.
 - Exemption: single-task library-only plans with no executable artifact.
+
+**8A. Skeleton task (executable artifacts, new projects only):**
+If `config.smoke.artifact_kind` is `cli`/`server`/`desktop` and the plan
+targets a new project (no existing runnable app — determined by plan metadata
+or explicit author declaration), Task 1 must have `{skeleton}` category, map
+to at least one requirement in Coverage Matrix, and reference at least one
+WM-EP item from the spec's Wiring Map.
+- Missing skeleton for new executable → FAIL.
+- Skeleton without requirement mapping → FAIL: "Skeleton task must map to at
+  least one spec requirement."
+- Existing runnable app → skip.
 
 **9. View wiring verification check (fail-closed):**
 Read `.harness/config.json` `wiring` block.

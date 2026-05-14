@@ -37,6 +37,9 @@ repo.
   step execution so timeout, progress, and attempt logs are controlled.
 - Use `scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>` for
   Full-Feature Wiring Gate evidence.
+- When converting plan to phase, preserve task categories and wiring handoffs
+  in step files. Skeleton step (step0) must pass runtime smoke before feature
+  steps begin.
 - Protect EZPowers `phases/index.json` from harness schema conflicts as defined
   in `docs/reference/harness-execution-contract.md`.
 - Before reset or redispatch, identify the failing Verify, runtime, or wiring

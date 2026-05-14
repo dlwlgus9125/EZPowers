@@ -117,6 +117,14 @@ deterministic process/window/screenshot/UI Automation evidence.
 Runtime probe success never replaces a Verify command whose Then clause
 describes feature behavior.
 
+### Incremental Runnability
+
+For executable artifacts, `config.smoke.command` runs after every task
+following a completed skeleton task. This is separate from per-task
+`Runtime verification:` which tests task-specific behavior. Incremental
+smoke verifies the app still starts — it does not replace feature-specific
+verification.
+
 ## Integration And Wiring
 
 A plan needs a Full-Feature Wiring Gate when work crosses connected tasks,

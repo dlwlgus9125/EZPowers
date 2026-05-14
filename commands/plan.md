@@ -36,6 +36,11 @@ slices, runtime evidence, and wiring gates. Do not implement code.
   Full-Feature Wiring Gate, Agent Assignment, review loop, and phase updates.
 - Tasks are vertical red-green slices through public interfaces, not layer
   batches. Copy spec acceptance criteria without weakening the oracle.
+- For executable artifacts with no existing runnable app, Task 1 must be
+  `{skeleton}` — a minimal vertical slice through a real entry point that maps
+  to at least one spec requirement. It must wire WM-EP and WM-REG items from
+  the spec's Wiring Map. Runtime smoke AND one feature-path Verify must pass
+  before feature tasks begin.
 - Add automated runtime and wiring evidence when work touches executable entry
   points, multiple layers, connected tasks, routes, bindings, or registrations.
 - Dispatch `ezpowers:plan-reviewer` through the dispatch protocol.

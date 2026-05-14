@@ -164,6 +164,16 @@ Assess complexity on 3 dimensions before dispatch:
 - **Medium** (2+ medium): dispatch with extra context — architecture notes, interface contracts, dependency descriptions
 - **Complex** (any high): recommend splitting
 
+### Wiring Context Injection
+
+When constructing the implementer prompt for a task with `Depends on:` another
+task, include in the "Prior Task Wiring" section:
+1. The dependency's `**Wiring handoff:**` field (verbatim from plan).
+2. Relevant Integration Contract Matrix rows where this task is the Consumer.
+3. Referenced Wiring Map entries from the spec.
+If no dependency or no wiring handoff exists, state "No wiring handoff from
+dependency."
+
 ### Implementer Status Handling
 
 - **DONE:** Proceed to AC verification
@@ -298,6 +308,27 @@ Verify 커맨드 실행 (timeout: 120s). Exit 0 = PASS. Non-zero = FAIL.
 FAIL → 테스트 출력에서 W1-W5 결함 유형 분류. implementer 재디스패치: "View Wiring Test failed. Defect type: [W1-W5]. [출력 발췌]. Fix the wiring defect."
 Max 3 retries → user 에스컬레이션. `wiring.enabled: true` with non-empty `view_extensions` and changed view files → skip 불가.
 **Inline execution (Path 3):** 동일 감지/실행. 재디스패치 대신 fix-in-place.
+
+### Incremental Runnability (executable artifacts, post-skeleton)
+
+After Task 1 `{skeleton}` passes runtime smoke, every subsequent task must
+also pass `config.smoke.command` before proceeding to the next task.
+
+**Trigger:** `config.smoke.artifact_kind` is `cli`/`server`/`desktop` AND at
+least one `{skeleton}` task has completed and passed runtime smoke.
+
+**Execution:** Run `config.smoke.command` (same timeout as Section 14 smoke
+gate). Exit 0 = PASS.
+
+**Failure:** Re-dispatch implementer: "Runtime smoke failed after your changes.
+The app no longer starts. Fix the regression before proceeding." Max 2 retries
+→ escalate to user.
+
+**GUI smoke:** If `config.smoke.gui_strategy` is configured, run the same GUI
+probe as Section 14.
+
+Skeleton task itself already requires runtime smoke in its AC — this gate
+applies to tasks AFTER the skeleton.
 
 ## 6. Conditional Security Review
 
