@@ -188,9 +188,9 @@ Before every dispatch (initial and re-dispatch), extract and record the Verify C
 **Verify Fidelity Check (between prompt construction and dispatch):**
 
 After constructing the implementer prompt, before dispatch:
-1. Extract every Verify command from the constructed prompt's Acceptance Criteria section
-2. Compare each against the Baseline (exact string match; leading/trailing whitespace trimmed, internal whitespace within the command preserved as-is)
-3. Compare the verification method text against the Baseline
+1. Extract every Verify command from the constructed prompt — scan Acceptance Criteria, Verification method, Runtime verification, and View wiring verification sections
+2. Compare each extracted command against the corresponding Baseline entry (exact string match; leading/trailing whitespace trimmed, internal whitespace within the command preserved as-is)
+3. Confirm every Baseline entry has a matching prompt entry and vice versa (no additions, no omissions)
 4. **Mismatch → HALT.** Log: `Verify Fidelity FAIL: plan=\`<plan>\`, prompt=\`<prompt>\`. Correct prompt.`
 5. **All match → dispatch**
 
