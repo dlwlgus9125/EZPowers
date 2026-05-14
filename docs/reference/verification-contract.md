@@ -52,7 +52,9 @@ probe exists. The executor must treat a missing, empty, placeholder-only,
 Plans must copy relevant spec acceptance criteria into task completion criteria
 without changing the behavior claim. If the Verify command changes between spec
 and plan, the plan must preserve the same oracle strength and the audit should
-report the drift.
+report the drift. Predicted execution difficulty is not a reason to weaken
+oracle strength. If a Verify command appears impractical, create infrastructure
+or escalate — do not substitute a weaker oracle.
 
 Behavior-bearing tasks must include a TDD Slice Contract with:
 
@@ -71,6 +73,11 @@ addition to acceptance criteria verification.
 
 The executor must run Verify commands and check exit codes. Passing unit tests
 alone is not completion.
+
+The executor must extract Verify commands from the plan file at execution time,
+not from cached context, implementer reports, or dispatch prompts. On every
+verification pass the plan file is the single source of truth. If the
+executor's context contains a different command, the plan file wins.
 
 Recommended command timeouts:
 

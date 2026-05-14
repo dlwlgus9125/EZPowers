@@ -126,9 +126,12 @@ Construct directed graph: Task A -> Task B = "B depends on A"
 ```
 Record git hash (git rev-parse HEAD)
   -> Assess task complexity
+  -> Extract Verify Command Baseline from plan file
+  -> Construct implementer prompt + Verify Fidelity Check
+     (mismatch -> HALT, correct prompt, re-check)
   -> Dispatch subagent (agents/implementer-prompt.md)
   -> Handle implementer status
-  -> Controller: AC verification (run Verify commands)
+  -> Controller: AC verification (re-read plan file, run Verify commands)
     -> ALL PASS -> Runtime probe (if applicable)
       -> PASS -> AC Arbiter (integration/e2e tasks only)
         -> PASS -> View Wiring Test (view tasks only)
@@ -168,13 +171,40 @@ Assess complexity on 3 dimensions before dispatch:
 - **BLOCKED:** Controller resolves (additional context, task split, user escalation). **Never skip**
 - **NEEDS_CONTEXT:** Re-dispatch with requested context
 
+### Verify Command Baseline (mandatory per-task)
+
+Before every dispatch (initial and re-dispatch), extract and record the Verify Command Baseline for the current task.
+
+**Extraction (mechanical — no interpretation or substitution):**
+
+1. Read the plan file (not memory, not implementer output, not cached context)
+2. Navigate to the current task's `**Completion criteria (from spec):**` section
+3. Extract every `Verify: \`...\`` value verbatim — preserve flags, paths, grep patterns
+4. Extract the `**Verification method:**` line
+5. Extract the `**Runtime verification:**` line (if present)
+6. Extract Verify commands from the `**View wiring verification**` section (if present)
+7. Store as the **Verify Command Baseline** for this task
+
+**Verify Fidelity Check (between prompt construction and dispatch):**
+
+After constructing the implementer prompt, before dispatch:
+1. Extract every Verify command from the constructed prompt's Acceptance Criteria section
+2. Compare each against the Baseline (exact string match; leading/trailing whitespace trimmed, internal whitespace within the command preserved as-is)
+3. Compare the verification method text against the Baseline
+4. **Mismatch → HALT.** Log: `Verify Fidelity FAIL: plan=\`<plan>\`, prompt=\`<prompt>\`. Correct prompt.`
+5. **All match → dispatch**
+
+This is a hard gate, not advisory.
+
+**Predictive elimination ban:** If a Verify command appears impractical (e.g., e2e requires a running app), the controller must not remove or replace it. Instead: make infrastructure available (start the app, configure the environment) or escalate to user. Difficulty is not a reason to weaken the oracle.
+
 ## 5. Acceptance Criteria Verification (Controller)
 
 **Passing unit tests is NOT the completion condition.** Completion requires executing the plan's Verify commands and confirming exit 0.
 
 **Primary verification — run Verify commands:**
 
-1. Extract Verify commands from the task's completion criteria
+1. Re-read the plan file and extract Verify commands from the current task's `**Completion criteria (from spec):**` section. Do not use commands from the implementer report, dispatch prompt, or memory. The plan file is the only source at this step.
 2. Execute each Verify command, check exit code (exit 0 = PASS)
 3. **Timeout by Verify-type:**
    - `pure` / `cli`: 30s
@@ -241,7 +271,7 @@ After AC verification + runtime probe PASS, dispatch a fresh Agent as an indepen
 Simple `pure`/`cli`/`lib` tasks skip the arbiter and proceed directly to security review.
 
 **Arbiter input (ONLY these — no implementer narrative, no test code, no prior review results):**
-- Task AC text (Given/When/Then) verbatim from plan
+- Task AC text (Given/When/Then) re-read from plan file at arbiter dispatch time (not from memory or prior context)
 - Changed file list (`git diff --name-only`)
 - Verify command outputs (stdout/stderr + exit codes)
 - Runtime probe artifacts (logs, screenshots, exit codes)
@@ -370,6 +400,7 @@ Substitute template placeholders on every subagent dispatch:
 | `[Scene-setting...]` | Architecture context, dependencies, prior task results |
 | `[PASTE COMPLETION CRITERIA FROM PLAN]` | Completion criteria verbatim from plan |
 | `[PASTE FROM PLAN]` | Verification method verbatim from plan |
+| `[PLAN_FILE_PATH]` | Absolute path to the plan file |
 | `[directory]` | Absolute working directory path |
 | `[module-directory]` | Target module directory path |
 
@@ -395,7 +426,9 @@ Agent tool:
     **Diff range:** <first-task-start-hash>..HEAD
 ```
 
-**Post-substitution validation:** Before dispatch, scan the completed prompt for `[` + alpha + `]` patterns (e.g., `[SPEC_FILE_PATH]`, `[directory]`). If unsubstituted placeholders remain, do not dispatch — log the missing placeholders and fix.
+**Post-substitution validation:** Before dispatch:
+1. **Placeholder check:** Scan the completed prompt for `[` + alpha + `]` patterns (e.g., `[SPEC_FILE_PATH]`, `[directory]`). Unsubstituted → do not dispatch.
+2. **Verify Fidelity Check:** Execute the fidelity check from Section 4.1. Any Verify command mismatch between prompt and plan = HALT dispatch.
 
 ## 9. Degradation Detection and Response
 
@@ -482,7 +515,7 @@ Record git hash (git rev-parse HEAD)
 
 ### AC Verification
 
-Follow the same procedure as Section 5 (Acceptance Criteria Verification). Run Verify commands with Verify-type timeouts.
+Follow the same procedure as Section 5 (Acceptance Criteria Verification). Re-read the plan file to extract Verify commands — do not use commands from earlier in the session context. Pass the extracted command verbatim to the Bash tool; do not modify, substitute, or "improve" it. If the command fails, fix the code — not the command. Run Verify commands with Verify-type timeouts.
 
 ### Conditional Security Review
 

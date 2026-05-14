@@ -33,6 +33,13 @@ Agent tool:
     You must run the verification method and confirm each criterion passes before reporting DONE.
 
     **DONE is a claim, not a verdict.** The controller independently re-verifies all ACs.
+
+    **Verify command fidelity:** If the Verify commands above differ from what
+    the plan file contains for this task, report BLOCKED: "Verify command
+    mismatch: prompt=`<cmd>`, plan=`<cmd>`. Controller must re-dispatch with
+    plan-original commands." Read the plan file at `[PLAN_FILE_PATH]`, task
+    section for this task, to confirm.
+
     For Verify-type `e2e`, `api`, integration milestones, or executable artifacts:
     - Build/test-only evidence is insufficient
     - Process survival alone is insufficient when Then describes rendered/observable output
