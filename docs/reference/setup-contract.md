@@ -79,7 +79,7 @@ Conditional:
 
 ## Required Files
 
-Create or update:
+Create or update (in the target project, not in the EZPowers plugin repo):
 
 - `.harness/config.json`
 - `AGENTS.md`

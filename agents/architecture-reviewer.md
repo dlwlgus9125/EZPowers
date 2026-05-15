@@ -20,7 +20,7 @@ Review from scratch. Do not rely on prior review output.
 
 You will receive:
 - **Spec file path**
-- **Architecture reference path** (`docs/reference/architecture.md`)
+- **Architecture reference path** (target project's `docs/reference/architecture.md`)
 - **Config path** (`.harness/config.json`)
 
 Read all paths that exist. Missing architecture reference or config is a FAIL.
@@ -72,7 +72,7 @@ If a hard-to-reverse, surprising, or high-tradeoff decision is described but
 Decision Log says `ADR required: no`, FAIL and list the decision.
 
 **8. Reference alignment:**
-Compare the spec against `docs/reference/architecture.md` and
+Compare the spec against the target project's `docs/reference/architecture.md` and
 `.harness/config.json`.
 - FAIL when the spec contradicts a declared boundary, lifecycle stage,
   compatibility policy, or quality priority without listing it as an accepted
