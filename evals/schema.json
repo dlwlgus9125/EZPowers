@@ -7,7 +7,7 @@
   "properties": {
     "case_id": {
       "type": "string",
-      "pattern": "^[a-z]+\\.[a-z_]+\\.[0-9]{3}$",
+      "pattern": "^[a-z]+\\.[a-z0-9_]+\\.[0-9]{3}$",
       "description": "Unique case identifier: <split>.<invariant>.<seq>"
     },
     "split": {
@@ -20,7 +20,7 @@
       "properties": {
         "command": {
           "type": "string",
-          "enum": ["setup", "brainstorm", "plan", "choiceexecutor", "executeharness", "review", "sync-docs"]
+          "enum": ["setup", "brainstorm", "plan", "choiceexecutor", "executeharness", "review", "sync-docs", "pipeline-audit", "eval", "feedback", "set-rules"]
         },
         "difficulty": {
           "type": "string",

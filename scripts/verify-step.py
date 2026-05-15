@@ -33,6 +33,7 @@ import sys
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
+import run_baseline  # noqa: E402
 from run_baseline import run_command_with_timeout  # noqa: E402
 
 from shared import BANNED_KO, BANNED_EN_RE  # noqa: E402
@@ -340,7 +341,7 @@ def check_command(
     if not commands:
         return {"pass": True, "checks": []}
 
-    bash_path = shutil.which("bash")
+    bash_path = run_baseline.find_bash()
     for cmd in commands:
         try:
             if bash_path:

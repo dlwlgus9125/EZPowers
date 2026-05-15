@@ -23,15 +23,7 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      # Codebase invariant: choiceexecutor.md Section 14 must mention smoke/runtime gate.
-      - "grep -qi 'smoke/runtime gate' commands/choiceexecutor.md"
-      # Must mention config.smoke.command execution and required handling.
-      - "grep -q 'config.smoke.command' commands/choiceexecutor.md"
-      - "grep -q 'config.smoke.required' commands/choiceexecutor.md"
-      # Empty smoke is allowed only for docs/library, not executable artifacts.
-      - "grep -q 'artifact_kind: docs|library' commands/choiceexecutor.md"
-      # Exit table must include the deterministic GUI text/name oracle failure.
-      - "grep -q 'Expected UI text/name missing' commands/choiceexecutor.md"
+      - "python -c \"from pathlib import Path; c=Path('commands/choiceexecutor.md').read_text(encoding='utf-8'); v=Path('docs/reference/verification-contract.md').read_text(encoding='utf-8'); assert 'docs/reference/verification-contract.md' in c; assert all(s in c for s in ['config.smoke.required','config.smoke.command','artifact_kind: docs|library','Expected UI text/name missing']); assert all(s in v for s in ['Executable artifacts (`cli`, `server`, `desktop`) require runtime smoke','missing required smoke command is failure, not skip','Runtime probe success never replaces a Verify command'])\""
 
 tracked_metrics:
   transcript: [n_turns, n_toolcalls, n_total_tokens]

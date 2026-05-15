@@ -57,14 +57,14 @@ graders:
   - type: deterministic_tests
     commands:
       # Verify the oscillating key appears across all 3 iterations (input fixture sanity)
-      - "echo '$MOCK_iteration_1_issues' | grep -q 'src/auth.ts:missing-validation'"
-      - "echo '$MOCK_iteration_2_issues' | grep -q 'src/auth.ts:missing-validation'"
-      - "echo '$MOCK_iteration_3_issues' | grep -q 'src/auth.ts:missing-validation'"
+      - "python -c \"from pathlib import Path; assert 'src/auth.ts:missing-validation' in Path($MOCK_iteration_1_issues).read_text(encoding='utf-8')\""
+      - "python -c \"from pathlib import Path; assert 'src/auth.ts:missing-validation' in Path($MOCK_iteration_2_issues).read_text(encoding='utf-8')\""
+      - "python -c \"from pathlib import Path; assert 'src/auth.ts:missing-validation' in Path($MOCK_iteration_3_issues).read_text(encoding='utf-8')\""
       # Verify the escalation expectation is configured as true (fixture sanity)
-      - "test '$MOCK_expected_escalation_triggered' = 'true'"
+      - "python -c \"assert '$MOCK_expected_escalation_triggered' == 'true'\""
       # Verify the choiceexecutor command actually documents oscillation detection logic
-      - "grep -qi 'oscillation' commands/choiceexecutor.md"
-      - "grep -qE 'iteration.*3|3.*iteration|2\\+.*이전|이전.*2\\+' commands/choiceexecutor.md"
+      - "python -c \"from pathlib import Path; assert 'oscillation' in Path('commands/choiceexecutor.md').read_text(encoding='utf-8').lower()\""
+      - "python -c \"import re; from pathlib import Path; t=Path('commands/choiceexecutor.md').read_text(encoding='utf-8'); assert re.search(r'iteration.*3|3.*iteration|2\\+', t, re.I | re.S)\""
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

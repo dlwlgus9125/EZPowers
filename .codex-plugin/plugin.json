@@ -1,6 +1,6 @@
 {
   "name": "ezpowers",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Personal Codex workflow plugin for spec-driven development with setup, brainstorm, plan, and execution guidance.",
   "author": {
     "name": "dlwlgus9125",
@@ -44,7 +44,7 @@
   "metadata": {
     "source_plugin": "claude",
     "eval_version": "1.0.0",
-    "eval_baseline_path": "evals/results/baselines/0.8.0.json",
+    "eval_baseline_path": "evals/results/baselines/1.5.2.json",
     "harness_changelog": "harness_versions/changelog.jsonl",
     "trace_collection": "opt-in"
   }

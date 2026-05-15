@@ -22,7 +22,7 @@ graders:
   - type: deterministic_tests
     commands:
       - "python -c \"from pathlib import Path; t=Path('agents/wiring-reviewer.md').read_text(encoding='utf-8'); assert 'CODE_GAP' in t and 'Route registration' in t and 'UI state or data binding' in t\""
-      - "python -c \"from pathlib import Path; t=Path('commands/executeharness.md').read_text(encoding='utf-8'); assert '`CODE_GAP`' in t and 'reset the related step' in t\""
+      - "python -c \"from pathlib import Path; c=Path('commands/executeharness.md').read_text(encoding='utf-8'); h=Path('docs/reference/harness-execution-contract.md').read_text(encoding='utf-8'); v=Path('docs/reference/verification-contract.md').read_text(encoding='utf-8'); assert 'docs/reference/harness-execution-contract.md' in c and 'code_gap' in c; assert '`CODE_GAP`: set status `code_gap`.' in h; assert '`CODE_GAP`: registration, route, import, binding, subscription, or call site is missing.' in v\""
       - "python -c \"from pathlib import Path; t=Path('commands/choiceexecutor.md').read_text(encoding='utf-8'); assert '`CODE_GAP` -> reset the related harness step' in t\""
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md

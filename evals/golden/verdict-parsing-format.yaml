@@ -68,20 +68,20 @@ graders:
   - type: deterministic_tests
     commands:
       # Case A: valid mock contains exact "## Verdict: PASS" (fixture sanity)
-      - "echo '$MOCK_reviewer_output_valid' | grep -q '^## Verdict: PASS'"
+      - "python -c \"from pathlib import Path; assert any(line == '## Verdict: PASS' for line in Path($MOCK_reviewer_output_valid).read_text(encoding='utf-8').splitlines())\""
       # Case B: invalid mock (no ## prefix) must NOT match the required pattern
-      - "! echo '$MOCK_reviewer_output_invalid_no_hash' | grep -q '^## Verdict:'"
+      - "python -c \"from pathlib import Path; assert not any(line.startswith('## Verdict:') for line in Path($MOCK_reviewer_output_invalid_no_hash).read_text(encoding='utf-8').splitlines())\""
       # Case C: wrong heading level (###) must NOT match ## pattern
-      - "! echo '$MOCK_reviewer_output_invalid_wrong_level' | grep -q '^## Verdict:'"
+      - "python -c \"from pathlib import Path; assert not any(line.startswith('## Verdict:') for line in Path($MOCK_reviewer_output_invalid_wrong_level).read_text(encoding='utf-8').splitlines())\""
       # Case D: valid FAIL mock contains exact "## Verdict: FAIL"
-      - "echo '$MOCK_reviewer_output_valid_fail' | grep -q '^## Verdict: FAIL'"
+      - "python -c \"from pathlib import Path; assert any(line == '## Verdict: FAIL' for line in Path($MOCK_reviewer_output_valid_fail).read_text(encoding='utf-8').splitlines())\""
       # Verify the parsing rule is documented in choiceexecutor.md
-      - "grep -qE '## Verdict.*PASS.*FAIL|Verdict.*패턴.*FAIL' commands/choiceexecutor.md"
+      - "python -c \"import re; from pathlib import Path; t=Path('commands/choiceexecutor.md').read_text(encoding='utf-8'); assert re.search(r'## Verdict.*PASS.*FAIL|Verdict.*FAIL', t, re.I | re.S)\""
       # Verify brainstorm.md documents Verdict header parsing
-      - "grep -q '## Verdict:' commands/brainstorm.md"
+      - "python -c \"from pathlib import Path; c=Path('commands/brainstorm.md').read_text(encoding='utf-8'); d=Path('docs/reference/dispatch-protocol.md').read_text(encoding='utf-8'); assert 'docs/reference/dispatch-protocol.md' in c; assert all(s in d for s in ['## Verdict: PASS','## Verdict: FAIL','missing or malformed'])\""
       # Verify architecture-reviewer uses the same verdict contract
-      - "grep -q '^## Verdict: PASS' agents/architecture-reviewer.md"
-      - "grep -q '^## Verdict: FAIL' agents/architecture-reviewer.md"
+      - "python -c \"from pathlib import Path; t=Path('agents/architecture-reviewer.md').read_text(encoding='utf-8'); assert '\\n## Verdict: PASS' in t or t.startswith('## Verdict: PASS')\""
+      - "python -c \"from pathlib import Path; t=Path('agents/architecture-reviewer.md').read_text(encoding='utf-8'); assert '\\n## Verdict: FAIL' in t or t.startswith('## Verdict: FAIL')\""
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

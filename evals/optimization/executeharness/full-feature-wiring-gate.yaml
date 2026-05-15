@@ -22,8 +22,8 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "python -c \"from pathlib import Path; t=Path('commands/plan.md').read_text(encoding='utf-8'); assert '## Full-Feature Wiring Gate' in t and 'Covers' in t and 'Expected observation' in t\""
-      - "python -c \"from pathlib import Path; t=Path('commands/executeharness.md').read_text(encoding='utf-8'); assert 'wiring-gate.json' in t and 'spec_gap' in t and 'all steps completed + wiring gate PASS' in t\""
+      - "python -c \"from pathlib import Path; c=Path('commands/plan.md').read_text(encoding='utf-8'); p=Path('docs/reference/plan-contract.md').read_text(encoding='utf-8'); v=Path('docs/reference/verification-contract.md').read_text(encoding='utf-8'); assert all(x in c for x in ['docs/reference/plan-contract.md','docs/reference/verification-contract.md']); assert all(x in p for x in ['## Full-Feature Wiring Gate','**Covers:**','**Expected observation:**']); assert all(x in v for x in ['A plan needs a Full-Feature Wiring Gate','non-trivial automated Verify command'])\""
+      - "python -c \"from pathlib import Path; c=Path('commands/executeharness.md').read_text(encoding='utf-8'); h=Path('docs/reference/harness-execution-contract.md').read_text(encoding='utf-8'); assert 'docs/reference/harness-execution-contract.md' in c; assert all(x in h for x in ['wiring-gate.json','spec_gap','Every step completed.','Wiring gate PASS.','Final code review PASS.'])\""
       - "python -c \"from pathlib import Path; t=Path('agents/plan-reviewer.md').read_text(encoding='utf-8'); assert 'Full-feature wiring gate' in t and 'Missing section -> FAIL' in t\""
       - "python -c \"from pathlib import Path; t=Path('commands/pipeline-audit.md').read_text(encoding='utf-8'); assert 'Full-feature wiring gate missing' in t and 'Weak wiring gate Verify' in t\""
   - type: llm_rubric

@@ -22,11 +22,11 @@ graders:
   - type: deterministic_tests
     commands:
       # Codebase invariant: plan-reviewer must mention build config cross-validation
-      - "grep -qi 'build config' agents/plan-reviewer.md"
+      - "python -c \"from pathlib import Path; t=Path('agents/plan-reviewer.md').read_text(encoding='utf-8').lower(); assert 'build config' in t\""
       # Must mention externalize/module system compatibility
-      - "grep -qiE 'externalize|module system|CJS|ESM' agents/plan-reviewer.md"
+      - "python -c \"from pathlib import Path; t=Path('agents/plan-reviewer.md').read_text(encoding='utf-8'); assert any(s in t for s in ['externalize','module system','CJS','ESM'])\""
       # Must mention blanket pattern detection
-      - "grep -qi 'blanket' agents/plan-reviewer.md"
+      - "python -c \"from pathlib import Path; assert 'blanket' in Path('agents/plan-reviewer.md').read_text(encoding='utf-8').lower()\""
 
 tracked_metrics:
   transcript: [n_turns, n_toolcalls, n_total_tokens]

@@ -30,6 +30,33 @@ except ImportError:
 
 DEFAULT_COMMAND_TIMEOUT_SECONDS = 30
 DEFAULT_CASE_TIMEOUT_SECONDS = 300
+CASE_ID_RE = re.compile(r"^[a-z]+\.[a-z0-9_]+\.[0-9]{3}$")
+CASE_SPLITS = ("optimization", "holdout", "golden", "honeypot")
+CASE_COMMANDS = (
+    "setup",
+    "brainstorm",
+    "plan",
+    "choiceexecutor",
+    "executeharness",
+    "review",
+    "sync-docs",
+    "pipeline-audit",
+    "eval",
+    "feedback",
+    "set-rules",
+)
+CASE_DIFFICULTIES = ("single_step", "multi_step", "long_horizon")
+CASE_MODEL_FAMILIES = ("sonnet_only", "opus_required", "agnostic")
+CASE_LANGUAGES = ("ko", "en", "ko_en_mixed")
+CASE_VERIFY_TYPES = ("api", "e2e", "cli", "lib", "data", "pure")
+GRADER_TYPES = (
+    "deterministic_tests",
+    "banned_expression_scan",
+    "llm_rubric",
+    "state_check",
+    "tool_calls",
+)
+LIVE_EXEC_VARS = ("$REVIEW_OUTPUT", "$EXECUTOR_OUTPUT")
 
 
 def parse_timeout(value: str | int | None, default: int, label: str) -> int:
@@ -105,6 +132,35 @@ def _kill_process_tree(proc: subprocess.Popen) -> None:
         pass
 
 
+def find_bash() -> str | None:
+    candidates: list[str] = []
+    bash = shutil.which("bash")
+    if bash:
+        candidates.append(bash)
+    if os.name == "nt":
+        candidates.extend(str(p) for p in [
+            pathlib.Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Git" / "bin" / "bash.exe",
+            pathlib.Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Git" / "usr" / "bin" / "bash.exe",
+            pathlib.Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Git" / "bin" / "bash.exe",
+        ])
+    for candidate in candidates:
+        if not pathlib.Path(candidate).exists():
+            continue
+        try:
+            proc = subprocess.run(
+                [candidate, "-lc", "true"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=5,
+                check=False,
+            )
+        except Exception:
+            continue
+        if proc.returncode == 0:
+            return candidate
+    return None
+
+
 def run_command_with_timeout(
     args,
     *,
@@ -155,6 +211,82 @@ def load_case(path: pathlib.Path) -> dict:
     """Load and return a single eval case YAML."""
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def validate_case_schema(path: pathlib.Path, case: dict) -> list[str]:
+    """Validate the command-eval schema without adding a jsonschema dependency."""
+    errors: list[str] = []
+    if not isinstance(case, dict):
+        return [f"{path}: case must be a mapping"]
+
+    for key in ("case_id", "split", "stratum", "input", "graders", "tracked_metrics"):
+        if key not in case:
+            errors.append(f"missing {key}")
+
+    case_id = str(case.get("case_id", ""))
+    if not CASE_ID_RE.match(case_id):
+        errors.append("case_id must match <split>.<slug_with_digits_or_underscores>.<seq>")
+
+    split = case.get("split")
+    if split not in CASE_SPLITS:
+        errors.append(f"split must be one of {', '.join(CASE_SPLITS)}")
+    elif case_id and not case_id.startswith(f"{split}."):
+        errors.append("case_id prefix must match split")
+
+    stratum = case.get("stratum")
+    if not isinstance(stratum, dict):
+        errors.append("stratum must be a mapping")
+    else:
+        for key in ("command", "difficulty", "pattern", "model_family", "language"):
+            if key not in stratum:
+                errors.append(f"stratum missing {key}")
+        if stratum.get("command") not in CASE_COMMANDS:
+            errors.append(f"stratum.command invalid: {stratum.get('command')!r}")
+        if stratum.get("difficulty") not in CASE_DIFFICULTIES:
+            errors.append(f"stratum.difficulty invalid: {stratum.get('difficulty')!r}")
+        if stratum.get("model_family") not in CASE_MODEL_FAMILIES:
+            errors.append(f"stratum.model_family invalid: {stratum.get('model_family')!r}")
+        if stratum.get("language") not in CASE_LANGUAGES:
+            errors.append(f"stratum.language invalid: {stratum.get('language')!r}")
+        verify_type = stratum.get("verify_type")
+        if verify_type is not None and verify_type not in CASE_VERIFY_TYPES:
+            errors.append(f"stratum.verify_type invalid: {verify_type!r}")
+
+    input_block = case.get("input")
+    if not isinstance(input_block, dict):
+        errors.append("input must be a mapping")
+    elif "user_message" not in input_block:
+        errors.append("input missing user_message")
+
+    graders = case.get("graders")
+    if not isinstance(graders, list) or not graders:
+        errors.append("graders must be a non-empty list")
+    else:
+        for i, grader in enumerate(graders, 1):
+            if not isinstance(grader, dict):
+                errors.append(f"grader {i} must be a mapping")
+                continue
+            if grader.get("type") not in GRADER_TYPES:
+                errors.append(f"grader {i} has invalid type: {grader.get('type')!r}")
+
+    if not isinstance(case.get("tracked_metrics"), dict):
+        errors.append("tracked_metrics must be a mapping")
+
+    return [f"{path}: {error}" for error in errors]
+
+
+def validate_cases(case_paths: list[pathlib.Path]) -> list[str]:
+    errors: list[str] = []
+    seen: dict[str, pathlib.Path] = {}
+    for path in case_paths:
+        case = load_case(path)
+        errors.extend(validate_case_schema(path, case))
+        case_id = str(case.get("case_id", path.stem)) if isinstance(case, dict) else path.stem
+        if case_id in seen:
+            errors.append(f"{path}: duplicate case_id also used by {seen[case_id]}")
+        else:
+            seen[case_id] = path
+    return errors
 
 
 def discover_cases(evals_root: pathlib.Path, splits: list[str]) -> list[pathlib.Path]:
@@ -247,7 +379,7 @@ def _prepare_mock_files(case: dict) -> tuple[dict, list]:
     return var_map, val_map, temp_files
 
 
-def _substitute_vars(cmd: str, var_map: dict, val_map: dict) -> str:
+def _substitute_vars_legacy(cmd: str, var_map: dict, val_map: dict) -> str:
     """Replace variable placeholders in grader command strings.
 
     - ``echo '$MOCK_X'`` / ``echo "$MOCK_X"`` → ``cat "temp_file"``
@@ -274,9 +406,42 @@ def _substitute_vars(cmd: str, var_map: dict, val_map: dict) -> str:
     # 3. Standard file-path vars: $SPEC_FILE, $PLAN_FILE, etc.
     for placeholder, path in var_map.items():
         if placeholder in cmd:
-            cmd = cmd.replace(placeholder, f'"{path}"')
+            escaped = path.replace("'", "'\"'\"'")
+            cmd = cmd.replace(placeholder, f"'{escaped}'")
 
     return cmd
+
+
+def _substitute_vars(cmd: str, var_map: dict, val_map: dict) -> str:
+    """Replace variable placeholders, longest first to avoid prefix collisions."""
+    file_vars = sorted(var_map.items(), key=lambda item: len(item[0]), reverse=True)
+    value_vars = sorted(val_map.items(), key=lambda item: len(item[0]), reverse=True)
+
+    for placeholder, path in file_vars:
+        if placeholder.startswith("$MOCK_"):
+            for quote in ("'", '"'):
+                echo_pat = f"echo {quote}{placeholder}{quote}"
+                if echo_pat in cmd:
+                    cmd = cmd.replace(echo_pat, f'cat "{path}"')
+                    break
+
+    for placeholder, value in value_vars:
+        for quote in ("'", '"'):
+            quoted_pat = f"{quote}{placeholder}{quote}"
+            if quoted_pat in cmd:
+                cmd = cmd.replace(quoted_pat, f"{quote}{value}{quote}")
+                break
+
+    for placeholder, path in file_vars:
+        if placeholder in cmd:
+            escaped = path.replace("'", "'\"'\"'")
+            cmd = cmd.replace(placeholder, f"'{escaped}'")
+
+    return cmd
+
+
+def _needs_live_exec(cmd: str) -> bool:
+    return any(var in cmd for var in LIVE_EXEC_VARS)
 
 
 def run_deterministic_grader(
@@ -303,6 +468,7 @@ def run_deterministic_grader(
     all_pass = True
     runnable_commands = [c for c in commands if "grader placeholder" not in c]
     command_number = 0
+    executed_commands = 0
 
     try:
         for cmd in commands:
@@ -317,6 +483,14 @@ def run_deterministic_grader(
 
             command_number += 1
             resolved_cmd = _substitute_vars(cmd, var_map, val_map)
+            if _needs_live_exec(resolved_cmd):
+                results.append({
+                    "command": cmd,
+                    "status": "skipped",
+                    "reason": "requires live execution output",
+                })
+                continue
+
             run_timeout = _remaining_timeout(case_deadline, command_timeout_seconds)
             if run_timeout <= 0:
                 all_pass = False
@@ -347,8 +521,9 @@ def run_deterministic_grader(
                     flush=True,
                 )
             try:
+                executed_commands += 1
                 # Prefer bash for Unix-style grader commands; fall back to shell=True
-                bash_path = shutil.which("bash")
+                bash_path = find_bash()
                 if bash_path:
                     proc = run_command_with_timeout(
                         [bash_path, "-c", resolved_cmd],
@@ -390,7 +565,7 @@ def run_deterministic_grader(
             except OSError:
                 pass
 
-    return {"pass": all_pass, "results": results}
+    return {"pass": all_pass if executed_commands else None, "results": results}
 
 
 def run_graders(
@@ -423,7 +598,6 @@ def run_graders(
                 })
                 continue
 
-            has_runnable = True
             result = run_deterministic_grader(
                 commands,
                 case,
@@ -434,6 +608,16 @@ def run_graders(
                 progress_file=progress_file,
                 progress_stream=progress_stream,
             )
+            if result["pass"] is None:
+                grader_results.append({
+                    "type": gtype,
+                    "status": "skipped",
+                    "reason": "requires live execution output",
+                    "details": result["results"],
+                })
+                continue
+
+            has_runnable = True
             if not result["pass"]:
                 overall_pass = False
             grader_results.append({
@@ -695,6 +879,58 @@ def write_baseline(output_path: pathlib.Path, version: str, model: str,
     print(f"Baseline written to: {output_path}")
 
 
+def _golden_failures(results: list[dict]) -> list[str]:
+    failures = []
+    for r in results:
+        if r["split"] == "golden" and r["pass"] is not True:
+            failures.append(r["case_id"])
+    return failures
+
+
+def enforce_golden_baseline_gate(
+    results: list[dict],
+    *,
+    evals_root: pathlib.Path,
+    model: str,
+    command_timeout_seconds: int,
+    case_timeout_seconds: int,
+    progress_file: pathlib.Path,
+) -> None:
+    """Block baseline recording unless every current golden case passes."""
+    golden_paths = discover_cases(evals_root, ["golden"])
+    golden_ids = {load_case(p).get("case_id", p.stem) for p in golden_paths}
+    result_ids = {r["case_id"] for r in results if r["split"] == "golden"}
+
+    golden_results = [r for r in results if r["split"] == "golden"]
+    if golden_ids - result_ids:
+        golden_results = []
+        for i, path in enumerate(golden_paths, 1):
+            golden_results.append(
+                run_case(
+                    path,
+                    model,
+                    command_timeout_seconds=command_timeout_seconds,
+                    case_timeout_seconds=case_timeout_seconds,
+                    progress_file=progress_file,
+                    progress_stream=sys.stderr,
+                    case_index=i,
+                    total_cases=len(golden_paths),
+                )
+            )
+
+    failures = _golden_failures(golden_results)
+    if failures:
+        passed = len(golden_results) - len(failures)
+        total = len(golden_results)
+        print(
+            f"BLOCKED: golden must pass {total}/{total}. "
+            f"Currently {passed}/{total} passing. "
+            f"Failures: {', '.join(failures[:5])}",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
+
 def write_run(output_dir: pathlib.Path, version: str, model: str,
               results: list[dict], stats: dict):
     """Write run JSONL file."""
@@ -825,6 +1061,15 @@ def main():
         print("ERROR: no eval cases found", file=sys.stderr)
         sys.exit(1)
 
+    schema_errors = validate_cases(case_paths)
+    if schema_errors:
+        print("ERROR: eval case schema validation failed", file=sys.stderr)
+        for error in schema_errors[:20]:
+            print(f"  - {error}", file=sys.stderr)
+        if len(schema_errors) > 20:
+            print(f"  ... {len(schema_errors) - 20} more", file=sys.stderr)
+        sys.exit(1)
+
     print(f"Found {len(case_paths)} eval case(s)")
 
     if args.dry_run:
@@ -861,6 +1106,14 @@ def main():
 
     # Write output
     if args.baseline:
+        enforce_golden_baseline_gate(
+            results,
+            evals_root=evals_root,
+            model=args.model,
+            command_timeout_seconds=args.command_timeout_seconds,
+            case_timeout_seconds=args.timeout_seconds,
+            progress_file=progress_file,
+        )
         baseline_path = evals_root / "results" / "baselines" / f"{args.version}.json"
         write_baseline(baseline_path, args.version, args.model, results, stats)
     else:

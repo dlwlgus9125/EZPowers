@@ -22,8 +22,7 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "python -c \"from pathlib import Path; t=Path('commands/executeharness.md').read_text(encoding='utf-8'); assert 'strict runtime-gate mode' in t; assert 'Missing required' in t; assert 'runtime-probe.json' in t\""
-      - "python -c \"from pathlib import Path; t=Path('commands/executeharness.md').read_text(encoding='utf-8'); assert 'do not mark build complete' in t; assert 'proceed to Final Code Review' in t\""
+      - "python -c \"from pathlib import Path; c=Path('commands/executeharness.md').read_text(encoding='utf-8'); h=Path('docs/reference/harness-execution-contract.md').read_text(encoding='utf-8'); v=Path('docs/reference/verification-contract.md').read_text(encoding='utf-8'); assert all(x in c for x in ['docs/reference/harness-execution-contract.md','docs/reference/verification-contract.md']); assert all(x in h for x in ['runtime smoke for executable artifacts','Missing required smoke evidence is a failure, not a skip','Runtime smoke evidence when required','Continue to `/choiceexecutor` Final Code Review']); assert all(x in v for x in ['Executable artifacts (`cli`, `server`, `desktop`) require runtime smoke','missing required smoke command is failure, not skip'])\""
       - "python -c \"from pathlib import Path; t=Path('commands/choiceexecutor.md').read_text(encoding='utf-8'); assert 'wiring gate PASS + Final Code' in t\""
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md

@@ -23,9 +23,10 @@ if echo "$staged_files" | grep -qE '^(CLAUDE\.md|\.githooks/pre-commit|commands/
   run_harness_docs_check
 fi
 
-python_gate_files="$(echo "$staged_files" | grep -E '^(commands|agents|skills)/|^evals/skills/|^scripts/(run_skill_evals|validate)\.py$' | grep -vE '^commands/(setup|brainstorm|choiceexecutor|executeharness|plan)\.md$' || true)"
+python_gate_files="$(echo "$staged_files" | grep -E '^(commands|agents|skills)/|^evals/(skills|golden|optimization|holdout|honeypot|results/baselines)/|^evals/(schema\.json|INDEX\.md)$|^scripts/(run_skill_evals|run_baseline|validate)\.py$|^\.codex-plugin/plugin\.json$' | grep -vE '^commands/(setup|brainstorm|choiceexecutor|executeharness|plan)\.md$' || true)"
 
 # EZPowers eval gate: fire when non-harness command, agent, skill, or skill-gate files are staged
+# Also gate eval/baseline/plugin metadata changes.
 if [ -n "$python_gate_files" ]; then
   echo "EZPowers eval gate: relevant files changed, running validate.py"
   python scripts/validate.py --staged

@@ -41,7 +41,7 @@ Parse arguments
 
 Verify:
 - `evals/` directory exists
-- Read current version from `.claude-plugin/plugin.json`
+- Read current version from `.codex-plugin/plugin.json` (fallback: `.claude-plugin/plugin.json`)
 - Identify latest baseline file in `evals/results/baselines/`
 
 If `evals/` directory is missing: "Run `/setup --with-evals` first." then stop.
@@ -80,7 +80,7 @@ Record current scores as a new baseline.
 
 **Hard gate**: Golden split must pass 100%. If golden has failures, block:
 ```
-BLOCKED: golden must pass 4/4. Currently <N>/4 passing.
+BLOCKED: golden must pass <total>/<total>. Currently <N>/<total> passing.
 Resolve golden failures before recording baseline.
 ```
 
@@ -106,7 +106,7 @@ If baseline file missing: "Baseline `<version>` not found. Available: [list]".
 
 | Split | Pass | Total | Rate |
 |-------|------|-------|------|
-| golden | 4 | 4 | 100% |
+| golden | 7 | 7 | 100% |
 | optimization | 18 | 30 | 60% |
 | holdout | 5 | 8 | 63% |
 | honeypot | 1 | 2 | 50% |
@@ -174,13 +174,13 @@ Final verdict at the end of all output:
 
 ```
 ## Verdict: FAIL
-Reason: golden 3/4 — banned-expression-detection FAIL
+Reason: golden 6/7 -> banned-expression-detection FAIL
 ```
 
 ## Verification
 
 Verify this command works correctly:
-- `/eval golden` outputs results for golden 4 cases
+- `/eval golden` outputs results for the current golden cases
 - `/eval --diff 0.6.0` outputs baseline comparison
 - Output ends with `## Verdict: PASS` or `## Verdict: FAIL`
 

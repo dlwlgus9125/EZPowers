@@ -43,9 +43,9 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "grep -q 'Verify Command Baseline' commands/choiceexecutor.md"
-      - "grep -q 'Verify Fidelity Check' commands/choiceexecutor.md"
-      - "grep -q 'Re-read the plan file' commands/choiceexecutor.md"
+      - "python -c \"from pathlib import Path; assert 'Verify Command Baseline' in Path('commands/choiceexecutor.md').read_text(encoding='utf-8')\""
+      - "python -c \"from pathlib import Path; assert 'Verify Fidelity Check' in Path('commands/choiceexecutor.md').read_text(encoding='utf-8')\""
+      - "python -c \"from pathlib import Path; assert 'Re-read the plan file' in Path('commands/choiceexecutor.md').read_text(encoding='utf-8')\""
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

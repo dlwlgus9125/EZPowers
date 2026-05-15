@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""EZPowers eval gate -- validates commits touching commands/, agents/, or docs/reference/.
+"""EZPowers eval gate -- validates commits touching workflow prompts or docs/reference/.
 
 Checks (in order):
-  1. diff_line_count   -- Diff lines <= 3 for commands/ and agents/
-  2. eval_isolation     -- evals/ not modified in same commit
+  1. diff_line_count   -- Diff lines <= 3 for behavior commands and agents
+  2. eval_isolation     -- evals/ not modified with behavior commands/agents
   3. golden_invariants  -- Golden codebase-invariant graders all pass
   4. optimization_delta -- Optimization pass rate >= baseline (+5% if diagnostician)
   5. holdout_delta      -- Holdout pass rate not worse than -5% vs baseline
@@ -33,6 +33,8 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 EVALS_ROOT = REPO_ROOT / "evals"
 GOLDEN_DIR = EVALS_ROOT / "golden"
 BASELINES_DIR = EVALS_ROOT / "results" / "baselines"
+COMMAND_EVAL_SPLITS = ("golden", "optimization", "holdout", "honeypot")
+EVAL_TOOL_COMMANDS = {"commands/eval.md"}
 
 # Import run_baseline for grader execution
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
@@ -62,6 +64,21 @@ CONSISTENCY_PAIRS = [
 ]
 DEFAULT_VALIDATE_TIMEOUT_SECONDS = 300
 DEFAULT_EVAL_COMMAND_TIMEOUT_SECONDS = 30
+EVAL_SYNC_PATH_PREFIXES = (
+    "evals/golden/",
+    "evals/optimization/",
+    "evals/holdout/",
+    "evals/honeypot/",
+    "evals/results/baselines/",
+)
+EVAL_SYNC_FILES = (
+    "commands/eval.md",
+    "evals/schema.json",
+    "evals/INDEX.md",
+    ".codex-plugin/plugin.json",
+    "scripts/run_baseline.py",
+    "scripts/validate.py",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -135,13 +152,25 @@ def get_added_lines(staged: bool, paths: list[str]) -> str:
     return "\n".join(lines)
 
 
+def is_behavior_prompt_path(path: str) -> bool:
+    if path.startswith("agents/"):
+        return True
+    if path.startswith("commands/"):
+        return path not in EVAL_TOOL_COMMANDS
+    return False
+
+
+def behavior_prompt_targets(changed: list[str]) -> list[str]:
+    return [f for f in changed if is_behavior_prompt_path(f)]
+
+
 # ---------------------------------------------------------------------------
 # Check 1: diff line count
 # ---------------------------------------------------------------------------
 def check_diff_lines(staged: bool, changed: list[str]) -> tuple[bool, str]:
-    targets = [f for f in changed if f.startswith(("commands/", "agents/"))]
+    targets = behavior_prompt_targets(changed)
     if not targets:
-        return True, "no commands/agents files changed"
+        return True, "no behavior command/agent files changed"
     n = get_diff_line_count(staged, targets)
     if n > MAX_DIFF_LINES:
         return False, f"changed {n} lines in {', '.join(targets)} (max {MAX_DIFF_LINES})"
@@ -154,7 +183,7 @@ def check_diff_lines(staged: bool, changed: list[str]) -> tuple[bool, str]:
 def check_eval_isolation(changed: list[str]) -> tuple[bool, str]:
     evals = [f for f in changed if f.startswith("evals/")]
     if evals:
-        return False, f"evals/ modified with commands/agents: {', '.join(evals[:3])}"
+        return False, f"evals/ modified with behavior commands/agents: {', '.join(evals[:3])}"
     return True, "no evals/ files in this commit"
 
 
@@ -242,7 +271,7 @@ def check_golden(
                         f"golden {case_id} command timeout={run_timeout:.1f}s: {cmd}"
                     )
                     try:
-                        bash = shutil.which("bash")
+                        bash = rb.find_bash()
                         if bash:
                             proc = rb.run_command_with_timeout(
                                 [bash, "-c", resolved],
@@ -307,13 +336,20 @@ def _version_key(path: pathlib.Path) -> list[int]:
 
 
 def _latest_baseline() -> dict | None:
+    path = _latest_baseline_path()
+    if not path:
+        return None
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _latest_baseline_path() -> pathlib.Path | None:
     if not BASELINES_DIR.exists():
         return None
     baselines = sorted(BASELINES_DIR.glob("*.json"), key=_version_key)
     if not baselines:
         return None
-    with open(baselines[-1], encoding="utf-8") as f:
-        return json.load(f)
+    return baselines[-1]
 
 
 def _auto_pass_rate(scores: dict) -> float | None:
@@ -633,6 +669,108 @@ def check_doc_consistency() -> tuple[bool, str]:
 
 
 # ---------------------------------------------------------------------------
+# Eval corpus/schema/baseline synchronization
+# ---------------------------------------------------------------------------
+def _command_eval_case_paths() -> list[pathlib.Path]:
+    paths: list[pathlib.Path] = []
+    for split in COMMAND_EVAL_SPLITS:
+        split_dir = EVALS_ROOT / split
+        if split_dir.exists():
+            paths.extend(sorted(split_dir.rglob("*.yaml")))
+    return paths
+
+
+def _case_inventory() -> dict[str, list[str]]:
+    inventory = {split: [] for split in COMMAND_EVAL_SPLITS}
+    for path in _command_eval_case_paths():
+        case = rb.load_case(path)
+        split = str(case.get("split", ""))
+        case_id = str(case.get("case_id", path.stem))
+        inventory.setdefault(split, []).append(case_id)
+    for split in inventory:
+        inventory[split] = sorted(inventory[split])
+    return inventory
+
+
+def _parse_index_counts() -> dict[str, int]:
+    index_path = EVALS_ROOT / "INDEX.md"
+    if not index_path.exists():
+        return {}
+    text = index_path.read_text(encoding="utf-8")
+    labels = {
+        "optimization": "Optimization",
+        "holdout": "Holdout",
+        "golden": "Golden",
+        "honeypot": "Honeypot",
+        "skill": "Skill",
+    }
+    counts: dict[str, int] = {}
+    for key, label in labels.items():
+        match = re.search(rf"^- {re.escape(label)}:\s*(\d+)\b", text, re.M)
+        if match:
+            counts[key] = int(match.group(1))
+    return counts
+
+
+def _plugin_baseline_path() -> str | None:
+    plugin_path = REPO_ROOT / ".codex-plugin" / "plugin.json"
+    if not plugin_path.exists():
+        return None
+    with open(plugin_path, encoding="utf-8") as f:
+        data = json.load(f)
+    value = data.get("metadata", {}).get("eval_baseline_path")
+    return str(value) if value else None
+
+
+def check_eval_sync() -> tuple[bool, str]:
+    paths = _command_eval_case_paths()
+    errors = rb.validate_cases(paths)
+
+    inventory = _case_inventory()
+    index_counts = _parse_index_counts()
+    expected_counts = {split: len(inventory.get(split, [])) for split in COMMAND_EVAL_SPLITS}
+    expected_counts["skill"] = len(list((EVALS_ROOT / "skills").glob("*.yaml")))
+    for key, expected in expected_counts.items():
+        actual = index_counts.get(key)
+        if actual != expected:
+            errors.append(f"evals/INDEX.md {key} count is {actual}, expected {expected}")
+
+    baseline_path = _latest_baseline_path()
+    if not baseline_path:
+        errors.append("no baseline JSON found")
+    else:
+        baseline_rel = baseline_path.relative_to(REPO_ROOT).as_posix()
+        plugin_baseline = _plugin_baseline_path()
+        if plugin_baseline != baseline_rel:
+            errors.append(
+                f".codex-plugin metadata baseline is {plugin_baseline!r}, expected {baseline_rel!r}"
+            )
+
+        with open(baseline_path, encoding="utf-8") as f:
+            baseline = json.load(f)
+        scores = baseline.get("scores", {})
+        for split, current_ids in inventory.items():
+            current = set(current_ids)
+            recorded = set(scores.get(split, {}))
+            if current != recorded:
+                missing = sorted(current - recorded)
+                extra = sorted(recorded - current)
+                details = []
+                if missing:
+                    details.append(f"missing {split}: {', '.join(missing[:5])}")
+                if extra:
+                    details.append(f"extra {split}: {', '.join(extra[:5])}")
+                errors.append(f"{baseline_rel} case set mismatch ({'; '.join(details)})")
+
+    if errors:
+        return False, "; ".join(errors[:6])
+
+    total = sum(len(v) for v in inventory.values())
+    latest = baseline_path.relative_to(REPO_ROOT).as_posix() if baseline_path else "none"
+    return True, f"{total} command cases synced with {latest}"
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main() -> None:
@@ -671,16 +809,21 @@ def main() -> None:
     progress_file = pathlib.Path(args.progress_file) if args.progress_file else _eval_progress_file("validate-last-case.json")
 
     changed = get_changed_files(args.staged)
-    target = [f for f in changed if f.startswith(("commands/", "agents/"))]
+    target = behavior_prompt_targets(changed)
     skill_target = [
         f for f in changed
         if f.startswith(("skills/", "evals/skills/"))
         or f in ("scripts/run_skill_evals.py", "scripts/validate.py", ".githooks/pre-commit")
     ]
     doc_target = [f for f in changed if f.startswith("docs/reference/")]
+    eval_sync_target = [
+        f for f in changed
+        if f.startswith(EVAL_SYNC_PATH_PREFIXES)
+        or f in EVAL_SYNC_FILES
+    ]
 
-    if not target and not skill_target and not doc_target:
-        print("No commands/, agents/, docs/reference/, or skill gate files changed. Gate not applicable.")
+    if not target and not skill_target and not doc_target and not eval_sync_target:
+        print("No commands/, agents/, docs/reference/, eval, or skill gate files changed. Gate not applicable.")
         sys.exit(0)
 
     checks = []
@@ -730,6 +873,8 @@ def main() -> None:
         checks.append(("skill_evals", lambda: check_skill_evals(args.staged, args.timeout_seconds, progress_file)))
     if target or doc_target:
         checks.append(("doc_consistency", lambda: check_doc_consistency()))
+    if eval_sync_target:
+        checks.append(("eval_sync", lambda: check_eval_sync()))
 
     any_fail = False
     for name, fn in checks:

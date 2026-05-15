@@ -135,6 +135,8 @@ def validate_case_schema(path: pathlib.Path, case: dict[str, Any]) -> list[str]:
         errors.append("forbidden_behaviors must be a list")
     if "static" in case and not isinstance(case["static"], dict):
         errors.append("static must be a mapping")
+    if isinstance(case.get("static"), dict) and not case["static"].get("must_contain"):
+        errors.append("static.must_contain must anchor expected behavior")
     if "live" in case and not isinstance(case["live"], dict):
         errors.append("live must be a mapping")
     if not re.match(r"^skill\.[a-z0-9-]+\.[a-z0-9-]+$", str(case.get("case_id", ""))):
