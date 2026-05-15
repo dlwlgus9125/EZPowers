@@ -145,10 +145,30 @@ of a contract are complete.
 - Independent task failure does not block other independent tasks
 - **Partial failure report:** On completion, present per-task PASS/FAIL/SKIPPED summary to user
 
+## 3.6. Git Hash Recording Protocol
+
+Apply this protocol in every execution path (subagent, inline, harness).
+
+- **Before each task:** `git rev-parse HEAD` -> store as `<task-start-hash>`
+- **First task only:** also store as `<first-task-start-hash>` (for final review). Do not overwrite in subsequent tasks.
+- **No commits yet:** if `git rev-parse HEAD` fails, use empty tree hash `4b825dc642cb6eb9a060e54bf899d8b2306e7304`. This is git's empty tree; `git diff <empty-tree>..HEAD` shows all changes.
+- **After each task:** changed-files = `git diff --name-only <task-start-hash>..HEAD` + `git ls-files --others --exclude-standard` (union, deduplicated)
+
+## 3.7. Wiring Config Validation (fail-closed)
+
+Apply this validation whenever wiring state is checked (View Wiring Test, Wiring Gate Test).
+Canonical definition: `docs/reference/verification-contract.md` § Wiring Config Validation.
+
+- `wiring` block missing → FAIL: `"config.json has no wiring block. Run /setup to regenerate."`
+- `wiring.enabled: false` + `wiring.exempt_reason` empty → FAIL: `"wiring disabled without exempt_reason."`
+- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` not `docs` or `library` → FAIL: `"wiring exemption not allowed for artifact_kind: {kind}"`
+- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` is `docs` or `library` → skip/exempt. Log: `"View wiring exempt: [reason]"`
+- `wiring.enabled: true` + `wiring.view_extensions` empty → skip only the View Wiring Test. CLI/server/headless projects may have an empty `view_extensions` array. The Full-Feature Wiring Gate still runs when required.
+
 ## 4. Per-Task Execution Loop (Subagent-Driven)
 
 ```
-Record git hash (git rev-parse HEAD)
+Record git hash (Section 3.6)
   -> Assess task complexity
   -> Extract Verify Command Baseline from plan file
   -> Construct implementer prompt + Verify Fidelity Check
@@ -166,13 +186,6 @@ Record git hash (git rev-parse HEAD)
     -> 3 failures -> escalate to user
   -> Compute changed-files -> next task
 ```
-
-### Git Hash Recording
-
-- **Before each task:** `git rev-parse HEAD` -> store as `<task-start-hash>`
-- **First task:** also store `<first-task-start-hash>` (for final review)
-- **No commits yet:** if `git rev-parse HEAD` fails, use empty tree hash `4b825dc642cb6eb9a060e54bf899d8b2306e7304`. This is git's empty tree; `git diff <empty-tree>..HEAD` shows all changes.
-- **After each task:** changed-files = `git diff --name-only <task-start-hash>..HEAD` + `git ls-files --others --exclude-standard` (union, deduplicated)
 
 ### Task Complexity Assessment
 
@@ -334,12 +347,7 @@ Simple `pure`/`cli`/`lib` tasks skip the arbiter and proceed directly to securit
 **Arbiter dispatch limit:** max 2 rounds per task. If arbiter returns TEST_GAP or CODE_GAP twice, escalate to user.
 
 ### View Wiring Test (Per-Task, fail-closed)
-**Config validation:** Read `config.wiring` block.
-- `wiring` block missing → FAIL: `"config.json has no wiring block. Run /setup to regenerate."`
-- `wiring.enabled: false` + `wiring.exempt_reason` empty → FAIL: `"wiring disabled without exempt_reason."`
-- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` not `docs` or `library` → FAIL: `"wiring exemption not allowed for artifact_kind: {kind}"`
-- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` is `docs` or `library` → skip. Log: `"View wiring exempt: [reason]"`
-- `wiring.enabled: true` + `wiring.view_extensions` empty → skip only the View Wiring Test. CLI/server/headless projects may have an empty `view_extensions` array. The Full-Feature Wiring Gate still runs when required.
+**Config validation:** Apply Wiring Config Validation (Section 3.7).
 
 **감지:** `wiring.enabled: true` → Task changed-files에 `config.wiring.view_extensions` 매칭 확장자 포함 여부.
 **실행:** Task의 `**View wiring verification**` 섹션에서 Verify 커맨드 추출. 섹션 없으나 view 파일이 changed-files에 있음 → FAIL (plan에 wiring verification 누락).
@@ -598,10 +606,7 @@ Estimation basis:
 
 ### Git Hash Recording
 
-- **Before first task:** `git rev-parse HEAD` → store as `<first-task-start-hash>` (for final review). Do not overwrite in subsequent tasks.
-- **Before each task:** `git rev-parse HEAD` → store as `<task-start-hash>`
-- **No commits yet:** use empty tree hash `4b825dc642cb6eb9a060e54bf899d8b2306e7304`
-- **After each task:** changed-files = `git diff --name-only <task-start-hash>..HEAD` + `git ls-files --others --exclude-standard`
+Apply Git Hash Recording Protocol (Section 3.6).
 
 ### Per-Task Execution Loop
 
@@ -692,11 +697,7 @@ After all tasks + final review complete:
 1. Full diff summary (`git diff <first-task-start-hash>..HEAD`)
 2. Completed/failed/SKIPPED task list
 3. **Wiring Gate Test (fail-closed):**
-   Read `config.wiring` block.
-   - `wiring` block missing → FAIL: `"config.json has no wiring block. Run /setup to regenerate."`
-   - `wiring.enabled: false` + `wiring.exempt_reason` empty → FAIL: `"wiring disabled without exempt_reason."`
-   - `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` not `docs` or `library` → FAIL: `"wiring exemption not allowed for artifact_kind: {kind}"`
-   - `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` is `docs` or `library` → skip wiring gate. Log: `"View wiring exempt: [reason]"`
+   Apply Wiring Config Validation (Section 3.7). If exempt/skip, skip wiring gate.
    - Plan `## Full-Feature Wiring Gate` with `Required: yes`:
      - `config.wiring.wiring_gate_command` non-empty → 실행 (timeout: 120s).
      - `config.wiring.wiring_gate_command` empty → plan의 Wiring Gate Verify 커맨드 사용.

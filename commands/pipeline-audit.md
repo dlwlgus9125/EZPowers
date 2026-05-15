@@ -270,15 +270,7 @@ tasks.
 
 Purpose: Verify that expected verification layers are configured and plan-aligned. Meta-verification — checks the verification pipeline itself.
 
-1. **Wiring config presence:** `.harness/config.json` has a `wiring` block.
-   → **FAIL**: `"config.json has no wiring block. Run /setup to regenerate."`
-2. **Exemption validity:** `wiring.enabled: false` requires non-empty `wiring.exempt_reason`.
-   - Missing reason → **FAIL**: `"wiring disabled without exempt_reason."`
-   - Non-empty reason with `artifact_kind` not `docs` or `library` → **FAIL**: `"wiring exemption not allowed for artifact_kind: {kind}"`
-   - Only `docs` and `library` artifacts may use the wiring exemption.
-3. **View extension coverage:** `wiring.enabled: true` with empty `wiring.view_extensions` skips only the L2 view-layer wiring check.
-   - CLI/server/headless projects may have an empty `view_extensions` array.
-   - The Full-Feature Wiring Gate still runs when required; do not fail D8 solely because `view_extensions` is empty.
+1-3. **Wiring config validation:** Apply `docs/reference/verification-contract.md` § Wiring Config Validation (fail-closed). Covers: wiring block presence, exemption validity, view extension coverage.
 4. **Expected sensor count:** Report expected verification layers:
    - L1 (AC verification): always expected. Count = task count.
    - L2 (View Wiring Test): expected if `wiring.enabled: true`, `wiring.view_extensions` is non-empty, and any task creates/modifies view files. Count = view-touching task count.

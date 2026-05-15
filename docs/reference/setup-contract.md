@@ -267,13 +267,10 @@ Projects with UI presence require `wiring.enabled: true` and a non-empty
 stack. `wiring.view_test_command` and `wiring.wiring_gate_command` may be
 empty at setup time — per-task and per-plan commands serve as fallbacks.
 
-Only `docs` and `library` artifacts may set `wiring.enabled: false`. Setting
-`enabled: false` requires a non-empty `wiring.exempt_reason`; auto-fill for
-docs/library (e.g., `"pure library, no UI components"`).
-
-A missing `wiring` block is a configuration error. All downstream gates
-(plan-reviewer, choiceexecutor, wiring-reviewer, pipeline-audit) treat a
-missing block as FAIL, not skip.
+Validation rules for wiring config are defined in
+`docs/reference/verification-contract.md` § Wiring Config Validation.
+Auto-fill `wiring.exempt_reason` for docs/library artifacts
+(e.g., `"pure library, no UI components"`).
 
 Stack auto-detection defaults:
 

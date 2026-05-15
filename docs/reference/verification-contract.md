@@ -192,6 +192,17 @@ Independent arbiters and wiring reviewers classify gaps as:
 - `CODE_GAP`: registration, route, import, binding, subscription, or call site is missing.
 - `SPEC_GAP`: the plan lacks an automatable oracle or enough path detail to judge wiring.
 
+## Wiring Config Validation (fail-closed)
+
+This is the canonical definition of wiring config validation. All commands
+and reference docs should reference this section instead of restating.
+
+- `wiring` block missing → FAIL: `"config.json has no wiring block. Run /setup to regenerate."`
+- `wiring.enabled: false` + `wiring.exempt_reason` empty → FAIL: `"wiring disabled without exempt_reason."`
+- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` not `docs` or `library` → FAIL: `"wiring exemption not allowed for artifact_kind: {kind}"`
+- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` is `docs` or `library` → skip/exempt
+- `wiring.enabled: true` + `wiring.view_extensions` empty → skip only View Wiring Test. Full-Feature Wiring Gate still runs when required.
+
 ## View Wiring Verification
 
 The rules in this English subsection are canonical. If later legacy text in
@@ -199,12 +210,6 @@ this section conflicts or is unreadable, ignore it and follow this subsection.
 
 Apply view wiring verification to tasks that create or modify files matching
 `config.wiring.view_extensions`. Logic-only tasks with no view file are exempt.
-
-The `wiring` block in `config.json` is required for all projects. A missing
-`wiring` block is a configuration error, not a skip condition. If
-`wiring.enabled` is `false`, `wiring.exempt_reason` must be non-empty;
-otherwise the project fails verification. Only `docs` and `library` artifact
-kinds may set `wiring.enabled: false`.
 
 Verification layers:
 
