@@ -90,6 +90,16 @@ For tasks without test code: apply only check c.
 
 **5A. TDD Slice Contract density:** Behavior-bearing tasks must include a `TDD Slice Contract` with public interface, behavior under test, test oracle, setup/fixtures, minimal implementation boundary, non-goals, and missing-info handling. If absent or replaced by verbose internal implementation prose, FAIL.
 
+**5B. Operational decisions carry-forward:**
+If the spec's Architecture Baseline contains operational decisions (error
+handling, logging, config management, initialization order, state management,
+external dependency handling), each behavior-bearing task must have an
+`**Operational decisions:**` field that references the applicable decisions.
+- Task has `none applicable` when no decisions apply to its scope → PASS.
+- Task lacks the field entirely and spec has operational decisions → FAIL:
+  "T{N} missing Operational decisions field — spec baseline has operational
+  decisions that must propagate to tasks."
+
 **6. Build config cross-validation:**
 If task modifies bundler/build config: verify externalize/exclude/alias strategy is compatible with dependency module systems (CJS/ESM). Flag blanket patterns (e.g., `externals: [/node_modules/]`) that may break ESM-only deps. No build config in task → skip.
 
@@ -101,6 +111,15 @@ If plan has 2+ tasks AND `config.smoke.artifact_kind` is `cli`/`server`/`desktop
 - Unit tests for individual components do not satisfy this gate.
 - Exemption: single-task plans, `docs`/`library` artifacts.
 Also applies when any task's output is consumed by another (detectable via `Depends on` markers + shared files + AC data flow), even for non-executable artifacts with 3+ tasks.
+- **Implicit runtime contract scan:** Scan task AC text, Verify commands, and
+  Wiring handoff fields for: URL paths (`/api/...`, `localhost:...`), event
+  names, config keys, message formats/schemas (JSON shape, protobuf, GraphQL
+  type), CLI flags/subcommands, and file format contracts (CSV columns, log
+  format). If Task A exposes any of these in its Create/Modify files or Wiring
+  handoff and Task B references it in AC, Verify, or its own files, an ICM
+  entry connecting them is required even without `Depends on` or file overlap.
+  Missing entry → FAIL: "Implicit runtime contract between T{A} and T{B} on
+  [contract] not in ICM."
 
 **8. Full-feature wiring gate:**
 If the plan has 2+ connected tasks, changes 2+ layers, creates/modifies an

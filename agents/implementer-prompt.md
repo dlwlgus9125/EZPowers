@@ -30,6 +30,13 @@ Agent tool:
     baseline from the plan. If implementation would violate an ASR, boundary,
     lifecycle rule, or quality budget, report BLOCKED before editing.
 
+    ## Cross-Cutting Concerns
+
+    [If the spec's Architecture Baseline defines error handling, logging, config
+    management, initialization order, or state management patterns, paste them
+    here. Follow these patterns exactly — do not invent alternatives. If none
+    are defined, omit this section.]
+
     ## Acceptance Criteria
 
     This task is complete ONLY when ALL of these criteria are met:
@@ -158,6 +165,9 @@ Agent tool:
 
     **Completeness:** Did I fully implement everything? Missing requirements? Edge cases?
     **Quality:** Clear names? Clean, maintainable code?
+    **Logic verification:** For tasks with calculation, comparison, or business
+    rule logic: state the rule from the spec, then state what the code does. If
+    they differ, report as DONE_WITH_CONCERNS with the discrepancy.
     **Discipline:** YAGNI? Only built what was requested? Following existing patterns?
     **Testing (literal comparison):**
     If Given-When-Then criteria:

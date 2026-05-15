@@ -52,6 +52,7 @@ Every spec starts with these sections before requirements:
 - Lifecycle And Operations.
 - Quality Budgets.
 - Wiring Map (executable artifacts only).
+- Initialization Order (executable artifacts with 2+ startup dependencies).
 - Decision Log.
 - Extracted Requirements.
 
@@ -84,6 +85,12 @@ Rules:
 - IDs are referenced in plan Coverage Matrix and Integration Contract Matrix.
 - Contracts specify the function signature, event name, DI token, or message
   format at each boundary.
+- Each WM-DF entry must name: (a) the data type at entry, (b) each
+  transformation step with its input/output types, and (c) the data type at
+  exit. A WM-DF that only names module names without data types is insufficient.
+- For each WM-DF, the spec must include a Verify command in the relevant R's AC
+  that traces data from entry to exit. This Verify command proves data flows,
+  not just that modules exist.
 
 ## Architecture Approval Text
 
@@ -123,6 +130,29 @@ Rules:
 - If the user identifies missing requirements three times in a row, return to
   questioning.
 
+## Operational Requirements Checklist
+
+Before requirement extraction, evaluate these cross-cutting concerns and record
+applicable decisions in the Architecture Baseline. Each item applies when the
+project meets its condition.
+
+| Concern | Condition | Record in Baseline |
+|---------|-----------|-------------------|
+| Error handling pattern | Any runtime code | throw/return/Result type/error boundary — pick one pattern |
+| Logging strategy | Any runtime code | structured/unstructured, library, log levels |
+| Configuration management | Env vars, config files, or CLI args exist | source priority, validation at startup, missing-key behavior |
+| Initialization order | 2+ modules with startup dependencies | module → prerequisite → readiness signal |
+| State management policy | Shared mutable state exists | global state rules, thread safety, ownership |
+| External dependency handling | Network calls, DB, queues, file I/O | timeout, retry, circuit-break defaults |
+
+Rules:
+
+- Ask the user about each applicable concern during architecture baseline
+  creation. One question at a time.
+- Record each decision as a bullet under the Architecture Baseline section.
+- Implementers must follow these decisions — not invent alternatives.
+- If none apply (pure library, docs-only), state `none applicable` and skip.
+
 ## Requirement Section Template
 
 Each requirement section uses:
@@ -157,7 +187,10 @@ Input/Output.
 
 Use `docs/reference/verification-contract.md` for Verify-type evidence. Broad
 suite commands are weak evidence unless they include a feature-specific oracle
-or filter.
+or filter. When the requirement describes specific observable behavior (concrete
+Given/When/Then with values), the Verify command must include a feature-specific
+filter, test name, or grep pattern. A bare `npm test` or `pytest` without
+filtering is insufficient for feature-scoped requirements.
 
 Acceptance criteria must describe observable behavior. Do not mention private
 function names, class names, variables, or implementation-only files in

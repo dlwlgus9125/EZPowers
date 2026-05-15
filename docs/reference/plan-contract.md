@@ -119,6 +119,7 @@ Tasks are independently grabbable vertical slices. Use this template:
 - (b) Call site info: `path` reason
 - (c) Code preservation: `path` reason
 
+**Operational decisions:** Error handling: [pattern from baseline] | Logging: [strategy] | Config: [approach] | Init order: [relevant entry] | or `none applicable`
 **Depends on:** Task N or none
 **File overlap with:** Task N or none
 **Wiring handoff:** (mandatory when task publishes routes, DI tokens, events, exports, or registrations consumed downstream; references WM IDs)
@@ -191,6 +192,23 @@ Rules:
 - Every WM-C and WM-REG item from the spec's Wiring Map must appear.
 - Unmapped WM items indicate a plan gap (plan-reviewer FAIL).
 - Add an integration milestone task after the last component task when needed.
+- Include runtime contracts discovered during planning: URL paths, message
+  formats/schemas (JSON shape, protobuf, GraphQL type), event names, shared
+  configuration keys, CLI flags/subcommands, and file format contracts that one
+  task produces and another consumes, even when no file overlap or `Depends on`
+  marker exists.
+- Detection rule: when Task A's Create/Modify files or Wiring handoff expose a
+  URL, route, event, config key, message schema, or CLI flag, and Task B's AC
+  text, Verify commands, or files reference the same value, an ICM entry is
+  required.
+
+### Data Flow Trace
+
+When the spec contains WM-DF entries, at least one plan task must have a Verify
+command that asserts data arriving at the entry point reaches the output with
+correct transformation. A milestone task or the Full-Feature Wiring Gate should
+exercise at least one WM-DF path end-to-end. Plans with WM-DF entries but no
+data flow verification are flagged by pipeline-audit D5.
 
 ## Full-Feature Wiring Gate
 

@@ -82,6 +82,19 @@ The Lifecycle And Operations section must cover:
 
 Fields may say `none declared` only when the risk is stated.
 
+## Initialization Order
+
+For executable artifacts with 2+ modules that have startup dependencies, the
+spec must declare initialization order. Each entry specifies:
+
+- Module name
+- Prerequisite module (what must be ready first)
+- Readiness signal (e.g., "DB connection pool open", "config loaded")
+
+Omit for single-module projects, stateless libraries, or docs-only artifacts.
+Missing initialization order for executable artifacts with runtime dependencies
+is a FAIL in pipeline audit D7.
+
 ## Quality Budgets
 
 The Quality Budgets section must cover:

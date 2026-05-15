@@ -19,6 +19,16 @@ Verify the following first:
    - `audit` field is missing → report `"/pipeline-audit를 먼저 실행하세요."` and stop
    - `audit.status` is `"PASS"` or `"WARN"` → proceed
 
+5. Environment readiness check:
+   - Parse all Verify commands from the plan document.
+   - For each command's first token, run `command -v <token>` — **FAIL** if
+     not found (tool required for verification is missing).
+   - If `config.server.start_command` is non-empty, verify the server binary
+     exists.
+   - Scan Verify commands for `$VAR`/`${VAR}` references — **WARN** if any
+     referenced env var is unset.
+   - Report all findings before proceeding. Any FAIL stops execution.
+
 If missing, direct the user to the required step:
 - No config -> `/setup`
 - No plan -> `/plan`
@@ -98,6 +108,20 @@ Construct directed graph: Task A -> Task B = "B depends on A"
 | **Linear chain** | A->B->C strict order | Pipeline (sequential execution) |
 | **Mixed** | Independent + chain | Independent in any order, chains sequential |
 
+### Step 3.5: Integration Checkpoint
+
+After each task completes, check the Integration Contract Matrix for newly
+completable rows:
+
+1. Identify ICM rows where both Producer and Consumer tasks are now done.
+2. Run each newly completed row's Verify command.
+3. Any FAIL → re-dispatch the Consumer task with the failure details.
+4. All PASS → proceed to next task or Step 4.
+
+This runs regardless of cluster boundaries — linear chains, independent
+clusters, and mixed graphs all trigger ICM verification as soon as both sides
+of a contract are complete.
+
 ### Step 4: Execute by Classification
 
 > **Note:** Claude Code's Agent tool supports sequential execution only. "Independent" means tasks can run in any order without dependency constraints, not that they dispatch concurrently.
@@ -133,7 +157,7 @@ Record git hash (git rev-parse HEAD)
   -> Handle implementer status
   -> Controller: AC verification (re-read plan file, run Verify commands)
     -> ALL PASS -> Runtime probe (if applicable)
-      -> PASS -> AC Arbiter (integration/e2e tasks only)
+      -> PASS -> AC Arbiter (integration/e2e/logic-dense tasks)
         -> PASS -> View Wiring Test (view tasks only)
           -> PASS -> conditional security review
         -> TEST_GAP/CODE_GAP/SPEC_GAP -> re-dispatch or return to /plan
@@ -173,6 +197,15 @@ task, include in the "Prior Task Wiring" section:
 3. Referenced Wiring Map entries from the spec.
 If no dependency or no wiring handoff exists, state "No wiring handoff from
 dependency."
+
+### Cross-Cutting Concern Injection
+
+When constructing the implementer prompt, populate the "Cross-Cutting Concerns"
+section from `agents/implementer-prompt.md`:
+1. Read the task's `**Operational decisions:**` field from the plan.
+2. If `none applicable`, omit the section.
+3. Otherwise, paste the field values into the implementer prompt's
+   Cross-Cutting Concerns section verbatim.
 
 ### Implementer Status Handling
 
@@ -271,12 +304,18 @@ If a Verify-type `e2e` item has no executable Verify command (empty or placehold
 
 Do not batch for human confirmation. Do not skip. No Verify command = FAIL.
 
-### Independent AC Arbiter (integration/e2e tasks only)
+### Independent AC Arbiter
 
 After AC verification + runtime probe PASS, dispatch a fresh Agent as an independent arbiter for tasks that meet ANY of:
 - Verify-type `e2e`
 - `Depends on` 2+ tasks (integration milestones)
 - Task title contains "integration", "milestone", or "wiring"
+- Task has 3+ Given/When/Then acceptance criteria
+- Task AC text contains calculation/comparison keywords: discount, total, rate,
+  percent, threshold, limit, quota, balance, score, calculate, compare, price,
+  amount, fee, tax, weight, rank
+
+Simple `pure`/`cli` tasks with 1-2 AC and no calculation keywords are exempt.
 
 Simple `pure`/`cli`/`lib` tasks skip the arbiter and proceed directly to security review.
 

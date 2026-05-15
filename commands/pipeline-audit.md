@@ -80,7 +80,21 @@ Purpose: Pre-check that Verify commands can run in the project environment.
 5. **Server dependency** (Verify-type api or e2e): check `config.server.start_command` is non-empty.
    → **WARN** if empty: `"R2 AC-1: Verify-type api but config.server.start_command is empty"`
 
-6. **Executable runtime smoke**: if the plan or config identifies an executable
+6. **Tool version validation:** after `command -v` confirms a tool exists, run
+   `<tool> --version` and compare against version constraints in project
+   manifests (`package.json` engines, `.python-version`, `.nvmrc`,
+   `pyproject.toml` requires-python). → **WARN** on version mismatch.
+7. **Environment variable dependency:** scan Verify commands and spec text for
+   `$VAR` or `${VAR}` patterns. For each found variable, check whether it is
+   set in the current environment.
+   → **FAIL** if unset and referenced in a Verify command (blocks execution):
+   `"R1 AC-2: Verify references $DATABASE_URL — not set in environment"`
+   → **WARN** if unset and referenced only in spec text (not in Verify).
+8. **Service port availability** (Verify-type api or e2e): if Verify
+   references `localhost:NNNN` beyond the config port check (#3), verify the
+   port is not already occupied by another process. → **INFO**: advisory only,
+   service may start at execution time.
+9. **Executable runtime smoke**: if the plan or config identifies an executable
    artifact (`cli`, `server`, or `desktop`), `config.smoke.required` must be
    true and `config.smoke.command` must be non-empty.
    -> **FAIL** if missing: `"Executable artifact has no required runtime smoke command"`
@@ -137,7 +151,14 @@ Purpose: Verify that integration milestone tasks actually test the full pipeline
    equivalent runtime probe artifact; desktop gates must include screenshot
    evidence.
    -> **FAIL**: `"Full-Feature Wiring Gate lacks runtime artifact evidence"`
-8. **No pipelines detected:** if plan has no Integration Pipeline Matrix and no tasks with integration/milestone/wiring keywords:
+8. **Data flow path coverage:** for each WM-DF entry in the spec, check whether
+   at least one task's Verify command, a milestone task, or the Full-Feature
+   Wiring Gate exercises that data flow path (entry → transformations → exit).
+   → **FAIL** for executable artifacts (`cli`/`server`/`desktop`) if a WM-DF
+   has no corresponding verification:
+   `"WM-DF1 (CLI args → CommandHandler → stdout) has no task or gate Verify exercising this path"`
+   → **WARN** for `library` artifacts.
+9. **No pipelines detected:** if plan has no Integration Pipeline Matrix and no tasks with integration/milestone/wiring keywords:
    - If `config.wiring.enabled: true` and plan has 2+ tasks with file dependencies (`Depends on` or shared `Modify` files) → **WARN**: `"No Integration Pipeline Matrix but task dependencies exist. Consider adding integration verification."`
    - If `config.wiring.enabled: false` with valid `exempt_reason`, or plan has truly independent single-file tasks → **PASS**
    - If `config.wiring` block missing → **FAIL**: `"config.json has no wiring block. Run /setup to regenerate."`
@@ -167,9 +188,9 @@ Each R section's content must be sufficient to produce meaningful verification a
    - Example PASS: `"Then: CPU 사용률이 0-100% 범위의 숫자로 표시되고 1초마다 갱신된다"`
 
 3. **Verify command feature-specificity**
-   - **WARN**: Verify is a full test suite invocation without specific filter: `dotnet test`, `npm test`, `pytest`, `cargo test`, `go test ./...`
+   - **FAIL**: Verify is a full test suite invocation without specific filter (`dotnet test`, `npm test`, `pytest`, `cargo test`, `go test ./...`) AND the R has specific behavioral claims (concrete Given/When/Then with observable values, not structural requirements like "project builds").
+   - **WARN**: Verify is a broad suite but the R is a general structural requirement (e.g., "project compiles", "no lint errors").
    - **PASS**: Verify targets a specific test or feature: `dotnet test --filter SystemMonitor`, `pytest tests/test_monitor.py`
-   - This is WARN (not FAIL) because a broad test suite may still catch issues, but a targeted test is stronger evidence.
 
 #### Layer 2 — Plan Task Check (runs at post-plan audit)
 
@@ -228,6 +249,14 @@ tasks.
    `cli`, `server`, or `desktop`, spec must contain a Wiring Map table with at
    least one WM-EP entry, one WM-REG or WM-DF entry, and one WM-C entry.
    - **FAIL** when Wiring Map is missing or incomplete for executable artifacts.
+9. Initialization Order (executable artifacts with 2+ modules): if the spec
+   references database connections, service registrations, queue subscriptions,
+   startup hooks, config loaders, plugin systems, cache warmups, or auth
+   bootstraps, an Initialization Order section should exist in the
+   Architecture Baseline listing module → prerequisite → readiness signal.
+   - **FAIL** when absent for executable artifacts (`cli`/`server`/`desktop`)
+     with runtime dependencies.
+   - **WARN** when absent for `library` artifacts with startup dependencies.
 
 ### D8: Sensor Completeness (plan required)
 
