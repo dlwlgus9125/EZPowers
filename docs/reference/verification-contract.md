@@ -125,6 +125,46 @@ following a completed skeleton task. This is separate from per-task
 smoke verifies the app still starts — it does not replace feature-specific
 verification.
 
+### Incremental Wiring Probe
+
+Incremental Runnability proves the app starts. The Wiring Probe proves
+the task's module is reachable from the app's entry point — closing the
+gap between "app runs" and "feature is connected."
+
+Every task that creates or modifies a module in an executable artifact must
+include a `**Wiring probe:**` section in the plan with:
+
+- Entry point file path (the WM-EP that should reach this module)
+- Module file path (the file this task creates or modifies)
+- Probe type: one of `import-chain`, `runtime-load`, or `e2e-touch`
+- Verify command where exit 0 = module is reachable
+
+Probe types:
+
+| Probe type | What it proves | Example |
+| --- | --- | --- |
+| `import-chain` | Static import path exists from entry point to module. | `node -e "require('./src/main/index')"` or dependency-cruiser rule |
+| `runtime-load` | App starts and module initializes (log output, DI resolution, handler registration). | `pnpm dev & sleep 3 && curl localhost:3000/health \| grep metrics && kill %1` |
+| `e2e-touch` | User-facing action reaches the module (API call, UI interaction, CLI subcommand). | `playwright test --grep "metrics panel"` |
+
+Probe evidence:
+
+- `import-chain`: entry point → intermediate imports → target module chain
+  traced statically. Verify exits non-zero if any link is missing.
+- `runtime-load`: process starts, target module's initialization log or
+  registration signal is observed, process exits cleanly.
+- `e2e-touch`: user-facing action triggers observable behavior in the target
+  module (response content, UI element, file output).
+
+Tasks exempt from Wiring Probe:
+
+- `docs` or `library` artifact kinds
+- Tasks that only modify existing files without adding new modules
+- Tasks where `config.wiring.enabled: false` with valid `exempt_reason`
+
+A task creating a new module with no `**Wiring probe:**` section is a plan
+defect. The executor logs a WARNING; the plan reviewer should have required it.
+
 ## Integration And Wiring
 
 A plan needs a Full-Feature Wiring Gate when work crosses connected tasks,

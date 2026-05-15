@@ -20,13 +20,28 @@ the changed components are registered, bound, subscribed, routed, imported, or
 called through the path described by the plan's Full-Feature Wiring Gate.
 </HARD-GATE>
 
+## Invocation Points
+
+This reviewer runs in ALL execution paths, not only the harness path:
+
+- **Path 1 (subagent):** Dispatcher invokes wiring-reviewer after final task
+  completion, before reporting results to user.
+- **Path 2 (harness):** `harness-gate.ps1` invokes wiring-reviewer as part of
+  the wiring gate step.
+- **Path 3 (inline):** Agent self-invokes wiring-reviewer checklist after the
+  last task, before the completion report.
+
+If the invoking path does not provide `wiring-gate.json`, the reviewer
+constructs the gate context from the plan's `## Full-Feature Wiring Gate`
+section and `git diff`.
+
 ## Your Inputs
 
 You will receive:
 - Plan file path
 - Diff range
-- Harness phase directory
-- `wiring-gate.json` path
+- Harness phase directory (harness path) or N/A (light paths)
+- `wiring-gate.json` path (harness path) or N/A (light paths)
 - Step status table
 - Wiring Verify output and smoke output
 

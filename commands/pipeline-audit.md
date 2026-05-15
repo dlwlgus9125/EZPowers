@@ -158,7 +158,15 @@ Purpose: Verify that integration milestone tasks actually test the full pipeline
    has no corresponding verification:
    `"WM-DF1 (CLI args → CommandHandler → stdout) has no task or gate Verify exercising this path"`
    → **WARN** for `library` artifacts.
-9. **No pipelines detected:** if plan has no Integration Pipeline Matrix and no tasks with integration/milestone/wiring keywords:
+9. **Wiring Probe coverage:** for executable artifacts, every task that creates
+   a new module must have a `**Wiring probe:**` section with a non-trivial
+   Verify command and a probe type matching the corresponding WM-REG entry's
+   recommended strategy.
+   → **FAIL** if task creates a new module but has no Wiring Probe:
+   `"Task N creates [module] but has no Wiring Probe. Add **Wiring probe:** with entry point, module path, probe type, and Verify command."`
+   → **WARN** if probe type does not match WM-REG recommended strategy:
+   `"Task N Wiring Probe uses import-chain but WM-REG1 recommends runtime-load"`
+10. **No pipelines detected:** if plan has no Integration Pipeline Matrix and no tasks with integration/milestone/wiring keywords:
    - If `config.wiring.enabled: true` and plan has 2+ tasks with file dependencies (`Depends on` or shared `Modify` files) → **WARN**: `"No Integration Pipeline Matrix but task dependencies exist. Consider adding integration verification."`
    - If `config.wiring.enabled: false` with valid `exempt_reason`, or plan has truly independent single-file tasks → **PASS**
    - If `config.wiring` block missing → **FAIL**: `"config.json has no wiring block. Run /setup to regenerate."`

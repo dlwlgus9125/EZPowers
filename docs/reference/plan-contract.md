@@ -131,6 +131,9 @@ Tasks are independently grabbable vertical slices. Use this template:
 
 **Verification method:** Run the relevant Verify command.
 **Runtime verification (executable artifacts only):** `command`
+**Wiring probe (executable artifacts, new module tasks):**
+  Entry point: `path` | Module: `path` | Probe type: `import-chain` | `runtime-load` | `e2e-touch`
+  Verify: `command`
 
 - [ ] Step 1: Write the failing test.
 - [ ] Step 2: Run it and observe failure.
@@ -168,6 +171,10 @@ When uncertain, classify as reference breakage.
 - Preserve Verify oracle strength when changing commands.
 - Behavior-bearing tasks require a TDD Slice Contract.
 - Executable entry-point tasks require runtime verification.
+- Tasks creating new modules in executable artifacts require a Wiring Probe
+  (`**Wiring probe:**`) per `docs/reference/verification-contract.md`
+  § Incremental Wiring Probe. Probe type should match the WM-REG entry's
+  recommended strategy from the spec's Wiring Map.
 - View tasks require view wiring verification from
   `docs/reference/verification-contract.md`.
 

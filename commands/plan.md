@@ -43,6 +43,11 @@ slices, runtime evidence, and wiring gates. Do not implement code.
   before feature tasks begin.
 - Add automated runtime and wiring evidence when work touches executable entry
   points, multiple layers, connected tasks, routes, bindings, or registrations.
+- For executable artifacts, every task that creates a new module must include a
+  `**Wiring probe:**` section specifying: entry point path, module path, probe
+  type (`import-chain` | `runtime-load` | `e2e-touch`), and a Verify command
+  where exit 0 proves the module is reachable from the entry point. See
+  `docs/reference/verification-contract.md` § Incremental Wiring Probe.
 - Dispatch `ezpowers:plan-reviewer` through the dispatch protocol.
 - After plan approval, dispatch `ezpowers:workflow-runner` for `/pipeline-audit`
   in `post-plan` mode.

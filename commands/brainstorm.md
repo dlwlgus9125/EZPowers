@@ -35,7 +35,10 @@ post-brainstorm pipeline audit. Do not implement code.
 - For executable artifacts, ask about entry points, component registration
   approach, and cross-module data flow before finalizing the architecture
   baseline. Populate the Wiring Map with unique IDs (WM-EP, WM-REG, WM-DF,
-  WM-C) as part of the baseline.
+  WM-C) as part of the baseline. For each WM-REG entry, specify the
+  recommended Wiring Probe strategy (`import-chain` for pure module imports,
+  `runtime-load` for DI/IPC/event registration, `e2e-touch` for user-facing
+  feature wiring). This strategy propagates to `/plan` task Wiring Probes.
 - Use `grill-with-docs` after architecture baseline approval and before requirement
   extraction; unresolved issues return to design.
 - Use `docs/reference/spec-contract.md` for required spec sections,

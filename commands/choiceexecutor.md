@@ -369,6 +369,36 @@ probe as Section 14.
 Skeleton task itself already requires runtime smoke in its AC — this gate
 applies to tasks AFTER the skeleton.
 
+### Incremental Wiring Probe (executable artifacts, post-skeleton)
+
+After Incremental Runnability passes, verify the task's module is reachable
+from the app's entry point. Incremental Runnability proves the app starts;
+this probe proves the task's work is actually connected.
+
+**Trigger:** Task has a `**Wiring probe:**` section in the plan AND at least
+one `{skeleton}` task has completed.
+
+**Execution:** Extract the Wiring Probe Verify command from the plan file
+(not from implementer reports or cached context). Run it (timeout: 120s).
+Exit 0 = PASS.
+
+**Failure classification:**
+- `IMPORT_UNREACHABLE`: module not imported from entry point chain
+- `REGISTRATION_MISSING`: handler/service not registered in DI/IPC/router
+- `RUNTIME_UNREACHABLE`: module imported but not initialized at runtime
+
+FAIL → re-dispatch implementer: "Wiring Probe failed: [type]. Module [path]
+is not reachable from entry point [path]. Add the missing
+import/registration." Max 2 retries → escalate to user.
+
+**Missing probe detection:** Task creates a new module file (not in
+pre-task file list) but plan has no `**Wiring probe:**` section →
+log WARNING: `"Task N creates [path] but has no Wiring Probe. Plan defect."`.
+Execution continues but the warning is surfaced in the completion report.
+
+**Inline execution (Path 3):** Same detection/execution. Fix-in-place
+instead of re-dispatch.
+
 ## 6. Conditional Security Review
 
 After AC verification PASS (and arbiter PASS for integration/e2e tasks), check whether security review is needed.
