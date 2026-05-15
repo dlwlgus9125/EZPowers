@@ -163,7 +163,7 @@ Canonical definition: `docs/reference/verification-contract.md` § Wiring Config
 - `wiring.enabled: false` + `wiring.exempt_reason` empty → FAIL: `"wiring disabled without exempt_reason."`
 - `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` not `docs` or `library` → FAIL: `"wiring exemption not allowed for artifact_kind: {kind}"`
 - `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` is `docs` or `library` → skip/exempt. Log: `"View wiring exempt: [reason]"`
-- `wiring.enabled: true` + `wiring.view_extensions` empty → skip only the View Wiring Test. CLI/server/headless projects may have an empty `view_extensions` array. The Full-Feature Wiring Gate still runs when required.
+- `wiring.enabled: true` + `wiring.view_extensions` empty → skip only View Wiring Test. CLI/server/headless projects may have an empty `view_extensions` array. The Full-Feature Wiring Gate still runs when required.
 
 ## 4. Per-Task Execution Loop (Subagent-Driven)
 

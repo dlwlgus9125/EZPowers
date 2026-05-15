@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EZPowers eval gate -- validates commits touching commands/ or agents/.
+"""EZPowers eval gate -- validates commits touching commands/, agents/, or docs/reference/.
 
 Checks (in order):
   1. diff_line_count   -- Diff lines <= 3 for commands/ and agents/
@@ -9,6 +9,7 @@ Checks (in order):
   5. holdout_delta      -- Holdout pass rate not worse than -5% vs baseline
   6. banned_self_ref    -- No banned expressions in added text
   7. expected_improvements -- Diagnostician predictions realized (if applicable)
+  8. doc_consistency    -- Canonical bullet coverage across CONSISTENCY_PAIRS
 
 Each check outputs [PASS|FAIL] <check_name>: <details>.
 Exit 0 if all pass, 1 if any fail.
@@ -46,6 +47,19 @@ from shared import BANNED_KO, BANNED_EN_RE  # noqa: E402
 LIVE_EXEC_VARS = ("$REVIEW_OUTPUT", "$EXECUTOR_OUTPUT")
 
 MAX_DIFF_LINES = 3
+
+# ---------------------------------------------------------------------------
+# Canonical Bullet Coverage — cross-document rule consistency (W2+W4)
+# ---------------------------------------------------------------------------
+CONSISTENCY_PAIRS = [
+    {
+        "name": "wiring_config_validation",
+        "source": "docs/reference/verification-contract.md",
+        "source_heading": "## Wiring Config Validation",
+        "consumer": "commands/choiceexecutor.md",
+        "consumer_heading": "## 3.7. Wiring Config Validation",
+    },
+]
 DEFAULT_VALIDATE_TIMEOUT_SECONDS = 300
 DEFAULT_EVAL_COMMAND_TIMEOUT_SECONDS = 30
 
@@ -557,6 +571,68 @@ def check_skill_evals(
 
 
 # ---------------------------------------------------------------------------
+# Canonical Bullet Coverage check (W2+W4)
+# ---------------------------------------------------------------------------
+_RULE_BULLET_RE = re.compile(r"^- `")
+
+
+def _normalize_rule(text: str) -> str:
+    """Keep condition + verdict keyword, strip trailing message/context."""
+    arrow_idx = text.find("\u2192")
+    if arrow_idx == -1:
+        return text.strip()
+    after_arrow = text[arrow_idx + 1:].strip()
+    verdict = after_arrow.split(":")[0].split(".")[0].strip()
+    return (text[:arrow_idx].strip() + " \u2192 " + verdict).strip()
+
+
+def _extract_section_bullets(path: pathlib.Path, heading: str) -> list[str]:
+    """Extract rule bullets (backtick-prefixed) from a markdown section."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    in_section = False
+    bullets: list[str] = []
+    for line in lines:
+        if line.startswith(heading):
+            in_section = True
+            continue
+        if in_section and line.startswith("## ") and not line.startswith(heading):
+            break
+        if in_section and line.startswith("### "):
+            continue
+        if in_section and _RULE_BULLET_RE.match(line):
+            bullets.append(_normalize_rule(line.strip()))
+    return bullets
+
+
+def check_doc_consistency() -> tuple[bool, str]:
+    """Bidirectional canonical bullet coverage across CONSISTENCY_PAIRS."""
+    errors: list[str] = []
+    for pair in CONSISTENCY_PAIRS:
+        src_path = REPO_ROOT / pair["source"]
+        con_path = REPO_ROOT / pair["consumer"]
+        if not src_path.exists() or not con_path.exists():
+            errors.append(f"{pair['name']}: missing file")
+            continue
+        src_bullets = _extract_section_bullets(src_path, pair["source_heading"])
+        con_bullets = _extract_section_bullets(con_path, pair["consumer_heading"])
+        if not src_bullets:
+            errors.append(f"{pair['name']}: no source bullets found under {pair['source_heading']}")
+            continue
+        # Source -> Consumer: every source rule must appear in consumer
+        for b in src_bullets:
+            if b not in con_bullets:
+                errors.append(f"{pair['name']}: source rule not in consumer: {b}")
+        # Consumer -> Source: consumer-only rules are orphaned/contradicting
+        for b in con_bullets:
+            if b not in src_bullets:
+                errors.append(f"{pair['name']}: consumer rule not in source (orphaned): {b}")
+    if errors:
+        return False, "; ".join(errors)
+    checked = ", ".join(p["name"] for p in CONSISTENCY_PAIRS)
+    return True, f"all pairs consistent ({checked})"
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main() -> None:
@@ -601,9 +677,10 @@ def main() -> None:
         if f.startswith(("skills/", "evals/skills/"))
         or f in ("scripts/run_skill_evals.py", "scripts/validate.py", ".githooks/pre-commit")
     ]
+    doc_target = [f for f in changed if f.startswith("docs/reference/")]
 
-    if not target and not skill_target:
-        print("No commands/, agents/, or skill gate files changed. Gate not applicable.")
+    if not target and not skill_target and not doc_target:
+        print("No commands/, agents/, docs/reference/, or skill gate files changed. Gate not applicable.")
         sys.exit(0)
 
     checks = []
@@ -651,6 +728,8 @@ def main() -> None:
         ])
     if skill_target:
         checks.append(("skill_evals", lambda: check_skill_evals(args.staged, args.timeout_seconds, progress_file)))
+    if target or doc_target:
+        checks.append(("doc_consistency", lambda: check_doc_consistency()))
 
     any_fail = False
     for name, fn in checks:
