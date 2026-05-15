@@ -36,6 +36,22 @@ You will receive **Plan file path** and **Diff range** in the task prompt.
 - Test coverage and test quality
 - Security vulnerabilities, performance issues
 
+### 2a. Observability & Instrumentation
+
+For `cli`, `server`, and `desktop` artifacts (skip for `docs`/`library`):
+
+- [ ] **Structured logging at key decision points:** Entry points, error handlers, state transitions, external API calls have log statements with context (not bare `console.log` or `print`)
+- [ ] **Error context preservation:** Catch blocks include original error, relevant request/state context, and stack trace (not swallowed silently or logged without context)
+- [ ] **Metric instrumentation** (if spec Quality Budget includes performance/reliability metrics): Key operations have timing/counter instrumentation that can feed into monitoring
+- [ ] **Trace correlation** (if spec Lifecycle mentions distributed tracing or multi-service): Request IDs or trace IDs propagated through call chain
+- [ ] **Health check endpoint** (for `server` artifacts): `/health` or equivalent returns service status
+
+**Verdict impact:**
+- Missing structured logging at error handlers → **Important** issue (fix in PASS_WITH_ISSUES round)
+- Missing health endpoint for server → **Important** issue
+- Missing metric instrumentation → **Minor** issue (note only)
+- Missing trace correlation → **Minor** issue (note only, unless spec explicitly requires it)
+
 ### 3. Architecture and Design
 - SOLID principles, established patterns
 - Separation of concerns, loose coupling

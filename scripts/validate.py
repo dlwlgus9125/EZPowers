@@ -17,6 +17,11 @@ Exit 0 if all pass, 1 if any fail.
 Usage:
   python scripts/validate.py --staged    # pre-commit hook mode
   python scripts/validate.py             # working tree diff mode
+  python scripts/validate.py --ci        # CI mode (auto-detects CI env vars)
+  python scripts/validate.py --ci --output-format=json   # JSON output for CI
+  python scripts/validate.py --ci --output-format=junit   # JUnit XML for CI dashboards
+  python scripts/validate.py --ci --base-ref=origin/main  # diff against specific ref
+  python scripts/validate.py --ci --changed-files a.md b.md  # explicit file list
 """
 
 import argparse
@@ -28,6 +33,7 @@ import shutil
 import subprocess
 import sys
 import time
+import xml.etree.ElementTree as ET
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 EVALS_ROOT = REPO_ROOT / "evals"
@@ -165,13 +171,192 @@ def behavior_prompt_targets(changed: list[str]) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# CI environment detection
+# ---------------------------------------------------------------------------
+def detect_ci_environment() -> tuple[bool, dict[str, bool]]:
+    """Detect CI environment from standard env vars."""
+    ci_signals = {
+        'CI': os.environ.get('CI', '').lower() in ('true', '1', 'yes'),
+        'GITHUB_ACTIONS': bool(os.environ.get('GITHUB_ACTIONS')),
+        'GITLAB_CI': bool(os.environ.get('GITLAB_CI')),
+        'JENKINS_URL': bool(os.environ.get('JENKINS_URL')),
+        'CIRCLECI': bool(os.environ.get('CIRCLECI')),
+        'AZURE_PIPELINES': bool(os.environ.get('SYSTEM_TEAMFOUNDATIONCOLLECTIONURI')),
+    }
+    detected = {k: v for k, v in ci_signals.items() if v}
+    return bool(detected), detected
+
+
+def _git_checked(*args: str) -> str:
+    """Run git command in CI context, raising on failure instead of silent empty."""
+    r = subprocess.run(
+        ["git", *args],
+        capture_output=True, text=True, encoding="utf-8",
+        errors="replace", cwd=str(REPO_ROOT),
+    )
+    if r.returncode != 0:
+        raise RuntimeError(
+            f"git {' '.join(args)} failed (exit {r.returncode}): "
+            f"{(r.stderr or '').strip()}"
+        )
+    return (r.stdout or "").strip()
+
+
+def get_changed_files_ci(base_ref: str) -> list[str]:
+    """Get changed files by diffing HEAD against a base ref (for CI pipelines)."""
+    # Try three-dot diff first (merge-base based, standard for PRs)
+    try:
+        out = _git_checked("diff", "--name-only", f"{base_ref}...HEAD")
+    except RuntimeError:
+        out = ""
+    if not out:
+        # Fallback to two-dot diff (direct comparison)
+        try:
+            out = _git_checked("diff", "--name-only", base_ref, "HEAD")
+        except RuntimeError:
+            out = ""
+    if not out:
+        # Shallow clone: try fetching the base ref first
+        try:
+            _git_checked("fetch", "--depth=1", "origin", base_ref.replace("origin/", ""))
+            out = _git_checked("diff", "--name-only", f"{base_ref}...HEAD")
+        except RuntimeError as e:
+            print(f"[CI] ERROR: Could not determine changed files: {e}", file=sys.stderr)
+            sys.exit(2)  # Fail loudly instead of silently passing with empty diff
+    return sorted(set(
+        f.strip().replace("\\", "/") for f in out.split("\n") if f.strip()
+    ))
+
+
+def _ci_diff_args(base_ref: str) -> list[str]:
+    """Build git diff args for CI mode (diff against base ref)."""
+    return [f"{base_ref}...HEAD"]
+
+
+def get_diff_line_count_ci(base_ref: str, paths: list[str]) -> int:
+    """Count diff lines against a base ref (CI mode)."""
+    out = _git("diff", "--numstat", f"{base_ref}...HEAD", "--", *paths)
+    total = 0
+    for line in out.split("\n"):
+        if not line.strip():
+            continue
+        parts = line.split("\t")
+        if len(parts) >= 2:
+            added = int(parts[0]) if parts[0] != "-" else 0
+            deleted = int(parts[1]) if parts[1] != "-" else 0
+            total += added + deleted
+    return total
+
+
+def get_added_lines_ci(base_ref: str, paths: list[str]) -> str:
+    """Extract added lines from diff against a base ref (CI mode)."""
+    out = _git("diff", f"{base_ref}...HEAD", "-U0", "--", *paths)
+    lines: list[str] = []
+    in_code_block = False
+    for raw in out.split("\n"):
+        if not raw.startswith("+") or raw.startswith("+++"):
+            continue
+        text = raw[1:]
+        if "```" in text:
+            in_code_block = not in_code_block
+            continue
+        if in_code_block:
+            continue
+        if text.strip().startswith(">"):
+            continue
+        if re.search(r"\|.*(금지|[Bb]anned).*\|", text):
+            continue
+        if re.match(r"\s*\|[-\s|]+\|", text):
+            continue
+        if re.match(r"\s*\|[^|]", text) and text.count("|") >= 3:
+            continue
+        lines.append(text)
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# CI output formatters
+# ---------------------------------------------------------------------------
+def format_json_output(
+    results: list[tuple[str, bool, str, float]],
+    ci_mode: bool,
+) -> str:
+    """Format validation results as JSON for CI consumption."""
+    checks = []
+    for name, passed, detail, elapsed_ms in results:
+        if passed:
+            status = 'pass'
+        else:
+            status = 'fail'
+        checks.append({
+            'name': name,
+            'status': status,
+            'message': detail,
+            'duration_ms': round(elapsed_ms, 1),
+        })
+    count_pass = sum(1 for c in checks if c['status'] == 'pass')
+    count_fail = sum(1 for c in checks if c['status'] == 'fail')
+    return json.dumps({
+        'version': '1.0',
+        'validator': 'ezpowers-validate',
+        'ci_mode': ci_mode,
+        'checks': checks,
+        'summary': {
+            'total': len(checks),
+            'passed': count_pass,
+            'failed': count_fail,
+        },
+        'exit_code': 0 if count_fail == 0 else 1,
+    }, indent=2)
+
+
+def format_junit_output(
+    results: list[tuple[str, bool, str, float]],
+) -> str:
+    """Format as JUnit XML for CI test reporting (GitHub Actions / GitLab CI)."""
+    count_fail = sum(1 for _, passed, _, _ in results if not passed)
+    total_time = sum(ms for _, _, _, ms in results) / 1000.0
+
+    testsuites = ET.Element('testsuites')
+    testsuite = ET.SubElement(testsuites, 'testsuite', {
+        'name': 'ezpowers-validate',
+        'tests': str(len(results)),
+        'failures': str(count_fail),
+        'errors': '0',
+        'time': f'{total_time:.3f}',
+    })
+
+    for name, passed, detail, elapsed_ms in results:
+        testcase = ET.SubElement(testsuite, 'testcase', {
+            'name': name,
+            'classname': 'ezpowers.validate',
+            'time': f'{elapsed_ms / 1000.0:.3f}',
+        })
+        if not passed:
+            failure = ET.SubElement(testcase, 'failure', {
+                'message': detail,
+                'type': 'AssertionError',
+            })
+            failure.text = detail
+
+    ET.indent(testsuites, space='  ')
+    xml_str = ET.tostring(testsuites, encoding='unicode', xml_declaration=True)
+    return xml_str
+
+
+# ---------------------------------------------------------------------------
 # Check 1: diff line count
 # ---------------------------------------------------------------------------
-def check_diff_lines(staged: bool, changed: list[str]) -> tuple[bool, str]:
+def check_diff_lines(
+    staged: bool, changed: list[str], *, base_ref: str | None = None,
+) -> tuple[bool, str]:
     targets = behavior_prompt_targets(changed)
     if not targets:
         return True, "no behavior command/agent files changed"
-    n = get_diff_line_count(staged, targets)
+    if base_ref:
+        n = get_diff_line_count_ci(base_ref, targets)
+    else:
+        n = get_diff_line_count(staged, targets)
     if n > MAX_DIFF_LINES:
         return False, f"changed {n} lines in {', '.join(targets)} (max {MAX_DIFF_LINES})"
     return True, f"{n} line(s) changed"
@@ -482,12 +667,17 @@ def check_holdout_delta(
 # ---------------------------------------------------------------------------
 # Check 6: banned expression self-scan
 # ---------------------------------------------------------------------------
-def check_banned_self_ref(staged: bool, changed: list[str]) -> tuple[bool, str]:
+def check_banned_self_ref(
+    staged: bool, changed: list[str], *, base_ref: str | None = None,
+) -> tuple[bool, str]:
     targets = [f for f in changed if f.startswith(("commands/", "agents/"))]
     if not targets:
         return True, "no commands/agents files changed"
 
-    added_text = get_added_lines(staged, targets)
+    if base_ref:
+        added_text = get_added_lines_ci(base_ref, targets)
+    else:
+        added_text = get_added_lines(staged, targets)
     if not added_text.strip():
         return True, "no added lines"
 
@@ -805,10 +995,60 @@ def main() -> None:
             "(default: env EZPOWERS_EVAL_PROGRESS_FILE or evals/results/runs/validate-last-case.json)"
         ),
     )
+    # CI headless mode arguments
+    parser.add_argument(
+        '--ci', action='store_true',
+        help='CI mode: auto-detected from CI env vars, or set explicitly. '
+             'Enables stricter validation and machine-readable output.',
+    )
+    parser.add_argument(
+        '--output-format', choices=['human', 'json', 'junit'],
+        default='human',
+        help='Output format. json/junit useful for CI dashboards.',
+    )
+    parser.add_argument(
+        '--changed-files', nargs='*',
+        help='Explicit list of changed files (bypasses git diff detection). '
+             'Useful in CI where diff base may differ.',
+    )
+    parser.add_argument(
+        '--base-ref', default=None,
+        help='Git ref to diff against (default: HEAD~1 for CI, staged for local).',
+    )
     args = parser.parse_args()
     progress_file = pathlib.Path(args.progress_file) if args.progress_file else _eval_progress_file("validate-last-case.json")
 
-    changed = get_changed_files(args.staged)
+    # --- CI mode detection ---
+    # Only use CI mode when explicitly requested via --ci flag.
+    # Auto-detection is informational only — it does NOT override pre-commit behavior.
+    # This prevents CI env vars from accidentally hijacking local pre-commit hooks.
+    is_ci, ci_env = detect_ci_environment()
+    ci_mode = args.ci  # explicit flag only, not auto-detected
+    ci_base_ref: str | None = None
+
+    if not args.ci and is_ci:
+        providers = ', '.join(ci_env.keys())
+        print(f"[CI] Detected CI environment ({providers}) but --ci not set. "
+              f"Using local mode. Pass --ci to enable CI mode.", file=sys.stderr)
+
+    if ci_mode:
+        if args.staged:
+            print("[CI] WARNING: --staged ignored in CI mode (using base-ref diff)",
+                  file=sys.stderr)
+        ci_base_ref = args.base_ref or 'origin/main'
+
+    # --- Determine changed files ---
+    if args.changed_files is not None:
+        # Explicit file list provided (CI or local)
+        changed = sorted(set(
+            f.strip().replace("\\", "/") for f in args.changed_files if f.strip()
+        ))
+    elif ci_mode:
+        assert ci_base_ref is not None
+        changed = get_changed_files_ci(ci_base_ref)
+    else:
+        changed = get_changed_files(args.staged)
+
     target = behavior_prompt_targets(changed)
     skill_target = [
         f for f in changed
@@ -823,13 +1063,22 @@ def main() -> None:
     ]
 
     if not target and not skill_target and not doc_target and not eval_sync_target:
-        print("No commands/, agents/, docs/reference/, eval, or skill gate files changed. Gate not applicable.")
+        msg = "No commands/, agents/, docs/reference/, eval, or skill gate files changed. Gate not applicable."
+        if args.output_format == 'json':
+            print(format_json_output([], ci_mode))
+        elif args.output_format == 'junit':
+            print(format_junit_output([]))
+        else:
+            print(msg)
         sys.exit(0)
 
-    checks = []
+    # --- Build check list ---
+    # In CI mode, pass base_ref to diff-dependent checks
+    checks: list[tuple[str, object]] = []
     if target:
         checks.extend([
-            ("diff_line_count", lambda: check_diff_lines(args.staged, changed)),
+            ("diff_line_count", lambda: check_diff_lines(
+                args.staged, changed, base_ref=ci_base_ref)),
             ("eval_isolation", lambda: check_eval_isolation(changed)),
             (
                 "golden_invariants",
@@ -855,7 +1104,8 @@ def main() -> None:
                     progress_file,
                 ),
             ),
-            ("banned_self_ref", lambda: check_banned_self_ref(args.staged, changed)),
+            ("banned_self_ref", lambda: check_banned_self_ref(
+                args.staged, changed, base_ref=ci_base_ref)),
             # Blueprint B.4 checklist #6 (expected_improvements) is intentionally
             # deferred: it requires eval-diagnostician output which only exists in
             # the propose_edit.py workflow, not in ad-hoc commits. When diagnostician
@@ -876,13 +1126,26 @@ def main() -> None:
     if eval_sync_target:
         checks.append(("eval_sync", lambda: check_eval_sync()))
 
+    # --- Execute checks and collect results ---
+    results: list[tuple[str, bool, str, float]] = []
     any_fail = False
     for name, fn in checks:
+        t0 = time.monotonic()
         passed, detail = fn()
-        tag = "PASS" if passed else "FAIL"
-        print(f"[{tag}] {name}: {detail}")
+        elapsed_ms = (time.monotonic() - t0) * 1000.0
+        results.append((name, passed, detail, elapsed_ms))
         if not passed:
             any_fail = True
+        # In human mode, print incrementally (same as before)
+        if args.output_format == 'human':
+            tag = "PASS" if passed else "FAIL"
+            print(f"[{tag}] {name}: {detail}")
+
+    # --- Formatted output for non-human modes ---
+    if args.output_format == 'json':
+        print(format_json_output(results, ci_mode))
+    elif args.output_format == 'junit':
+        print(format_junit_output(results))
 
     sys.exit(1 if any_fail else 0)
 

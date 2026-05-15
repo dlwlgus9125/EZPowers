@@ -37,6 +37,21 @@ assertion or filter. A command such as `pytest`, `npm test`, or `cargo test`
 without a feature-specific oracle is weak evidence and should be reported as a
 warning by planning or audit.
 
+### SAST Evidence Layer
+
+SAST (Static Application Security Testing) runs as a **mandatory per-task gate** for executable artifacts, independent of Verify-type evidence.
+
+| Aspect | Requirement |
+|--------|------------|
+| Scope | Changed files only (not full codebase scan) |
+| Timing | After implementer completes, before AC Verification |
+| Severity handling | Critical/High = FAIL (block), Medium/Low = WARN (advisory) |
+| Config | `config.security.sast_command` — project-specific SAST tool |
+| Fallback | If no SAST command configured for executable artifact: WARN (not FAIL) |
+| Evidence | SAST tool output (JSON preferred) recorded in task status |
+
+**Relationship to Security Reviewer:** SAST gate catches pattern-based vulnerabilities (SQL injection, command injection, XSS, path traversal) that LLM review may miss. Security Reviewer catches logic-level security issues (broken auth, privilege escalation, insecure design) that SAST tools miss. Both layers complement each other.
+
 ## Automatable Criteria
 
 Acceptance criteria default to `Automatable: true`. If a spec marks a criterion

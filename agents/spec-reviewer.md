@@ -98,6 +98,23 @@ For each Verify field:
 **8. Technology constraint resolution:**
 If spec's tech stack includes items with known compatibility constraints (keywords: ESM, native module, platform-specific, runtime-only, dynamic import), spec must include resolution strategy for each. Keyword found but no strategy → FAIL.
 
+**9. Negative AC coverage gate:**
+- For each requirement (R1, R2, ...):
+  - Count positive ACs (Then clause describes success or desired outcome).
+  - Count negative ACs (Then clause describes error handling, rejection, or
+    boundary enforcement).
+  - Negative AC patterns — Then clause contains any of:
+    - English: "error", "reject", "fail", "deny", "invalid", "exceed",
+      "timeout", "unauthorized", "forbidden", "not found"
+    - Korean: "오류", "거부", "실패", "거절", "초과", "타임아웃", "권한 없음",
+      "금지", "미존재"
+- **Gate rule:** Requirements with 3+ positive ACs MUST have at least 1
+  negative AC.
+- **FAIL** if any requirement with 3+ positive ACs has zero negative ACs:
+  `"R{n} has {count} positive ACs but zero negative ACs. Add at least one error/boundary scenario."`
+- **WARN** if any requirement has only positive ACs (even if <3):
+  `"R{n} has no negative acceptance criteria. Consider: What happens when input is invalid? When limits are exceeded? When authorization fails?"`
+
 ## Subjective Review (Advisory Only -- does NOT affect verdict)
 
 After hard gate checks, optionally note:
@@ -109,7 +126,7 @@ These are recommendations only. They do NOT cause FAIL.
 
 ## Calibration
 
-Hard gate checks (1-7) are binary -- no judgment needed.
+Hard gate checks (1-9) are binary -- no judgment needed.
 Subjective review is advisory only. Do not FAIL for stylistic preferences.
 
 ## Output Format

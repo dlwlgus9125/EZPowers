@@ -108,6 +108,33 @@ The Quality Budgets section must cover:
 Each budget must be a metric, rule, or `none declared` plus risk. Empty values
 block planning.
 
+### Budget Verification Commands
+
+Each Quality Budget entry MAY include a `verify_command` field specifying how to
+measure the metric at execution time.
+
+Format:
+
+| Category | Metric | Rule | Verify command |
+|----------|--------|------|----------------|
+| performance | API response p95 < 200ms | hard ceiling | `ab -n 100 -c 10 http://localhost:3000/api/health \| grep 'Percentage.*95%'` |
+| reliability | zero crash in 60s stress | hard floor | `timeout 60 node dist/server.js && echo PASS` |
+| security | no Critical/High SAST | hard floor | `semgrep --config=auto src/ --severity=ERROR --json` |
+| cost | bundle < 500KB | hard ceiling | `du -sb dist/bundle.js \| awk '{print $1}'` |
+| maintainability | cyclomatic < 15 per fn | soft ceiling | `npx complexity-report --format=json src/` |
+
+Rules:
+
+- `verify_command` is optional. If omitted, the budget is documentation-only
+  (no runtime gate).
+- If present, the command must produce parseable output (exit code, numeric
+  value, or JSON).
+- `hard ceiling/floor` budgets are **blocking** (FAIL at the Quality Budget
+  Verification Gate). `soft ceiling/floor` budgets are **advisory** (WARN).
+- The harness executes `verify_command` during the Quality Budget Verification
+  Gate in `/choiceexecutor` Section 12a (after Final Code Review, before
+  Completion gates).
+
 ## Decision Log And ADRs
 
 Use the ADR policy in `docs/decisions/README.md`.

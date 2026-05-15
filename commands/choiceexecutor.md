@@ -175,6 +175,8 @@ Record git hash (Section 3.6)
      (mismatch -> HALT, correct prompt, re-check)
   -> Dispatch subagent (agents/implementer-prompt.md)
   -> Handle implementer status
+  -> 4a. Test Baseline Protection (PASS_TO_PASS invariant)
+  -> 4b. Lint & Typecheck Gate
   -> Controller: AC verification (re-read plan file, run Verify commands)
     -> ALL PASS -> Runtime probe (if applicable)
       -> PASS -> AC Arbiter (integration/e2e/logic-dense tasks)
@@ -253,6 +255,89 @@ After constructing the implementer prompt, before dispatch:
 This is a hard gate, not advisory.
 
 **Predictive elimination ban:** If a Verify command appears impractical (e.g., e2e requires a running app), the controller must not remove or replace it. Instead: make infrastructure available (start the app, configure the environment) or escalate to user. Difficulty is not a reason to weaken the oracle.
+
+### 4a. Test Baseline & Protection Gate
+
+**Purpose:** Prevent AI from silently deleting, weakening, or disabling existing tests (SWE-bench PASS_TO_PASS invariant).
+
+**Phase 1 — Baseline Snapshot (before implementer dispatch):**
+1. Record test file inventory:
+   - `git ls-files -- '**/*test*' '**/*spec*' '**/__tests__/**' '**/*.test.*' '**/*.spec.*'`
+   - Store as `test_baseline_files` list
+2. If `config.build.test_command` exists:
+   - Run test suite: `config.build.test_command` (timeout: 120s)
+   - Record pass count, fail count, skip count as `test_baseline_counts`
+   - Store individual test names if test runner supports `--list` or JSON output
+
+**Phase 2 — Protection Check (after implementer completes, before AC Verification):**
+
+1. **Deletion detection:**
+   - `git diff --name-status <task-start-hash>..HEAD -- '**/*test*' '**/*spec*' '**/__tests__/**'`
+   - If any test file has status `D` (deleted): **FAIL** (`"Test file deleted: {path}. AI must not delete existing tests."`)
+   - Re-dispatch implementer with explicit instruction: "Restore deleted test file {path}. Fix the implementation to pass the existing test, do not delete the test."
+
+2. **Weakening detection:**
+   - For modified test files: `git diff <task-start-hash>..HEAD -- {modified_test_files}`
+   - Count assertion removals: lines matching `assert|expect|should|toBe|toEqual|assertEqual|raises|throws` removed vs added
+   - If net assertion count decreased by >20%: **WARN** (`"Test assertions reduced by {pct}% in {file}. Verify this is intentional."`)
+   - If assertions reduced to 0 in any test function: **FAIL** (`"All assertions removed from test function in {file}"`)
+
+3. **PASS_TO_PASS verification:**
+   - If `config.build.test_command` exists and baseline was recorded:
+     - Re-run `config.build.test_command` (timeout: 120s)
+     - Compare: pass_count must be >= `test_baseline_counts.pass_count`
+     - If pass_count decreased: **FAIL** (`"PASS_TO_PASS violation: {n} previously passing tests now fail"`)
+     - List the specific newly-failing tests
+     - Re-dispatch implementer: "Fix implementation so these previously-passing tests pass again: {list}"
+   - Max 3 re-dispatch attempts, then escalate to user
+
+4. **Skip/disable detection:**
+   - Check diff for newly added skip markers: `@pytest.mark.skip`, `@Ignore`, `xit(`, `xdescribe(`, `test.skip(`, `.skip()`, `#[ignore]`
+   - If found: **WARN** (`"New test skip marker added in {file}:{line}. Verify this is intentional, not hiding a failure."`)
+
+**Inline execution (Path 3):** Same detection/execution. Re-dispatch is replaced by fix-in-place -> re-check loops (max 3).
+
+### 4b. Per-Task Lint & Typecheck Gate
+
+**Purpose:** Catch hallucinated API calls, undefined references, and code quality issues per-task (Aider lint-test-fix pattern) instead of deferring to final code review.
+
+**Trigger:** Every task (unconditional).
+
+**Execution:**
+1. Collect changed files: `git diff --name-only <task-start-hash>..HEAD` + `git ls-files --others --exclude-standard`
+2. Filter to source files (exclude config, docs, assets)
+
+3. **Typecheck gate** (if `config.build.typecheck_command` configured):
+   - Run: `config.build.typecheck_command` (timeout: 60s)
+   - Exit 0 -> PASS
+   - Non-zero -> extract errors in changed files only (ignore pre-existing errors)
+   - If new type errors in changed files: **FAIL** -- re-dispatch implementer with error output
+   - Max 2 retries, then escalate
+
+4. **Lint gate** (if `config.build.lint_command` configured):
+   - Run: `config.build.lint_command -- {changed_source_files}` (timeout: 60s)
+   - Or if lint command doesn't accept file args: run full lint, filter output to changed files
+   - Exit 0 -> PASS
+   - Non-zero -> extract lint errors in changed files
+   - **Error-level findings** -> **FAIL** -- re-dispatch with lint output
+   - **Warning-level findings** -> **WARN** -- include in task status, do not block
+   - Max 2 retries, then escalate
+
+5. **Hallucination signal detection:**
+   - Type errors containing "is not defined", "cannot find module", "has no attribute", "undefined reference" in changed files -> likely hallucinated API/import
+   - Add to re-dispatch prompt: "The following references do not exist -- verify the API/module exists before using it: {error_list}"
+
+**Inline execution (Path 3):** Same detection/execution. Re-dispatch is replaced by fix-in-place -> re-check loops (max 2).
+
+**Ordering within per-task loop:**
+```
+Implementer dispatch -> Implementer completes ->
+  4a. Test Baseline Protection ->
+  4b. Lint & Typecheck Gate ->
+  5. AC Verification (Verify commands) ->
+  6. Conditional Security Review ->
+  ...
+```
 
 ## 5. Acceptance Criteria Verification (Controller)
 
@@ -426,6 +511,58 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 
 **Security-spec conflict:** If the security reviewer flags an issue conflicting with the spec, security overrides spec. Log: "Spec deviation: [description]. Security concern overrode spec requirement."
 
+### 6a. Automated SAST Gate
+
+**Trigger:** Every task (not conditional — runs regardless of keyword match).
+
+**Execution:**
+1. Check `config.security.sast_command` in `.harness/config.json`
+   - If missing and `artifact_kind` is `cli`/`server`/`desktop`: **WARN** (`"No SAST command configured for executable artifact"`)
+   - If missing and `artifact_kind` is `docs`/`library`: **SKIP** (log: `"SAST skipped: [artifact_kind]"`)
+2. Run `config.security.sast_command` against changed files only (use `git diff --name-only <task-start-hash>..HEAD`)
+   - Timeout: 120 seconds
+   - Parse output for findings (tool-specific parser or exit code)
+3. Exit 0 + no findings → **PASS**
+4. Non-zero exit or findings present:
+   - **Critical/High severity** → **FAIL** — re-dispatch implementer with SAST output (max 2 retries)
+   - **Medium/Low severity** → **WARN** — include in code-reviewer input, do not block
+5. Record SAST results in task status for final report
+
+**Common SAST commands by stack:**
+
+| Stack | Command example |
+|-------|----------------|
+| Python | `bandit -r {changed_files} -f json` |
+| JavaScript/TypeScript | `npx eslint-plugin-security {changed_files}` or `semgrep --config=p/javascript {changed_files}` |
+| Go | `gosec -fmt=json {changed_files}` |
+| Rust | `cargo audit` (dependency) + `cargo clippy -- -W clippy::all` (code) |
+| Multi-language | `semgrep --config=auto {changed_files} --json` |
+
+### 6b. Dependency Audit Gate
+
+**Trigger:** Task diff includes changes to dependency manifests (`package.json`, `requirements.txt`, `Pipfile`, `Cargo.toml`, `go.mod`, `pom.xml`, `build.gradle`, `Gemfile`, `*.csproj`).
+
+**Execution:**
+1. Check `config.security.dependency_audit_command` in `.harness/config.json`
+   - If missing: use auto-detection based on manifest type:
+     | Manifest | Auto command |
+     |----------|-------------|
+     | package.json | `npm audit --json` |
+     | requirements.txt / Pipfile | `pip-audit --format=json` |
+     | Cargo.toml | `cargo audit --json` |
+     | go.mod | `govulncheck ./...` |
+   - If auto-detection fails: **WARN** (`"No dependency audit tool detected"`)
+2. Detect newly added dependencies:
+   - `git diff <task-start-hash>..HEAD -- {manifest_files}`
+   - Extract added package names
+3. For each newly added package:
+   - **Registry existence check**: verify package exists in the canonical registry (npm, PyPI, crates.io, etc.)
+   - If package does NOT exist in registry: **FAIL** (`"Hallucinated dependency: {package_name} not found in {registry}"`)
+4. Run dependency audit command
+   - Critical/High CVE → **FAIL** (max 2 retries: implementer must use alternative package or pin safe version)
+   - Medium/Low CVE → **WARN** (include in final report)
+5. Record audit results in task status
+
 ## 7. Review Loop Protocol
 
 **Independent re-review:** On re-dispatch, use the same prompt. Do not pass previous results.
@@ -444,6 +581,8 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 | Security review | choiceexecutor.md | 5 | 3 | 5 |
 | Final code review | choiceexecutor.md | 10 | 5 | 10 |
 | Smoke test | choiceexecutor.md | 3 | — | 3 |
+| Test protection | choiceexecutor.md | 3 | — | 3 |
+| Lint/typecheck | choiceexecutor.md | 2 | — | 2 |
 
 If the Verdict header is missing 2 consecutive times for any review type, immediately escalate to user.
 
@@ -616,6 +755,8 @@ For each task:
 Record git hash (git rev-parse HEAD)
   -> Read task content
   -> Implement in TDD order (test -> confirm failure -> implement -> confirm pass)
+  -> Test Baseline Protection (Section 4a, fix-in-place)
+  -> Lint & Typecheck Gate (Section 4b, fix-in-place)
   -> AC verification (run Verify commands, exit 0 = PASS)
     -> PASS -> conditional security review
     -> FAIL -> analyze failure -> fix code -> re-verify (max 3)
@@ -624,6 +765,10 @@ Record git hash (git rev-parse HEAD)
   -> Compute changed-files
   -> Next task
 ```
+
+### Test Baseline Protection & Lint/Typecheck (Inline)
+
+Follow the same procedures as Section 4a (Test Baseline & Protection Gate) and Section 4b (Per-Task Lint & Typecheck Gate). All detection logic, thresholds, and FAIL/WARN outcomes are identical. The only difference: re-dispatch is replaced by fix-in-place -> re-check loops with the same max retry counts (test protection: max 3, lint/typecheck: max 2).
 
 ### AC Verification
 
@@ -659,6 +804,92 @@ After all tasks complete, dispatch `ezpowers:code-reviewer` plugin agent via `su
 - PASS_WITH_ISSUES → extract Important findings, auto-fix (1 round), then fresh code-reviewer dispatch. If re-review returns PASS or PASS_WITH_ISSUES (same or fewer issues) → accept. If FAIL → enter FAIL loop. Max 3 PASS_WITH_ISSUES rounds total.
 - FAIL → fix + fresh re-dispatch. Warn@5, stop@10. Oscillation check from iteration 3.
 - If `## Verdict:` pattern not found in subagent response, treat as FAIL and escalate: "Code reviewer did not return a verdict in the standard format."
+
+### 12a. Quality Budget Verification Gate
+
+**Purpose:** Enforce Quality Budget targets declared in the spec at execution time, not just as documentation.
+
+**Trigger:** After Final Code Review PASS, before Completion gates. Only for budgets where `verify_command` is specified.
+
+**Extraction:**
+- Read spec file → Architecture Baseline → Quality Budgets section.
+- For each budget category (performance, reliability, security, cost, maintainability):
+  - Extract `metric`, `rule` (hard/soft ceiling/floor), and `verify_command` fields.
+  - Skip categories with `none declared` or missing `verify_command`.
+
+**Execution:**
+- For each budget with `verify_command`:
+  - Run command (timeout: 180s for performance/load tests, 60s for others).
+  - Parse output for measured value.
+  - Compare against declared metric threshold.
+- Per-budget result:
+  - Measured value within threshold → **PASS**
+  - Measured value exceeds threshold → **FAIL** with measured vs expected
+
+**Verdict aggregation:**
+- All budgets PASS or SKIP → Overall **PASS**
+- Any budget FAIL:
+  - `hard ceiling/floor` budget → **FAIL** (re-dispatch last relevant task, max 2 retries)
+  - `soft ceiling/floor` budget → **WARN** (advisory)
+- No `verify_command` configured → **SKIP** (log: `"No Quality Budget verify commands configured"`)
+
+**Report:** Include budget verification results in final completion report.
+
+| Budget | Metric | Target | Measured | Rule | Verdict |
+|--------|--------|--------|----------|------|---------|
+| (from spec) | (from spec) | (from spec) | (from execution) | hard/soft | PASS / FAIL / WARN / SKIP |
+
+### 12b. Code Duplication Gate
+
+**Purpose:** Detect AI-generated code duplication that inflates maintenance cost (GitClear: 4x duplication increase with AI coding).
+
+**Trigger:** After Final Code Review, before Completion.
+
+**Execution:**
+1. Check `config.quality.duplication_command` in `.harness/config.json`
+   - If configured: run command against changed files (timeout: 60s)
+   - If not configured: run heuristic check (see below)
+
+2. **Heuristic duplication check** (when no dedicated tool):
+   - Extract all function/method bodies from changed files (>5 lines)
+   - Compare each pair for structural similarity (normalize whitespace, variable names)
+   - Flag pairs with >80% structural similarity
+   - Threshold: 3+ duplicated blocks → **WARN**
+
+3. **Tool-based check** (when `duplication_command` configured):
+   - Common tools: `jscpd --min-lines=5 --threshold=3 {changed_files}`, `pylint --disable=all --enable=duplicate-code {files}`
+   - Parse output for duplication percentage or block count
+   - Duplication >5% of changed code → **WARN** (`"Code duplication detected: {pct}%. Consider extracting shared function/module."`)
+   - Duplication >15% → **FAIL** (re-dispatch with: "Extract duplicated logic into shared function. Duplicated blocks: {list}")
+
+4. **Verdict:** WARN does not block. FAIL triggers 1 fix round (max 1 retry, then downgrade to WARN).
+
+### 12c. Mutation Testing Gate (Optional)
+
+**Purpose:** Verify that Verify commands and tests actually detect code defects, not just exercise code paths. Prevents "tests that test nothing" pattern common in AI-generated code.
+
+**Trigger:** Only when `config.quality.mutation_command` is configured. Advisory gate (WARN only, never FAIL).
+
+**Execution:**
+1. Run `config.quality.mutation_command` against changed source files (timeout: 300s)
+   - Common tools:
+     | Stack | Command |
+     |-------|---------|
+     | Python | `mutmut run --paths-to-mutate={changed_files} --runner="pytest {test_files}"` |
+     | JavaScript | `npx stryker run --mutate='{changed_files}'` |
+     | Java | `mvn pitest:mutationCoverage -DtargetClasses={changed_classes}` |
+
+2. Parse mutation score (killed mutants / total mutants x 100)
+
+3. **Verdict:**
+   - Mutation score >= 70% → **PASS** (tests are meaningful)
+   - Mutation score 40-69% → **WARN** (`"Mutation score {score}%: tests may not catch real bugs. Consider strengthening assertions."`)
+   - Mutation score < 40% → **WARN** (strong) (`"Mutation score {score}%: tests are weak — {survived_count} mutations survived. Review test quality."`)
+   - Tool not configured → **SKIP**
+
+4. **Report:** Include mutation score in final completion report alongside other metrics.
+
+**Note:** This gate is intentionally advisory-only. Mutation testing is computationally expensive and may produce false positives (equivalent mutants). The goal is awareness, not blocking.
 
 ## 13. Backward Transition: Return to /plan
 
@@ -767,7 +998,7 @@ After all tasks + final review complete:
    }
    ```
 
-6. Next recommendation: `/review`
+7. Next recommendation: `/review`
 
 Update `phases/index.json`:
 - build: `status: "complete"`, `completed_at: "<ISO 8601>"`

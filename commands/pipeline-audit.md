@@ -94,11 +94,20 @@ Purpose: Pre-check that Verify commands can run in the project environment.
    references `localhost:NNNN` beyond the config port check (#3), verify the
    port is not already occupied by another process. → **INFO**: advisory only,
    service may start at execution time.
-9. **Executable runtime smoke**: if the plan or config identifies an executable
+9. **Dependency resolution** (spec+plan required):
+   - Scan Verify commands and spec/plan text for import/require/use statements referencing external packages
+   - Cross-reference with project manifest files (`package.json`, `requirements.txt`, `Pipfile`, `Cargo.toml`, `go.mod`, etc.)
+   - For packages referenced in Verify commands but NOT in manifest:
+     → **WARN**: `"Verify command references '{package}' but it is not declared in {manifest}. Add to dependencies or verify it's a built-in."`
+   - For packages in manifest that are newly added (not in current lockfile):
+     → **INFO**: `"New dependency '{package}' will be installed. Verify it exists in the registry."`
+   - If no manifest file found and Verify commands reference external tools:
+     → **WARN**: `"No package manifest found. External tool dependencies may not be available at execution time."`
+10. **Executable runtime smoke**: if the plan or config identifies an executable
    artifact (`cli`, `server`, or `desktop`), `config.smoke.required` must be
    true and `config.smoke.command` must be non-empty.
    -> **FAIL** if missing: `"Executable artifact has no required runtime smoke command"`
-7. **Desktop GUI smoke**: if `config.smoke.artifact_kind == "desktop"`,
+11. **Desktop GUI smoke**: if `config.smoke.artifact_kind == "desktop"`,
    `config.smoke.gui_strategy` must not be `skip`, and the probe must produce
    a screenshot artifact.
    -> **FAIL** if weak: `"Desktop artifact cannot skip GUI runtime probe"`
@@ -129,6 +138,8 @@ Purpose: Detect file-level conflicts and ordering issues within the plan.
    → **FAIL**: `"T2 modifies src/bar.ts but this file does not exist and no preceding task creates it"`
 5. **Shared file without dependency marker:** two tasks modify the same file but neither has `**File overlap with:**` or `**Depends on:**` markers connecting them.
    → **WARN**: `"T2 and T5 both modify src/config.ts but have no dependency relationship"`
+6. **Dependency manifest consistency:** if a task creates or modifies source files that contain import/require/use statements for packages not already in the project manifest, but no task in the plan modifies the manifest file (`package.json`, `requirements.txt`, etc.):
+   → **WARN**: `"T{n} imports '{package}' but no task modifies {manifest_file}. Dependency may not be installed."`
 
 ### D5: Integration Readiness (plan required)
 
@@ -390,6 +401,8 @@ Each finding maps to a specific routing action:
 | D7: R has no ASR linkage | /brainstorm | Add `ASR:` field to R section |
 | D7: ASR not carried to plan | /plan | Map ASR to task or Structural Invariant |
 | D7: ADR missing | /brainstorm | Create ADR and link it from Decision Log |
+| D2: Undeclared dependency | /brainstorm or /plan | Add dependency to manifest or verify built-in |
+| D4: Missing manifest update | /plan | Add manifest modification step to task |
 
 Present routing grouped by target command:
 

@@ -48,6 +48,21 @@ post-brainstorm pipeline audit. Do not implement code.
   `docs/reference/dispatch-protocol.md`; pass paths, not pasted artifacts.
 - After user approval, dispatch `ezpowers:workflow-runner` for `/pipeline-audit`
   in `post-brainstorm` mode.
+- After extracting positive ACs for each requirement, extract negative ACs:
+  - Ask: "이 요구사항에서 **거부/실패해야 하는 경우**는 무엇인가요?"
+  - Focus on: invalid input, boundary violations, authorization failures,
+    resource limits, timeout scenarios, concurrent access conflicts.
+  - For each identified negative scenario, create an AC with:
+    - **Given:** the boundary or error condition
+    - **When:** the action that should be rejected
+    - **Then:** the specific error response or behavior (NOT vague
+      "에러가 발생한다" — specify error code, message, or state)
+    - **Verify:** command that triggers the rejection and asserts the error
+      response
+    - **Verify-type:** same as the positive AC's type
+  - **Gate:** Requirements with 3+ positive ACs MUST have at least 1 negative
+    AC before spec review. This matches the spec-reviewer's negative AC
+    coverage gate (check 9).
 
 ## Stop conditions
 

@@ -56,6 +56,14 @@ Every spec starts with these sections before requirements:
 - Decision Log.
 - Extracted Requirements.
 
+**Observability detail requirements:**
+When `observability` is listed in Lifecycle, the spec must declare:
+- Log format: structured (JSON) or plain text
+- Log levels: which events at which level (error: failures, warn: degradation, info: key operations, debug: troubleshooting)
+- Metrics: what to measure (latency, throughput, error rate, queue depth) and collection method (pull/push, tool)
+- Tracing: whether distributed tracing is needed, correlation ID strategy
+- If `none declared`: state explicitly with rationale (e.g., "single-process CLI with no external dependencies — stdout logging sufficient")
+
 The architecture baseline must identify modules, interfaces, allowed
 dependencies, forbidden dependencies, data ownership, selected approach, and
 rejected options.
@@ -144,6 +152,8 @@ project meets its condition.
 | Initialization order | 2+ modules with startup dependencies | module → prerequisite → readiness signal |
 | State management policy | Shared mutable state exists | global state rules, thread safety, ownership |
 | External dependency handling | Network calls, DB, queues, file I/O | timeout, retry, circuit-break defaults |
+| Observability strategy | `server`, `cli` (recommended), `desktop` (recommended) | logging levels (debug/info/warn/error), structured format (JSON vs plain), metric collection points, trace propagation method |
+| Health & readiness signals | `server` (required), `cli` with long-running mode (recommended) | health check endpoint or command, readiness probe for dependent services, graceful shutdown signal handling |
 
 Rules:
 
