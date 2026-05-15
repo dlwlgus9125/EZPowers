@@ -42,47 +42,13 @@ PROTECTED_PATHS = (
     "skills/caveman/",
     "skills/zoom-out/",
 )
+from shared import (  # noqa: E402
+    parse_timeout, env_timeout, utc_timestamp, write_progress, remaining_timeout,
+)
+
 DEFAULT_LIVE_PROVIDER = "claude"
 LIVE_PROVIDERS = ("claude", "codex", "auto")
 DEFAULT_TIMEOUT_SECONDS = 300
-
-
-def parse_timeout(value: str | int | None, default: int, label: str) -> int:
-    if value is None or value == "":
-        return default
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError) as exc:
-        raise argparse.ArgumentTypeError(f"{label} must be an integer") from exc
-    if parsed < 1:
-        raise argparse.ArgumentTypeError(f"{label} must be >= 1")
-    return parsed
-
-
-def env_timeout(name: str, default: int) -> int:
-    return parse_timeout(os.environ.get(name), default, name)
-
-
-def utc_timestamp() -> str:
-    return datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
-
-
-def write_progress(progress_file: str | pathlib.Path | None, payload: dict[str, Any]) -> None:
-    if not progress_file:
-        return
-    path = pathlib.Path(progress_file)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    data = {"timestamp": utc_timestamp(), **payload}
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-
-
-def remaining_timeout(deadline: float | None, requested: int) -> float:
-    if deadline is None:
-        return float(requested)
-    remaining = deadline - time.monotonic()
-    if remaining <= 0:
-        return 0.0
-    return min(float(requested), remaining)
 
 
 def default_progress_file() -> pathlib.Path:

@@ -35,24 +35,7 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 from run_baseline import run_command_with_timeout  # noqa: E402
 
-BANNED_KO = [
-    "\uc801\uc808\ud788", "\uc801\uc808\ud558\uac8c",
-    "\ud544\uc694\ud55c \uacbd\uc6b0", "\ud544\uc694 \uc2dc",
-    "\ub4f1\ub4f1", "\uae30\ud0c0",
-    "\uc62c\ubc14\ub974\uac8c", "\uc815\uc0c1\uc801\uc73c\ub85c",
-    "\ud6a8\uc728\uc801\uc73c\ub85c", "\ucd5c\uc801\ud654\ud558\uc5ec",
-    "\uac00\ub2a5\ud558\uba74", "\uac00\uae09\uc801",
-    "\uc0c1\ud669\uc5d0 \ub9de\uac8c", "\uc0c1\ud669\uc5d0 \ub530\ub77c",
-]
-BANNED_EN_RE = [
-    r"\bappropriately\b",
-    r"\bif necessary\b", r"\bif needed\b",
-    r"\betc\.\b", r"\band so on\b",
-    r"\bproperly\b", r"\bcorrectly\b",
-    r"\befficiently\b", r"\boptimized\b",
-    r"\bif possible\b", r"\bpreferably\b",
-    r"\bas appropriate\b", r"\bdepending on\b",
-]
+from shared import BANNED_KO, BANNED_EN_RE  # noqa: E402
 
 # Verify-type -> which dimensions apply
 DIMENSION_MAP = {

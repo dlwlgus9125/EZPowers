@@ -38,26 +38,9 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 import run_baseline as rb  # noqa: E402
 
 # ---------------------------------------------------------------------------
-# Banned expressions (commands/brainstorm.md L197-205)
+# Banned expressions — canonical source: shared.py
 # ---------------------------------------------------------------------------
-BANNED_KO = [
-    "적절히", "적절하게",
-    "필요한 경우", "필요 시",
-    "등등", "기타",
-    "올바르게", "정상적으로",
-    "효율적으로", "최적화하여",
-    "가능하면", "가급적",
-    "상황에 맞게", "상황에 따라",
-]
-BANNED_EN_RE = [
-    r"\bappropriately\b",
-    r"\bif necessary\b", r"\bif needed\b",
-    r"\betc\.\b", r"\band so on\b",
-    r"\bproperly\b", r"\bcorrectly\b",
-    r"\befficiently\b", r"\boptimized\b",
-    r"\bif possible\b", r"\bpreferably\b",
-    r"\bas appropriate\b", r"\bdepending on\b",
-]
+from shared import BANNED_KO, BANNED_EN_RE  # noqa: E402
 
 # Mock-output variables that need live execution (skip these grader commands)
 LIVE_EXEC_VARS = ("$REVIEW_OUTPUT", "$EXECUTOR_OUTPUT")
