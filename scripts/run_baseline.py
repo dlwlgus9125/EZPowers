@@ -15,6 +15,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import signal
 import shutil
 import subprocess
@@ -205,6 +206,59 @@ def run_command_with_timeout(
             stderr=stderr,
         ) from exc
     return subprocess.CompletedProcess(args, proc.returncode, stdout, stderr)
+
+
+PYTHON_LAUNCHERS = {"python", "python.exe", "python3", "python3.exe", "py", "py.exe"}
+SHELL_CONTROL_TOKENS = {"&&", "||", ";", "|", "|&", "&", "<", ">", ">>", "2>", "2>>"}
+
+
+def _has_shell_control(token: str) -> bool:
+    return token in SHELL_CONTROL_TOKENS or any(ch in token for ch in "<>|&;")
+
+
+def _python_inline_argv(command: str) -> list[str] | None:
+    """Return argv for a simple Python -c command that should bypass shell parsing."""
+    try:
+        parts = shlex.split(command, posix=True)
+    except ValueError:
+        return None
+    if len(parts) < 3:
+        return None
+    launcher = pathlib.PurePath(parts[0]).name.lower()
+    if launcher not in PYTHON_LAUNCHERS or "-c" not in parts:
+        return None
+    code_index = parts.index("-c")
+    if code_index + 1 >= len(parts):
+        return None
+    surrounding_tokens = parts[1:code_index] + parts[code_index + 2:]
+    if any(_has_shell_control(token) for token in surrounding_tokens):
+        return None
+    return parts
+
+
+def run_shell_command_with_timeout(
+    command: str,
+    *,
+    timeout: float,
+    cwd: str | pathlib.Path,
+) -> subprocess.CompletedProcess:
+    """Run a grader shell command, avoiding shell expansion for simple Python -c."""
+    python_argv = _python_inline_argv(command)
+    if python_argv:
+        return run_command_with_timeout(python_argv, timeout=timeout, cwd=cwd)
+
+    bash_path = find_bash()
+    if bash_path:
+        return run_command_with_timeout(
+            [bash_path, "-c", command],
+            timeout=timeout, cwd=cwd,
+        )
+    return run_command_with_timeout(
+        command,
+        shell=True,
+        timeout=timeout,
+        cwd=cwd,
+    )
 
 
 def load_case(path: pathlib.Path) -> dict:
@@ -522,18 +576,11 @@ def run_deterministic_grader(
                 )
             try:
                 executed_commands += 1
-                # Prefer bash for Unix-style grader commands; fall back to shell=True
-                bash_path = find_bash()
-                if bash_path:
-                    proc = run_command_with_timeout(
-                        [bash_path, "-c", resolved_cmd],
-                        timeout=run_timeout, cwd=os.getcwd(),
-                    )
-                else:
-                    proc = run_command_with_timeout(
-                        resolved_cmd, shell=True,
-                        timeout=run_timeout, cwd=os.getcwd(),
-                    )
+                proc = run_shell_command_with_timeout(
+                    resolved_cmd,
+                    timeout=run_timeout,
+                    cwd=os.getcwd(),
+                )
                 passed = proc.returncode == 0
                 if not passed:
                     all_pass = False

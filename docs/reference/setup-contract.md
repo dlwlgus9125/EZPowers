@@ -9,6 +9,7 @@ artifact shape.
 - `docs/reference/mattpocock-harness-adapter.md`
 - `docs/reference/domain-language.md`
 - `docs/reference/verification-contract.md`
+- `docs/reference/app-delivery-contract.md`
 
 EZPowers automation owns project state. Matt Pocock influence is limited to
 short prompts, explicit stop conditions, and fast evidence loops.
@@ -47,6 +48,8 @@ Infer first, then ask one question at a time for unknowns:
 - Existing architecture docs, if any.
 - ADR usage.
 - UI presence.
+- App delivery profile: surface kind, frontend, backend, packaging,
+  deployment, and QA strategy.
 - Architecture profile: lifecycle stage, quality priorities, performance
   budgets, operational constraints, compatibility policy, ADR requirement.
 - Domain vocabulary confirmation (after detection results are shown).
@@ -76,6 +79,7 @@ Conditional:
 
 - `docs/decisions` when ADRs are enabled.
 - `docs/ux` when the project has UI.
+- `docs/release` when packaging or deployment is in scope.
 
 ## Required Files
 
@@ -98,6 +102,7 @@ Conditional:
 
 - `docs/decisions/README.md`
 - `docs/ux/README.md`
+- `docs/release/README.md`
 - `CLAUDE.md` only if missing.
 - `CONTEXT.md` when the project has domain-specific terms beyond pure
   infrastructure.
@@ -154,6 +159,7 @@ The index must include sections for:
 - System Reference.
 - Decisions when ADRs are enabled.
 - UX Spec when the project has UI.
+- Release And Deployment when packaging or deployment is in scope.
 - Specs.
 - Plans.
 
@@ -200,6 +206,43 @@ can be inferred or asked.
     "screenshot_path": ".harness/artifacts/gui-smoke.png",
     "min_pixel_variance": 12.0
   },
+  "app_delivery": {
+    "surface_kind": "web",
+    "frontend": {
+      "present": true,
+      "framework": "",
+      "routes": "",
+      "design_system": "",
+      "view_extensions": [],
+      "viewport_matrix": ["mobile", "desktop"],
+      "accessibility_baseline": "keyboard navigation and semantic labels"
+    },
+    "backend": {
+      "present": false,
+      "api_style": "",
+      "auth_session": "",
+      "persistence": "",
+      "background_jobs": "",
+      "external_services": []
+    },
+    "packaging": {
+      "artifact": "static_site",
+      "build_output": "",
+      "installer_or_image": ""
+    },
+    "deployment": {
+      "target": "local",
+      "provider": "",
+      "preview_default": true,
+      "required_env": [],
+      "rollback": "revert commit or redeploy previous artifact"
+    },
+    "qa": {
+      "browser_or_e2e": "",
+      "visual_regression": "",
+      "release_checklist": []
+    }
+  },
   "server": {
     "start_command": "",
     "stop_command": "",
@@ -243,6 +286,14 @@ can be inferred or asked.
   }
 }
 ```
+
+## App Delivery Profile
+
+Follow `docs/reference/app-delivery-contract.md` when populating
+`app_delivery`. Infer values from manifests, source roots, framework files,
+routes, CI/deploy files, package scripts, and existing docs before asking.
+Present inferred frontend view extensions, deployment target, and packaging
+artifact to the user for confirmation when they affect verification.
 
 ## Smoke Rules
 
@@ -347,6 +398,7 @@ Report:
 - Created or updated files.
 - Config values inferred from repo evidence.
 - Config values supplied by the user.
+- App delivery profile values and unresolved deployment or packaging inputs.
 - Remaining human-authored docs.
 - Smoke command and GUI strategy.
 - Next command: `/brainstorm`.

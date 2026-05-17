@@ -8,6 +8,7 @@ in the `/brainstorm` controller prompt.
 - `docs/reference/mattpocock-harness-adapter.md`
 - `docs/reference/architecture-readiness-contract.md`
 - `docs/reference/verification-contract.md`
+- `docs/reference/app-delivery-contract.md`
 - `docs/reference/dispatch-protocol.md`
 - `docs/reference/domain-language.md`
 
@@ -29,8 +30,8 @@ Use this order:
 1. Read project context.
 2. Declare assumptions.
 3. Ask one question at a time.
-4. Produce an architecture baseline.
-5. Confirm the architecture baseline.
+4. Produce an architecture baseline and App Experience And Delivery Baseline.
+5. Confirm the architecture and app delivery baseline.
 6. Run `grill-with-docs`.
 7. Extract requirements.
 8. Confirm requirements.
@@ -51,6 +52,7 @@ Every spec starts with these sections before requirements:
 - Option Matrix.
 - Lifecycle And Operations.
 - Quality Budgets.
+- App Experience And Delivery Baseline (app/API artifacts only).
 - Wiring Map (executable artifacts only).
 - Initialization Order (executable artifacts with 2+ startup dependencies).
 - Decision Log.
@@ -71,6 +73,15 @@ rejected options.
 Each ASR must affect structure, lifecycle, performance, reliability, security,
 compatibility, cost, or operations. If a quality budget is not declared, state
 `none declared` and explain the risk.
+
+## App Experience And Delivery Baseline
+
+Required for `web`, `mobile`, `desktop`, `cli`, and `api` surface kinds from
+`.harness/config.json` `app_delivery.surface_kind`. Omit only for `docs` or
+`library` with an explicit reason. Follow
+`docs/reference/app-delivery-contract.md` for the required surface inventory,
+UX flow map, frontend contract, backend contract, packaging contract,
+deployment contract, and QA contract.
 
 ## Wiring Map (executable artifacts only)
 
@@ -110,14 +121,15 @@ Architecture baseline:
 - ASRs:
 - Lifecycle:
 - Quality budgets:
+- App delivery:
 - Wiring map: (executable artifacts only)
 - ADR candidates:
 
-Confirm this architecture baseline before I extract requirements.
+Confirm this architecture and app delivery baseline before I extract requirements.
 ```
 
-After confirmation, invoke `grill-with-docs`. Any unresolved issue blocks requirement
-extraction until the design is revised and reconfirmed.
+After confirmation, invoke `grill-with-docs`. Any unresolved issue blocks
+requirement extraction until the design is revised and reconfirmed.
 
 ## Requirement Extraction
 
@@ -154,6 +166,10 @@ project meets its condition.
 | External dependency handling | Network calls, DB, queues, file I/O | timeout, retry, circuit-break defaults |
 | Observability strategy | `server`, `cli` (recommended), `desktop` (recommended) | logging levels (debug/info/warn/error), structured format (JSON vs plain), metric collection points, trace propagation method |
 | Health & readiness signals | `server` (required), `cli` with long-running mode (recommended) | health check endpoint or command, readiness probe for dependent services, graceful shutdown signal handling |
+| UX states | UI or user-facing CLI exists | loading, empty, error, permission, cancellation, responsive states |
+| API contract | API/server boundary exists | endpoint/event/schema ownership, status/error shape, auth/session behavior |
+| Packaging and deployment | executable app or deploy target exists | artifact, build output, target environment, required env vars, readiness, rollback |
+| Accessibility baseline | UI exists | keyboard path, focus behavior, semantic labels, contrast or visual check strategy |
 
 Rules:
 
@@ -171,6 +187,7 @@ Each requirement section uses:
 ### R[N]: Title
 
 **ASR:** ASR IDs or none
+**Surface:** ui | api | data | package | deploy | docs | none
 **Input:** Trigger or input
 **Behavior:** Step-by-step behavior
 **Output:** Observable result

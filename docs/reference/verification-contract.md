@@ -137,6 +137,26 @@ deterministic process/window/screenshot/UI Automation evidence.
 Runtime probe success never replaces a Verify command whose Then clause
 describes feature behavior.
 
+## App Delivery Verification
+
+Use this section with `docs/reference/app-delivery-contract.md`.
+
+- Frontend/UI verification must observe rendered output through a browser,
+  mobile shell, desktop window, or framework-supported headless renderer when
+  the requirement concerns a user-facing surface.
+- Responsive UI verification must cover at least one mobile and one desktop
+  viewport unless the App Experience And Delivery Baseline declares a
+  single-viewport product.
+- Visual verification may be screenshot diff, DOM/layout assertions, or a
+  deterministic canvas/pixel check. It must include a feature-specific oracle.
+- API verification must assert status, payload shape, and error shape when the
+  feature exposes an API boundary.
+- Package verification must assert that the declared artifact exists and can be
+  launched or served through the same entry point a user or deploy target uses.
+- Deployment verification defaults to preview deployment and must assert a
+  readiness signal such as a URL, health endpoint, deployment status, or build
+  log success. Production deployment requires explicit user intent.
+
 ## Light Path Gate
 
 Subagent-driven and inline execution use the same verification semantics as the

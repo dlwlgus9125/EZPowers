@@ -456,17 +456,10 @@ def check_golden(
                         f"golden {case_id} command timeout={run_timeout:.1f}s: {cmd}"
                     )
                     try:
-                        bash = rb.find_bash()
-                        if bash:
-                            proc = rb.run_command_with_timeout(
-                                [bash, "-c", resolved],
-                                timeout=run_timeout, cwd=str(REPO_ROOT),
-                            )
-                        else:
-                            proc = rb.run_command_with_timeout(
-                                resolved, shell=True,
-                                timeout=run_timeout, cwd=str(REPO_ROOT),
-                            )
+                        proc = rb.run_shell_command_with_timeout(
+                            resolved,
+                            timeout=run_timeout, cwd=str(REPO_ROOT),
+                        )
                         if proc.returncode == 0:
                             total_pass += 1
                         else:

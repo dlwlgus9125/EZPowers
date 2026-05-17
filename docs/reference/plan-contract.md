@@ -9,6 +9,7 @@ belong in the `/plan` controller prompt.
 - `docs/reference/spec-contract.md`
 - `docs/reference/architecture-readiness-contract.md`
 - `docs/reference/verification-contract.md`
+- `docs/reference/app-delivery-contract.md`
 - `docs/reference/dispatch-protocol.md`
 - `docs/reference/domain-language.md`
 
@@ -63,6 +64,30 @@ Rules:
 - Unmapped requirements require a task or explicit user-approved omission.
 - Tasks without requirement mapping are suspicious and must be justified.
 
+## Experience/Delivery Matrix
+
+Add this section when the spec contains App Experience And Delivery Baseline:
+
+```markdown
+## Experience/Delivery Matrix
+
+| Surface | Requirements | Tasks | Verify |
+|---------|--------------|-------|--------|
+| UI route `/settings` | R1, R2 | T1, T3 | `pnpm test:e2e --grep settings` |
+| API `PATCH /settings` | R2 | T2 | `pnpm test:api --grep settings` |
+| Preview deploy | R3 | T4 | `vercel deploy --prebuilt --yes` |
+```
+
+Rules:
+
+- Every surface from the spec baseline appears or is marked `omitted by user`
+  with the accepted risk.
+- UI rows include viewport, view wiring, browser/e2e, or visual evidence.
+- API rows include status, payload, auth/session, and error-shape evidence.
+- Package/deploy rows include build artifact, readiness, and rollback evidence.
+- Matrix rows without mapped tasks or non-trivial Verify commands block
+  execution.
+
 ## Structural Invariants
 
 Add this section when ASRs, architecture rules, or project rules are verifiable:
@@ -107,6 +132,7 @@ Tasks are independently grabbable vertical slices. Use this template:
 ### Task N: Name [R1, R3] {feature}
 
 **ASR:** ASR-1 or none
+**Surface:** ui | api | data | package | deploy | docs | none
 **Files:**
 - Create: `path`
 - Modify: `path`
@@ -131,6 +157,8 @@ Tasks are independently grabbable vertical slices. Use this template:
 
 **Verification method:** Run the relevant Verify command.
 **Runtime verification (executable artifacts only):** `command`
+**View wiring verification (view tasks only):** `command`
+**Delivery verification (package/deploy tasks only):** `command`
 **Wiring probe (executable artifacts, new module tasks):**
   Entry point: `path` | Module: `path` | Probe type: `import-chain` | `runtime-load` | `e2e-touch`
   Verify: `command`
@@ -177,6 +205,11 @@ When uncertain, classify as reference breakage.
   recommended strategy from the spec's Wiring Map.
 - View tasks require view wiring verification from
   `docs/reference/verification-contract.md`.
+- UI tasks require viewport/e2e or visual verification from
+  `docs/reference/app-delivery-contract.md` when the user-facing surface is
+  rendered in a browser, mobile shell, or desktop window.
+- Package and deploy tasks require Delivery verification with build artifact,
+  readiness, and rollback evidence.
 
 ## Integration Contract Matrix
 
@@ -224,6 +257,7 @@ Add when:
 - Plan has connected tasks.
 - Work changes multiple layers.
 - Work creates or modifies an executable artifact.
+- Work crosses UI, API, packaging, or deployment surfaces.
 - Task title or AC mentions integration, milestone, wiring, route,
   registration, binding, subscription, or end-to-end.
 
@@ -270,6 +304,7 @@ Header:
 **Architecture:** Two to three sentences.
 **ASR Summary:** ASRs and quality targets.
 **Tech Stack:** Core technologies.
+**App Delivery:** surface kind, packaging artifact, deployment target.
 **Spec:** spec path.
 ```
 

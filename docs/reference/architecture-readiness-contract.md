@@ -12,6 +12,8 @@ Every spec produced by `/brainstorm` must contain:
 - Option Matrix
 - Lifecycle And Operations
 - Quality Budgets
+- App Experience And Delivery Baseline when the project has an app, API, or
+  executable artifact
 - Decision Log
 - Extracted Requirements
 
@@ -135,6 +137,16 @@ Rules:
   Gate in `/choiceexecutor` Section 12a (after Final Code Review, before
   Completion gates).
 
+## App Delivery Readiness
+
+Specs with `app_delivery.surface_kind` other than `docs` or `library` must
+include App Experience And Delivery Baseline. The baseline must identify the
+user-facing surfaces, frontend/backend contracts, package artifact, deployment
+target, QA strategy, and release verification expected by
+`docs/reference/app-delivery-contract.md`. Missing baseline details are
+architecture gaps because implementers would have to invent product surface,
+delivery, or verification policy during coding.
+
 ## Decision Log And ADRs
 
 Use the ADR policy in `docs/decisions/README.md`.
@@ -155,6 +167,9 @@ but the Decision Log says `ADR required: no`, architecture review must fail.
 
 Plans must carry referenced ASRs into task `ASR:` fields, the Coverage Matrix,
 or Structural Invariants.
+
+Plans must also carry the App Experience And Delivery Baseline into an
+Experience/Delivery Matrix when the baseline exists.
 
 Structural Invariants should be used when the ASR is best enforced as a
 verifiable architecture rule rather than a feature task.

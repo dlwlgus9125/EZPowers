@@ -71,6 +71,38 @@ class EvalRunnerSafetyTests(unittest.TestCase):
         self.assertIn("timed out after 1s", detail)
         self.assertIn("scripts/run_skill_evals.py", detail)
 
+    def test_python_inline_grader_bypasses_bash_backtick_expansion(self):
+        command = "python -c \"assert '`cli`' == '`cli`'\""
+
+        with mock.patch.object(run_baseline, "find_bash", return_value="bash"), \
+             mock.patch.object(run_baseline, "run_command_with_timeout") as fake_run:
+            fake_run.return_value = subprocess.CompletedProcess([], 0, "", "")
+
+            run_baseline.run_shell_command_with_timeout(
+                command,
+                timeout=1,
+                cwd=REPO_ROOT,
+            )
+
+        args = fake_run.call_args.args[0]
+        self.assertEqual(args, ["python", "-c", "assert '`cli`' == '`cli`'"])
+
+    def test_python_inline_with_shell_control_still_uses_bash(self):
+        command = "python -c \"print(1)\" && echo ok"
+
+        with mock.patch.object(run_baseline, "find_bash", return_value="bash"), \
+             mock.patch.object(run_baseline, "run_command_with_timeout") as fake_run:
+            fake_run.return_value = subprocess.CompletedProcess([], 0, "", "")
+
+            run_baseline.run_shell_command_with_timeout(
+                command,
+                timeout=1,
+                cwd=REPO_ROOT,
+            )
+
+        args = fake_run.call_args.args[0]
+        self.assertEqual(args, ["bash", "-c", command])
+
     def test_skill_live_smoke_is_skipped_by_default(self):
         case = {
             "case_id": "skill.diagnose.quick-fix",

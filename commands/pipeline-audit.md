@@ -5,6 +5,8 @@ allowed-tools: [Bash, Read, Write]
 
 # /pipeline-audit — Cross-Stage Completeness Gate
 
+Source contract: `docs/reference/app-delivery-contract.md` defines mandatory D9 App Delivery Readiness; include D9 whenever its trigger applies.
+
 Verify that spec and plan documents are complete, traceable, and executable before proceeding to the next pipeline stage. This command checks the **seams between documents** — gaps that individual reviewers (spec-reviewer, plan-reviewer) cannot detect because they only inspect one document at a time.
 
 <HARD-GATE>
