@@ -201,6 +201,11 @@ foreach ($CmdFile in $CommandFiles) {
     $CmdName = $CmdFile.BaseName
     $Text = Get-Content -LiteralPath $CmdFile.FullName -Raw -Encoding UTF8
     $SeenXrefs = @{}
+    $OptionalGeneratedDocs = @{
+        'set-rules' = @('conventions.md')
+        'review' = @('conventions.md')
+        'sync-docs' = @('architecture.md', 'protocol.md', 'schema.md', 'config.md')
+    }
 
     # Check agent references
     $AgentRefs = [regex]::Matches($Text, 'agents/([^\s\),`]+\.md)')
@@ -227,6 +232,10 @@ foreach ($CmdFile in $CommandFiles) {
         $DocPath = Join-Path $RepoRoot $Ref.Value
         if (Test-Path -LiteralPath $DocPath) {
             Write-Check 'PASS' "xref:${CmdName}->$($Ref.Groups[1].Value)" 'doc exists'
+        }
+        elseif ($OptionalGeneratedDocs.ContainsKey($CmdName) -and $OptionalGeneratedDocs[$CmdName] -contains $Ref.Groups[1].Value) {
+            Write-Check 'WARN' "xref:${CmdName}->$($Ref.Groups[1].Value)" "$($Ref.Value) is an optional generated doc slot"
+            $Warnings++
         }
         else {
             Write-Check 'FAIL' "xref:${CmdName}->$($Ref.Groups[1].Value)" "$($Ref.Value) not found"

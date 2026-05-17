@@ -251,6 +251,9 @@ true` and a non-empty `smoke.command`.
 
 Only `docs` and `library` may set `smoke.required: false`.
 
+`smoke.command` must launch or probe the real artifact entry point. It must not
+be the same command as build, typecheck, lint, or test verification.
+
 GUI strategy defaults:
 
 - Avalonia, WPF, WinForms, Qt, GTK: `process_probe`.
@@ -258,7 +261,8 @@ GUI strategy defaults:
 - Console/server: `skip`, but still require a non-empty smoke command.
 - Docs/library: `skip` only when runtime smoke is explicitly not required.
 
-Warn if the smoke command is the same as the build command.
+Fail setup/doctor validation if the smoke command is the same as the build or
+test command.
 
 ## Wiring Rules
 

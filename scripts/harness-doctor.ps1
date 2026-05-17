@@ -77,17 +77,81 @@ if ($Config.PSObject.Properties.Name -contains 'smoke') {
     if ($Config.smoke.PSObject.Properties.Name -contains 'command') {
         $Command = [string]$Config.smoke.command
     }
-    if ($Required -and [string]::IsNullOrWhiteSpace($Command)) {
-        Write-Check 'WARN' 'smoke' 'required=true but command is empty'
-        $Warnings++
+    $ArtifactKind = ''
+    if ($Config.smoke.PSObject.Properties.Name -contains 'artifact_kind') {
+        $ArtifactKind = [string]$Config.smoke.artifact_kind
+    }
+    $GuiStrategy = ''
+    if ($Config.smoke.PSObject.Properties.Name -contains 'gui_strategy') {
+        $GuiStrategy = [string]$Config.smoke.gui_strategy
+    }
+    if ($ArtifactKind -in @('cli', 'server', 'desktop') -and -not $Required) {
+        Write-Check 'FAIL' 'smoke' "artifact_kind=$ArtifactKind requires smoke.required=true"
+        $Failures++
+    }
+    elseif ($Required -and [string]::IsNullOrWhiteSpace($Command)) {
+        Write-Check 'FAIL' 'smoke' 'required=true but command is empty'
+        $Failures++
+    }
+    elseif ($ArtifactKind -eq 'desktop' -and $GuiStrategy -eq 'skip') {
+        Write-Check 'FAIL' 'smoke' 'desktop artifact cannot use gui_strategy=skip'
+        $Failures++
     }
     else {
         Write-Check 'PASS' 'smoke' "required=$Required"
     }
+
+    $BuildCommand = ''
+    if ($Config.PSObject.Properties.Name -contains 'build' -and $Config.build.PSObject.Properties.Name -contains 'command') {
+        $BuildCommand = [string]$Config.build.command
+    }
+    $TestCommand = ''
+    if ($Config.PSObject.Properties.Name -contains 'test' -and $Config.test.PSObject.Properties.Name -contains 'command') {
+        $TestCommand = [string]$Config.test.command
+    }
+    if ($Required -and -not [string]::IsNullOrWhiteSpace($Command)) {
+        foreach ($Pair in @(@('build.command', $BuildCommand), @('test.command', $TestCommand))) {
+            if (-not [string]::IsNullOrWhiteSpace($Pair[1]) -and $Command.Trim() -eq $Pair[1].Trim()) {
+                Write-Check 'FAIL' 'smoke parity' "smoke.command matches $($Pair[0]); use the real app entry point"
+                $Failures++
+            }
+        }
+    }
 }
 else {
-    Write-Check 'WARN' 'smoke' 'missing smoke config'
-    $Warnings++
+    Write-Check 'FAIL' 'smoke' 'missing smoke config'
+    $Failures++
+}
+
+if ($Config.PSObject.Properties.Name -contains 'wiring') {
+    $Wiring = $Config.wiring
+    $Enabled = $false
+    if ($Wiring.PSObject.Properties.Name -contains 'enabled') {
+        $Enabled = [bool]$Wiring.enabled
+    }
+    $ExemptReason = ''
+    if ($Wiring.PSObject.Properties.Name -contains 'exempt_reason') {
+        $ExemptReason = [string]$Wiring.exempt_reason
+    }
+    $Kind = ''
+    if ($Config.PSObject.Properties.Name -contains 'smoke' -and $Config.smoke.PSObject.Properties.Name -contains 'artifact_kind') {
+        $Kind = [string]$Config.smoke.artifact_kind
+    }
+    if (-not $Enabled -and [string]::IsNullOrWhiteSpace($ExemptReason)) {
+        Write-Check 'FAIL' 'wiring' 'wiring disabled without exempt_reason'
+        $Failures++
+    }
+    elseif (-not $Enabled -and $Kind -notin @('docs', 'library')) {
+        Write-Check 'FAIL' 'wiring' "wiring exemption not allowed for artifact_kind: $Kind"
+        $Failures++
+    }
+    else {
+        Write-Check 'PASS' 'wiring' "enabled=$Enabled"
+    }
+}
+else {
+    Write-Check 'FAIL' 'wiring' 'missing wiring config'
+    $Failures++
 }
 
 if ($Config.PSObject.Properties.Name -contains 'executor' -and $Config.executor.PSObject.Properties.Name -contains 'reviewer_backend') {

@@ -125,12 +125,38 @@ A runtime probe passes only when:
 Executable artifacts (`cli`, `server`, `desktop`) require runtime smoke. A
 missing required smoke command is failure, not skip. Only `docs` and `library`
 artifacts may skip runtime smoke with `smoke.required: false`.
+Executable artifacts (cli, server, desktop) require runtime smoke.
+
+For executable artifacts, the smoke command must launch or probe the same
+artifact a human would use. A build, typecheck, lint, or isolated test command
+is not runtime smoke and must not be reused as `smoke.command`.
 
 Vision checks may be used as advisory evidence, but the v1 hard gate is
 deterministic process/window/screenshot/UI Automation evidence.
 
 Runtime probe success never replaces a Verify command whose Then clause
 describes feature behavior.
+
+## Light Path Gate
+
+Subagent-driven and inline execution use the same verification semantics as the
+harness path. The parent/controller owns the completion decision, but it must
+delegate evidence-heavy work to gate scripts and reviewer/arbiter agents.
+
+`scripts/lightpath-gate.ps1` is the controller interface:
+
+- `-Scope prepare` converts the plan into harness-compatible step and wiring
+  artifacts.
+- `-Scope task` runs `scripts/verify-step.py` for the task step and records
+  runtime smoke evidence when required.
+- `-Scope final` runs the Full-Feature Wiring Gate and maps reviewer verdicts
+  to `pass`, `test_gap`, `code_gap`, or `spec_gap`.
+
+The controller may keep only verdict enums, artifact paths, changed-file lists,
+diff ranges, and short failure tails in context. It must not treat an
+implementer subagent's `DONE` report as completion. Completion requires the
+task gate to pass and the final wiring gate to reach `pass`; `review_pending`
+requires an independent wiring reviewer verdict before completion.
 
 ### Incremental Runnability
 
@@ -197,6 +223,10 @@ The gate must define:
 The wiring Verify command must drive the user-facing path or the same entry path
 described by the gate. Single-component unit tests do not prove connected
 features.
+
+Passing a wiring command only proves the dynamic probe ran. Full-feature wiring
+is complete only after runtime evidence is present and an independent wiring
+review verdict is `PASS`; until then the gate remains `review_pending`.
 
 ## Arbiter Verdicts
 

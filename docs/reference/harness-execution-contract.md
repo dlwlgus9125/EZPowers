@@ -122,6 +122,9 @@ Create from the plan's Full-Feature Wiring Gate:
   "covered_edges": ["T1->T2"],
   "expected_observation": "observable result",
   "status": "pending",
+  "evidence_status": "",
+  "runtime_artifacts": [],
+  "reviewer_verdict": "",
   "attempts": []
 }
 ```
@@ -129,6 +132,7 @@ Create from the plan's Full-Feature Wiring Gate:
 Allowed statuses:
 
 - `pending`
+- `review_pending`
 - `pass`
 - `fail`
 - `spec_gap`
@@ -167,6 +171,9 @@ The controlled runner executes pending steps, captures stdout/stderr tails,
 writes `phases/{feature-name}/harness-run.json`, stops on timeout, and refuses
 to continue when status makes no progress.
 
+After a step reports `completed`, `scripts/verify-step.py` is a hard gate. A
+failed or missing verifier sets the step status to `rejected` and stops the run.
+
 The final harness call must enforce runtime smoke for executable artifacts.
 Missing required smoke evidence is a failure, not a skip.
 
@@ -186,11 +193,16 @@ Gate rules:
 
 - `required: false` keeps `status: "pass"`.
 - Required gate with empty commands becomes `spec_gap`.
+- Required gate with no-op commands (`echo`, `true`, `:`, `exit 0`, or simple
+  output-only commands) becomes `spec_gap`.
 - Any non-zero command exit becomes `fail`.
 - Missing required runtime artifacts become `test_gap`.
 - Attempts record command, exit code, stdout/stderr tail, and timestamp.
-- `ezpowers:wiring-reviewer` gives the independent verdict through the dispatch
-  protocol.
+- Passing command evidence without an independent reviewer verdict becomes
+  `review_pending`, not `pass`.
+- The controller dispatches `ezpowers:wiring-reviewer` through the dispatch
+  protocol, then writes the verdict back to `wiring-gate.json` and reruns or
+  finalizes the gate.
 
 Reviewer verdict handling:
 

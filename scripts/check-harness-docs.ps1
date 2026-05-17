@@ -115,6 +115,7 @@ function Assert-HarnessDoctor {
 {
   "harness": { "root": "$($HarnessRoot.Replace('\', '\\'))" },
   "smoke": { "required": true, "artifact_kind": "cli", "command": "echo ok" },
+  "wiring": { "enabled": true, "exempt_reason": "", "view_extensions": [] },
   "executor": { "reviewer_backend": "claude-code" }
 }
 "@ | Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
@@ -169,7 +170,11 @@ One deep module with a public CLI interface.
 PowerShell fixture.
 
 ## Full-Feature Wiring Gate
-Verify: `pwsh -NoProfile -Command "exit 0"`
+**Required:** yes
+**Verify-type:** cli
+**Covers:** T1 -> T2
+**Expected observation:** CLI entry point routes the command
+**Verify:** `if (-not (Test-Path gate-target.txt)) { exit 1 }`
 
 ### Task 1: Add command [R1]
 
@@ -209,8 +214,17 @@ Verify: `pwsh -NoProfile -Command "exit 0"`
         if (-not $Gate.required -or @($Gate.commands).Count -lt 1) {
             throw "[FAIL] harness convert: expected required wiring gate with command"
         }
-        if (@($Gate.commands).Count -ne 1 -or @($Gate.commands)[0] -ne 'pwsh -NoProfile -Command "exit 0"') {
+        if (@($Gate.commands).Count -ne 1 -or @($Gate.commands)[0] -ne 'if (-not (Test-Path gate-target.txt)) { exit 1 }') {
             throw "[FAIL] harness convert: wiring gate captured task-local backticks"
+        }
+        if ($Gate.verify_type -ne 'cli') {
+            throw "[FAIL] harness convert: expected Verify-type to be preserved"
+        }
+        if (@($Gate.covered_tasks).Count -ne 2 -or @($Gate.covered_tasks)[0] -ne 'T1' -or @($Gate.covered_tasks)[1] -ne 'T2') {
+            throw "[FAIL] harness convert: expected Covers tasks to be preserved"
+        }
+        if ($Gate.expected_observation -ne 'CLI entry point routes the command') {
+            throw "[FAIL] harness convert: expected observation was not preserved"
         }
 
         Write-Output "[PASS] harness convert plan-to-phase"
@@ -226,14 +240,17 @@ function Assert-HarnessGate {
     $TempRoot = Join-Path $env:TEMP ("ezpowers-harness-gate-" + [guid]::NewGuid().ToString("N"))
     $PhaseDir = Join-Path $TempRoot 'phases/sample'
     New-Item -ItemType Directory -Force -Path $PhaseDir | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $TempRoot '.harness') | Out-Null
 
     try {
+        '{"smoke":{"required":false,"artifact_kind":"library"},"wiring":{"enabled":true,"view_extensions":[]}}' |
+            Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
         @'
 {
   "phase": "sample",
   "required": true,
-  "verify_type": "e2e",
-  "commands": ["Write-Output gate-ok"],
+  "verify_type": "cli",
+  "commands": ["if (-not (Test-Path gate-target.txt)) { exit 1 }"],
   "covered_tasks": ["T1"],
   "covered_edges": [],
   "expected_observation": "gate ok",
@@ -241,11 +258,77 @@ function Assert-HarnessGate {
   "attempts": []
 }
 '@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Encoding UTF8
+        'ok' | Set-Content -LiteralPath (Join-Path $TempRoot 'gate-target.txt') -Encoding UTF8
 
         & (Join-Path $RepoRoot 'scripts/harness-gate.ps1') -ProjectRoot $TempRoot -Phase 'sample' | Out-Null
         $Gate = Get-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-        if ($Gate.status -ne 'pass' -or @($Gate.attempts).Count -lt 1) {
+        if ($Gate.status -ne 'review_pending' -or @($Gate.attempts).Count -lt 1) {
             throw "[FAIL] harness gate: pass command did not record pass attempt"
+        }
+        if ($Gate.evidence_status -ne 'command_passed') {
+            throw "[FAIL] harness gate: passing command should wait for reviewer evidence"
+        }
+
+        @'
+{
+  "phase": "sample",
+  "required": true,
+  "verify_type": "cli",
+  "commands": ["true"],
+  "status": "pending",
+  "attempts": []
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Encoding UTF8
+        & (Join-Path $RepoRoot 'scripts/harness-gate.ps1') -ProjectRoot $TempRoot -Phase 'sample' *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw "[FAIL] harness gate: no-op command should fail"
+        }
+        $Gate = Get-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($Gate.status -ne 'spec_gap') {
+            throw "[FAIL] harness gate: no-op command did not set spec_gap"
+        }
+
+        '{"smoke":{"required":true,"artifact_kind":"cli","command":"pwsh -NoProfile -Command \"Write-Output smoke\""},"wiring":{"enabled":true,"view_extensions":[]}}' |
+            Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
+        @'
+{
+  "phase": "sample",
+  "required": true,
+  "verify_type": "cli",
+  "commands": ["if (-not (Test-Path gate-target.txt)) { exit 1 }"],
+  "status": "pending",
+  "attempts": []
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Encoding UTF8
+        & (Join-Path $RepoRoot 'scripts/harness-gate.ps1') -ProjectRoot $TempRoot -Phase 'sample' *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw "[FAIL] harness gate: missing runtime evidence should fail for executable artifact"
+        }
+        $Gate = Get-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($Gate.status -ne 'test_gap') {
+            throw "[FAIL] harness gate: missing runtime evidence did not set test_gap"
+        }
+
+        '{"smoke":{"required":false,"artifact_kind":"library"},"wiring":{"enabled":true,"view_extensions":[]}}' |
+            Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
+        @'
+{
+  "phase": "sample",
+  "required": true,
+  "verify_type": "cli",
+  "commands": ["if (-not (Test-Path gate-target.txt)) { exit 1 }"],
+  "reviewer_verdict": "CODE_GAP",
+  "status": "pending",
+  "attempts": []
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Encoding UTF8
+        & (Join-Path $RepoRoot 'scripts/harness-gate.ps1') -ProjectRoot $TempRoot -Phase 'sample' *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw "[FAIL] harness gate: CODE_GAP reviewer verdict should fail"
+        }
+        $Gate = Get-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($Gate.status -ne 'code_gap') {
+            throw "[FAIL] harness gate: CODE_GAP reviewer verdict did not set code_gap"
         }
 
         @'
@@ -328,6 +411,40 @@ $Step.status = 'completed'
 $Index | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $IndexPath -Encoding UTF8
 Write-Output "completed step $($Step.step)"
 '@ | Set-Content -LiteralPath $FakeExecutor -Encoding UTF8
+        @'
+# Step 0
+
+## Files to Read
+- `step0.txt`
+
+## Task
+Done.
+
+## Acceptance Criteria
+- [ ] Given: step 0 / When: command runs / Then: command passes / Verify: `python -c "raise SystemExit(0)"`
+
+## Verification
+Verify: `python -c "raise SystemExit(0)"`
+Verify-type: cli
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'step0.md') -Encoding UTF8
+        'step0' | Set-Content -LiteralPath (Join-Path $TempRoot 'step0.txt') -Encoding UTF8
+        @'
+# Step 1
+
+## Files to Read
+- `step1.txt`
+
+## Task
+Done.
+
+## Acceptance Criteria
+- [ ] Given: step 1 / When: command runs / Then: command passes / Verify: `python -c "raise SystemExit(0)"`
+
+## Verification
+Verify: `python -c "raise SystemExit(0)"`
+Verify-type: cli
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'step1.md') -Encoding UTF8
+        'step1' | Set-Content -LiteralPath (Join-Path $TempRoot 'step1.txt') -Encoding UTF8
 
         & (Join-Path $RepoRoot 'scripts/harness-run.ps1') `
             -ProjectRoot $TempRoot `
@@ -349,7 +466,193 @@ Write-Output "completed step $($Step.step)"
             throw "[FAIL] harness run: expected successful attempt exit codes"
         }
 
+        @'
+{
+  "project": "sample",
+  "phase": "sample",
+  "steps": [
+    { "step": 0, "name": "bad verify", "status": "pending", "step_md": "step0.md" }
+  ]
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'index.json') -Encoding UTF8
+        @'
+# Step 0
+
+## Files to Read
+- `missing-file.txt`
+
+## Task
+Done.
+
+## Acceptance Criteria
+- [ ] Given: app / When: action / Then: result / Verify: `exit 9`
+
+## Verification
+Verify: `exit 9`
+Verify-type: cli
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'step0.md') -Encoding UTF8
+        & (Join-Path $RepoRoot 'scripts/harness-run.ps1') `
+            -ProjectRoot $TempRoot `
+            -Phase 'sample' `
+            -ExecutorCommand "& '$FakeExecutor' -ProjectRoot '$TempRoot' -Phase 'sample'" `
+            -TimeoutSeconds 10 *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw "[FAIL] harness run: verify-step failure should fail the run"
+        }
+        $Index = Get-Content -LiteralPath (Join-Path $PhaseDir 'index.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if (@($Index.steps)[0].status -ne 'rejected') {
+            throw "[FAIL] harness run: verify-step failure should reject the step"
+        }
+
         Write-Output "[PASS] harness run controlled execution"
+    }
+    finally {
+        if (Test-Path -LiteralPath $TempRoot) {
+            Remove-Item -LiteralPath $TempRoot -Recurse -Force
+        }
+    }
+}
+
+function Assert-LightpathGate {
+    $TempRoot = Join-Path $env:TEMP ("ezpowers-lightpath-gate-" + [guid]::NewGuid().ToString("N"))
+    $PlanDir = Join-Path $TempRoot 'docs/plans'
+    New-Item -ItemType Directory -Force -Path $PlanDir | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $TempRoot '.harness') | Out-Null
+
+    try {
+        @'
+{
+  "smoke": {
+    "required": true,
+    "artifact_kind": "cli",
+    "command": "python -c \"print('smoke')\"",
+    "timeout_sec": 10
+  },
+  "wiring": {
+    "enabled": true,
+    "view_extensions": []
+  }
+}
+'@ | Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
+        'ok' | Set-Content -LiteralPath (Join-Path $TempRoot 'app.txt') -Encoding UTF8
+        'ok' | Set-Content -LiteralPath (Join-Path $TempRoot 'gate-target.txt') -Encoding UTF8
+        @'
+# Plan: Lightpath Sample
+
+## Goal
+Ship a lightpath feature.
+
+## Full-Feature Wiring Gate
+**Required:** yes
+**Verify-type:** cli
+**Covers:** T1
+**Expected observation:** CLI entry point routes the command
+**Verify:** `python -c "from pathlib import Path; raise SystemExit(0 if Path('gate-target.txt').exists() else 1)"`
+
+### Task 1: Add behavior [R1]
+
+**Files:**
+- Modify: `app.txt`
+
+**Completion criteria (from spec):**
+- [ ] Given: CLI input / When: command runs / Then: output appears / Verify: `python -c "raise SystemExit(0)"`
+
+**Verification method:** Run spec Verify commands.
+'@ | Set-Content -LiteralPath (Join-Path $PlanDir '2026-05-13-lightpath-sample.md') -Encoding UTF8
+
+        & (Join-Path $RepoRoot 'scripts/lightpath-gate.ps1') `
+            -ProjectRoot $TempRoot `
+            -PlanPath 'docs/plans/2026-05-13-lightpath-sample.md' `
+            -Phase 'lightpath-sample' `
+            -Scope prepare | Out-Null
+        $PhaseDir = Join-Path $TempRoot 'phases/lightpath-sample'
+        foreach ($Path in @('step0.md', 'index.json', 'wiring-gate.json', 'lightpath-gate.json')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $PhaseDir $Path))) {
+                throw "[FAIL] lightpath gate: prepare missing $Path"
+            }
+        }
+
+        & (Join-Path $RepoRoot 'scripts/lightpath-gate.ps1') `
+            -ProjectRoot $TempRoot `
+            -Phase 'lightpath-sample' `
+            -TaskNumber 1 `
+            -Scope task | Out-Null
+        $State = Get-Content -LiteralPath (Join-Path $PhaseDir 'lightpath-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($State.status -ne 'pass' -or $State.evidence_status -ne 'task_verified') {
+            throw "[FAIL] lightpath gate: task gate did not pass"
+        }
+        if (-not (Test-Path -LiteralPath (Join-Path $PhaseDir 'runtime-probe.json'))) {
+            throw "[FAIL] lightpath gate: task gate did not write runtime-probe.json"
+        }
+
+        & (Join-Path $RepoRoot 'scripts/lightpath-gate.ps1') `
+            -ProjectRoot $TempRoot `
+            -Phase 'lightpath-sample' `
+            -DiffRange 'HEAD~1..HEAD' `
+            -Scope final *> $null
+        if ($LASTEXITCODE -ne 5) {
+            throw "[FAIL] lightpath gate: final gate without reviewer should exit review_pending"
+        }
+        $State = Get-Content -LiteralPath (Join-Path $PhaseDir 'lightpath-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($State.status -ne 'review_pending') {
+            throw "[FAIL] lightpath gate: final gate did not record review_pending"
+        }
+
+        & (Join-Path $RepoRoot 'scripts/lightpath-gate.ps1') `
+            -ProjectRoot $TempRoot `
+            -Phase 'lightpath-sample' `
+            -DiffRange 'HEAD~1..HEAD' `
+            -ReviewerVerdict 'CODE_GAP' `
+            -Scope final *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw "[FAIL] lightpath gate: CODE_GAP reviewer verdict should fail"
+        }
+        $State = Get-Content -LiteralPath (Join-Path $PhaseDir 'lightpath-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($State.status -ne 'code_gap') {
+            throw "[FAIL] lightpath gate: CODE_GAP did not set code_gap"
+        }
+
+        & (Join-Path $RepoRoot 'scripts/lightpath-gate.ps1') `
+            -ProjectRoot $TempRoot `
+            -Phase 'lightpath-sample' `
+            -DiffRange 'HEAD~1..HEAD' `
+            -ReviewerVerdict 'PASS' `
+            -Scope final | Out-Null
+        $State = Get-Content -LiteralPath (Join-Path $PhaseDir 'lightpath-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($State.status -ne 'pass') {
+            throw "[FAIL] lightpath gate: PASS reviewer verdict did not pass"
+        }
+
+        @'
+# Step 0
+
+## Files to Read
+- `missing-file.txt`
+
+## Task
+Bad task.
+
+## Acceptance Criteria
+- [ ] Given: app / When: action / Then: result / Verify: `exit 9`
+
+## Verification
+Verify: `exit 9`
+Verify-type: cli
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'step0.md') -Encoding UTF8
+        & (Join-Path $RepoRoot 'scripts/lightpath-gate.ps1') `
+            -ProjectRoot $TempRoot `
+            -Phase 'lightpath-sample' `
+            -TaskNumber 1 `
+            -Scope task *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw "[FAIL] lightpath gate: failing task Verify should fail"
+        }
+        $Index = Get-Content -LiteralPath (Join-Path $PhaseDir 'index.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if (@($Index.steps)[0].status -ne 'rejected') {
+            throw "[FAIL] lightpath gate: failing task Verify should reject the step"
+        }
+
+        Write-Output "[PASS] lightpath gate execution"
     }
     finally {
         if (Test-Path -LiteralPath $TempRoot) {
@@ -367,7 +670,10 @@ function Assert-HarnessSmoke {
     Write-Output '[PASS] harness smoke end-to-end'
 }
 
-Assert-Contains 'commands/choiceexecutor.md' 'harness is the strict path, not the default light path' 'choiceexecutor keeps harness strict'
+Assert-Contains 'commands/choiceexecutor.md' 'Harness is the external executor/recovery path, not the only strict verification path.' 'choiceexecutor keeps all paths strict'
+Assert-Contains 'commands/choiceexecutor.md' 'scripts/lightpath-gate.ps1 -Scope task' 'choiceexecutor uses lightpath task gate'
+Assert-Contains 'commands/choiceexecutor.md' 'scripts/lightpath-gate.ps1 -Scope final' 'choiceexecutor uses lightpath final gate'
+Assert-Contains 'agents/wiring-reviewer.md' 'missing generated gate evidence' 'wiring reviewer fails missing lightpath evidence'
 Assert-ControllerPrompt 'commands/setup.md' 'setup prompt is diet controller'
 Assert-ControllerPrompt 'commands/brainstorm.md' 'brainstorm prompt is diet controller'
 Assert-ControllerPrompt 'commands/plan.md' 'plan prompt is diet controller'
@@ -410,7 +716,10 @@ Assert-Contains 'docs/reference/verification-contract.md' 'The rules in this Eng
 Assert-Contains 'docs/reference/verification-contract.md' 'W5 | Template resolution' 'view wiring W1-W5 taxonomy present'
 Assert-Contains 'docs/reference/domain-language.md' 'Light Path' 'domain language defines light path'
 Assert-Contains 'docs/reference/domain-language.md' 'Strict Path' 'domain language defines strict path'
+Assert-Contains 'docs/reference/verification-contract.md' 'scripts/lightpath-gate.ps1' 'verification contract defines lightpath gate'
 Assert-Contains '.githooks/pre-commit' 'check-harness-docs.ps1' 'pre-commit runs harness docs gate'
+Assert-Contains '.githooks/pre-commit' '.claude-plugin/(plugin|marketplace)' 'pre-commit watches Claude plugin metadata'
+Assert-Contains '.githooks/pre-commit' 'agents/wiring-reviewer' 'pre-commit watches wiring reviewer'
 Assert-Contains '.githooks/pre-commit' 'commands/(setup|brainstorm|choiceexecutor|executeharness|plan)' 'pre-commit watches prompt diet commands'
 Assert-Contains '.githooks/pre-commit' 'CLAUDE\.md' 'pre-commit watches root guide'
 Assert-Contains '.githooks/pre-commit' 'docs/INDEX\.md' 'pre-commit watches docs index'
@@ -422,11 +731,13 @@ Assert-Contains '.githooks/pre-commit' 'plan-contract' 'pre-commit watches plan 
 Assert-Contains '.githooks/pre-commit' 'harness-execution-contract' 'pre-commit watches harness execution contract'
 Assert-Contains '.githooks/pre-commit' 'harness_versions/changelog' 'pre-commit watches harness changelog'
 Assert-Contains '.githooks/pre-commit' 'harness-convert' 'pre-commit watches harness convert helper'
+Assert-Contains '.githooks/pre-commit' 'harness-common' 'pre-commit watches harness common helper'
 Assert-Contains '.githooks/pre-commit' 'harness-doctor' 'pre-commit watches harness doctor'
 Assert-Contains '.githooks/pre-commit' 'harness-gate' 'pre-commit watches harness gate helper'
 Assert-Contains '.githooks/pre-commit' 'harness-phase' 'pre-commit watches harness phase helper'
 Assert-Contains '.githooks/pre-commit' 'harness-run' 'pre-commit watches harness run helper'
 Assert-Contains '.githooks/pre-commit' 'harness-smoke' 'pre-commit watches harness smoke helper'
+Assert-Contains '.githooks/pre-commit' 'lightpath-gate' 'pre-commit watches lightpath gate helper'
 Assert-Contains '.githooks/pre-commit' 'non-harness command, agent, skill, or skill-gate files' 'pre-commit keeps python gate scoped'
 Assert-Contains 'CLAUDE.md' 'runs harness docs gate or validate.py by changed path' 'root guide documents split gate'
 Assert-Contains 'CLAUDE.md' 'mattpocock-harness-adapter.md' 'root guide documents Matt adapter'
@@ -444,11 +755,22 @@ if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/smoke-plugin.ps1'
 }
 Write-Output '[PASS] smoke-plugin.ps1 exists'
 
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/harness-common.ps1'))) {
+    throw '[FAIL] harness-common.ps1: missing scripts/harness-common.ps1'
+}
+Write-Output '[PASS] harness-common.ps1 exists'
+
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/lightpath-gate.ps1'))) {
+    throw '[FAIL] lightpath-gate.ps1: missing scripts/lightpath-gate.ps1'
+}
+Write-Output '[PASS] lightpath-gate.ps1 exists'
+
 Assert-HarnessPhaseHelper
 Assert-HarnessDoctor
 Assert-HarnessConvert
 Assert-HarnessGate
 Assert-HarnessRun
+Assert-LightpathGate
 Assert-HarnessSmoke
 
 Write-Output 'Harness doc checks passed.'

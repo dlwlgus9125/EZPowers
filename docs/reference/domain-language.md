@@ -100,11 +100,14 @@ or inline execution.
 
 **Light Path**
 Execution through inline work or task subagents when strict harness logs and
-runtime/wiring recovery are not needed.
+runtime/wiring recovery are not needed. Light Path still uses the shared
+lightpath gate for Verify commands, runtime smoke, and Full-Feature Wiring Gate
+completion.
 
 **Strict Path**
 Execution through `/executeharness` when the work needs external harness logs,
-step-level recovery, runtime smoke, or full-feature wiring evidence.
+step-level recovery, or harness-managed recovery. Strict Path and Light Path
+share the same completion verdict vocabulary.
 
 ## View Wiring Terms
 

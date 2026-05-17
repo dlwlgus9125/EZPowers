@@ -79,8 +79,8 @@ Ask the user for the execution mode:
 **Recommendation guide:**
 - 1-3 tasks, independent → **inline** (fast and lightweight)
 - 4+ tasks → **subagent-driven** (context isolation)
-- `harness.root` configured + strict step logs/recovery/runtime gates needed → **harness**
-- Do not choose harness only because task count is high; harness is the strict path, not the default light path.
+- `harness.root` configured + external harness logs or step-level recovery needed → **harness**
+- All paths are fail-closed for Verify, runtime smoke, and Full-Feature Wiring Gate. Harness is the external executor/recovery path, not the only strict verification path.
 
 Path 2 follows the `/executeharness` command procedure.
 
@@ -167,6 +167,18 @@ Canonical definition: `docs/reference/verification-contract.md` § Wiring Config
 
 ## 4. Per-Task Execution Loop (Subagent-Driven)
 
+Before the first task in Path 1, prepare machine-checkable lightpath artifacts:
+
+```powershell
+scripts/lightpath-gate.ps1 -Scope prepare -ProjectRoot <project-root> -PlanPath <plan-path> -Phase <phase>
+```
+
+This converts the plan into `phases/<phase>/step*.md`, `wiring-gate.json`, and
+`lightpath-gate.json`. The parent/controller keeps only task status,
+changed-files, diff range, artifact paths, verdict enums, and short failure
+tails. It does not keep full subagent output, full logs, or reviewer reasoning
+in context.
+
 ```
 Record git hash (Section 3.6)
   -> Assess task complexity
@@ -177,14 +189,12 @@ Record git hash (Section 3.6)
   -> Handle implementer status
   -> 4a. Test Baseline Protection (PASS_TO_PASS invariant)
   -> 4b. Lint & Typecheck Gate
-  -> Controller: AC verification (re-read plan file, run Verify commands)
-    -> ALL PASS -> Runtime probe (if applicable)
-      -> PASS -> AC Arbiter (integration/e2e/logic-dense tasks)
-        -> PASS -> View Wiring Test (view tasks only)
-          -> PASS -> conditional security review
-        -> TEST_GAP/CODE_GAP/SPEC_GAP -> re-dispatch or return to /plan
-      -> FAIL -> re-dispatch with runtime error
-    -> FAIL -> re-dispatch with failure details (max 3)
+  -> Controller: Lightpath task gate (`scripts/lightpath-gate.ps1 -Scope task -TaskNumber N`)
+    -> PASS -> AC Arbiter (integration/e2e/logic-dense tasks)
+      -> PASS -> View Wiring Test (view tasks only)
+        -> PASS -> conditional security review
+      -> TEST_GAP/CODE_GAP/SPEC_GAP -> re-dispatch or return to /plan
+    -> FAIL -> re-dispatch with verify/runtime failure details (max 3)
     -> 3 failures -> escalate to user
   -> Compute changed-files -> next task
 ```
@@ -344,6 +354,17 @@ Implementer dispatch -> Implementer completes ->
 **Passing unit tests is NOT the completion condition.** Completion requires executing the plan's Verify commands and confirming exit 0.
 
 **Primary verification — run Verify commands:**
+
+For Path 1 and Path 3, the controller may execute this section through the
+shared gate script:
+
+```powershell
+scripts/lightpath-gate.ps1 -Scope task -ProjectRoot <project-root> -Phase <phase> -TaskNumber <N>
+```
+
+The script reuses `scripts/verify-step.py` and writes `lightpath-gate.json`.
+The implementer subagent's `DONE` report is only a claim; this gate is the
+completion verdict for task Verify and runtime smoke.
 
 1. Re-read the plan file and extract Verify commands from the current task's `**Completion criteria (from spec):**` section. Do not use commands from the implementer report, dispatch prompt, or memory. The plan file is the only source at this step.
 2. Execute each Verify command, check exit code (exit 0 = PASS)
@@ -606,7 +627,14 @@ If the Verdict header is missing 2 consecutive times for any review type, immedi
 
 **Between-task cleanup:**
 - Preserve after each task: task status (pass/fail), changed files, unresolved issues only
+- Preserve lightpath evidence as paths and verdicts only: `lightpath-gate.json`,
+  `wiring-gate.json`, runtime artifact names, and short failure tails
 - Do not preserve: subagent full output, review details, intermediate reasoning
+
+The parent/controller owns the final completion decision, but it does not
+perform evidence-heavy review in its own context. It delegates mechanical checks
+to gate scripts and qualitative checks to reviewer/arbiter subagents, then
+parses only their status lines and verdict enums.
 
 **Context pressure relief:**
 - Before Task 5: compact on pressure detection
@@ -747,6 +775,12 @@ Estimation basis:
 
 Apply Git Hash Recording Protocol (Section 3.6).
 
+Prepare the same lightpath gate artifacts used by the subagent path:
+
+```powershell
+scripts/lightpath-gate.ps1 -Scope prepare -ProjectRoot <project-root> -PlanPath <plan-path> -Phase <phase>
+```
+
 ### Per-Task Execution Loop
 
 For each task:
@@ -757,7 +791,7 @@ Record git hash (git rev-parse HEAD)
   -> Implement in TDD order (test -> confirm failure -> implement -> confirm pass)
   -> Test Baseline Protection (Section 4a, fix-in-place)
   -> Lint & Typecheck Gate (Section 4b, fix-in-place)
-  -> AC verification (run Verify commands, exit 0 = PASS)
+  -> Lightpath task gate (scripts/lightpath-gate.ps1 -Scope task -TaskNumber N)
     -> PASS -> conditional security review
     -> FAIL -> analyze failure -> fix code -> re-verify (max 3)
     -> 3 failures -> escalate to user
@@ -772,7 +806,11 @@ Follow the same procedures as Section 4a (Test Baseline & Protection Gate) and S
 
 ### AC Verification
 
-Follow the same procedure as Section 5 (Acceptance Criteria Verification). Re-read the plan file to extract Verify commands — do not use commands from earlier in the session context. Pass the extracted command verbatim to the Bash tool; do not modify, substitute, or "improve" it. If the command fails, fix the code — not the command. Run Verify commands with Verify-type timeouts.
+Follow the same procedure as Section 5 (Acceptance Criteria Verification) by
+running `scripts/lightpath-gate.ps1 -Scope task`. Re-read the plan file through
+the converted step artifact; do not use commands from earlier in the session
+context. If the gate fails, fix the code or plan gap; do not weaken or replace
+the Verify command.
 
 ### Conditional Security Review
 
@@ -927,8 +965,26 @@ If plan decomposition proves inadequate during execution — tasks too tightly c
 After all tasks + final review complete:
 1. Full diff summary (`git diff <first-task-start-hash>..HEAD`)
 2. Completed/failed/SKIPPED task list
-3. **Wiring Gate Test (fail-closed):**
-   Apply Wiring Config Validation (Section 3.7). If exempt/skip, skip wiring gate.
+3. **Path 1/3 final lightpath gate (fail-closed):**
+   Run:
+
+   ```powershell
+   scripts/lightpath-gate.ps1 -Scope final -ProjectRoot <project-root> -Phase <phase> -DiffRange <first-task-start-hash>..HEAD
+   ```
+
+   - `pass` -> continue.
+   - `review_pending` -> dispatch `ezpowers:wiring-reviewer` with plan path,
+     diff range, `wiring-gate.json`, and runtime artifacts. Record the verdict
+     with `scripts/lightpath-gate.ps1 -Scope final -ReviewerVerdict <verdict>`
+     and rerun/finalize the gate.
+   - `test_gap`/`code_gap`/`spec_gap`/`fail` -> do not complete. Re-dispatch
+     the responsible implementer or return to `/plan` according to the verdict.
+   - Missing or malformed `lightpath-gate.json`/`wiring-gate.json` is
+     `TEST_GAP`.
+4. **Wiring Gate Test detail (fail-closed):**
+   Path 1/3 run these rules through `lightpath-gate.ps1`; Path 2 receives the
+   same verdict from `/executeharness`. Apply Wiring Config Validation
+   (Section 3.7). If exempt/skip, skip wiring gate.
    - Plan `## Full-Feature Wiring Gate` with `Required: yes`:
      - `config.wiring.wiring_gate_command` non-empty → 실행 (timeout: 120s).
      - `config.wiring.wiring_gate_command` empty → plan의 Wiring Gate Verify 커맨드 사용.
@@ -937,7 +993,7 @@ After all tasks + final review complete:
    Exit 0 = PASS. Non-zero = FAIL.
    FAIL → 테스트 출력에서 실패 뷰/파이프라인 식별, Coverage Matrix로 Task 역추적, 해당 Task implementer 재디스패치. Max 3 retries → user 에스컬레이션.
    `Required: yes` → skip 불가. 테스트 파일 미존재 → 테스트 작성 Task를 자동 추가.
-4. **Smoke/runtime gate:** Run the configured runtime probe. If `config.smoke.required: true`, missing `config.smoke.command` is FAIL. Empty smoke may skip only for `artifact_kind: docs|library` with `required: false`. Any failure enters the fix loop (max 3).
+5. **Smoke/runtime gate:** Run the configured runtime probe. If `config.smoke.required: true`, missing `config.smoke.command` is FAIL. Empty smoke may skip only for `artifact_kind: docs|library` with `required: false`. Any failure enters the fix loop (max 3).
 
    **GUI smoke (if `config.smoke.gui_strategy` is not `skip` and not absent):**
    Execute the gui_strategy probe after smoke command:
@@ -963,7 +1019,7 @@ After all tasks + final review complete:
    | 20 | Timeout |
    | 30 | Unsupported platform |
 
-5. Dispatch `ezpowers:workflow-runner` to invoke `/sync-docs` in
+6. Dispatch `ezpowers:workflow-runner` to invoke `/sync-docs` in
    `auto-from-choiceexecutor` mode:
 
    ```

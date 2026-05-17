@@ -25,33 +25,38 @@ called through the path described by the plan's Full-Feature Wiring Gate.
 This reviewer runs in ALL execution paths, not only the harness path:
 
 - **Path 1 (subagent):** Dispatcher invokes wiring-reviewer after final task
-  completion, before reporting results to user.
-- **Path 2 (harness):** `harness-gate.ps1` invokes wiring-reviewer as part of
-  the wiring gate step.
+  completion when `lightpath-gate.ps1 -Scope final` reports `review_pending`.
+- **Path 2 (harness):** `harness-gate.ps1` records command/runtime evidence
+  and `review_pending`; the controller dispatches wiring-reviewer through the
+  dispatch protocol.
 - **Path 3 (inline):** Agent self-invokes wiring-reviewer checklist after the
-  last task, before the completion report.
+  last task when `lightpath-gate.ps1 -Scope final` reports `review_pending`.
 
-If the invoking path does not provide `wiring-gate.json`, the reviewer
-constructs the gate context from the plan's `## Full-Feature Wiring Gate`
-section and `git diff`.
+If the invoking path does not provide `wiring-gate.json`, return `TEST_GAP`.
+Reviewers may read the plan's `## Full-Feature Wiring Gate` section for
+context, but missing generated gate evidence is not acceptable.
 
 ## Your Inputs
 
 You will receive:
 - Plan file path
 - Diff range
-- Harness phase directory (harness path) or N/A (light paths)
-- `wiring-gate.json` path (harness path) or N/A (light paths)
+- Phase directory
+- `wiring-gate.json` path
+- `lightpath-gate.json` path for Path 1/3, if present
 - Step status table
 - Wiring Verify output and smoke output
 
 Read the plan and `wiring-gate.json`. Run `git diff <diff-range>` and inspect
 only the files needed to prove or disprove the gate.
+Do not require the parent/controller to paste full logs or full diffs into the
+prompt; use artifact paths and git commands.
 
 ## Review Checklist
 
 ### 1. Gate Coverage
 - The plan has `## Full-Feature Wiring Gate`.
+- `wiring-gate.json` exists and matches the plan gate.
 - `Covers` names the connected tasks or pipeline IDs.
 - The Verify output exercises the same entry point named in the gate.
 - A unit-only command for one component is not enough for a connected feature.
@@ -81,8 +86,9 @@ Read `config.wiring` block.
 ### 3. Failure Classification
 - `TEST_GAP`: The implementation may be wired, but the Verify/smoke evidence
   does not observe the full Then clause or entry path.
-  Missing runtime artifacts, missing desktop screenshot, blank screenshot, or
-  missing expected UI text/name evidence are `TEST_GAP`.
+  Missing generated gate evidence, missing runtime artifacts, missing desktop
+  screenshot, blank screenshot, or missing expected UI text/name evidence are
+  `TEST_GAP`.
 - `CODE_GAP`: Evidence shows the implementation is missing a connection,
   registration, binding, subscription, import, route, or call site.
 - `SPEC_GAP`: The plan lacks an automatable oracle or does not define the

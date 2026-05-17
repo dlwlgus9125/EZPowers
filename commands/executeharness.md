@@ -37,6 +37,9 @@ repo.
   step execution so timeout, progress, and attempt logs are controlled.
 - Use `scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>` for
   Full-Feature Wiring Gate evidence.
+- If `harness-gate.ps1` records `review_pending`, dispatch
+  `ezpowers:wiring-reviewer`, write its verdict to `wiring-gate.json`, and run
+  the gate helper again to finalize status.
 - When converting plan to phase, preserve task categories and wiring handoffs
   in step files. Skeleton step (step0) must pass runtime smoke before feature
   steps begin.
@@ -54,7 +57,8 @@ repo.
 - Prior `phases/index.ezpowers.json` backup needs user choice.
 - Conversion cannot produce valid step files, phase index, or wiring gate.
 - Step execution times out, makes no progress, or returns failed/blocked status.
-- Wiring gate returns `fail`, `test_gap`, `code_gap`, or `spec_gap`.
+- Wiring gate returns `fail`, `test_gap`, `code_gap`, or `spec_gap`, or remains
+  `review_pending` after reviewer dispatch.
 - Final code review does not pass.
 
 ## Outputs

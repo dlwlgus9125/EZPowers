@@ -43,6 +43,14 @@ function Get-TaskField {
     return ''
 }
 
+function Get-InlineField {
+    param([string] $Text, [string] $Label)
+    $Pattern = "(?m)^\*\*$([regex]::Escape($Label)):\*\*\s*(.+)$"
+    $Match = [regex]::Match($Text, $Pattern)
+    if ($Match.Success) { return $Match.Groups[1].Value.Trim() }
+    return ''
+}
+
 function Get-BacktickCommands {
     param([string] $Text)
     $Commands = @()
@@ -53,6 +61,50 @@ function Get-BacktickCommands {
         }
     }
     return $Commands
+}
+
+function Get-VerifyCommands {
+    param([string] $Text)
+    $Commands = @()
+    foreach ($Match in [regex]::Matches($Text, '(?m)^\*\*Verify:\*\*\s*`([^`]+)`')) {
+        $Commands += $Match.Groups[1].Value.Trim()
+    }
+    if ($Commands.Count -eq 0) {
+        foreach ($Match in [regex]::Matches($Text, '(?m)^Verify:\s*`([^`]+)`')) {
+            $Commands += $Match.Groups[1].Value.Trim()
+        }
+    }
+    if ($Commands.Count -eq 0) {
+        $Commands = @(Get-BacktickCommands $Text)
+    }
+    return $Commands
+}
+
+function Get-CoveredTasks {
+    param([string] $Covers)
+    $Tasks = @()
+    foreach ($Match in [regex]::Matches($Covers, '\bT\d+\b')) {
+        $Task = $Match.Value
+        if ($Tasks -notcontains $Task) {
+            $Tasks += $Task
+        }
+    }
+    return $Tasks
+}
+
+function Get-CoveredEdges {
+    param([string] $Covers)
+    $Edges = @()
+    foreach ($ChainMatch in [regex]::Matches($Covers, 'T\d+(?:\s*->\s*T\d+)+')) {
+        $Tasks = @([regex]::Matches($ChainMatch.Value, 'T\d+') | ForEach-Object { $_.Value })
+        for ($i = 0; $i -lt $Tasks.Count - 1; $i++) {
+            $Edge = "$($Tasks[$i])->$($Tasks[$i + 1])"
+            if ($Edges -notcontains $Edge) {
+                $Edges += $Edge
+            }
+        }
+    }
+    return $Edges
 }
 
 $PlanFullPath = if ([IO.Path]::IsPathRooted($PlanPath)) { $PlanPath } else { Join-Path $ProjectRoot $PlanPath }
@@ -103,6 +155,10 @@ for ($i = 0; $i -lt $TaskMatches.Count; $i++) {
     $Match = $TaskMatches[$i]
     $TaskNumber = [int]$Match.Groups[1].Value
     $TaskName = $Match.Groups[2].Value.Trim()
+    $Category = 'feature'
+    if ($TaskName -match '\{([^}]+)\}') {
+        $Category = $Matches[1].Trim()
+    }
     $TaskStart = $Match.Index
     $TaskEnd = if ($i + 1 -lt $TaskMatches.Count) { $TaskMatches[$i + 1].Index } else { $PlanText.Length }
     $TaskText = $PlanText.Substring($TaskStart, $TaskEnd - $TaskStart).Trim()
@@ -111,13 +167,14 @@ for ($i = 0; $i -lt $TaskMatches.Count; $i++) {
 
     $Files = @()
     foreach ($Line in ($TaskText -split "`r?`n")) {
-        if ($Line -match '^\s*-\s*(Modify|Test):\s*`?([^`]+)`?') {
+        if ($Line -match '^\s*-\s*(Create|Modify|Test|Read):\s*`?([^`]+)`?') {
             $Files += $Matches[2].Trim()
         }
     }
 
     $Completion = Get-TaskField $TaskText 'Completion criteria'
     $Verification = Get-TaskField $TaskText 'Verification method'
+    $WiringHandoff = Get-TaskField $TaskText 'Wiring handoff'
     if ([string]::IsNullOrWhiteSpace($Verification)) {
         $Verification = ($TaskText -split "`r?`n" | Where-Object { $_ -match 'Verify:' }) -join "`n"
     }
@@ -153,6 +210,8 @@ $Verification
         name = $TaskName
         status = 'pending'
         step_md = $StepFile
+        category = $Category
+        wiring_handoff = $WiringHandoff
     }
 }
 
@@ -173,18 +232,28 @@ if (Test-Path -LiteralPath $ConfigPath) {
 } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $PhaseDir 'index.json') -Encoding UTF8
 
 $GateText = Get-WiringGateSection $PlanText
-$Commands = @(Get-BacktickCommands $GateText)
+$Commands = @(Get-VerifyCommands $GateText)
+$RequiredField = Get-InlineField $GateText 'Required'
 $Required = -not [string]::IsNullOrWhiteSpace($GateText)
+if (-not [string]::IsNullOrWhiteSpace($RequiredField)) {
+    $Required = $RequiredField -match '^(yes|true|required)$'
+}
+$VerifyType = Get-InlineField $GateText 'Verify-type'
+if ([string]::IsNullOrWhiteSpace($VerifyType)) {
+    $VerifyType = if ($Required) { 'e2e' } else { 'none' }
+}
+$Covers = Get-InlineField $GateText 'Covers'
+$ExpectedObservation = Get-InlineField $GateText 'Expected observation'
 $GateStatus = if ($Required -and $Commands.Count -eq 0) { 'spec_gap' } elseif ($Required) { 'pending' } else { 'pass' }
 
 [pscustomobject]@{
     phase = $Phase
     required = $Required
-    verify_type = if ($Required) { 'e2e' } else { 'none' }
+    verify_type = $VerifyType
     commands = $Commands
-    covered_tasks = @()
-    covered_edges = @()
-    expected_observation = ''
+    covered_tasks = @(Get-CoveredTasks $Covers)
+    covered_edges = @(Get-CoveredEdges $Covers)
+    expected_observation = $ExpectedObservation
     status = $GateStatus
     attempts = @()
     reason = if ($Required) { '' } else { 'single-task library-only or no executable artifact' }

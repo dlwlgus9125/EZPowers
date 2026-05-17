@@ -11,6 +11,8 @@ $FakeExecutor = Join-Path $TempRoot 'fake-executor.ps1'
 
 New-Item -ItemType Directory -Force -Path $PlanDir | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $TempRoot '.harness') | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $TempRoot 'src') | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $TempRoot 'tests') | Out-Null
 
 try {
     if ([string]::IsNullOrWhiteSpace($HarnessRoot)) {
@@ -30,9 +32,12 @@ try {
   "project": "smoke",
   "harness": { "root": "$($HarnessRoot.Replace('\', '\\'))" },
   "smoke": { "required": true, "artifact_kind": "cli", "command": "Write-Output ok" },
+  "wiring": { "enabled": true, "exempt_reason": "", "view_extensions": [] },
   "executor": { "reviewer_backend": "claude-code" }
 }
 "@ | Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
+    'smoke command' | Set-Content -LiteralPath (Join-Path $TempRoot 'src/smoke.ps1') -Encoding UTF8
+    'smoke test' | Set-Content -LiteralPath (Join-Path $TempRoot 'tests/smoke.Tests.ps1') -Encoding UTF8
 
     @'
 # Plan: Smoke Feature
@@ -47,7 +52,11 @@ One deep module behind a CLI-like interface.
 PowerShell.
 
 ## Full-Feature Wiring Gate
-Verify: `Write-Output gate-ok`
+**Required:** yes
+**Verify-type:** cli
+**Covers:** T1
+**Expected observation:** smoke source exists through the entry path
+**Verify:** `if (-not (Test-Path src/smoke.ps1)) { exit 1 }`
 
 ### Task 1: Implement smoke command [R1]
 
@@ -56,7 +65,7 @@ Verify: `Write-Output gate-ok`
 - Test: `tests/smoke.Tests.ps1`
 
 **Completion criteria (from spec):**
-- [ ] Given: smoke input / When: command runs / Then: output appears / Verify: `Write-Output ok`
+- [ ] Given: smoke input / When: command runs / Then: output appears / Verify: `python -c "raise SystemExit(0)"`
 
 **Verification method:** Run spec Verify commands.
 '@ | Set-Content -LiteralPath (Join-Path $PlanDir '2026-05-13-smoke-feature.md') -Encoding UTF8
@@ -97,8 +106,14 @@ Write-Output "completed step $($Step.step)"
     if (($Index.steps | Select-Object -First 1).status -ne 'completed') {
         throw 'Smoke failed: expected harness-run to complete the step'
     }
-    if ($Gate.status -ne 'pass') {
-        throw "Smoke failed: expected wiring gate pass, got $($Gate.status)"
+    if ($Gate.status -ne 'review_pending') {
+        throw "Smoke failed: expected wiring gate review_pending, got $($Gate.status)"
+    }
+    if ($Gate.evidence_status -ne 'command_passed') {
+        throw "Smoke failed: expected command_passed evidence, got $($Gate.evidence_status)"
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $PhaseDir 'runtime-probe.json'))) {
+        throw 'Smoke failed: expected runtime-probe.json'
     }
     if (@($RunLog.attempts).Count -ne 1 -or @($RunLog.attempts)[0].exit_code -ne 0) {
         throw 'Smoke failed: expected one successful harness-run attempt'
@@ -107,7 +122,12 @@ Write-Output "completed step $($Step.step)"
     Write-Output 'Harness smoke passed.'
 
     # Plugin structure probe (self-test against the EZPowers repo)
-    & (Join-Path $RepoRoot 'scripts/smoke-plugin.ps1')
+    $PluginSmokeOutput = & (Join-Path $RepoRoot 'scripts/smoke-plugin.ps1')
+    $PluginSmokeText = $PluginSmokeOutput -join "`n"
+    Write-Output $PluginSmokeOutput
+    if ($LASTEXITCODE -ne 0 -or $PluginSmokeText -notlike '*Plugin smoke verdict: PASS*') {
+        throw 'Smoke failed: plugin smoke did not pass'
+    }
 }
 finally {
     if (Test-Path -LiteralPath $TempRoot) {
