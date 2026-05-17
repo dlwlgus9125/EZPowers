@@ -1,7 +1,7 @@
 {
   "name": "ezpowers",
   "description": "Personal Claude Code skill plugin — SDD-based workflow with brainstorm, plan, choiceexecutor flow",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
