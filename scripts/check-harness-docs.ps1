@@ -587,6 +587,9 @@ Ship a lightpath feature.
         if (-not (Test-Path -LiteralPath (Join-Path $PhaseDir 'runtime-probe.json'))) {
             throw "[FAIL] lightpath gate: task gate did not write runtime-probe.json"
         }
+        if (-not (Test-Path -LiteralPath (Join-Path $PhaseDir 'task-gates/task-1.json'))) {
+            throw "[FAIL] lightpath gate: task gate did not write task proof"
+        }
 
         & (Join-Path $RepoRoot 'scripts/lightpath-gate.ps1') `
             -ProjectRoot $TempRoot `
@@ -625,6 +628,10 @@ Ship a lightpath feature.
         if ($State.status -ne 'pass') {
             throw "[FAIL] lightpath gate: PASS reviewer verdict did not pass"
         }
+        $Certificate = Get-Content -LiteralPath (Join-Path $PhaseDir 'completion-certificate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($Certificate.status -ne 'pass') {
+            throw "[FAIL] lightpath gate: final pass did not certify completion"
+        }
 
         @'
 # Step 0
@@ -656,6 +663,107 @@ Verify-type: cli
         }
 
         Write-Output "[PASS] lightpath gate execution"
+    }
+    finally {
+        if (Test-Path -LiteralPath $TempRoot) {
+            Remove-Item -LiteralPath $TempRoot -Recurse -Force
+        }
+    }
+}
+
+function Assert-HarnessCertify {
+    $TempRoot = Join-Path $env:TEMP ("ezpowers-harness-certify-" + [guid]::NewGuid().ToString("N"))
+    $PhaseDir = Join-Path $TempRoot 'phases/sample'
+    $TaskGateDir = Join-Path $PhaseDir 'task-gates'
+    New-Item -ItemType Directory -Force -Path $TaskGateDir | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $TempRoot '.harness') | Out-Null
+
+    function Write-CertifyProof {
+        param(
+            [string] $Hash,
+            [string] $VerifyType = 'cli',
+            [int] $VerifyTimeoutSeconds = 120
+        )
+
+        [pscustomobject]@{
+            schema_version = 1
+            phase = 'sample'
+            task_number = 1
+            step = 0
+            step_md = 'step0.md'
+            step_sha256 = $Hash
+            status = 'pass'
+            evidence_status = 'task_verified'
+            message = 'task verified'
+            verify_type = $VerifyType
+            verify_commands = @('python -c "raise SystemExit(0)"')
+            verify_commands_count = 1
+            verify_timeout_seconds = $VerifyTimeoutSeconds
+            verify_exit_code = 0
+            verify_timed_out = $false
+            verify_result = [pscustomobject]@{ pass = $true }
+        } | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $TaskGateDir 'task-1.json') -Encoding UTF8
+    }
+
+    try {
+        '{"smoke":{"required":false,"artifact_kind":"library"},"wiring":{"enabled":true,"view_extensions":[]}}' |
+            Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
+        @'
+{
+  "project": "sample",
+  "phase": "sample",
+  "steps": [
+    { "step": 0, "name": "first", "status": "completed", "step_md": "step0.md" }
+  ]
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'index.json') -Encoding UTF8
+        @'
+# Step 0
+
+## Acceptance Criteria
+- [ ] Given: app / When: command runs / Then: command passes / Verify: `python -c "raise SystemExit(0)"`
+
+## Verification
+Verify: `python -c "raise SystemExit(0)"`
+Verify-type: cli
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'step0.md') -Encoding UTF8
+        '{"phase":"sample","required":false,"status":"pass","commands":[],"attempts":[]}' |
+            Set-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Encoding UTF8
+
+        $Hash = (Get-FileHash -LiteralPath (Join-Path $PhaseDir 'step0.md') -Algorithm SHA256).Hash.ToLowerInvariant()
+        Write-CertifyProof -Hash $Hash
+        & (Join-Path $RepoRoot 'scripts/harness-certify.ps1') -ProjectRoot $TempRoot -Phase 'sample' | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "[FAIL] harness certify: expected valid proof to pass"
+        }
+        $Certificate = Get-Content -LiteralPath (Join-Path $PhaseDir 'completion-certificate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($Certificate.status -ne 'pass') {
+            throw "[FAIL] harness certify: certificate did not pass"
+        }
+
+        Remove-Item -LiteralPath (Join-Path $TaskGateDir 'task-1.json') -Force
+        & (Join-Path $RepoRoot 'scripts/harness-certify.ps1') -ProjectRoot $TempRoot -Phase 'sample' *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw "[FAIL] harness certify: missing task proof should fail"
+        }
+        $Certificate = Get-Content -LiteralPath (Join-Path $PhaseDir 'completion-certificate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($Certificate.status -ne 'test_gap') {
+            throw "[FAIL] harness certify: missing proof did not set test_gap"
+        }
+
+        Write-CertifyProof -Hash 'stale'
+        & (Join-Path $RepoRoot 'scripts/harness-certify.ps1') -ProjectRoot $TempRoot -Phase 'sample' *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw "[FAIL] harness certify: stale proof should fail"
+        }
+
+        Write-CertifyProof -Hash $Hash -VerifyType 'e2e' -VerifyTimeoutSeconds 30
+        & (Join-Path $RepoRoot 'scripts/harness-certify.ps1') -ProjectRoot $TempRoot -Phase 'sample' *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw "[FAIL] harness certify: e2e proof with short timeout should fail"
+        }
+
+        Write-Output "[PASS] harness certify completion proof"
     }
     finally {
         if (Test-Path -LiteralPath $TempRoot) {
@@ -802,6 +910,7 @@ Static-verify: `python -c "raise SystemExit(0)"`
 Assert-Contains 'commands/choiceexecutor.md' 'Harness is the external executor/recovery path, not the only strict verification path.' 'choiceexecutor keeps all paths strict'
 Assert-Contains 'commands/choiceexecutor.md' 'scripts/lightpath-gate.ps1 -Scope task' 'choiceexecutor uses lightpath task gate'
 Assert-Contains 'commands/choiceexecutor.md' 'scripts/lightpath-gate.ps1 -Scope final' 'choiceexecutor uses lightpath final gate'
+Assert-Contains 'commands/choiceexecutor.md' 'scripts/harness-certify.ps1' 'choiceexecutor uses completion certificate gate'
 Assert-Contains 'agents/wiring-reviewer.md' 'missing generated gate evidence' 'wiring reviewer fails missing lightpath evidence'
 Assert-ControllerPrompt 'commands/setup.md' 'setup prompt is diet controller'
 Assert-ControllerPrompt 'commands/brainstorm.md' 'brainstorm prompt is diet controller'
@@ -817,6 +926,7 @@ Assert-Contains 'commands/executeharness.md' 'scripts/harness-doctor.ps1 -Projec
 Assert-Contains 'commands/executeharness.md' 'scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>' 'executeharness uses gate helper'
 Assert-Contains 'commands/executeharness.md' 'scripts/harness-phase.ps1' 'executeharness uses phase helper for status'
 Assert-Contains 'commands/executeharness.md' 'scripts/harness-run.ps1 -ProjectRoot <project-root> -Phase <phase>' 'executeharness uses run helper'
+Assert-Contains 'commands/executeharness.md' 'scripts/harness-certify.ps1 -ProjectRoot <project-root> -Phase <phase>' 'executeharness uses certify helper'
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'Do not reset a step without a concrete pass/fail signal' 'harness contract recovery requires signal'
 Assert-Contains 'commands/executeharness.md' 'mattpocock-harness-adapter.md' 'executeharness reads Matt adapter'
 Assert-Contains 'commands/plan.md' 'vertical red-green slice' 'plan enforces vertical TDD slices'
@@ -832,6 +942,7 @@ Assert-Contains 'commands/choiceexecutor.md' 'context-injector.py verify' 'choic
 Assert-Contains 'docs/reference/spec-contract.md' 'Requirement Section Template' 'spec contract owns requirement template'
 Assert-Contains 'docs/reference/plan-contract.md' 'Task Shape' 'plan contract owns task template'
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'Wiring Gate File' 'harness contract owns wiring schema'
+Assert-Contains 'docs/reference/harness-execution-contract.md' 'Completion Certificate' 'harness contract owns completion certificate'
 Assert-Contains 'docs/reference/architecture-readiness-contract.md' 'Deletion test' 'architecture contract has deletion test'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'EZPowers automation wins' 'Matt adapter preserves EZPowers automation'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'commands/setup.md' 'Matt adapter covers setup command'
@@ -867,6 +978,7 @@ Assert-Contains '.githooks/pre-commit' 'harness-execution-contract' 'pre-commit 
 Assert-Contains '.githooks/pre-commit' 'harness_versions/changelog' 'pre-commit watches harness changelog'
 Assert-Contains '.githooks/pre-commit' 'harness-convert' 'pre-commit watches harness convert helper'
 Assert-Contains '.githooks/pre-commit' 'harness-common' 'pre-commit watches harness common helper'
+Assert-Contains '.githooks/pre-commit' 'harness-certify' 'pre-commit watches harness certify helper'
 Assert-Contains '.githooks/pre-commit' 'harness-doctor' 'pre-commit watches harness doctor'
 Assert-Contains '.githooks/pre-commit' 'harness-gate' 'pre-commit watches harness gate helper'
 Assert-Contains '.githooks/pre-commit' 'harness-phase' 'pre-commit watches harness phase helper'
@@ -900,6 +1012,11 @@ if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/harness-common.ps
 }
 Write-Output '[PASS] harness-common.ps1 exists'
 
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/harness-certify.ps1'))) {
+    throw '[FAIL] harness-certify.ps1: missing scripts/harness-certify.ps1'
+}
+Write-Output '[PASS] harness-certify.ps1 exists'
+
 if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/lightpath-gate.ps1'))) {
     throw '[FAIL] lightpath-gate.ps1: missing scripts/lightpath-gate.ps1'
 }
@@ -923,6 +1040,7 @@ Assert-HarnessConvert
 Assert-HarnessGate
 Assert-HarnessRun
 Assert-LightpathGate
+Assert-HarnessCertify
 Assert-HarnessSmoke
 Assert-ModelRouter
 Assert-HashlineAnchor

@@ -168,15 +168,23 @@ delegate evidence-heavy work to gate scripts and reviewer/arbiter agents.
 - `-Scope prepare` converts the plan into harness-compatible step and wiring
   artifacts.
 - `-Scope task` runs `scripts/verify-step.py` for the task step and records
-  runtime smoke evidence when required.
-- `-Scope final` runs the Full-Feature Wiring Gate and maps reviewer verdicts
-  to `pass`, `test_gap`, `code_gap`, or `spec_gap`.
+  runtime smoke evidence when required. It must also write
+  `phases/<phase>/task-gates/task-N.json`.
+- `-Scope final` runs the Full-Feature Wiring Gate, then runs
+  `scripts/harness-certify.ps1` before any `pass` completion. Reviewer
+  verdicts map to `pass`, `test_gap`, `code_gap`, or `spec_gap`.
+
+`scripts/harness-certify.ps1` is the completion source of truth. It writes
+`phases/<phase>/completion-certificate.json` and fails closed unless every
+completed step has a fresh passing task gate proof, the final wiring gate is
+`pass` when required, and required runtime evidence is present.
 
 The controller may keep only verdict enums, artifact paths, changed-file lists,
 diff ranges, and short failure tails in context. It must not treat an
 implementer subagent's `DONE` report as completion. Completion requires the
-task gate to pass and the final wiring gate to reach `pass`; `review_pending`
-requires an independent wiring reviewer verdict before completion.
+task gate proof and completion certificate to pass and the final wiring gate to
+reach `pass`; `review_pending` requires an independent wiring reviewer verdict
+before completion.
 
 ### Incremental Runnability
 

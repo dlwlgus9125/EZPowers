@@ -172,14 +172,30 @@ while ($true) {
         "step${StepNumber}.md"
     }
     $StepMdPath = Join-Path $ProjectRoot "phases/$Phase/$StepMdName"
+    $TaskNumber = $StepNumber + 1
+    $Verify = $null
+    $SmokeResult = $null
 
     if ($AfterStatus -eq 'completed') {
-        $Verify = Invoke-EzpVerifyStep -ProjectRoot $ProjectRoot -Phase $Phase -StepMdPath $StepMdPath -TimeoutSeconds 30
+        $VerifyTimeout = 120
+        $Verify = Invoke-EzpVerifyStep -ProjectRoot $ProjectRoot -Phase $Phase -StepMdPath $StepMdPath -TimeoutSeconds $VerifyTimeout
         $AttemptRecord | Add-Member -NotePropertyName verify_exit_code -NotePropertyValue ([int]$Verify.exit_code) -Force
         if ($null -ne $Verify.result) {
             $AttemptRecord | Add-Member -NotePropertyName verify_result -NotePropertyValue $Verify.result -Force
         }
         if ($Verify.exit_code -ne 0 -or $Verify.timed_out) {
+            Save-EzpTaskGateEvidence `
+                -ProjectRoot $ProjectRoot `
+                -Phase $Phase `
+                -TaskNumber $TaskNumber `
+                -StepNumber $StepNumber `
+                -StepMdName $StepMdName `
+                -StepMdPath $StepMdPath `
+                -Verify $Verify `
+                -Status 'fail' `
+                -EvidenceStatus 'verify_failed' `
+                -Message "verify-step.py rejected step $StepNumber" `
+                -VerifyTimeoutSeconds $VerifyTimeout | Out-Null
             $RunAttempts += $AttemptRecord
             Save-RunLog $RunAttempts $RunLogPath
             Set-EzpStepStatus -ProjectRoot $ProjectRoot -Phase $Phase -StepNumber $StepNumber -Status 'rejected'
@@ -194,6 +210,19 @@ while ($true) {
             $AttemptRecord | Add-Member -NotePropertyName smoke_command -NotePropertyValue $SmokeResult.command -Force
             $AttemptRecord | Add-Member -NotePropertyName smoke_exit_code -NotePropertyValue ([int]$SmokeResult.exit_code) -Force
             if ($SmokeResult.exit_code -ne 0 -or $SmokeResult.timed_out) {
+                Save-EzpTaskGateEvidence `
+                    -ProjectRoot $ProjectRoot `
+                    -Phase $Phase `
+                    -TaskNumber $TaskNumber `
+                    -StepNumber $StepNumber `
+                    -StepMdName $StepMdName `
+                    -StepMdPath $StepMdPath `
+                    -Verify $Verify `
+                    -SmokeResult $SmokeResult `
+                    -Status 'fail' `
+                    -EvidenceStatus 'smoke_failed' `
+                    -Message "runtime smoke failed at step $StepNumber" `
+                    -VerifyTimeoutSeconds $VerifyTimeout | Out-Null
                 $RunAttempts += $AttemptRecord
                 Save-RunLog $RunAttempts $RunLogPath
                 Set-EzpStepStatus -ProjectRoot $ProjectRoot -Phase $Phase -StepNumber $StepNumber -Status 'error'
@@ -201,6 +230,19 @@ while ($true) {
                 exit 1
             }
         }
+        Save-EzpTaskGateEvidence `
+            -ProjectRoot $ProjectRoot `
+            -Phase $Phase `
+            -TaskNumber $TaskNumber `
+            -StepNumber $StepNumber `
+            -StepMdName $StepMdName `
+            -StepMdPath $StepMdPath `
+            -Verify $Verify `
+            -SmokeResult $SmokeResult `
+            -Status 'pass' `
+            -EvidenceStatus 'task_verified' `
+            -Message "step $StepNumber verified" `
+            -VerifyTimeoutSeconds $VerifyTimeout | Out-Null
     }
 
     $RunAttempts += $AttemptRecord

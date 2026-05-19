@@ -104,6 +104,7 @@ scripts/
   check-harness-docs.ps1 # non-Python harness contract check
   harness-convert.ps1 # non-Python plan-to-phase conversion helper
   harness-doctor.ps1  # non-Python /executeharness pre-flight helper
+  harness-certify.ps1 # non-Python completion certificate gate
   harness-gate.ps1    # non-Python wiring gate executor
   harness-phase.ps1   # non-Python harness phase status/reset helper
   harness-run.ps1     # controlled /executeharness step runner with timeout/logging

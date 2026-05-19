@@ -176,12 +176,17 @@ if ($Scope -eq 'task') {
         "step${StepNumber}.md"
     }
     $StepMdPath = Join-Path $ProjectRoot "phases/$Phase/$StepMdName"
-    $Verify = Invoke-EzpVerifyStep -ProjectRoot $ProjectRoot -Phase $Phase -StepMdPath $StepMdPath -TimeoutSeconds 30
+    $VerifyTimeout = 120
+    $Verify = Invoke-EzpVerifyStep -ProjectRoot $ProjectRoot -Phase $Phase -StepMdPath $StepMdPath -TimeoutSeconds $VerifyTimeout
+    $VerifyCommands = @(Get-EzpVerifyCommandsFromResult $Verify.result)
 
     $TaskResult = [pscustomobject]@{
         task_number = $TaskNumber
         step = $StepNumber
         step_md = $StepMdName
+        task_gate_path = Get-EzpTaskGatePath -ProjectRoot $ProjectRoot -Phase $Phase -TaskNumber $TaskNumber
+        verify_type = [string](Get-EzpConfigValue $Verify.result 'verify_type' '')
+        verify_commands_count = $VerifyCommands.Count
         verify_exit_code = [int]$Verify.exit_code
         verify_timed_out = [bool]$Verify.timed_out
         verify_result = $Verify.result
@@ -190,6 +195,18 @@ if ($Scope -eq 'task') {
     }
 
     if ($Verify.exit_code -ne 0 -or $Verify.timed_out) {
+        Save-EzpTaskGateEvidence `
+            -ProjectRoot $ProjectRoot `
+            -Phase $Phase `
+            -TaskNumber $TaskNumber `
+            -StepNumber $StepNumber `
+            -StepMdName $StepMdName `
+            -StepMdPath $StepMdPath `
+            -Verify $Verify `
+            -Status 'fail' `
+            -EvidenceStatus 'verify_failed' `
+            -Message "verify-step.py rejected Task $TaskNumber" `
+            -VerifyTimeoutSeconds $VerifyTimeout | Out-Null
         Set-EzpStepStatus -ProjectRoot $ProjectRoot -Phase $Phase -StepNumber $StepNumber -Status 'rejected'
         $State = Save-LightpathState `
             -Status 'fail' `
@@ -205,6 +222,19 @@ if ($Scope -eq 'task') {
         $TaskResult.smoke_exit_code = [int]$SmokeResult.exit_code
         $TaskResult.smoke_timed_out = [bool]$SmokeResult.timed_out
         if ($SmokeResult.exit_code -ne 0 -or $SmokeResult.timed_out) {
+            Save-EzpTaskGateEvidence `
+                -ProjectRoot $ProjectRoot `
+                -Phase $Phase `
+                -TaskNumber $TaskNumber `
+                -StepNumber $StepNumber `
+                -StepMdName $StepMdName `
+                -StepMdPath $StepMdPath `
+                -Verify $Verify `
+                -SmokeResult $SmokeResult `
+                -Status 'fail' `
+                -EvidenceStatus 'smoke_failed' `
+                -Message "runtime smoke failed for Task $TaskNumber" `
+                -VerifyTimeoutSeconds $VerifyTimeout | Out-Null
             Set-EzpStepStatus -ProjectRoot $ProjectRoot -Phase $Phase -StepNumber $StepNumber -Status 'error'
             $State = Save-LightpathState `
                 -Status 'fail' `
@@ -216,6 +246,19 @@ if ($Scope -eq 'task') {
         }
     }
 
+    Save-EzpTaskGateEvidence `
+        -ProjectRoot $ProjectRoot `
+        -Phase $Phase `
+        -TaskNumber $TaskNumber `
+        -StepNumber $StepNumber `
+        -StepMdName $StepMdName `
+        -StepMdPath $StepMdPath `
+        -Verify $Verify `
+        -SmokeResult $SmokeResult `
+        -Status 'pass' `
+        -EvidenceStatus 'task_verified' `
+        -Message "Task $TaskNumber verified" `
+        -VerifyTimeoutSeconds $VerifyTimeout | Out-Null
     Set-EzpStepStatus -ProjectRoot $ProjectRoot -Phase $Phase -StepNumber $StepNumber -Status 'completed'
     $State = Save-LightpathState `
         -Status 'pass' `
@@ -271,6 +314,58 @@ if ($Scope -eq 'final') {
         -Message $Message `
         -Gate $Gate `
         -GateExitCode ([int]$GateResult.exit_code)
+
+    if ($Status -eq 'pass') {
+        $CertScript = Join-Path $PSScriptRoot 'harness-certify.ps1'
+        $CertResult = Invoke-EzpExternalProcess `
+            -ProjectRoot $ProjectRoot `
+            -FilePath 'powershell.exe' `
+            -Arguments @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $CertScript, '-ProjectRoot', $ProjectRoot, '-Phase', $Phase) `
+            -TimeoutSeconds 30 `
+            -TimeoutMessage 'harness-certify.ps1 timed out after 30s'
+
+        $CertPath = Join-Path (Get-LightpathPhaseDir) 'completion-certificate.json'
+        $Cert = if (Test-Path -LiteralPath $CertPath) {
+            Get-Content -LiteralPath $CertPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        }
+        else {
+            $null
+        }
+        $CertStatus = if ($null -ne $Cert -and $Cert.PSObject.Properties.Name -contains 'status') {
+            [string]$Cert.status
+        }
+        elseif ($CertResult.timed_out) {
+            'fail'
+        }
+        else {
+            'test_gap'
+        }
+
+        if ($CertResult.exit_code -ne 0 -or $CertStatus -ne 'pass') {
+            $CertMessage = if ($null -ne $Cert -and $Cert.PSObject.Properties.Name -contains 'message') {
+                [string]$Cert.message
+            }
+            else {
+                Get-EzpTail ($CertResult.stderr + $CertResult.stdout)
+            }
+            $State = Save-LightpathState `
+                -Status $CertStatus `
+                -EvidenceStatus 'completion_certificate_failed' `
+                -Message $CertMessage `
+                -Gate $Gate `
+                -GateExitCode ([int]$CertResult.exit_code)
+            Write-Output "Lightpath final gate status: $($State.status) ($($State.message))"
+            exit (Get-EzpGateExitCode $CertStatus)
+        }
+
+        $State = Save-LightpathState `
+            -Status 'pass' `
+            -EvidenceStatus 'completion_certified' `
+            -Message 'final wiring gate and task AC certificate passed' `
+            -Gate $Gate `
+            -GateExitCode 0
+    }
+
     Write-Output "Lightpath final gate status: $($State.status) ($($State.message))"
     exit (Get-EzpGateExitCode $Status)
 }

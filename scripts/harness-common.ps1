@@ -297,6 +297,117 @@ function Save-EzpPhaseIndex {
     Save-EzpJson $Index (Join-Path $ProjectRoot "phases/$Phase/index.json") 20
 }
 
+function Get-EzpStepFileHash {
+    param([string] $Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return ''
+    }
+    return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+function Get-EzpTaskGateDir {
+    param(
+        [string] $ProjectRoot,
+        [string] $Phase
+    )
+
+    return Join-Path $ProjectRoot "phases/$Phase/task-gates"
+}
+
+function Get-EzpTaskGatePath {
+    param(
+        [string] $ProjectRoot,
+        [string] $Phase,
+        [int] $TaskNumber
+    )
+
+    return Join-Path (Get-EzpTaskGateDir -ProjectRoot $ProjectRoot -Phase $Phase) "task-$TaskNumber.json"
+}
+
+function Get-EzpVerifyCommandsFromResult {
+    param($VerifyResult)
+
+    $Commands = @()
+    if ($null -eq $VerifyResult) {
+        return $Commands
+    }
+
+    if ($VerifyResult.PSObject.Properties.Name -contains 'verify_commands') {
+        foreach ($Command in @($VerifyResult.verify_commands)) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$Command) -and $Commands -notcontains [string]$Command) {
+                $Commands += [string]$Command
+            }
+        }
+    }
+
+    if ($Commands.Count -eq 0 -and $VerifyResult.PSObject.Properties.Name -contains 'dimensions') {
+        $CommandDimension = Get-EzpConfigValue $VerifyResult.dimensions 'command' $null
+        $Checks = Get-EzpConfigValue $CommandDimension 'checks' @()
+        foreach ($Check in @($Checks)) {
+            $Command = [string](Get-EzpConfigValue $Check 'command' '')
+            if (-not [string]::IsNullOrWhiteSpace($Command) -and $Commands -notcontains $Command) {
+                $Commands += $Command
+            }
+        }
+    }
+
+    return $Commands
+}
+
+function Save-EzpTaskGateEvidence {
+    param(
+        [string] $ProjectRoot,
+        [string] $Phase,
+        [int] $TaskNumber,
+        [int] $StepNumber,
+        [string] $StepMdName,
+        [string] $StepMdPath,
+        $Verify,
+        [AllowNull()] $SmokeResult = $null,
+        [string] $Status,
+        [string] $EvidenceStatus,
+        [string] $Message,
+        [int] $VerifyTimeoutSeconds = 120
+    )
+
+    $GateDir = Get-EzpTaskGateDir -ProjectRoot $ProjectRoot -Phase $Phase
+    if (-not (Test-Path -LiteralPath $GateDir)) {
+        New-Item -ItemType Directory -Force -Path $GateDir | Out-Null
+    }
+
+    $VerifyResult = if ($null -ne $Verify) { $Verify.result } else { $null }
+    $VerifyCommands = @(Get-EzpVerifyCommandsFromResult $VerifyResult)
+    $VerifyType = [string](Get-EzpConfigValue $VerifyResult 'verify_type' '')
+
+    $Gate = [pscustomobject]@{
+        schema_version = 1
+        phase = $Phase
+        task_number = $TaskNumber
+        step = $StepNumber
+        step_md = $StepMdName
+        step_sha256 = Get-EzpStepFileHash $StepMdPath
+        status = $Status
+        evidence_status = $EvidenceStatus
+        message = $Message
+        verify_type = $VerifyType
+        verify_commands = $VerifyCommands
+        verify_commands_count = $VerifyCommands.Count
+        verify_timeout_seconds = $VerifyTimeoutSeconds
+        verify_exit_code = if ($null -ne $Verify) { [int]$Verify.exit_code } else { $null }
+        verify_timed_out = if ($null -ne $Verify) { [bool]$Verify.timed_out } else { $null }
+        verify_result = $VerifyResult
+        smoke_command = if ($null -ne $SmokeResult) { [string](Get-EzpConfigValue $SmokeResult 'command' '') } else { $null }
+        smoke_exit_code = if ($null -ne $SmokeResult) { [int]$SmokeResult.exit_code } else { $null }
+        smoke_timed_out = if ($null -ne $SmokeResult) { [bool]$SmokeResult.timed_out } else { $null }
+        updated_at = (Get-Date).ToUniversalTime().ToString('o')
+    }
+
+    $Path = Get-EzpTaskGatePath -ProjectRoot $ProjectRoot -Phase $Phase -TaskNumber $TaskNumber
+    Save-EzpJson $Gate $Path 40
+    return $Gate
+}
+
 function Set-EzpStepStatus {
     param(
         [string] $ProjectRoot,

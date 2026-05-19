@@ -185,6 +185,9 @@ executor through `EZPOWERS_MODEL*` environment variables.
 
 After a step reports `completed`, `scripts/verify-step.py` is a hard gate. A
 failed or missing verifier sets the step status to `rejected` and stops the run.
+Every completed step must write `phases/{feature-name}/task-gates/task-N.json`
+with the Verify command list, Verify result, step hash, and runtime smoke
+result when applicable.
 
 The final harness call must enforce runtime smoke for executable artifacts.
 Missing required smoke evidence is a failure, not a skip.
@@ -235,6 +238,24 @@ Exit code contract:
 - `code_gap`: 4.
 - `review_pending`: 5.
 
+## Completion Certificate
+
+Before strict-path or light-path completion, run:
+
+```powershell
+scripts/harness-certify.ps1 -ProjectRoot <project-root> -Phase <phase>
+```
+
+The certificate gate writes
+`phases/{feature-name}/completion-certificate.json` and fails closed when:
+
+- Any step is not `completed`.
+- A completed step lacks matching `task-gates/task-N.json` proof.
+- Task proof is stale against the current step file hash.
+- Verify command evidence is missing, timed out, or non-zero.
+- An `e2e` proof used less than a 120 second Verify timeout.
+- Required wiring or runtime smoke evidence is not `pass`.
+
 ## Recovery
 
 Do not reset a step without a concrete pass/fail signal.
@@ -257,8 +278,10 @@ Use zero-indexed step numbers in reset commands.
 Completion requires:
 
 - Every step completed.
+- Every completed step has fresh task gate proof.
 - Wiring gate PASS.
 - Runtime smoke evidence when required.
+- Completion certificate PASS.
 - EZPowers `phases/index.json` restored.
 - Parent `/choiceexecutor` completion requires Final code review PASS.
 

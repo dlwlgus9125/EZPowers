@@ -909,6 +909,7 @@ After all tasks + final review complete:
      the responsible implementer or return to `/plan` according to the verdict.
    - Missing or malformed `lightpath-gate.json`/`wiring-gate.json` is
      `TEST_GAP`.
+   - `scripts/harness-certify.ps1` must produce a PASS completion certificate before completion.
 4. **Wiring Gate Test detail (fail-closed):**
    Path 1/3 run these rules through `lightpath-gate.ps1`; Path 2 receives the
    same verdict from `/executeharness`. Apply Wiring Config Validation

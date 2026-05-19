@@ -37,6 +37,7 @@ repo.
   step execution so timeout, progress, and attempt logs are controlled.
 - Use `scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>` for
   Full-Feature Wiring Gate evidence.
+- Use `scripts/harness-certify.ps1 -ProjectRoot <project-root> -Phase <phase>` before reporting strict-path completion.
 - If `harness-gate.ps1` records `review_pending`, stop with
   `PENDING_REVIEW` and return the artifact paths. The parent `/choiceexecutor`
   owns reviewer dispatch, verdict recording, and final gate rerun.

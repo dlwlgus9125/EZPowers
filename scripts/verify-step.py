@@ -54,9 +54,43 @@ DEFAULT_TIMEOUT = 30
 # ---------------------------------------------------------------------------
 # Step markdown parser
 # ---------------------------------------------------------------------------
+def _dedupe_preserve_order(items: list[str]) -> list[str]:
+    seen = set()
+    result = []
+    for item in items:
+        clean = item.strip()
+        if clean and clean not in seen:
+            seen.add(clean)
+            result.append(clean)
+    return result
+
+
+def _markdown_sections(text: str) -> dict[str, str]:
+    matches = list(re.finditer(r"(?m)^##\s+(.+?)\s*$", text))
+    sections: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        heading = match.group(1).strip().lower()
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        sections[heading] = text[start:end]
+    return sections
+
+
+def _verification_text(text: str) -> str:
+    sections = _markdown_sections(text)
+    selected = []
+    for heading, body in sections.items():
+        if heading in {"acceptance criteria", "verification"}:
+            selected.append(body)
+    if selected:
+        return "\n".join(selected)
+    return text
+
+
 def parse_step_md(path: pathlib.Path) -> dict:
     """Parse a step markdown file into structured data."""
     text = path.read_text(encoding="utf-8")
+    verification_text = _verification_text(text)
     result = {
         "verify_commands": [],
         "static_commands": [],
@@ -68,17 +102,29 @@ def parse_step_md(path: pathlib.Path) -> dict:
     }
 
     # Extract Verify-type
-    m = re.search(r"Verify-type:\s*(\w+)", text)
+    m = re.search(r"Verify-type:\s*(\w+)", verification_text)
     if m:
         result["verify_type"] = m.group(1).lower()
 
-    # Extract Verify commands (backtick-enclosed commands after Verify:)
-    for m in re.finditer(r"Verify:\s*`([^`]+)`", text):
-        result["verify_commands"].append(m.group(1))
+    # Extract Verify commands only from AC/Verification sections when present.
+    result["verify_commands"] = _dedupe_preserve_order([
+        m.group(1)
+        for m in re.finditer(
+            r"(?:\*\*)?Verify:\s*(?:\*\*)?\s*`([^`]+)`",
+            verification_text,
+            re.IGNORECASE,
+        )
+    ])
 
     # Extract optional static verification commands.
-    for m in re.finditer(r"(?:Static-verify|Ast-grep):\s*`([^`]+)`", text, re.IGNORECASE):
-        result["static_commands"].append(m.group(1))
+    result["static_commands"] = _dedupe_preserve_order([
+        m.group(1)
+        for m in re.finditer(
+            r"(?:\*\*)?(?:Static-verify|Ast-grep):\s*(?:\*\*)?\s*`([^`]+)`",
+            verification_text,
+            re.IGNORECASE,
+        )
+    ])
 
     # Extract files from ## Files to Read or **Files:** sections
     files_section = re.search(
@@ -596,6 +642,9 @@ def run_verify(
     return {
         "step": step_name,
         "verify_type": verify_type,
+        "verify_commands": step["verify_commands"],
+        "verify_commands_count": len(step["verify_commands"]),
+        "static_commands": step["static_commands"],
         "pass": overall_pass,
         "dimensions": dimensions,
     }
