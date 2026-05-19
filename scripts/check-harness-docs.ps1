@@ -673,6 +673,132 @@ function Assert-HarnessSmoke {
     Write-Output '[PASS] harness smoke end-to-end'
 }
 
+function Assert-ModelRouter {
+    $TempRoot = Join-Path $env:TEMP ("ezpowers-model-router-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path (Join-Path $TempRoot '.harness') | Out-Null
+    try {
+        @'
+{
+  "executor": {
+    "model_routing": {
+      "enabled": true,
+      "default_profile": "deep-analysis",
+      "availability_cache": ".harness/model-availability.json"
+    }
+  }
+}
+'@ | Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
+        @'
+{
+  "models": {
+    "harness-env": ["gpt-5.5"]
+  }
+}
+'@ | Set-Content -LiteralPath (Join-Path $TempRoot '.harness/model-availability.json') -Encoding UTF8
+
+        $Output = & python (Join-Path $RepoRoot 'scripts/model-router.py') --project-root $TempRoot --backend harness-env --profile deep-analysis --json
+        if ($LASTEXITCODE -ne 0) {
+            throw "[FAIL] model router: expected successful resolution"
+        }
+        $Result = ($Output -join "`n") | ConvertFrom-Json
+        if ($Result.selected -ne 'gpt-5.5' -or $Result.status -ne 'resolved') {
+            throw "[FAIL] model router: expected gpt-5.5 resolved from availability cache"
+        }
+        Write-Output '[PASS] model router resolution'
+    }
+    finally {
+        if (Test-Path -LiteralPath $TempRoot) {
+            Remove-Item -LiteralPath $TempRoot -Recurse -Force
+        }
+    }
+}
+
+function Assert-HashlineAnchor {
+    $TempRoot = Join-Path $env:TEMP ("ezpowers-hashline-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path $TempRoot | Out-Null
+    try {
+        $Source = Join-Path $TempRoot 'step0.md'
+        $Anchor = Join-Path $TempRoot 'anchors/step0.hashline.json'
+        "alpha`n베타`n" | Set-Content -LiteralPath $Source -Encoding UTF8
+        & python (Join-Path $RepoRoot 'scripts/hashline-anchor.py') stamp --source $Source --anchor $Anchor | Out-Null
+        & python (Join-Path $RepoRoot 'scripts/hashline-anchor.py') verify --source $Source --anchor $Anchor --json | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw '[FAIL] hashline anchor: expected clean verify'
+        }
+        "alpha changed`n베타`n" | Set-Content -LiteralPath $Source -Encoding UTF8
+        & python (Join-Path $RepoRoot 'scripts/hashline-anchor.py') verify --source $Source --anchor $Anchor --json *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw '[FAIL] hashline anchor: drift should fail verify'
+        }
+        Write-Output '[PASS] hashline anchor drift detection'
+    }
+    finally {
+        if (Test-Path -LiteralPath $TempRoot) {
+            Remove-Item -LiteralPath $TempRoot -Recurse -Force
+        }
+    }
+}
+
+function Assert-ContextInjector {
+    $TempRoot = Join-Path $env:TEMP ("ezpowers-context-injector-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path $TempRoot | Out-Null
+    try {
+        $Block = & python (Join-Path $RepoRoot 'scripts/context-injector.py') build --kind contract --content 'docs/reference/model-routing-contract.md'
+        $Prompt = Join-Path $TempRoot 'prompt.md'
+        (($Block -join "`n") + "`n" + ($Block -join "`n")) | Set-Content -LiteralPath $Prompt -Encoding UTF8
+        & python (Join-Path $RepoRoot 'scripts/context-injector.py') verify --file $Prompt --json *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw '[FAIL] context injector: duplicate sentinel should fail'
+        }
+        Write-Output '[PASS] context injector duplicate detection'
+    }
+    finally {
+        if (Test-Path -LiteralPath $TempRoot) {
+            Remove-Item -LiteralPath $TempRoot -Recurse -Force
+        }
+    }
+}
+
+function Assert-VerifyStepStatic {
+    $TempRoot = Join-Path $env:TEMP ("ezpowers-verify-static-" + [guid]::NewGuid().ToString("N"))
+    $PhaseDir = Join-Path $TempRoot 'phases/sample'
+    New-Item -ItemType Directory -Force -Path $PhaseDir | Out-Null
+    try {
+        'ok' | Set-Content -LiteralPath (Join-Path $TempRoot 'app.txt') -Encoding UTF8
+        @'
+# Step 0
+
+## Files to Read
+- `app.txt`
+
+## Task
+Done.
+
+## Acceptance Criteria
+- [ ] Given: app / When: command runs / Then: command passes / Verify: `python -c "raise SystemExit(0)"`
+
+## Verification
+Verify: `python -c "raise SystemExit(0)"`
+Verify-type: cli
+Static-verify: `python -c "raise SystemExit(0)"`
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'step0.md') -Encoding UTF8
+        $Output = & python (Join-Path $RepoRoot 'scripts/verify-step.py') --step-md (Join-Path $PhaseDir 'step0.md') --project-root $TempRoot --phase sample
+        if ($LASTEXITCODE -ne 0) {
+            throw '[FAIL] verify-step static: expected pass'
+        }
+        $Result = ($Output -join "`n") | ConvertFrom-Json
+        if (-not ($Result.dimensions.PSObject.Properties.Name -contains 'static')) {
+            throw '[FAIL] verify-step static: missing static dimension'
+        }
+        Write-Output '[PASS] verify-step static dimension'
+    }
+    finally {
+        if (Test-Path -LiteralPath $TempRoot) {
+            Remove-Item -LiteralPath $TempRoot -Recurse -Force
+        }
+    }
+}
+
 Assert-Contains 'commands/choiceexecutor.md' 'Harness is the external executor/recovery path, not the only strict verification path.' 'choiceexecutor keeps all paths strict'
 Assert-Contains 'commands/choiceexecutor.md' 'scripts/lightpath-gate.ps1 -Scope task' 'choiceexecutor uses lightpath task gate'
 Assert-Contains 'commands/choiceexecutor.md' 'scripts/lightpath-gate.ps1 -Scope final' 'choiceexecutor uses lightpath final gate'
@@ -698,6 +824,11 @@ Assert-Contains 'commands/plan.md' 'mattpocock-harness-adapter.md' 'plan reads M
 Assert-Contains 'commands/setup.md' 'mattpocock-harness-adapter.md' 'setup reads Matt adapter'
 Assert-Contains 'commands/brainstorm.md' 'mattpocock-harness-adapter.md' 'brainstorm reads Matt adapter'
 Assert-Contains 'docs/reference/setup-contract.md' 'Config Schema' 'setup contract owns config schema'
+Assert-Contains 'docs/reference/model-routing-contract.md' 'Model Routing Contract' 'model routing contract exists'
+Assert-Contains 'docs/reference/dispatch-protocol.md' 'scripts/model-router.py' 'dispatch protocol uses model router'
+Assert-Contains 'docs/reference/harness-execution-contract.md' 'EZPOWERS_MODEL' 'harness contract passes model environment'
+Assert-Contains 'commands/choiceexecutor.md' 'model-routing-contract.md' 'choiceexecutor reads model routing contract'
+Assert-Contains 'commands/choiceexecutor.md' 'context-injector.py verify' 'choiceexecutor verifies context injection sentinels'
 Assert-Contains 'docs/reference/spec-contract.md' 'Requirement Section Template' 'spec contract owns requirement template'
 Assert-Contains 'docs/reference/plan-contract.md' 'Task Shape' 'plan contract owns task template'
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'Wiring Gate File' 'harness contract owns wiring schema'
@@ -715,6 +846,7 @@ Assert-Contains 'docs/INDEX.md' 'Setup Contract' 'docs index links setup contrac
 Assert-Contains 'docs/INDEX.md' 'Spec Contract' 'docs index links spec contract'
 Assert-Contains 'docs/INDEX.md' 'Plan Contract' 'docs index links plan contract'
 Assert-Contains 'docs/INDEX.md' 'Harness Execution Contract' 'docs index links harness execution contract'
+Assert-Contains 'docs/INDEX.md' 'Model Routing Contract' 'docs index links model routing contract'
 Assert-Contains 'docs/reference/verification-contract.md' 'The rules in this English subsection are canonical' 'view wiring canonical section present'
 Assert-Contains 'docs/reference/verification-contract.md' 'W5 | Template resolution' 'view wiring W1-W5 taxonomy present'
 Assert-Contains 'docs/reference/domain-language.md' 'Light Path' 'domain language defines light path'
@@ -723,7 +855,7 @@ Assert-Contains 'docs/reference/verification-contract.md' 'scripts/lightpath-gat
 Assert-Contains '.githooks/pre-commit' 'check-harness-docs.ps1' 'pre-commit runs harness docs gate'
 Assert-Contains '.githooks/pre-commit' '.claude-plugin/(plugin|marketplace)' 'pre-commit watches Claude plugin metadata'
 Assert-Contains '.githooks/pre-commit' 'agents/wiring-reviewer' 'pre-commit watches wiring reviewer'
-Assert-Contains '.githooks/pre-commit' 'commands/(setup|brainstorm|choiceexecutor|executeharness|plan)' 'pre-commit watches prompt diet commands'
+Assert-Contains '.githooks/pre-commit' 'commands/(setup|brainstorm|choiceexecutor|executeharness|pipeline-audit|plan)' 'pre-commit watches prompt diet commands'
 Assert-Contains '.githooks/pre-commit' 'CLAUDE\.md' 'pre-commit watches root guide'
 Assert-Contains '.githooks/pre-commit' 'docs/INDEX\.md' 'pre-commit watches docs index'
 Assert-Contains '.githooks/pre-commit' 'domain-language' 'pre-commit watches domain language'
@@ -747,6 +879,11 @@ Assert-Contains 'CLAUDE.md' 'mattpocock-harness-adapter.md' 'root guide document
 Assert-Contains 'harness_versions/changelog.jsonl' 'harness_light_path_refactor' 'harness changelog records refactor'
 Assert-Contains '.githooks/pre-commit' 'smoke-plugin' 'pre-commit watches smoke-plugin helper'
 Assert-Contains '.githooks/pre-commit' 'verify-step' 'pre-commit watches verify-step script'
+Assert-Contains '.githooks/pre-commit' 'model-routing-contract' 'pre-commit watches model routing contract'
+Assert-Contains '.githooks/pre-commit' 'model-router' 'pre-commit watches model router'
+Assert-Contains '.githooks/pre-commit' 'hashline-anchor' 'pre-commit watches hashline anchor'
+Assert-Contains '.githooks/pre-commit' 'context-injector' 'pre-commit watches context injector'
+Assert-Contains '.githooks/pre-commit' 'hook-policy' 'pre-commit watches hook policy'
 
 if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/verify-step.py'))) {
     throw '[FAIL] verify-step.py: missing scripts/verify-step.py'
@@ -768,6 +905,18 @@ if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/lightpath-gate.ps
 }
 Write-Output '[PASS] lightpath-gate.ps1 exists'
 
+foreach ($ScriptName in @('model-router.py', 'hashline-anchor.py', 'context-injector.py')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot "scripts/$ScriptName"))) {
+        throw "[FAIL] ${ScriptName}: missing scripts/$ScriptName"
+    }
+    Write-Output "[PASS] $ScriptName exists"
+}
+
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'hooks/hook-policy.json'))) {
+    throw '[FAIL] hook-policy.json: missing hooks/hook-policy.json'
+}
+Write-Output '[PASS] hook-policy.json exists'
+
 Assert-HarnessPhaseHelper
 Assert-HarnessDoctor
 Assert-HarnessConvert
@@ -775,5 +924,9 @@ Assert-HarnessGate
 Assert-HarnessRun
 Assert-LightpathGate
 Assert-HarnessSmoke
+Assert-ModelRouter
+Assert-HashlineAnchor
+Assert-ContextInjector
+Assert-VerifyStepStatic
 
 Write-Output 'Harness doc checks passed.'

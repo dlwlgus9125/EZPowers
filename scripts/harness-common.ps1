@@ -376,6 +376,123 @@ function Invoke-EzpVerifyStep {
     }
 }
 
+function Invoke-EzpModelRouter {
+    param(
+        [string] $ProjectRoot,
+        [string] $Backend,
+        [string] $Profile = 'balanced',
+        [string] $ExplicitModel = ''
+    )
+
+    $RouterScript = Join-Path $script:EzpHarnessCommonRoot 'model-router.py'
+    if (-not (Test-Path -LiteralPath $RouterScript)) {
+        return [pscustomobject]@{
+            exit_code = 1
+            timed_out = $false
+            stdout = ''
+            stderr = "model-router.py not found: $RouterScript"
+            result = [pscustomobject]@{
+                enabled = $false
+                profile = $Profile
+                backend = $Backend
+                selected = $null
+                status = 'error'
+                reason = "model-router.py not found: $RouterScript"
+            }
+        }
+    }
+
+    $Arguments = @(
+        $RouterScript,
+        '--project-root', $ProjectRoot,
+        '--backend', $Backend,
+        '--profile', $Profile,
+        '--json'
+    )
+    if (-not [string]::IsNullOrWhiteSpace($ExplicitModel)) {
+        $Arguments += @('--explicit-model', $ExplicitModel)
+    }
+
+    $Result = Invoke-EzpExternalProcess `
+        -ProjectRoot $ProjectRoot `
+        -FilePath 'python' `
+        -Arguments $Arguments `
+        -TimeoutSeconds 15 `
+        -TimeoutMessage 'model-router.py timed out after 15s'
+
+    $Parsed = $null
+    if (-not [string]::IsNullOrWhiteSpace($Result.stdout)) {
+        try {
+            $Parsed = $Result.stdout | ConvertFrom-Json
+        }
+        catch {
+            $Parsed = [pscustomobject]@{
+                enabled = $false
+                profile = $Profile
+                backend = $Backend
+                selected = $null
+                status = 'error'
+                reason = "failed to parse model-router output: $($_.Exception.Message)"
+            }
+        }
+    }
+
+    return [pscustomobject]@{
+        exit_code = $Result.exit_code
+        timed_out = $Result.timed_out
+        stdout = $Result.stdout
+        stderr = $Result.stderr
+        result = $Parsed
+    }
+}
+
+function Set-EzpModelRoutingEnvironment {
+    param($Resolution)
+
+    $Names = @(
+        'EZPOWERS_MODEL_PROFILE',
+        'EZPOWERS_MODEL',
+        'EZPOWERS_MODEL_VARIANT',
+        'EZPOWERS_REASONING_EFFORT',
+        'EZPOWERS_MODEL_ROUTING_JSON'
+    )
+    $Previous = @{}
+    foreach ($Name in $Names) {
+        $Previous[$Name] = [Environment]::GetEnvironmentVariable($Name, 'Process')
+    }
+
+    $Selected = [string](Get-EzpConfigValue $Resolution 'selected' '')
+    $Profile = [string](Get-EzpConfigValue $Resolution 'profile' '')
+    $Variant = [string](Get-EzpConfigValue $Resolution 'variant' '')
+    $Reasoning = [string](Get-EzpConfigValue $Resolution 'reasoning_effort' '')
+
+    if (-not [string]::IsNullOrWhiteSpace($Profile)) {
+        [Environment]::SetEnvironmentVariable('EZPOWERS_MODEL_PROFILE', $Profile, 'Process')
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Selected)) {
+        [Environment]::SetEnvironmentVariable('EZPOWERS_MODEL', $Selected, 'Process')
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Variant)) {
+        [Environment]::SetEnvironmentVariable('EZPOWERS_MODEL_VARIANT', $Variant, 'Process')
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Reasoning)) {
+        [Environment]::SetEnvironmentVariable('EZPOWERS_REASONING_EFFORT', $Reasoning, 'Process')
+    }
+    if ($null -ne $Resolution) {
+        [Environment]::SetEnvironmentVariable('EZPOWERS_MODEL_ROUTING_JSON', ($Resolution | ConvertTo-Json -Depth 20 -Compress), 'Process')
+    }
+
+    return $Previous
+}
+
+function Restore-EzpEnvironment {
+    param($Previous)
+
+    foreach ($Name in $Previous.Keys) {
+        [Environment]::SetEnvironmentVariable($Name, $Previous[$Name], 'Process')
+    }
+}
+
 function Get-EzpGateExitCode {
     param([string] $Status)
 

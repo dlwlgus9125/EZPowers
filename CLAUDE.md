@@ -154,10 +154,10 @@ bin/
 
 ## Eval Gate
 
-Harness-only prompt and doc changes for setup, brainstorm, plan, and harness
-execution run `scripts/check-harness-docs.ps1` and do not invoke the Python eval
-gate. Other commits touching `commands/`, `agents/`, skills, or skill-gate
-files run `scripts/validate.py`.
+Harness-only prompt and doc changes for setup, brainstorm, pipeline-audit,
+plan, and harness execution run `scripts/check-harness-docs.ps1` and do not
+invoke the Python eval gate. Other commits touching `commands/`, `agents/`,
+skills, or skill-gate files run `scripts/validate.py`.
 The commit is blocked if:
 - Harness doc contracts fail the PowerShell harness docs gate
 - Diff exceeds 3 lines per Better-Harness "one line at a time" rule

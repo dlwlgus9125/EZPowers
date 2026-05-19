@@ -5,7 +5,7 @@ allowed-tools: [Bash, Read, Write, Edit, Agent, AskUserQuestion]
 
 # /choiceexecutor — Execution Path Selection
 
-Source contracts: `docs/reference/domain-language.md`, `docs/reference/verification-contract.md`, `docs/reference/dispatch-protocol.md`.
+Source contracts: `docs/reference/domain-language.md`, `docs/reference/verification-contract.md`, `docs/reference/dispatch-protocol.md`, `docs/reference/model-routing-contract.md`.
 Execute tasks from the plan document. Choose an execution mode (subagent / harness / inline), then run tasks + AC verification + conditional security review + final code review.
 
 ## 1. Pre-flight Checks
@@ -628,6 +628,7 @@ Agent tool:
 **Post-substitution validation:** Before dispatch:
 1. **Placeholder check:** Scan the completed prompt for `[` + alpha + `]` patterns (e.g., `[SPEC_FILE_PATH]`, `[directory]`). Unsubstituted → do not dispatch.
 2. **Verify Fidelity Check:** Execute the fidelity check from Section 4.1. Any Verify command mismatch between prompt and plan = HALT dispatch.
+3. **Context Injection Check:** If the prompt contains `EZP_CONTEXT` sentinels, run `python scripts/context-injector.py verify --file <prompt-file> --json`; duplicate or missing markers block dispatch.
 
 ## 9. Degradation Detection and Response
 

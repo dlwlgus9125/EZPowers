@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/trace.sh session_start",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/trace.sh session_start preflight false",
             "timeout": 10
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/trace.sh post_tool"
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/trace.sh post_tool execution false"
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/trace.sh stop",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/trace.sh stop reporting false",
             "async": true
           }
         ]
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/trace.sh session_end"
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/trace.sh session_end reporting false"
           }
         ]
       }

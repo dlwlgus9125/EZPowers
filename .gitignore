@@ -3,4 +3,7 @@ evals/holdout/**
 !evals/holdout/.gitkeep
 evals/results/runs/**
 scripts/__pycache__/
+tests/__pycache__/
+plugins/
+*.ezpowers-traces/
 docs/*.exe

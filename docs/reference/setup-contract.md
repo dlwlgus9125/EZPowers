@@ -266,7 +266,14 @@ can be inferred or asked.
     "backend": "claude-code",
     "reviewer_backend": "claude-code",
     "reviewer_model": "",
-    "codex_reviewer_model": ""
+    "codex_reviewer_model": "",
+    "model_routing": {
+      "enabled": false,
+      "default_profile": "balanced",
+      "fail_on_unresolved": false,
+      "availability_cache": ".harness/model-availability.json",
+      "profiles": {}
+    }
   },
   "harness": { "root": "" },
   "defaults": {

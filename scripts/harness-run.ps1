@@ -125,9 +125,34 @@ while ($true) {
     $StepNumber = [int]$Pending.step
     $BeforeStatus = [string]$Pending.status
     $DisplayCommand = if ([string]::IsNullOrWhiteSpace($ExecutorCommand)) { "python $ExecutePath $Phase" } else { $ExecutorCommand }
+    $ModelProfile = 'balanced'
+    if ($Pending.PSObject.Properties.Name -contains 'model_profile' -and -not [string]::IsNullOrWhiteSpace([string]$Pending.model_profile)) {
+        $ModelProfile = [string]$Pending.model_profile
+    }
     Write-Output "Running harness step $StepNumber with timeout ${TimeoutSeconds}s"
 
-    $Result = Invoke-HarnessExecutor $ExecutorCommand $ExecutePath
+    $ModelRoute = Invoke-EzpModelRouter -ProjectRoot $ProjectRoot -Backend 'harness-env' -Profile $ModelProfile
+    if ($null -ne $ModelRoute.result -and [string](Get-EzpConfigValue $ModelRoute.result 'status' '') -ne 'disabled') {
+        Write-Output "Model route for step ${StepNumber}: profile=$ModelProfile selected=$([string](Get-EzpConfigValue $ModelRoute.result 'selected' '')) status=$([string](Get-EzpConfigValue $ModelRoute.result 'status' ''))"
+    }
+    if ($ModelRoute.exit_code -ne 0 -or $ModelRoute.timed_out) {
+        $AttemptRecord = New-Attempt $StepNumber 'python scripts/model-router.py' $ModelRoute.exit_code $ModelRoute.timed_out $BeforeStatus $BeforeStatus $ModelRoute.stdout $ModelRoute.stderr
+        if ($null -ne $ModelRoute.result) {
+            $AttemptRecord | Add-Member -NotePropertyName model_resolution -NotePropertyValue $ModelRoute.result -Force
+        }
+        $RunAttempts += $AttemptRecord
+        Save-RunLog $RunAttempts $RunLogPath
+        Write-Output "Model routing failed at step $StepNumber"
+        exit 1
+    }
+
+    $PreviousEnv = Set-EzpModelRoutingEnvironment $ModelRoute.result
+    try {
+        $Result = Invoke-HarnessExecutor $ExecutorCommand $ExecutePath
+    }
+    finally {
+        Restore-EzpEnvironment $PreviousEnv
+    }
 
     $AfterIndex = Get-EzpPhaseIndex -ProjectRoot $ProjectRoot -Phase $Phase
     $AfterStep = $AfterIndex.steps |
@@ -136,6 +161,9 @@ while ($true) {
     $AfterStatus = if ($AfterStep) { [string]$AfterStep.status } else { 'missing' }
 
     $AttemptRecord = New-Attempt $StepNumber $DisplayCommand $Result.exit_code $Result.timed_out $BeforeStatus $AfterStatus $Result.stdout $Result.stderr
+    if ($null -ne $ModelRoute.result) {
+        $AttemptRecord | Add-Member -NotePropertyName model_resolution -NotePropertyValue $ModelRoute.result -Force
+    }
 
     $StepMdName = if ($AfterStep -and $AfterStep.PSObject.Properties.Name -contains 'step_md' -and -not [string]::IsNullOrWhiteSpace([string]$AfterStep.step_md)) {
         [string]$AfterStep.step_md

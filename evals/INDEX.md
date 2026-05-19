@@ -7,6 +7,12 @@
 - Honeypot: 2 cases
 - Skill: 9 cases (separate runner: `scripts/run_skill_evals.py`)
 
+## Runner Modes
+- Static: implemented default. Deterministic graders run against current files
+  and fixture data.
+- Live: reserved for future disposable-repo slash-command execution. The runner
+  fails loudly in this mode until that path is implemented.
+
 ## Coverage by command
 | Command | Opt | Hold | Gold | Honeypot | Total |
 |---|---|---|---|---|---|
@@ -39,9 +45,20 @@ Skill cases are intentionally separate from command cases. They guard skill hot-
 - Date: 2026-05-15
 - File: evals/results/baselines/1.5.2.json
 - Git SHA: edfe932
+- Eval mode: static
 - Automated pass rate: 14/32 (44%)
 - Manual-only cases: 17/49 require live execution or LLM rubric
 - Golden: 7/7 automated
 - Optimization: 7/24 automated, 16 manual
 - Holdout: 0 tracked cases
 - Honeypot: 0/1 automated, 1 manual
+
+## Latest local static run
+- Date: 2026-05-19
+- File: evals/results/runs/20260519T104614-1bf1a30.jsonl
+- Automated pass rate: 21/32 (66%)
+- Golden: 7/7 automated
+- Optimization: 14/24 automated, 16 manual
+- Setup: 3/3 automated
+- Remaining non-live failures are mostly absent generated spec/plan artifacts
+  plus the external runtime probe dependency.

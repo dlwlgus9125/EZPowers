@@ -11,6 +11,8 @@
 # Exit: always 0 — never blocks Claude Code.
 
 EVENT_TYPE="${1:-unknown}"
+HOOK_TIER="${2:-reporting}"
+FAIL_CLOSED="${3:-false}"
 TRACE_BASE="${CLAUDE_PLUGIN_DATA:-$HOME/.ezpowers-traces}"
 TRACE_DIR="$TRACE_BASE/traces"
 
@@ -51,6 +53,8 @@ except Exception:
     hook_input = {}
 
 event = sys.argv[2]
+tier = sys.argv[3]
+fail_closed = sys.argv[4].lower() == 'true'
 now_ns = int(time.time() * 1_000_000_000)
 
 line = {
@@ -59,6 +63,8 @@ line = {
     'session_id': hook_input.get('session_id', hook_input.get('sessionId', 'unknown')),
     'turn_id': hook_input.get('turn_id', hook_input.get('turnId', None)),
     'hook_event_name': event,
+    'ezpowers.hook_tier': tier,
+    'ezpowers.fail_closed': fail_closed,
     'tool_name': hook_input.get('tool_name', hook_input.get('toolName', None)),
     'tool_input': hook_input.get('tool_input', hook_input.get('toolInput', None)),
     'tool_use_id': hook_input.get('tool_use_id', hook_input.get('toolUseId', None)),
@@ -88,6 +94,6 @@ if event == 'stop':
 line = {k: v for k, v in line.items() if v is not None}
 
 print(json.dumps(line, ensure_ascii=False))
-" "$TMPFILE" "$EVENT_TYPE" >> "$OUTFILE" 2>/dev/null
+" "$TMPFILE" "$EVENT_TYPE" "$HOOK_TIER" "$FAIL_CLOSED" >> "$OUTFILE" 2>/dev/null
 
 exit 0

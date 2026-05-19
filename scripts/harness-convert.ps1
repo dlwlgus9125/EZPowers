@@ -48,6 +48,9 @@ function Get-InlineField {
     $Pattern = "(?m)^\*\*$([regex]::Escape($Label)):\*\*\s*(.+)$"
     $Match = [regex]::Match($Text, $Pattern)
     if ($Match.Success) { return $Match.Groups[1].Value.Trim() }
+    $PlainPattern = "(?m)^$([regex]::Escape($Label)):\s*(.+)$"
+    $PlainMatch = [regex]::Match($Text, $PlainPattern)
+    if ($PlainMatch.Success) { return $PlainMatch.Groups[1].Value.Trim() }
     return ''
 }
 
@@ -119,6 +122,8 @@ if ([string]::IsNullOrWhiteSpace($Phase)) {
 
 $PhaseDir = Join-Path $ProjectRoot "phases/$Phase"
 New-Item -ItemType Directory -Force -Path $PhaseDir | Out-Null
+$AnchorDir = Join-Path $PhaseDir 'anchors'
+New-Item -ItemType Directory -Force -Path $AnchorDir | Out-Null
 
 $Goal = Get-Section $PlanText 'Goal'
 if ([string]::IsNullOrWhiteSpace($Goal)) {
@@ -175,6 +180,13 @@ for ($i = 0; $i -lt $TaskMatches.Count; $i++) {
     $Completion = Get-TaskField $TaskText 'Completion criteria'
     $Verification = Get-TaskField $TaskText 'Verification method'
     $WiringHandoff = Get-TaskField $TaskText 'Wiring handoff'
+    $ModelProfile = Get-InlineField $TaskText 'Model profile'
+    if ([string]::IsNullOrWhiteSpace($ModelProfile) -and $TaskName -match '\{([^}]+)\}') {
+        $ModelProfile = $Matches[1].Trim()
+    }
+    if ([string]::IsNullOrWhiteSpace($ModelProfile)) {
+        $ModelProfile = 'balanced'
+    }
     if ([string]::IsNullOrWhiteSpace($Verification)) {
         $Verification = ($TaskText -split "`r?`n" | Where-Object { $_ -match 'Verify:' }) -join "`n"
     }
@@ -205,12 +217,20 @@ $Verification
 - $PlanFullPath
 "@ | Set-Content -LiteralPath (Join-Path $PhaseDir $StepFile) -Encoding UTF8
 
+    $StepPath = Join-Path $PhaseDir $StepFile
+    $AnchorPath = Join-Path $AnchorDir "$([IO.Path]::GetFileNameWithoutExtension($StepFile)).hashline.json"
+    & python (Join-Path $PSScriptRoot 'hashline-anchor.py') stamp --source $StepPath --anchor $AnchorPath | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to stamp hashline anchor for $StepPath"
+    }
+
     $Steps += [pscustomobject]@{
         step = $StepNumber
         name = $TaskName
         status = 'pending'
         step_md = $StepFile
         category = $Category
+        model_profile = $ModelProfile
         wiring_handoff = $WiringHandoff
     }
 }

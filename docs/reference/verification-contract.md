@@ -313,7 +313,8 @@ and retry at most 3 times before user escalation.
 
 ## Assertion Dimensions
 
-Step verification uses four assertion dimensions via `scripts/verify-step.py`.
+Step verification uses four primary assertion dimensions via
+`scripts/verify-step.py`, plus an optional static dimension.
 Each dimension produces independent pass/fail results with per-check detail.
 
 | Dimension | What it checks |
@@ -322,6 +323,7 @@ Each dimension produces independent pass/fail results with per-check detail.
 | `content` | Regex patterns, count thresholds, banned expression scan. |
 | `relational` | Cross-file reference integrity (R-ids in spec match plan, file refs exist). |
 | `command` | Shell command execution with exit 0 semantics (backwards-compatible). |
+| `static` | Optional `Static-verify:` or `Ast-grep:` command execution. |
 
 Verify-type determines which dimensions apply:
 
@@ -336,6 +338,11 @@ Verify-type determines which dimensions apply:
 
 A step passes only when all enabled dimensions pass. The `command` dimension
 preserves backwards compatibility with existing shell Verify commands.
+
+If `phases/<phase>/anchors/<step>.hashline.json` exists, structural
+verification also checks that the generated step file has not drifted from its
+conversion-time anchor. If `.harness/config.json` sets
+`verification.static_required: true`, a step without static verification fails.
 
 ### Legacy Notes
 

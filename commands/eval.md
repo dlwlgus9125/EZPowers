@@ -23,6 +23,7 @@ Even 4 cases make the regression guard work. Changes without measurement are not
 /eval --case <case_id>     # Single case execution
 /eval --baseline           # Record current scores as new baseline (golden 100% required)
 /eval --diff <version>     # Compare against specified version baseline
+/eval --live               # Reserved for future live slash-command execution; fail loudly until implemented
 ```
 
 ## Process Flow
@@ -43,6 +44,8 @@ Verify:
 - `evals/` directory exists
 - Read current version from `.codex-plugin/plugin.json` (fallback: `.claude-plugin/plugin.json`)
 - Identify latest baseline file in `evals/results/baselines/`
+- Default runner mode is `static`: deterministic graders run against current
+  files and fixture data. Do not present static scores as live command quality.
 
 If `evals/` directory is missing: "Run `/setup --with-evals` first." then stop.
 
@@ -53,7 +56,7 @@ If `evals/` directory is missing: "Run `/setup --with-evals` first." then stop.
 Run all splits:
 
 ```bash
-python scripts/run_baseline.py --version <current_version> --splits optimization holdout golden honeypot
+python scripts/run_baseline.py --version <current_version> --mode static --splits optimization holdout golden honeypot
 ```
 
 ### 2-2. `/eval <split>`
@@ -61,7 +64,7 @@ python scripts/run_baseline.py --version <current_version> --splits optimization
 Run a single split:
 
 ```bash
-python scripts/run_baseline.py --version <current_version> --splits <split>
+python scripts/run_baseline.py --version <current_version> --mode static --splits <split>
 ```
 
 ### 2-3. `/eval --case <case_id>`
@@ -71,7 +74,7 @@ Run a single case file. Resolve file path from `case_id`:
 - Recursively search under `evals/` for a matching `case_id` file
 
 ```bash
-python scripts/run_baseline.py --version <current_version> --cases <resolved_path>
+python scripts/run_baseline.py --version <current_version> --mode static --cases <resolved_path>
 ```
 
 ### 2-4. `/eval --baseline`
@@ -86,12 +89,25 @@ Resolve golden failures before recording baseline.
 
 On pass:
 ```bash
-python scripts/run_baseline.py --version <current_version> --baseline --splits optimization holdout golden honeypot
+python scripts/run_baseline.py --version <current_version> --mode static --baseline --splits optimization holdout golden honeypot
 ```
 
 After recording, auto-update the "Last baseline" section in `evals/INDEX.md`.
 
-### 2-5. `/eval --diff <version>`
+### 2-5. `/eval --live`
+
+Live mode is the future runner path that must execute the actual slash-command
+workflow in a disposable target repo, then grade the produced artifacts and
+trace. Until implemented, call:
+
+```bash
+python scripts/run_baseline.py --version <current_version> --mode live --splits golden
+```
+
+and report the explicit not-implemented failure. Do not silently downgrade live
+mode to static mode.
+
+### 2-6. `/eval --diff <version>`
 
 Load baseline file `evals/results/baselines/<version>.json` and compare with current run results.
 
@@ -115,6 +131,12 @@ If baseline file missing: "Baseline `<version>` not found. Available: [list]".
 Cases that cannot be auto-run (mode=manual) are excluded from Total and shown separately:
 ```
 Manual-only (requires live execution): 19 cases
+```
+
+Also print the runner mode:
+
+```
+Eval mode: static
 ```
 
 ### 3-2. Per-stratum Breakdown
@@ -181,6 +203,7 @@ Reason: golden 6/7 -> banned-expression-detection FAIL
 
 Verify this command works correctly:
 - `/eval golden` outputs results for the current golden cases
+- `/eval --live` reports that live execution is not implemented
 - `/eval --diff 0.6.0` outputs baseline comparison
 - Output ends with `## Verdict: PASS` or `## Verdict: FAIL`
 
@@ -190,4 +213,5 @@ Verify this command works correctly:
 |----------------|---------------------|
 | "Only 1 golden failed, can we record baseline anyway?" | Golden is an inviolable invariant. Even 1 failure blocks recording. |
 | "Ignore manual cases, just look at auto?" | Manual cases are excluded from pass rate Total but shown separately. Auto-ratio itself is an eval maturity indicator. |
+| "Static passed, so live workflow is good?" | Static only proves contracts and fixtures. Live workflow quality requires `--mode live`, which is not implemented yet. |
 | "No previous baseline, skip diff" | If first run, record with `--baseline` first. Per-split results are always shown even without diff. |

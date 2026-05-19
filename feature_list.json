@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "wip_limit": 1,
+  "updated_at": "2026-05-19T00:00:00Z",
+  "features": [
+    {
+      "id": "F1",
+      "title": "Install root harness bootstrap files",
+      "status": "complete",
+      "success_criteria": [
+        "AGENTS.md exists as the cross-agent entry point",
+        ".harness/config.json exists",
+        "phases/index.json records setup complete",
+        "docs/specs and docs/plans exist"
+      ],
+      "evidence": [
+        "AGENTS.md added",
+        ".harness/config.json added",
+        "phases/index.json added",
+        "docs/specs/.gitkeep and docs/plans/.gitkeep added"
+      ]
+    },
+    {
+      "id": "F2",
+      "title": "Separate static and live eval semantics",
+      "status": "complete",
+      "success_criteria": [
+        "run_baseline.py exposes --mode static|live",
+        "live mode fails loudly until implemented",
+        "eval documentation stops presenting static scores as live workflow quality"
+      ],
+      "evidence": [
+        "scripts/run_baseline.py exposes --mode static|live",
+        "live mode exits with an explicit not-implemented error",
+        "commands/eval.md and evals/INDEX.md document static vs live semantics"
+      ]
+    },
+    {
+      "id": "F3",
+      "title": "Close D9 pipeline-audit contract drift",
+      "status": "complete",
+      "success_criteria": [
+        "pipeline-audit state table includes D9 when triggered",
+        "output report template includes D9",
+        "verdict aggregation counts D9"
+      ],
+      "evidence": [
+        "commands/pipeline-audit.md includes D9 in state dimensions",
+        "commands/pipeline-audit.md includes D9 in output template and routing"
+      ]
+    },
+    {
+      "id": "F4",
+      "title": "Define cleanup and packaging policy",
+      "status": "complete",
+      "success_criteria": [
+        "tracked empty numeric files are removed or justified",
+        "plugins/ezpowers mirror is either generated-and-ignored or tracked intentionally",
+        "Claude and Codex plugin versions are reconciled"
+      ],
+      "evidence": [
+        ".gitignore now ignores plugins/ and Python cache directories",
+        "tracked empty numeric files removed",
+        ".codex-plugin/plugin.json version reconciled with .claude-plugin/plugin.json"
+      ]
+    }
+  ]
+}

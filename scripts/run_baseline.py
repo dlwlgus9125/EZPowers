@@ -5,6 +5,8 @@ Self-contained: requires only stdlib + PyYAML.
 
 Usage:
   python scripts/run_baseline.py --version 0.6.0 --splits golden optimization
+  python scripts/run_baseline.py --version 0.6.0 --mode static --splits golden
+  python scripts/run_baseline.py --version 0.6.0 --mode live --splits golden
   python scripts/run_baseline.py --version 0.6.0 --baseline
   python scripts/run_baseline.py --version 0.6.0 --cases evals/golden/banned-expression-detection.yaml
 """
@@ -58,6 +60,7 @@ GRADER_TYPES = (
     "tool_calls",
 )
 LIVE_EXEC_VARS = ("$REVIEW_OUTPUT", "$EXECUTOR_OUTPUT")
+EVAL_MODES = ("static", "live")
 
 
 def parse_timeout(value: str | int | None, default: int, label: str) -> int:
@@ -733,7 +736,7 @@ def run_graders(
         return {
             "pass": None,
             "mode": "manual",
-            "reason": "no automated graders available — requires live execution",
+            "reason": "no automated graders available; requires live execution",
             "graders": grader_results,
         }
 
@@ -758,8 +761,8 @@ def run_case(
 ) -> dict:
     """Run a single eval case and return results.
 
-    In v1, this runs graders against current codebase state.
-    Live execution (spawning Claude) is not yet implemented.
+    Static mode runs graders against current codebase state. Live execution
+    that spawns the agent is intentionally separated and not implemented yet.
     """
     command_timeout_seconds = (
         DEFAULT_COMMAND_TIMEOUT_SECONDS
@@ -895,7 +898,7 @@ def compute_stats(results: list[dict]) -> dict:
 
 
 def write_baseline(output_path: pathlib.Path, version: str, model: str,
-                   results: list[dict], stats: dict):
+                   results: list[dict], stats: dict, eval_mode: str):
     """Write baseline JSON file."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -914,6 +917,7 @@ def write_baseline(output_path: pathlib.Path, version: str, model: str,
         "version": version,
         "date": datetime.datetime.now(datetime.UTC).isoformat() + "Z",
         "model": model,
+        "eval_mode": eval_mode,
         "git_sha": get_git_sha(),
         "scores": scores,
         "stats": stats,
@@ -979,7 +983,7 @@ def enforce_golden_baseline_gate(
 
 
 def write_run(output_dir: pathlib.Path, version: str, model: str,
-              results: list[dict], stats: dict):
+              results: list[dict], stats: dict, eval_mode: str):
     """Write run JSONL file."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -994,6 +998,7 @@ def write_run(output_dir: pathlib.Path, version: str, model: str,
             "version": version,
             "date": datetime.datetime.now(datetime.UTC).isoformat() + "Z",
             "model": model,
+            "eval_mode": eval_mode,
             "git_sha": git_sha,
             "stats": stats,
         }
@@ -1020,6 +1025,7 @@ def print_summary(stats: dict):
     print("EVAL RUN SUMMARY")
     print("=" * 60)
     print(f"Total cases:  {stats['total_cases']}")
+    print(f"Eval mode:    {stats.get('eval_mode', 'static')}")
     print(f"Automated:    {stats['automated']}")
     print(f"Manual only:  {stats['manual']}")
 
@@ -1056,6 +1062,15 @@ def main():
     parser.add_argument("--version", required=True, help="Version label (e.g., 0.6.0)")
     parser.add_argument("--model", default="claude-opus-4-5",
                         help="Model used for evaluation")
+    parser.add_argument(
+        "--mode",
+        choices=EVAL_MODES,
+        default="static",
+        help=(
+            "static runs deterministic graders against current files; "
+            "live is reserved for future slash-command execution and fails loudly"
+        ),
+    )
     parser.add_argument("--splits", nargs="+",
                         default=["optimization", "holdout", "golden"],
                         help="Splits to run")
@@ -1095,6 +1110,14 @@ def main():
     )
 
     args = parser.parse_args()
+    if args.mode == "live":
+        print(
+            "ERROR: live eval execution is not implemented yet. "
+            "Use --mode static for current deterministic graders.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
     evals_root = pathlib.Path(args.evals_root)
     progress_file = pathlib.Path(args.progress_file) if args.progress_file else _default_progress_file(evals_root)
 
@@ -1150,6 +1173,7 @@ def main():
 
     # Compute stats
     stats = compute_stats(results)
+    stats["eval_mode"] = args.mode
 
     # Write output
     if args.baseline:
@@ -1162,10 +1186,10 @@ def main():
             progress_file=progress_file,
         )
         baseline_path = evals_root / "results" / "baselines" / f"{args.version}.json"
-        write_baseline(baseline_path, args.version, args.model, results, stats)
+        write_baseline(baseline_path, args.version, args.model, results, stats, args.mode)
     else:
         runs_dir = evals_root / "results" / "runs"
-        write_run(runs_dir, args.version, args.model, results, stats)
+        write_run(runs_dir, args.version, args.model, results, stats, args.mode)
 
     # Print summary
     print_summary(stats)

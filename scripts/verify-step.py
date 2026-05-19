@@ -59,6 +59,7 @@ def parse_step_md(path: pathlib.Path) -> dict:
     text = path.read_text(encoding="utf-8")
     result = {
         "verify_commands": [],
+        "static_commands": [],
         "verify_type": "cli",
         "files": [],
         "acceptance_criteria": [],
@@ -74,6 +75,10 @@ def parse_step_md(path: pathlib.Path) -> dict:
     # Extract Verify commands (backtick-enclosed commands after Verify:)
     for m in re.finditer(r"Verify:\s*`([^`]+)`", text):
         result["verify_commands"].append(m.group(1))
+
+    # Extract optional static verification commands.
+    for m in re.finditer(r"(?:Static-verify|Ast-grep):\s*`([^`]+)`", text, re.IGNORECASE):
+        result["static_commands"].append(m.group(1))
 
     # Extract files from ## Files to Read or **Files:** sections
     files_section = re.search(
@@ -118,10 +123,62 @@ def _is_within(path: pathlib.Path, root: pathlib.Path) -> bool:
         return False
 
 
-def check_structural(step: dict, project_root: pathlib.Path) -> dict:
+def check_structural(
+    step: dict,
+    project_root: pathlib.Path,
+    step_md_path: pathlib.Path,
+    phase_dir: pathlib.Path | None,
+) -> dict:
     """Check file existence and format validity."""
     checks = []
     all_pass = True
+
+    if phase_dir is not None:
+        anchor_path = phase_dir / "anchors" / f"{step_md_path.stem}.hashline.json"
+        if anchor_path.exists():
+            anchor_script = REPO_ROOT / "scripts" / "hashline-anchor.py"
+            try:
+                proc = subprocess.run(
+                    [
+                        sys.executable,
+                        str(anchor_script),
+                        "verify",
+                        "--source",
+                        str(step_md_path),
+                        "--anchor",
+                        str(anchor_path),
+                        "--json",
+                    ],
+                    cwd=str(project_root),
+                    text=True,
+                    capture_output=True,
+                    timeout=10,
+                    check=False,
+                )
+                try:
+                    anchor_result = json.loads(proc.stdout)
+                except json.JSONDecodeError:
+                    anchor_result = {
+                        "pass": False,
+                        "error": (proc.stderr or proc.stdout)[:200],
+                    }
+                passed = proc.returncode == 0 and bool(anchor_result.get("pass"))
+                checks.append({
+                    "name": "hashline_anchor",
+                    "target": str(anchor_path),
+                    "pass": passed,
+                    "result": anchor_result,
+                })
+                if not passed:
+                    all_pass = False
+            except (OSError, subprocess.TimeoutExpired) as e:
+                all_pass = False
+                checks.append({
+                    "name": "hashline_anchor",
+                    "target": str(anchor_path),
+                    "pass": False,
+                    "error": str(e)[:200],
+                })
 
     for file_ref in step["files"]:
         # Reject path traversal attempts
@@ -387,6 +444,104 @@ def check_command(
     return {"pass": all_pass, "checks": checks}
 
 
+def _config_static_required(project_root: pathlib.Path) -> bool:
+    config_path = project_root / ".harness" / "config.json"
+    if not config_path.exists():
+        return False
+    try:
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return False
+    verification = data.get("verification", {})
+    if not isinstance(verification, dict):
+        return False
+    return bool(verification.get("static_required", False))
+
+
+def check_static(
+    step: dict,
+    project_root: pathlib.Path,
+    timeout: float,
+    required: bool,
+) -> dict:
+    """Run optional static verification commands."""
+    checks = []
+    all_pass = True
+    commands = step["static_commands"]
+
+    if not commands:
+        if required:
+            return {
+                "pass": False,
+                "checks": [{
+                    "name": "static_commands_present",
+                    "expected": ">=1",
+                    "actual": 0,
+                    "pass": False,
+                }],
+            }
+        return {"pass": True, "checks": []}
+
+    bash_path = run_baseline.find_bash()
+    for cmd in commands:
+        executable = cmd.strip().split()[0] if cmd.strip() else ""
+        if executable and shutil.which(executable) is None and executable.lower() in {"ast-grep", "sg"}:
+            passed = not required
+            if not passed:
+                all_pass = False
+            checks.append({
+                "name": "static_tool_available",
+                "command": cmd,
+                "tool": executable,
+                "pass": passed,
+                "warning": None if required else f"{executable} not found; optional static check skipped",
+            })
+            if not required:
+                continue
+        try:
+            if bash_path:
+                proc = run_command_with_timeout(
+                    [bash_path, "-c", cmd],
+                    timeout=timeout,
+                    cwd=str(project_root),
+                )
+            else:
+                proc = run_command_with_timeout(
+                    cmd,
+                    shell=True,
+                    timeout=timeout,
+                    cwd=str(project_root),
+                )
+            passed = proc.returncode == 0
+            if not passed:
+                all_pass = False
+            checks.append({
+                "name": "static_exit",
+                "command": cmd,
+                "exit_code": proc.returncode,
+                "pass": passed,
+                "stderr": (proc.stderr or "")[:200],
+            })
+        except subprocess.TimeoutExpired:
+            all_pass = False
+            checks.append({
+                "name": "static_exit",
+                "command": cmd,
+                "pass": False,
+                "error": f"timeout after {timeout}s",
+            })
+        except Exception as e:
+            all_pass = False
+            checks.append({
+                "name": "static_exit",
+                "command": cmd,
+                "pass": False,
+                "error": str(e)[:200],
+            })
+
+    return {"pass": all_pass, "checks": checks}
+
+
 # ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
@@ -408,7 +563,7 @@ def run_verify(
     overall_pass = True
 
     if "structural" in enabled:
-        result = check_structural(step, project_root)
+        result = check_structural(step, project_root, step_md_path, phase_dir)
         dimensions["structural"] = result
         if not result["pass"]:
             overall_pass = False
@@ -428,6 +583,13 @@ def run_verify(
     if "command" in enabled:
         result = check_command(step, project_root, timeout)
         dimensions["command"] = result
+        if not result["pass"]:
+            overall_pass = False
+
+    static_required = _config_static_required(project_root)
+    if step["static_commands"] or static_required:
+        result = check_static(step, project_root, timeout, static_required)
+        dimensions["static"] = result
         if not result["pass"]:
             overall_pass = False
 

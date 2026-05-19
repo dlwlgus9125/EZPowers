@@ -1,0 +1,140 @@
+{
+  "project": "EZPowers",
+  "stack": [
+    "markdown",
+    "powershell",
+    "python",
+    "bash",
+    "claude-plugin",
+    "codex-plugin"
+  ],
+  "test": {
+    "command": "python -m unittest discover -s tests",
+    "strategy": "unit tests plus harness/eval contract checks"
+  },
+  "build": {
+    "command": "",
+    "typecheck_command": ""
+  },
+  "lint": {
+    "command": ""
+  },
+  "security": {
+    "sast_command": "",
+    "dependency_audit_command": ""
+  },
+  "quality": {
+    "duplication_command": "",
+    "mutation_command": ""
+  },
+  "smoke": {
+    "required": false,
+    "artifact_kind": "library",
+    "command": "",
+    "description": "EZPowers is a prompt/plugin harness repository; strict runtime smoke applies to generated target projects, not this root library.",
+    "gui_strategy": "skip",
+    "startup_timeout_seconds": 15,
+    "survival_seconds": 8,
+    "stderr_fail_regex": "Unhandled exception|Fatal|Traceback|panic|XamlLoadException|segmentation fault",
+    "window_title_regex": "",
+    "expected_automation_name_regex": "",
+    "expected_text_regex": "",
+    "screenshot_path": ".harness/artifacts/gui-smoke.png",
+    "min_pixel_variance": 12.0
+  },
+  "app_delivery": {
+    "surface_kind": "library",
+    "frontend": {
+      "present": false,
+      "framework": "",
+      "routes": "",
+      "design_system": "",
+      "view_extensions": [],
+      "viewport_matrix": [],
+      "accessibility_baseline": ""
+    },
+    "backend": {
+      "present": false,
+      "api_style": "",
+      "auth_session": "",
+      "persistence": "",
+      "background_jobs": "",
+      "external_services": []
+    },
+    "packaging": {
+      "artifact": "codex-and-claude-plugin",
+      "build_output": "plugins/ezpowers",
+      "installer_or_image": ""
+    },
+    "deployment": {
+      "target": "local plugin install",
+      "provider": "",
+      "preview_default": false,
+      "required_env": [],
+      "rollback": "revert plugin metadata and command changes"
+    },
+    "qa": {
+      "browser_or_e2e": "",
+      "visual_regression": "",
+      "release_checklist": [
+        "unit tests",
+        "harness docs check",
+        "golden evals"
+      ]
+    }
+  },
+  "server": {
+    "start_command": "",
+    "stop_command": "",
+    "health_check_url": "",
+    "health_check_timeout": 15
+  },
+  "architecture": {
+    "lifecycle_stage": "personal-production",
+    "quality_priorities": [
+      "maintainability",
+      "reliability",
+      "verification"
+    ],
+    "performance_budgets": "eval and validation commands should complete locally without long-running agents unless live mode is explicitly selected",
+    "operational_constraints": "Windows PowerShell primary environment with Git Bash available for shell graders",
+    "compatibility_policy": "preserve existing command contracts unless a new eval-backed version change records the break",
+    "adr_required": false
+  },
+  "executor": {
+    "agent": "claude-sonnet-4-6",
+    "context_window": 200000,
+    "budget_ratio": 0.4,
+    "backend": "claude-code",
+    "reviewer_backend": "claude-code",
+    "reviewer_model": "",
+    "codex_reviewer_model": "",
+    "model_routing": {
+      "enabled": false,
+      "default_profile": "balanced",
+      "fail_on_unresolved": false,
+      "availability_cache": ".harness/model-availability.json",
+      "profiles": {}
+    }
+  },
+  "harness": {
+    "root": ""
+  },
+  "defaults": {
+    "spec_location": "docs/specs/",
+    "plan_location": "docs/plans/",
+    "max_retries": 3,
+    "timeout": 1800,
+    "auto_push": false,
+    "prompt_logging": false,
+    "verifier": "off",
+    "verifier_max_rounds": 1
+  },
+  "wiring": {
+    "enabled": false,
+    "exempt_reason": "plugin/library repository with no UI runtime surface",
+    "view_extensions": [],
+    "view_test_command": "",
+    "wiring_gate_command": ""
+  }
+}

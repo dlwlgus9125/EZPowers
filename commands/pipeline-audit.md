@@ -17,7 +17,7 @@ Pipeline-audit is a mandatory gate. /plan and /choiceexecutor will not proceed w
 
 ```
 /brainstorm → /pipeline-audit → /plan → /pipeline-audit → /choiceexecutor
-                D2 + D6L1 + D7         D1-D7 full audit
+                D2 + D6L1 + D7 + D9    D1-D9 full audit
 ```
 
 ## 1. Detect Pipeline State
@@ -33,12 +33,15 @@ Read project state to determine which dimensions to run:
 
 | State | Condition | Dimensions |
 |-------|-----------|-----------|
-| **spec-only** | Spec(s) exist, no plan | D2 + D6 Layer 1 + D7 |
-| **spec+plan** | Both exist | D1-D8 all |
-| **mid-build** | Build phase `in_progress` | D1-D6 + D8, completed tasks → INFO severity |
+| **spec-only** | Spec(s) exist, no plan | D2 + D6 Layer 1 + D7 + D9 when triggered |
+| **spec+plan** | Both exist | D1-D9 all, with D9 skipped only when not triggered |
+| **mid-build** | Build phase `in_progress` | D1-D9, completed tasks → INFO severity |
 | **no-documents** | Neither spec nor plan | Error: "No spec or plan found. Run /brainstorm first." → stop |
 
-For `mid-build`, include D7 and D8 in addition to the listed dimensions.
+For `mid-build`, include D7, D8, and D9 in addition to the listed dimensions.
+D9 is triggered when `config.app_delivery.surface_kind` is not `docs` or
+`library`, or when the spec/plan declares an App Experience And Delivery
+Baseline.
 
 5. Report state to user:
 
@@ -312,6 +315,40 @@ Purpose: Verify that expected verification layers are configured and plan-aligne
 6. **L3 sensor-plan alignment:** If L3 expected, `## Full-Feature Wiring Gate` must have a non-trivial Verify command (not echo/true/:/placeholder).
    → **FAIL**: `"Expected L3 sensor (wiring gate) has no executable command."`
 
+### D9: App Delivery Readiness (triggered by app surface)
+
+Purpose: Verify that frontend, backend, packaging, deployment, and release
+surfaces are represented in the spec/plan when the project is an app or when an
+App Experience And Delivery Baseline is declared.
+
+Source of truth: `docs/reference/app-delivery-contract.md` section
+`## D9: App Delivery Readiness`.
+
+**Trigger:**
+- Run D9 when `config.app_delivery.surface_kind` is not `docs` or `library`.
+- Run D9 when any spec or plan contains `App Experience And Delivery Baseline`.
+- Otherwise report D9 as `SKIP` with reason `non-app surface`.
+
+**Spec-only checks:**
+1. UI feature lacks App Experience And Delivery Baseline, UX flow map,
+   frontend contract, or browser/e2e/visual Verify command → **FAIL**.
+2. API/server feature lacks backend contract, auth/session decision when
+   applicable, error shape, or API Verify command → **FAIL**.
+3. Packaging or deployment is `none declared` for an executable app → **WARN**.
+4. Deployment is in scope but required env vars, preview/staging target,
+   readiness signal, or rollback rule is missing → **FAIL**.
+
+**Spec+plan checks:**
+1. Spec has App Experience And Delivery Baseline but the plan lacks an
+   Experience/Delivery Matrix → **FAIL**.
+2. Any Experience/Delivery Matrix row has no mapped task or no non-trivial
+   Verify command → **FAIL**.
+3. UI tasks lack viewport/e2e or visual verification → **FAIL**.
+4. Package/deploy tasks lack build artifact, readiness, or rollback
+   verification → **FAIL**.
+5. Visual or accessibility verification is advisory-only → **WARN** and record
+   the accepted risk.
+
 ## 3. Output Report
 
 ```
@@ -349,23 +386,30 @@ Purpose: Verify that expected verification layers are configured and plan-aligne
 ### D8: Sensor Completeness — PASS | WARN | FAIL
 - [wiring config, sensor count, sensor-plan alignment findings]
 
+### D9: App Delivery Readiness — PASS | WARN | FAIL | SKIP
+- [frontend, backend, packaging, deployment, and release findings]
+
 ---
 
 ## Overall: PASS | WARN | FAIL
 - FAIL: N dimensions
 - WARN: N dimensions
 - PASS: N dimensions
+- SKIP: N dimensions
 
 ## Routing Recommendations
 
 ### Return to /setup (config gaps)
 - [D8: missing wiring block, invalid exemption]
+- [D9: missing or wrong app_delivery surface profile]
 
 ### Return to /brainstorm (spec-level gaps)
 - [specific R/AC references with reason]
+- [D9: missing App Experience And Delivery Baseline or surface decisions]
 
 ### Return to /plan (plan-level gaps)
 - [specific T/AC references with reason, D8 missing View wiring sections]
+- [D9: missing Experience/Delivery Matrix rows or delivery Verify commands]
 
 ### Proceed to [/plan | /choiceexecutor]
 - [conditions met, or all gaps are WARN-level only]
@@ -375,6 +419,7 @@ Purpose: Verify that expected verification layers are configured and plan-aligne
 - Any dimension FAIL → Overall **FAIL** (block next stage)
 - No FAIL + any WARN → Overall **WARN** (proceed with caution)
 - All PASS → Overall **PASS**
+- SKIP dimensions do not count as PASS; they must include a reason.
 
 ## 4. Write Verdict
 
@@ -420,6 +465,9 @@ Each finding maps to a specific routing action:
 | D7: R has no ASR linkage | /brainstorm | Add `ASR:` field to R section |
 | D7: ASR not carried to plan | /plan | Map ASR to task or Structural Invariant |
 | D7: ADR missing | /brainstorm | Create ADR and link it from Decision Log |
+| D9: Missing app_delivery profile | /setup | Regenerate or update app_delivery config |
+| D9: Missing App Experience And Delivery Baseline | /brainstorm | Add frontend/backend/package/deploy baseline |
+| D9: Missing Experience/Delivery Matrix | /plan | Add matrix rows with mapped tasks and Verify commands |
 | D2: Undeclared dependency | /brainstorm or /plan | Add dependency to manifest or verify built-in |
 | D4: Missing manifest update | /plan | Add manifest modification step to task |
 

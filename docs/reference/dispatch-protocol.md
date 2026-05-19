@@ -4,7 +4,8 @@ Backend-aware dispatch for reviewer subagents. Commands reference this document
 before dispatching any reviewer or workflow-runner agent.
 
 This document is also the canonical workflow dispatch contract for reviewer
-verdict parsing, retry handling, and workflow-runner scope. It complements
+verdict parsing, retry handling, and workflow-runner scope. Model profile
+selection follows `docs/reference/model-routing-contract.md`. It complements
 `docs/reference/domain-language.md`, `docs/reference/verification-contract.md`,
 and `docs/reference/architecture-readiness-contract.md`.
 
@@ -43,7 +44,11 @@ Read `.harness/config.json` → `executor` block:
   "executor": {
     "reviewer_backend": "claude-code",
     "reviewer_model": "",
-    "codex_reviewer_model": ""
+    "codex_reviewer_model": "",
+    "model_routing": {
+      "enabled": false,
+      "default_profile": "balanced"
+    }
   }
 }
 ```
@@ -57,6 +62,17 @@ Use the standard `Agent tool` with `subagent_type` as documented in each command
 **Model override:** If `executor.reviewer_model` is non-empty, add `model: <value>`
 to the Agent tool call. Accepted values: `"sonnet"`, `"opus"`, `"haiku"`.
 If empty, omit the `model` parameter (agent definition default applies).
+
+If `executor.model_routing.enabled` is true and `executor.reviewer_model` is
+empty, resolve the reviewer profile via `scripts/model-router.py`. Default
+reviewer profiles:
+
+| Reviewer | Profile |
+| --- | --- |
+| spec-reviewer, plan-reviewer, architecture-reviewer, wiring-reviewer | `contract-review` |
+| code-reviewer | `deep-analysis` |
+| security-reviewer | `security-audit` |
+| workflow-runner | `docs-sync` |
 
 Example with override:
 
@@ -98,6 +114,10 @@ instruct Codex to read it and execute the procedure.
 | `gpt-5.3-codex-spark` | Lightweight / cost-efficient (alias: `spark`) |
 
 If empty, Codex uses its active default model.
+
+If `executor.model_routing.enabled` is true and `executor.codex_reviewer_model`
+is empty, resolve the same reviewer profile for backend `codex-cli` and append
+`--model <selected>` when the router returns a selected model.
 
 ### Dispatch Template
 

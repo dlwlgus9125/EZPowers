@@ -8,6 +8,7 @@ This reference contains the strict-path details that do not belong in the
 - `docs/reference/mattpocock-harness-adapter.md`
 - `docs/reference/verification-contract.md`
 - `docs/reference/dispatch-protocol.md`
+- `docs/reference/model-routing-contract.md`
 - `docs/reference/domain-language.md`
 
 ## Preflight
@@ -19,6 +20,10 @@ scripts/harness-doctor.ps1 -ProjectRoot <project-root> -Phase <phase>
 ```
 
 Stop on FAIL. Report WARN before continuing.
+
+If `.harness/config.json` enables `executor.model_routing`, doctor validates
+the default profile. Warning-only model routing results exit with code 2 and
+must be shown to the user; fail results stop execution.
 
 Verify:
 
@@ -59,6 +64,7 @@ Create:
 - `phases/{feature-name}/step0.md`, `step1.md`, ...
 - `phases/{feature-name}/index.json`
 - `phases/{feature-name}/wiring-gate.json`
+- `phases/{feature-name}/anchors/*.hashline.json`
 
 ## Step Mapping
 
@@ -73,6 +79,7 @@ Step files include:
 - Files to Read.
 - Full task text.
 - Task category (`skeleton`/`feature`/`wiring`/`integration-test`).
+- Model profile (`balanced` by default, or `**Model profile:** <profile>`).
 - Wiring handoff (if present in the plan task).
 - Acceptance Criteria.
 - Verification.
@@ -170,6 +177,11 @@ scripts/harness-run.ps1 -ProjectRoot <project-root> -Phase <phase> -TimeoutSecon
 The controlled runner executes pending steps, captures stdout/stderr tails,
 writes `phases/{feature-name}/harness-run.json`, stops on timeout, and refuses
 to continue when status makes no progress.
+
+Before each external harness executor invocation, `harness-run.ps1` resolves the
+step `model_profile` through `scripts/model-router.py` using backend
+`harness-env`. It records the result in `harness-run.json` and passes it to the
+executor through `EZPOWERS_MODEL*` environment variables.
 
 After a step reports `completed`, `scripts/verify-step.py` is a hard gate. A
 failed or missing verifier sets the step status to `rejected` and stops the run.
