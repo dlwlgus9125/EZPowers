@@ -113,6 +113,14 @@ Purpose: Pre-check that Verify commands can run in the project environment.
    `config.smoke.gui_strategy` must not be `skip`, and the probe must produce
    a screenshot artifact.
    -> **FAIL** if weak: `"Desktop artifact cannot skip GUI runtime probe"`
+12. **Quality Budget verify_command**: extract `verify_command` fields from
+   spec's Architecture Baseline → Quality Budgets section. For each non-empty
+   command, run `command -v <first-token>` to check tool availability. Scan
+   for `$VAR`/`${VAR}` references and verify env vars are set. Scan for file
+   path arguments and verify they exist or appear in a plan Create list.
+   → **WARN** if tool not found: `"Quality Budget '{category}' verify_command uses '{tool}' — not found in PATH. Budget measurement will fail at execution."`
+   → **WARN** if env var unset: `"Quality Budget '{category}' verify_command references ${VAR} — not set in environment."`
+   → No `verify_command` fields → skip.
 
 ### D3: Semantic Granularity (spec+plan required)
 

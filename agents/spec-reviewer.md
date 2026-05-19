@@ -23,21 +23,6 @@ You will receive a **Spec file path** in the task prompt. Read the spec file at 
 
 These checks are pass/fail with no subjective judgment. ANY failure = FAIL verdict.
 
-**0. Architecture section presence:**
-- Verify the spec contains: Architecture Baseline, ASR Ledger, Option Matrix,
-  Lifecycle And Operations, Quality Budgets, Decision Log.
-- Verify every R section has an `ASR:` field with ASR IDs or `none`.
-- Missing architecture section or missing R-level ASR field -> FAIL.
-
-**0A. Wiring Map (executable artifacts only):**
-- Read `config.smoke.artifact_kind` from `.harness/config.json`.
-- If `cli`, `server`, or `desktop`: Architecture Baseline must contain a Wiring
-  Map table with at least one WM-EP entry, one WM-REG or WM-DF entry, and one
-  WM-C entry. Each row must have a unique ID.
-- Table without IDs -> FAIL.
-- Missing contracts (no WM-C row with signature/event/token) -> FAIL.
-- `docs` or `library` artifact -> skip.
-
 **1. Requirements coverage:**
 - Find the "Extracted Requirements" list (R1, R2, ...)
 - Verify EVERY R has its own section in the spec body
@@ -126,7 +111,7 @@ These are recommendations only. They do NOT cause FAIL.
 
 ## Calibration
 
-Hard gate checks (1-9) are binary -- no judgment needed.
+Hard gate checks are binary -- no judgment needed.
 Subjective review is advisory only. Do not FAIL for stylistic preferences.
 
 ## Output Format

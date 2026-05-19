@@ -19,16 +19,6 @@ Verify the following first:
    - `audit` field is missing → report `"/pipeline-audit를 먼저 실행하세요."` and stop
    - `audit.status` is `"PASS"` or `"WARN"` → proceed
 
-5. Environment readiness check:
-   - Parse all Verify commands from the plan document.
-   - For each command's first token, run `command -v <token>` — **FAIL** if
-     not found (tool required for verification is missing).
-   - If `config.server.start_command` is non-empty, verify the server binary
-     exists.
-   - Scan Verify commands for `$VAR`/`${VAR}` references — **WARN** if any
-     referenced env var is unset.
-   - Report all findings before proceeding. Any FAIL stops execution.
-
 If missing, direct the user to the required step:
 - No config -> `/setup`
 - No plan -> `/plan`
@@ -189,6 +179,7 @@ Record git hash (Section 3.6)
   -> Handle implementer status
   -> 4a. Test Baseline Protection (PASS_TO_PASS invariant)
   -> 4b. Lint & Typecheck Gate
+  -> 4b+. Dependency Audit Gate (if manifest changed)
   -> 4c. SAST Gate (changed files only)
   -> Controller: Lightpath task gate (`scripts/lightpath-gate.ps1 -Scope task -TaskNumber N`)
     -> PASS -> AC Arbiter (integration/e2e/logic-dense tasks)
@@ -277,11 +268,17 @@ Phase 1 (baseline snapshot) runs before implementer dispatch. Phase 2 (protectio
 Canonical procedure: `docs/reference/verification-contract.md` § Lint & Typecheck Gate.
 Trigger: every task. Catches hallucinated APIs and undefined references. Max 2 retries per sub-gate.
 
+### 4b+. Dependency Audit Gate
+
+Canonical procedure: `docs/reference/verification-contract.md` § Dependency Audit Gate.
+Trigger: task diff includes dependency manifest changes. Hallucinated dependency = FAIL. Critical/High CVE = FAIL (max 2 retries).
+
 **Ordering within per-task loop:**
 ```
 Implementer dispatch -> Implementer completes ->
   4a. Test Baseline Protection ->
   4b. Lint & Typecheck Gate ->
+  4b+. Dependency Audit Gate (if manifest changed) ->
   4c. SAST Gate ->
   5. AC Verification (Verify commands) ->
   6. Conditional Security Review (keyword-triggered, no SAST) ->
@@ -475,11 +472,6 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 
 Canonical procedure: `docs/reference/verification-contract.md` § SAST Evidence Layer.
 Timing: after 4b, before AC Verification. Trigger: every task. Critical/High = FAIL (max 2 retries), Medium/Low = WARN.
-
-### 6a. Dependency Audit Gate
-
-Canonical procedure: `docs/reference/verification-contract.md` § Dependency Audit Gate.
-Trigger: task diff includes dependency manifest changes. Hallucinated dependency = FAIL. Critical/High CVE = FAIL (max 2 retries).
 
 ## 7. Review Loop Protocol
 
@@ -722,29 +714,15 @@ Inline uses **fix-in-place → re-verify** loops instead of subagent re-dispatch
 3. Re-run Verify
 4. Max 3 attempts. Then escalate to user.
 
-### Final Code Review
+### Quality Budget & Final Code Review
 
-After all tasks complete, proceed to Section 12 (Final Code Review). Same as subagent path.
+After all tasks complete, proceed to Section 11a (Quality Budget) then Section 12 (Final Code Review). Same as subagent path.
 
-## 12. Final Code Review
-
-After all tasks complete, dispatch `ezpowers:code-reviewer` plugin agent via `subagent_type`:
-
-- Provide plan path
-- Full diff: `git diff <first-task-start-hash>..HEAD`
-- Implementation summary
-- Expect `## Verdict: PASS`, `## Verdict: PASS_WITH_ISSUES`, or `## Verdict: FAIL` output
-- **Verdict parsing:** Extract full value after `## Verdict: ` to end of line. Match exactly against `PASS`, `PASS_WITH_ISSUES`, `FAIL`. Unknown value → treat as FAIL.
-- PASS → complete.
-- PASS_WITH_ISSUES → extract Important findings, auto-fix (1 round), then fresh code-reviewer dispatch. If re-review returns PASS or PASS_WITH_ISSUES (same or fewer issues) → accept. If FAIL → enter FAIL loop. Max 3 PASS_WITH_ISSUES rounds total.
-- FAIL → fix + fresh re-dispatch. Warn@5, stop@10. Oscillation check from iteration 3.
-- If `## Verdict:` pattern not found in subagent response, treat as FAIL and escalate: "Code reviewer did not return a verdict in the standard format."
-
-### 12a. Quality Budget Verification Gate
+## 11a. Quality Budget Verification Gate
 
 **Purpose:** Enforce Quality Budget targets declared in the spec at execution time, not just as documentation.
 
-**Trigger:** After Final Code Review PASS, before Completion gates. Only for budgets where `verify_command` is specified.
+**Trigger:** After all tasks complete, before Final Code Review. Only for budgets where `verify_command` is specified.
 
 **Extraction:**
 - Read spec file → Architecture Baseline → Quality Budgets section.
@@ -774,7 +752,21 @@ After all tasks complete, dispatch `ezpowers:code-reviewer` plugin agent via `su
 |--------|--------|--------|----------|------|---------|
 | (from spec) | (from spec) | (from spec) | (from execution) | hard/soft | PASS / FAIL / WARN / SKIP |
 
-### 12b. Code Duplication Gate
+## 12. Final Code Review
+
+After all tasks complete + Quality Budget gate, dispatch `ezpowers:code-reviewer` plugin agent via `subagent_type`:
+
+- Provide plan path, Quality Budget results (if any)
+- Full diff: `git diff <first-task-start-hash>..HEAD`
+- Implementation summary
+- Expect `## Verdict: PASS`, `## Verdict: PASS_WITH_ISSUES`, or `## Verdict: FAIL` output
+- **Verdict parsing:** Extract full value after `## Verdict: ` to end of line. Match exactly against `PASS`, `PASS_WITH_ISSUES`, `FAIL`. Unknown value → treat as FAIL.
+- PASS → complete.
+- PASS_WITH_ISSUES → extract Important findings, auto-fix (1 round), then fresh code-reviewer dispatch. If re-review returns PASS or PASS_WITH_ISSUES (same or fewer issues) → accept. If FAIL → enter FAIL loop. Max 3 PASS_WITH_ISSUES rounds total.
+- FAIL → fix + fresh re-dispatch. Warn@5, stop@10. Oscillation check from iteration 3.
+- If `## Verdict:` pattern not found in subagent response, treat as FAIL and escalate: "Code reviewer did not return a verdict in the standard format."
+
+### 12a. Code Duplication Gate
 
 **Purpose:** Detect AI-generated code duplication that inflates maintenance cost (GitClear: 4x duplication increase with AI coding).
 
@@ -799,7 +791,7 @@ After all tasks complete, dispatch `ezpowers:code-reviewer` plugin agent via `su
 
 4. **Verdict:** WARN does not block. FAIL triggers 1 fix round (max 1 retry, then downgrade to WARN).
 
-### 12c. Mutation Testing Gate (Optional)
+### 12b. Mutation Testing Gate (Optional)
 
 **Purpose:** Verify that Verify commands and tests actually detect code defects, not just exercise code paths. Prevents "tests that test nothing" pattern common in AI-generated code.
 
