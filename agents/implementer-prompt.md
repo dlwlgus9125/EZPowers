@@ -76,6 +76,9 @@ Agent tool:
     - **Minimal change principle.** Implement only what is requested. No surrounding refactors, style fixes, or "improvements".
     - **Do not pre-build abstractions.** Do not extract helpers/utilities until the same pattern repeats 3+ times. Exception: AC or existing code patterns require it.
     - **No future-proofing.** Do not add extension points, config options, or flags not in the current AC.
+    - **Do not delete or weaken existing tests.** If a test fails, fix the implementation, not the test.
+    - **Submit lint-clean code.** Run the project's lint/typecheck if configured before reporting DONE.
+    - **Do not add unverified dependencies.** Verify package exists in canonical registry before adding.
 
     ## Scope Guard
 

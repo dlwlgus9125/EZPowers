@@ -189,8 +189,10 @@ can be inferred or asked.
   "project": "my-project",
   "stack": ["example"],
   "test": { "command": "", "strategy": "" },
-  "build": { "command": "" },
+  "build": { "command": "", "typecheck_command": "" },
   "lint": { "command": "" },
+  "security": { "sast_command": "", "dependency_audit_command": "" },
+  "quality": { "duplication_command": "", "mutation_command": "" },
   "smoke": {
     "required": true,
     "artifact_kind": "cli",

@@ -189,10 +189,11 @@ Record git hash (Section 3.6)
   -> Handle implementer status
   -> 4a. Test Baseline Protection (PASS_TO_PASS invariant)
   -> 4b. Lint & Typecheck Gate
+  -> 4c. SAST Gate (changed files only)
   -> Controller: Lightpath task gate (`scripts/lightpath-gate.ps1 -Scope task -TaskNumber N`)
     -> PASS -> AC Arbiter (integration/e2e/logic-dense tasks)
       -> PASS -> View Wiring Test (view tasks only)
-        -> PASS -> conditional security review
+        -> PASS -> conditional security review (keyword-triggered, no SAST — already ran at 4c)
       -> TEST_GAP/CODE_GAP/SPEC_GAP -> re-dispatch or return to /plan
     -> FAIL -> re-dispatch with verify/runtime failure details (max 3)
     -> 3 failures -> escalate to user
@@ -268,84 +269,22 @@ This is a hard gate, not advisory.
 
 ### 4a. Test Baseline & Protection Gate
 
-**Purpose:** Prevent AI from silently deleting, weakening, or disabling existing tests (SWE-bench PASS_TO_PASS invariant).
-
-**Phase 1 — Baseline Snapshot (before implementer dispatch):**
-1. Record test file inventory:
-   - `git ls-files -- '**/*test*' '**/*spec*' '**/__tests__/**' '**/*.test.*' '**/*.spec.*'`
-   - Store as `test_baseline_files` list
-2. If `config.build.test_command` exists:
-   - Run test suite: `config.build.test_command` (timeout: 120s)
-   - Record pass count, fail count, skip count as `test_baseline_counts`
-   - Store individual test names if test runner supports `--list` or JSON output
-
-**Phase 2 — Protection Check (after implementer completes, before AC Verification):**
-
-1. **Deletion detection:**
-   - `git diff --name-status <task-start-hash>..HEAD -- '**/*test*' '**/*spec*' '**/__tests__/**'`
-   - If any test file has status `D` (deleted): **FAIL** (`"Test file deleted: {path}. AI must not delete existing tests."`)
-   - Re-dispatch implementer with explicit instruction: "Restore deleted test file {path}. Fix the implementation to pass the existing test, do not delete the test."
-
-2. **Weakening detection:**
-   - For modified test files: `git diff <task-start-hash>..HEAD -- {modified_test_files}`
-   - Count assertion removals: lines matching `assert|expect|should|toBe|toEqual|assertEqual|raises|throws` removed vs added
-   - If net assertion count decreased by >20%: **WARN** (`"Test assertions reduced by {pct}% in {file}. Verify this is intentional."`)
-   - If assertions reduced to 0 in any test function: **FAIL** (`"All assertions removed from test function in {file}"`)
-
-3. **PASS_TO_PASS verification:**
-   - If `config.build.test_command` exists and baseline was recorded:
-     - Re-run `config.build.test_command` (timeout: 120s)
-     - Compare: pass_count must be >= `test_baseline_counts.pass_count`
-     - If pass_count decreased: **FAIL** (`"PASS_TO_PASS violation: {n} previously passing tests now fail"`)
-     - List the specific newly-failing tests
-     - Re-dispatch implementer: "Fix implementation so these previously-passing tests pass again: {list}"
-   - Max 3 re-dispatch attempts, then escalate to user
-
-4. **Skip/disable detection:**
-   - Check diff for newly added skip markers: `@pytest.mark.skip`, `@Ignore`, `xit(`, `xdescribe(`, `test.skip(`, `.skip()`, `#[ignore]`
-   - If found: **WARN** (`"New test skip marker added in {file}:{line}. Verify this is intentional, not hiding a failure."`)
-
-**Inline execution (Path 3):** Same detection/execution. Re-dispatch is replaced by fix-in-place -> re-check loops (max 3).
+Canonical procedure: `docs/reference/verification-contract.md` § Test Baseline Protection.
+Phase 1 (baseline snapshot) runs before implementer dispatch. Phase 2 (protection check) runs after implementer completes, before AC verification. Max 3 re-dispatch attempts.
 
 ### 4b. Per-Task Lint & Typecheck Gate
 
-**Purpose:** Catch hallucinated API calls, undefined references, and code quality issues per-task (Aider lint-test-fix pattern) instead of deferring to final code review.
-
-**Trigger:** Every task (unconditional).
-
-**Execution:**
-1. Collect changed files: `git diff --name-only <task-start-hash>..HEAD` + `git ls-files --others --exclude-standard`
-2. Filter to source files (exclude config, docs, assets)
-
-3. **Typecheck gate** (if `config.build.typecheck_command` configured):
-   - Run: `config.build.typecheck_command` (timeout: 60s)
-   - Exit 0 -> PASS
-   - Non-zero -> extract errors in changed files only (ignore pre-existing errors)
-   - If new type errors in changed files: **FAIL** -- re-dispatch implementer with error output
-   - Max 2 retries, then escalate
-
-4. **Lint gate** (if `config.build.lint_command` configured):
-   - Run: `config.build.lint_command -- {changed_source_files}` (timeout: 60s)
-   - Or if lint command doesn't accept file args: run full lint, filter output to changed files
-   - Exit 0 -> PASS
-   - Non-zero -> extract lint errors in changed files
-   - **Error-level findings** -> **FAIL** -- re-dispatch with lint output
-   - **Warning-level findings** -> **WARN** -- include in task status, do not block
-   - Max 2 retries, then escalate
-
-5. **Hallucination signal detection:**
-   - Type errors containing "is not defined", "cannot find module", "has no attribute", "undefined reference" in changed files -> likely hallucinated API/import
-   - Add to re-dispatch prompt: "The following references do not exist -- verify the API/module exists before using it: {error_list}"
-
-**Inline execution (Path 3):** Same detection/execution. Re-dispatch is replaced by fix-in-place -> re-check loops (max 2).
+Canonical procedure: `docs/reference/verification-contract.md` § Lint & Typecheck Gate.
+Trigger: every task. Catches hallucinated APIs and undefined references. Max 2 retries per sub-gate.
 
 **Ordering within per-task loop:**
 ```
 Implementer dispatch -> Implementer completes ->
   4a. Test Baseline Protection ->
   4b. Lint & Typecheck Gate ->
+  4c. SAST Gate ->
   5. AC Verification (Verify commands) ->
-  6. Conditional Security Review ->
+  6. Conditional Security Review (keyword-triggered, no SAST) ->
   ...
 ```
 
@@ -532,57 +471,15 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 
 **Security-spec conflict:** If the security reviewer flags an issue conflicting with the spec, security overrides spec. Log: "Spec deviation: [description]. Security concern overrode spec requirement."
 
-### 6a. Automated SAST Gate
+### 4c. Automated SAST Gate
 
-**Trigger:** Every task (not conditional — runs regardless of keyword match).
+Canonical procedure: `docs/reference/verification-contract.md` § SAST Evidence Layer.
+Timing: after 4b, before AC Verification. Trigger: every task. Critical/High = FAIL (max 2 retries), Medium/Low = WARN.
 
-**Execution:**
-1. Check `config.security.sast_command` in `.harness/config.json`
-   - If missing and `artifact_kind` is `cli`/`server`/`desktop`: **WARN** (`"No SAST command configured for executable artifact"`)
-   - If missing and `artifact_kind` is `docs`/`library`: **SKIP** (log: `"SAST skipped: [artifact_kind]"`)
-2. Run `config.security.sast_command` against changed files only (use `git diff --name-only <task-start-hash>..HEAD`)
-   - Timeout: 120 seconds
-   - Parse output for findings (tool-specific parser or exit code)
-3. Exit 0 + no findings → **PASS**
-4. Non-zero exit or findings present:
-   - **Critical/High severity** → **FAIL** — re-dispatch implementer with SAST output (max 2 retries)
-   - **Medium/Low severity** → **WARN** — include in code-reviewer input, do not block
-5. Record SAST results in task status for final report
+### 6a. Dependency Audit Gate
 
-**Common SAST commands by stack:**
-
-| Stack | Command example |
-|-------|----------------|
-| Python | `bandit -r {changed_files} -f json` |
-| JavaScript/TypeScript | `npx eslint-plugin-security {changed_files}` or `semgrep --config=p/javascript {changed_files}` |
-| Go | `gosec -fmt=json {changed_files}` |
-| Rust | `cargo audit` (dependency) + `cargo clippy -- -W clippy::all` (code) |
-| Multi-language | `semgrep --config=auto {changed_files} --json` |
-
-### 6b. Dependency Audit Gate
-
-**Trigger:** Task diff includes changes to dependency manifests (`package.json`, `requirements.txt`, `Pipfile`, `Cargo.toml`, `go.mod`, `pom.xml`, `build.gradle`, `Gemfile`, `*.csproj`).
-
-**Execution:**
-1. Check `config.security.dependency_audit_command` in `.harness/config.json`
-   - If missing: use auto-detection based on manifest type:
-     | Manifest | Auto command |
-     |----------|-------------|
-     | package.json | `npm audit --json` |
-     | requirements.txt / Pipfile | `pip-audit --format=json` |
-     | Cargo.toml | `cargo audit --json` |
-     | go.mod | `govulncheck ./...` |
-   - If auto-detection fails: **WARN** (`"No dependency audit tool detected"`)
-2. Detect newly added dependencies:
-   - `git diff <task-start-hash>..HEAD -- {manifest_files}`
-   - Extract added package names
-3. For each newly added package:
-   - **Registry existence check**: verify package exists in the canonical registry (npm, PyPI, crates.io, etc.)
-   - If package does NOT exist in registry: **FAIL** (`"Hallucinated dependency: {package_name} not found in {registry}"`)
-4. Run dependency audit command
-   - Critical/High CVE → **FAIL** (max 2 retries: implementer must use alternative package or pin safe version)
-   - Medium/Low CVE → **WARN** (include in final report)
-5. Record audit results in task status
+Canonical procedure: `docs/reference/verification-contract.md` § Dependency Audit Gate.
+Trigger: task diff includes dependency manifest changes. Hallucinated dependency = FAIL. Critical/High CVE = FAIL (max 2 retries).
 
 ## 7. Review Loop Protocol
 
@@ -602,8 +499,8 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 | Security review | choiceexecutor.md | 5 | 3 | 5 |
 | Final code review | choiceexecutor.md | 10 | 5 | 10 |
 | Smoke test | choiceexecutor.md | 3 | — | 3 |
-| Test protection | choiceexecutor.md | 3 | — | 3 |
-| Lint/typecheck | choiceexecutor.md | 2 | — | 2 |
+| Test protection | verification-contract.md | 3 | — | 3 |
+| Lint/typecheck | verification-contract.md | 2 | — | 2 |
 
 If the Verdict header is missing 2 consecutive times for any review type, immediately escalate to user.
 

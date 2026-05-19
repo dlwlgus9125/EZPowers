@@ -402,3 +402,106 @@ Wiring Gate FAIL 시:
 3. 해당 Task 역추적 → 재구현 디스패치
 4. Max 3 retries → user 에스컬레이션
 5. Wiring Gate 건너뛰기 불가 (Required: yes인 경우)
+
+## Per-Task Quality Gates
+
+These gates run after each implementer completion, before AC Verification.
+`/choiceexecutor` references these sections by name; this file is the canonical
+procedure.
+
+### Test Baseline Protection
+
+**Purpose:** Prevent AI from silently deleting, weakening, or disabling existing tests (SWE-bench PASS_TO_PASS invariant).
+
+**Phase 1 — Baseline Snapshot (before implementer dispatch):**
+1. Record test file inventory:
+   - `git ls-files -- '**/*test*' '**/*spec*' '**/__tests__/**' '**/*.test.*' '**/*.spec.*'`
+   - Store as `test_baseline_files` list
+2. If `config.test.command` exists:
+   - Run test suite: `config.test.command` (timeout: 120s)
+   - Record pass count, fail count, skip count as `test_baseline_counts`
+   - Store individual test names if test runner supports `--list` or JSON output
+
+**Phase 2 — Protection Check (after implementer completes, before AC Verification):**
+
+1. **Deletion detection:**
+   - `git diff --name-status <task-start-hash>..HEAD -- '**/*test*' '**/*spec*' '**/__tests__/**'`
+   - If any test file has status `D` (deleted): **FAIL** (`"Test file deleted: {path}. AI must not delete existing tests."`)
+   - Re-dispatch implementer: "Restore deleted test file {path}. Fix the implementation to pass the existing test, do not delete the test."
+
+2. **Weakening detection:**
+   - For modified test files: `git diff <task-start-hash>..HEAD -- {modified_test_files}`
+   - Count assertion removals: lines matching `assert|expect|should|toBe|toEqual|assertEqual|raises|throws` removed vs added
+   - If net assertion count decreased by >20%: **WARN** (`"Test assertions reduced by {pct}% in {file}."`)
+   - If assertions reduced to 0 in any test function: **FAIL** (`"All assertions removed from test function in {file}"`)
+
+3. **PASS_TO_PASS verification:**
+   - If `config.test.command` exists and baseline was recorded:
+     - Re-run `config.test.command` (timeout: 120s)
+     - Compare: pass_count must be >= `test_baseline_counts.pass_count`
+     - If pass_count decreased: **FAIL** (`"PASS_TO_PASS violation: {n} previously passing tests now fail"`)
+     - Re-dispatch implementer: "Fix implementation so these previously-passing tests pass again: {list}"
+   - Max 3 re-dispatch attempts, then escalate to user
+
+4. **Skip/disable detection:**
+   - Check diff for newly added skip markers: `@pytest.mark.skip`, `@Ignore`, `xit(`, `xdescribe(`, `test.skip(`, `.skip()`, `#[ignore]`
+   - If found: **WARN** (`"New test skip marker added in {file}:{line}."`)
+
+Inline execution (Path 3): Same detection/execution. Re-dispatch is replaced by fix-in-place -> re-check loops (max 3).
+
+### Lint & Typecheck Gate
+
+**Purpose:** Catch hallucinated API calls, undefined references, and code quality issues per-task (Aider lint-test-fix pattern).
+
+**Trigger:** Every task (unconditional).
+
+**Execution:**
+1. Collect changed files: `git diff --name-only <task-start-hash>..HEAD` + `git ls-files --others --exclude-standard`
+2. Filter to source files (exclude config, docs, assets)
+
+3. **Typecheck gate** (if `config.build.typecheck_command` configured):
+   - Run: `config.build.typecheck_command` (timeout: 60s)
+   - Exit 0 -> PASS
+   - Non-zero -> extract errors in changed files only (ignore pre-existing errors)
+   - If new type errors in changed files: **FAIL** -- re-dispatch implementer with error output
+   - Max 2 retries, then escalate
+
+4. **Lint gate** (if `config.lint.command` configured):
+   - Run: `config.lint.command -- {changed_source_files}` (timeout: 60s)
+   - Or if lint command doesn't accept file args: run full lint, filter output to changed files
+   - Exit 0 -> PASS
+   - Non-zero -> extract lint errors in changed files
+   - **Error-level findings** -> **FAIL** -- re-dispatch with lint output
+   - **Warning-level findings** -> **WARN** -- include in task status, do not block
+   - Max 2 retries, then escalate
+
+5. **Hallucination signal detection:**
+   - Type errors containing "is not defined", "cannot find module", "has no attribute", "undefined reference" in changed files -> likely hallucinated API/import
+   - Add to re-dispatch prompt: "The following references do not exist -- verify the API/module exists before using it: {error_list}"
+
+Inline execution (Path 3): Same detection/execution. Re-dispatch is replaced by fix-in-place -> re-check loops (max 2).
+
+### Dependency Audit Gate
+
+**Trigger:** Task diff includes changes to dependency manifests (`package.json`, `requirements.txt`, `Pipfile`, `Cargo.toml`, `go.mod`, `pom.xml`, `build.gradle`, `Gemfile`, `*.csproj`).
+
+**Execution:**
+1. Check `config.security.dependency_audit_command` in `.harness/config.json`
+   - If missing: use auto-detection based on manifest type:
+     | Manifest | Auto command |
+     |----------|-------------|
+     | package.json | `npm audit --json` |
+     | requirements.txt / Pipfile | `pip-audit --format=json` |
+     | Cargo.toml | `cargo audit --json` |
+     | go.mod | `govulncheck ./...` |
+   - If auto-detection fails: **WARN** (`"No dependency audit tool detected"`)
+2. Detect newly added dependencies:
+   - `git diff <task-start-hash>..HEAD -- {manifest_files}`
+   - Extract added package names
+3. For each newly added package:
+   - **Registry existence check**: verify package exists in the canonical registry
+   - If package does NOT exist in registry: **FAIL** (`"Hallucinated dependency: {package_name} not found in {registry}"`)
+4. Run dependency audit command
+   - Critical/High CVE → **FAIL** (max 2 retries: use alternative package or pin safe version)
+   - Medium/Low CVE → **WARN** (include in final report)
+5. Record audit results in task status
