@@ -261,6 +261,9 @@ function Assert-HarnessGate {
         'ok' | Set-Content -LiteralPath (Join-Path $TempRoot 'gate-target.txt') -Encoding UTF8
 
         & (Join-Path $RepoRoot 'scripts/harness-gate.ps1') -ProjectRoot $TempRoot -Phase 'sample' | Out-Null
+        if ($LASTEXITCODE -ne 5) {
+            throw "[FAIL] harness gate: review_pending should exit 5"
+        }
         $Gate = Get-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         if ($Gate.status -ne 'review_pending' -or @($Gate.attempts).Count -lt 1) {
             throw "[FAIL] harness gate: pass command did not record pass attempt"

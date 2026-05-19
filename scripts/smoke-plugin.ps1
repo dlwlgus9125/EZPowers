@@ -278,3 +278,4 @@ if ($Failures -gt 0) {
 }
 
 Write-Output "Plugin smoke verdict: PASS ($Warnings warning(s))"
+exit 0

@@ -660,11 +660,20 @@ and restoration behavior. Do not duplicate the harness procedure here.
 After `/executeharness` reports all steps complete, require its full-feature
 wiring gate verdict before continuing:
 
-- `PASS` -> continue at Section 12 (Final Code Review) using the diff range
+- Read `phases/<phase>/wiring-gate.json` directly. Do not rely only on the
+  `/executeharness` status line or process exit code.
+- `PASS` or `pass` -> continue at Section 12 (Final Code Review) using the diff range
   returned by `/executeharness` (`<harness-start-hash>..HEAD`)
+- `review_pending` -> dispatch `ezpowers:wiring-reviewer` with plan path,
+  diff range, `wiring-gate.json`, runtime artifacts, and run log path. Write
+  the verdict to `wiring-gate.json.reviewer_verdict`, rerun
+  `scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>`, then
+  reread `wiring-gate.json`. Continue only if status becomes `pass`.
 - `TEST_GAP` -> stop and return to `/plan` or reset the probe-writing step
 - `CODE_GAP` -> reset the related harness step and rerun `/executeharness`
 - `SPEC_GAP` -> return to `/plan`
+- `fail`, `pending`, or any unknown status -> do not complete; report the gate
+  status and recovery route
 - Missing or malformed wiring verdict -> treat as `TEST_GAP`
 
 Path 2 completion requires `all steps completed + wiring gate PASS + Final Code
@@ -784,8 +793,9 @@ After all tasks complete, proceed to Section 11a (Quality Budget) then Section 1
 
 After all tasks complete + Quality Budget gate, dispatch `ezpowers:code-reviewer` plugin agent via `subagent_type`:
 
-- Provide plan path, Quality Budget results (if any)
-- Full diff: `git diff <first-task-start-hash>..HEAD`
+- Provide plan path, diff range, changed-files list, Quality Budget results
+  (if any), and artifact paths. Do not paste the full diff into the prompt;
+  the reviewer reads the diff/files as needed.
 - Implementation summary
 - Expect `## Verdict: PASS`, `## Verdict: PASS_WITH_ISSUES`, or `## Verdict: FAIL` output
 - **Verdict parsing:** Extract full value after `## Verdict: ` to end of line. Match exactly against `PASS`, `PASS_WITH_ISSUES`, `FAIL`. Unknown value → treat as FAIL.

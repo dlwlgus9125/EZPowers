@@ -1,7 +1,7 @@
 ---
 description: Delegate plan execution to EasyPowersHarness executor
 argument-hint: "[phase] [--status|--reset-step N|--push]"
-allowed-tools: [Bash, Read, Write, Agent]
+allowed-tools: [Bash, Read, Write]
 ---
 
 # /executeharness - EasyPowersHarness Execution Delegation
@@ -37,9 +37,9 @@ repo.
   step execution so timeout, progress, and attempt logs are controlled.
 - Use `scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>` for
   Full-Feature Wiring Gate evidence.
-- If `harness-gate.ps1` records `review_pending`, dispatch
-  `ezpowers:wiring-reviewer`, write its verdict to `wiring-gate.json`, and run
-  the gate helper again to finalize status.
+- If `harness-gate.ps1` records `review_pending`, stop with
+  `PENDING_REVIEW` and return the artifact paths. The parent `/choiceexecutor`
+  owns reviewer dispatch, verdict recording, and final gate rerun.
 - When converting plan to phase, preserve task categories and wiring handoffs
   in step files. Skeleton step (step0) must pass runtime smoke before feature
   steps begin.
@@ -48,7 +48,8 @@ repo.
 - Before reset or redispatch, identify the failing Verify, runtime, or wiring
   signal. A completed step table is not completion.
 - Final success requires completed steps, wiring gate PASS, runtime evidence
-  when required, restored EZPowers phase state, and final code review PASS.
+  when required, and restored EZPowers phase state. Final code review remains
+  owned by parent `/choiceexecutor`.
 
 ## Stop conditions
 
@@ -57,15 +58,15 @@ repo.
 - Prior `phases/index.ezpowers.json` backup needs user choice.
 - Conversion cannot produce valid step files, phase index, or wiring gate.
 - Step execution times out, makes no progress, or returns failed/blocked status.
-- Wiring gate returns `fail`, `test_gap`, `code_gap`, or `spec_gap`, or remains
-  `review_pending` after reviewer dispatch.
-- Final code review does not pass.
+- Wiring gate returns `fail`, `test_gap`, `code_gap`, or `spec_gap`.
+- Wiring gate returns `review_pending`; report `PENDING_REVIEW` for parent
+  `/choiceexecutor` finalization.
 
 ## Outputs
 
 - Phase name, start hash, and execution mode.
 - Per-step status table and run log path.
-- Runtime smoke and wiring gate evidence.
+- Runtime smoke and wiring gate evidence, including `gate_status`.
 - Recovery instruction when stopped.
 - Restored `phases/index.json` build state.
-- Final review verdict and diff range.
+- Diff range for parent `/choiceexecutor` final review.

@@ -163,7 +163,7 @@ Save-Gate $Gate $GatePath
 Write-Output "Wiring gate status: $($Gate.status)"
 switch ($Gate.status) {
     'pass' { exit 0 }
-    'review_pending' { exit 0 }
+    'review_pending' { exit 5 }
     'fail' { exit 1 }
     'spec_gap' { exit 2 }
     'test_gap' { exit 3 }

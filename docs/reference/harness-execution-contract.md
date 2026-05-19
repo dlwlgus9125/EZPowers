@@ -200,9 +200,11 @@ Gate rules:
 - Attempts record command, exit code, stdout/stderr tail, and timestamp.
 - Passing command evidence without an independent reviewer verdict becomes
   `review_pending`, not `pass`.
-- The controller dispatches `ezpowers:wiring-reviewer` through the dispatch
-  protocol, then writes the verdict back to `wiring-gate.json` and reruns or
-  finalizes the gate.
+- `scripts/harness-gate.ps1` exits `5` for `review_pending`; it is not a
+  successful completion.
+- Parent `/choiceexecutor` dispatches `ezpowers:wiring-reviewer` through the
+  dispatch protocol, then writes the verdict back to `wiring-gate.json` and
+  reruns or finalizes the gate.
 
 Reviewer verdict handling:
 
@@ -211,6 +213,15 @@ Reviewer verdict handling:
 - `CODE_GAP`: set status `code_gap`.
 - `SPEC_GAP`: set status `spec_gap`.
 - Missing or malformed verdict: treat as `test_gap`.
+
+Exit code contract:
+
+- `pass`: 0.
+- `fail`: 1.
+- `spec_gap`: 2.
+- `test_gap`: 3.
+- `code_gap`: 4.
+- `review_pending`: 5.
 
 ## Recovery
 
@@ -237,11 +248,14 @@ Completion requires:
 - Wiring gate PASS.
 - Runtime smoke evidence when required.
 - EZPowers `phases/index.json` restored.
-- Final code review PASS.
+- Parent `/choiceexecutor` completion requires Final code review PASS.
 
 After success:
 
 - Print per-step summary.
 - Print wiring and runtime evidence.
-- Review `git diff <harness-start-hash>..HEAD`.
-- Continue to `/choiceexecutor` Final Code Review with plan path and diff range.
+- Print the diff range `<harness-start-hash>..HEAD`.
+- Continue to `/choiceexecutor` Path 2 finalization with plan path, diff range,
+  `wiring-gate.json`, runtime artifacts, and run log path.
+- Continue to `/choiceexecutor` Final Code Review only after Path 2
+  finalization produces wiring gate PASS.
