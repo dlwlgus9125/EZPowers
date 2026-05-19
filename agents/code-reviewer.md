@@ -97,9 +97,10 @@ overall verdict FAIL.
 
 - **Critical:** Must fix — blocks merge
 - **Important:** Should fix — affects quality. Includes:
-  - Wiring gaps: created object not registered/subscribed/bound
-  - Missing event subscriptions or DI registration
-  - Missing UI binding or lifecycle hookup
+  - Wiring gaps (skip if per-task View Wiring Test and wiring-reviewer both
+    PASS — those gates already cover registration/binding/subscription):
+    created object not registered/subscribed/bound, missing event
+    subscriptions or DI registration, missing UI binding or lifecycle hookup
   - If any Important issue directly invalidates a spec AC, escalate to Critical
 - **Suggestion:** Nice to have
 

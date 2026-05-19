@@ -191,6 +191,12 @@ Purpose: Verify that integration milestone tasks actually test the full pipeline
    - If `config.wiring.enabled: true` and plan has 2+ tasks with file dependencies (`Depends on` or shared `Modify` files) → **WARN**: `"No Integration Pipeline Matrix but task dependencies exist. Consider adding integration verification."`
    - If `config.wiring.enabled: false` with valid `exempt_reason`, or plan has truly independent single-file tasks → **PASS**
    - If `config.wiring` block missing → **FAIL**: `"config.json has no wiring block. Run /setup to regenerate."`
+11. **ICM completeness (plan required):** for each pair of tasks where one has
+   `Depends on` or `File overlap with` the other, check whether at least one
+   Integration Contract Matrix row names both tasks as Producer and Consumer
+   (or vice versa). Skip pairs where both tasks only share test files.
+   → **WARN** if dependent tasks have no ICM row:
+   `"T{a} depends on T{b} but no Integration Contract Matrix row links them. Implicit runtime contract may be unverified at execution."`
 
 ### D6: Step Specification Sufficiency (spec or plan required)
 
@@ -273,6 +279,9 @@ tasks.
    - **FAIL** when required ADRs are absent.
 7. Post-plan carry-forward: when a plan exists, ASR IDs from spec must appear
    in Coverage Matrix rows, task `**ASR:**` fields, or Structural Invariants.
+   - If `phases/index.json` records `plan.review.plan` as `"PASS"`, inherit
+     PASS for this check (plan-reviewer check 1A already validated).
+   - Otherwise, execute the check directly.
    - **FAIL** when an ASR has no plan task or invariant.
 8. Wiring Map (executable artifacts only): if `config.smoke.artifact_kind` is
    `cli`, `server`, or `desktop`, spec must contain a Wiring Map table with at

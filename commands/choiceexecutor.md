@@ -182,10 +182,13 @@ Record git hash (Section 3.6)
   -> 4b+. Dependency Audit Gate (if manifest changed)
   -> 4c. SAST Gate (changed files only)
   -> Controller: Lightpath task gate (`scripts/lightpath-gate.ps1 -Scope task -TaskNumber N`)
-    -> PASS -> AC Arbiter (integration/e2e/logic-dense tasks)
-      -> PASS -> View Wiring Test (view tasks only)
-        -> PASS -> conditional security review (keyword-triggered, no SAST — already ran at 4c)
-      -> TEST_GAP/CODE_GAP/SPEC_GAP -> re-dispatch or return to /plan
+    -> PASS -> 4d. Structural Invariant Gate (if plan has invariants)
+      -> PASS -> AC Arbiter (integration/e2e/logic-dense tasks)
+        -> PASS -> View Wiring Test (view tasks only)
+          -> PASS -> conditional security review (keyword-triggered, no SAST — already ran at 4c)
+        -> TEST_GAP/CODE_GAP/SPEC_GAP -> re-dispatch or return to /plan
+      -> hard FAIL -> re-dispatch with invariant violation details
+      -> soft FAIL -> WARN (log, continue)
     -> FAIL -> re-dispatch with verify/runtime failure details (max 3)
     -> 3 failures -> escalate to user
   -> Compute changed-files -> next task
@@ -446,6 +449,13 @@ pre-task file list) but plan has no `**Wiring probe:**` section →
 log WARNING: `"Task N creates [path] but has no Wiring Probe. Plan defect."`.
 Execution continues but the warning is surfaced in the completion report.
 
+**Refactoring probe detection:** Task has both `Create:` and `Delete:` entries
+for module files (rename/split pattern), OR task's `Modify:` files include
+path changes detected by `git diff --diff-filter=R` (rename). In either
+case, treat as a wiring-affecting change and require a Wiring Probe section
+in the plan. If missing, log WARNING with the same message as above. If
+present, execute the probe (same as new module flow).
+
 **Inline execution (Path 3):** Same detection/execution. Fix-in-place
 instead of re-dispatch.
 
@@ -472,6 +482,24 @@ auth, login, password, token, secret, encrypt, decrypt, hash, session, cookie, p
 
 Canonical procedure: `docs/reference/verification-contract.md` § SAST Evidence Layer.
 Timing: after 4b, before AC Verification. Trigger: every task. Critical/High = FAIL (max 2 retries), Medium/Low = WARN.
+
+### 4d. Structural Invariant Gate (per-task)
+
+**Trigger:** Plan has a `## Structural Invariants` section with verification
+commands. Runs after lightpath task gate PASS.
+
+**Execution:** Parse each row from the plan's Structural Invariants table.
+Execute each row's verification command (timeout: 30s).
+
+**Classification:**
+- Invariants marked `hard` (or unmarked — default): exit non-zero = **FAIL**.
+  Re-dispatch implementer with: "Structural Invariant violated: [rule]. Fix
+  before proceeding." Max 2 retries → escalate to user.
+- Invariants marked `soft`: exit non-zero = **WARN**. Log violation but
+  continue. Soft invariants are for rules that may be temporarily violated
+  during multi-task builds (e.g., layer dependency during migration).
+
+**Skip:** No Structural Invariants section in plan → skip entirely.
 
 ## 7. Review Loop Protocol
 
@@ -943,7 +971,13 @@ After all tasks + final review complete:
    }
    ```
 
-7. Next recommendation: `/review`
+7. **Conditional eval regression check (advisory):**
+   If changed-files include any path under `commands/`, `agents/`, or
+   `skills/`, run `/eval` to detect cumulative regression across all tasks.
+   Record result in `phases/index.json` under `eval_check`. This gate is
+   advisory — WARN on regression, never FAIL or block completion.
+
+8. Next recommendation: `/review`
 
 Update `phases/index.json`:
 - build: `status: "complete"`, `completed_at: "<ISO 8601>"`
