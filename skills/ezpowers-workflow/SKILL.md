@@ -5,7 +5,9 @@ description: Direct-invocation Codex adapter for EZPowers command documents. Use
 
 # EZPowers Workflow
 
-This skill adapts EZPowers command documents for Codex. The source of truth stays in `commands/*.md`.
+This skill adapts EZPowers command documents for Codex. The source of truth stays in plugin-root `commands/*.md`.
+
+Resolve command docs from this skill's plugin root. From `skills/ezpowers-workflow/SKILL.md`, use `../../commands/<name>.md`.
 
 Do not use this skill as a background router. If the user invokes a named EZPowers command, read that command document directly and follow it.
 
@@ -13,16 +15,16 @@ Do not use this skill as a background router. If the user invokes a named EZPowe
 
 | Intent | Source |
 | --- | --- |
-| Setup harness | `commands/setup.md` |
-| Brainstorm/spec | `commands/brainstorm.md` |
-| Pipeline audit | `commands/pipeline-audit.md` |
-| Plan tasks | `commands/plan.md` |
-| Choose execution | `commands/choiceexecutor.md` |
-| Execute harness | `commands/executeharness.md` |
-| Review | `commands/review.md` |
-| Sync docs | `commands/sync-docs.md` |
-| Eval | `commands/eval.md` |
-| Feedback | `commands/feedback.md` |
+| Setup harness | `../../commands/setup.md` |
+| Brainstorm/spec | `../../commands/brainstorm.md` |
+| Pipeline audit | `../../commands/pipeline-audit.md` |
+| Plan tasks | `../../commands/plan.md` |
+| Choose execution | `../../commands/choiceexecutor.md` |
+| Execute harness | `../../commands/executeharness.md` |
+| Review | `../../commands/review.md` |
+| Sync docs | `../../commands/sync-docs.md` |
+| Eval | `../../commands/eval.md` |
+| Feedback | `../../commands/feedback.md` |
 
 ## Adapter Rules
 
