@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-05-19T00:00:00Z",
+  "updated_at": "2026-05-20T00:00:00Z",
   "features": [
     {
       "id": "F1",
@@ -45,8 +45,8 @@
         "verdict aggregation counts D9"
       ],
       "evidence": [
-        "commands/pipeline-audit.md includes D9 in state dimensions",
-        "commands/pipeline-audit.md includes D9 in output template and routing"
+        "docs/reference/pipeline-audit-contract.md includes D9 in state dimensions",
+        "docs/reference/pipeline-audit-contract.md includes D9 in output template and routing"
       ]
     },
     {
@@ -62,6 +62,21 @@
         ".gitignore now ignores plugins/ and Python cache directories",
         "tracked empty numeric files removed",
         ".codex-plugin/plugin.json version reconciled with .claude-plugin/plugin.json"
+      ]
+    },
+    {
+      "id": "F5",
+      "title": "Simplify v2 harness command chain",
+      "status": "complete",
+      "success_criteria": [
+        "Public flow is setup, design_architecture, spec, prepare_execute, choice_execute",
+        "setup/reset_setup install a verified local kit without synthesizing skills",
+        "UI verification is adapter-capability based and not Playwright-only"
+      ],
+      "evidence": [
+        "commands/design_architecture.md, commands/spec.md, commands/prepare_execute.md, commands/choice_execute.md, commands/reset_setup.md, commands/maintain.md, and commands/deploy.md define the v2 flow",
+        "docs/reference/harness-kit-contract.md and harness-kit/v2.0.0/manifest.json define no-synthesis setup",
+        "docs/reference/ui-verification-adapter-contract.md and docs/reference/plan-contract.md require adapter fallback tasks"
       ]
     }
   ]

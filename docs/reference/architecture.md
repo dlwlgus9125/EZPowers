@@ -26,8 +26,9 @@ stage requires them.
 
 ## Lifecycle And Operations
 
-Setup creates root state, brainstorm creates specs, plan creates task slices,
-choiceexecutor routes implementation, and eval/validation gates protect changes.
+Setup creates root state, design_architecture fixes architecture and test
+methodology, spec creates feature specs, prepare_execute creates task slices,
+choice_execute routes implementation, and eval/validation gates protect changes.
 
 ## Decision Log
 

@@ -15,8 +15,8 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "grep -q 'Automated Invocation From `/choiceexecutor`' commands/sync-docs.md"
-      - "grep -q 'auto-from-choiceexecutor' commands/sync-docs.md"
+      - "grep -q 'Automated Invocation From `/choice_execute`' commands/sync-docs.md"
+      - "grep -q 'auto-from-choice_execute' commands/sync-docs.md"
       - "grep -q 'Auto-apply only' commands/sync-docs.md"
       - "grep -q 'NEEDS_USER' commands/sync-docs.md"
   - type: llm_rubric

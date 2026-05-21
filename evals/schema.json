@@ -20,7 +20,7 @@
       "properties": {
         "command": {
           "type": "string",
-          "enum": ["setup", "brainstorm", "plan", "choiceexecutor", "executeharness", "review", "sync-docs", "pipeline-audit", "eval", "feedback", "set-rules"]
+          "enum": ["setup", "design_architecture", "spec", "prepare_execute", "choice_execute", "maintain", "deploy", "reset_setup", "review", "sync-docs", "internal-pipeline-audit", "eval", "feedback", "set-rules"]
         },
         "difficulty": {
           "type": "string",

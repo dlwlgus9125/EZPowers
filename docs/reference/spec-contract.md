@@ -1,26 +1,32 @@
 # Spec Contract
 
 This reference contains the spec-writing and review details that do not belong
-in the `/brainstorm` controller prompt.
+in the `/spec` controller prompt.
 
 ## Source Contracts
 
 - `docs/reference/mattpocock-harness-adapter.md`
+- `docs/reference/design-architecture-contract.md`
 - `docs/reference/architecture-readiness-contract.md`
 - `docs/reference/verification-contract.md`
+- `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/app-delivery-contract.md`
 - `docs/reference/dispatch-protocol.md`
 - `docs/reference/domain-language.md`
 
 ## Preflight
 
-`/brainstorm` requires `.harness/config.json`. If it is missing, route to
+`/spec` requires `.harness/config.json`. If it is missing, route to
 `/setup`.
+
+`/spec` also requires the architecture artifacts from `/design_architecture`.
+If `docs/reference/architecture.md`, `docs/reference/testing-methodology.md`,
+or the architecture phase state is missing, route to `/design_architecture`.
 
 When `phases/index.json` exists:
 
-- Set `current_phase` to `brainstorm`.
-- Set brainstorm status to `in_progress`.
+- Set `current_phase` to `spec`.
+- Set spec status to `in_progress`.
 - Delete stale `audit` data.
 
 ## Design Flow
@@ -39,7 +45,7 @@ Use this order:
 10. Run spec and architecture review loops.
 11. Get user approval.
 12. Update phase state.
-13. Dispatch `/pipeline-audit` in `post-brainstorm` mode.
+13. Dispatch `internal pipeline audit` in `post-spec` mode.
 
 Small work may have a short design, but it still follows this order.
 
@@ -223,7 +229,7 @@ Acceptance criteria must describe observable behavior. Do not mention private
 function names, class names, variables, or implementation-only files in
 Given/When/Then.
 
-`Automatable: false` requires `/plan` to replace the criterion with an
+`Automatable: false` requires `/prepare_execute` to replace the criterion with an
 automated probe. For `api` and `e2e`, missing automation blocks execution.
 
 ## Vague Language Ban
@@ -323,11 +329,12 @@ new review. Track issue keys privately for oscillation detection.
 
 After reviewers pass and the user approves:
 
-- Mark brainstorm `complete`.
-- Set brainstorm `artifact` to the spec path.
+- Mark spec `complete`.
+- Set spec `artifact` to the spec path.
 - Set `completed_at`.
 - Keep plan `pending`.
-- Dispatch `ezpowers:workflow-runner` for `/pipeline-audit` with invocation
-  mode `post-brainstorm`.
+- Dispatch `ezpowers:workflow-runner` for `internal pipeline audit` with
+  invocation mode `post-spec`, working directory project root, spec artifact,
+  and architecture reference artifacts.
 
-Proceed to `/plan` only when audit status is `PASS` or `WARN`.
+Proceed to `/prepare_execute` only when audit status is `PASS` or `WARN`.

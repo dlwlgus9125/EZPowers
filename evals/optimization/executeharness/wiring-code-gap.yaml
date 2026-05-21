@@ -1,7 +1,7 @@
 case_id: "optimization.wiring_code_gap.005"
 split: optimization
 stratum:
-  command: executeharness
+  command: choice_execute
   difficulty: long_horizon
   pattern: disconnected_feature
   model_family: agnostic
@@ -22,8 +22,8 @@ graders:
   - type: deterministic_tests
     commands:
       - "python -c \"from pathlib import Path; t=Path('agents/wiring-reviewer.md').read_text(encoding='utf-8'); assert 'CODE_GAP' in t and 'Route registration' in t and 'UI state or data binding' in t\""
-      - "python -c \"from pathlib import Path; c=Path('commands/executeharness.md').read_text(encoding='utf-8'); h=Path('docs/reference/harness-execution-contract.md').read_text(encoding='utf-8'); v=Path('docs/reference/verification-contract.md').read_text(encoding='utf-8'); assert 'docs/reference/harness-execution-contract.md' in c and 'code_gap' in c; assert '`CODE_GAP`: set status `code_gap`.' in h; assert '`CODE_GAP`: registration, route, import, binding, subscription, or call site is missing.' in v\""
-      - "python -c \"from pathlib import Path; t=Path('commands/choiceexecutor.md').read_text(encoding='utf-8'); assert '`CODE_GAP` -> reset the related harness step' in t\""
+      - "python -c \"from pathlib import Path; c=Path('docs/reference/strict-execution-adapter.md').read_text(encoding='utf-8'); h=Path('docs/reference/harness-execution-contract.md').read_text(encoding='utf-8'); v=Path('docs/reference/verification-contract.md').read_text(encoding='utf-8'); assert 'docs/reference/harness-execution-contract.md' in c and 'code_gap' in c; assert '`CODE_GAP`: set status `code_gap`.' in h; assert '`CODE_GAP`: registration, route, import, binding, subscription, or call site is missing.' in v\""
+      - "python -c \"from pathlib import Path; t=Path('commands/choice_execute.md').read_text(encoding='utf-8'); assert '`CODE_GAP` -> reset the related harness step' in t\""
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

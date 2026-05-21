@@ -10,7 +10,9 @@ param(
 
     [int] $MaxSteps = 0,
 
-    [string] $ExecutorCommand = ''
+    [string] $ExecutorCommand = '',
+
+    [string] $ExplicitModel = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -131,7 +133,7 @@ while ($true) {
     }
     Write-Output "Running harness step $StepNumber with timeout ${TimeoutSeconds}s"
 
-    $ModelRoute = Invoke-EzpModelRouter -ProjectRoot $ProjectRoot -Backend 'harness-env' -Profile $ModelProfile
+    $ModelRoute = Invoke-EzpModelRouter -ProjectRoot $ProjectRoot -Backend 'harness-env' -Profile $ModelProfile -ExplicitModel $ExplicitModel
     if ($null -ne $ModelRoute.result -and [string](Get-EzpConfigValue $ModelRoute.result 'status' '') -ne 'disabled') {
         Write-Output "Model route for step ${StepNumber}: profile=$ModelProfile selected=$([string](Get-EzpConfigValue $ModelRoute.result 'selected' '')) status=$([string](Get-EzpConfigValue $ModelRoute.result 'status' ''))"
     }

@@ -146,9 +146,9 @@ Eval mode: static
 
 | Command | Pass | Auto | Manual | Rate |
 |---------|------|------|--------|------|
-| brainstorm | 3 | 11 | 2 | 27% |
-| plan | 4 | 7 | 1 | 57% |
-| choiceexecutor | 1 | 3 | 10 | 33% |
+| spec | 3 | 11 | 2 | 27% |
+| prepare_execute | 4 | 7 | 1 | 57% |
+| choice_execute | 1 | 3 | 10 | 33% |
 | setup | 2 | 4 | 0 | 50% |
 | ... | | | | |
 ```

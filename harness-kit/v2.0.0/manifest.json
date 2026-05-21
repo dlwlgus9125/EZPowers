@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "install_root": ".harness/ezpowers",
+  "no_synthesis": true,
+  "public_commands": [
+    "setup",
+    "design_architecture",
+    "spec",
+    "prepare_execute",
+    "choice_execute",
+    "maintain",
+    "deploy",
+    "reset_setup"
+  ],
+  "internal_adapters": [
+    "docs/reference/pipeline-audit-contract.md",
+    "docs/reference/strict-execution-adapter.md"
+  ],
+  "source_files": [
+    {
+      "source": "harness-kit/v2.0.0/skills/README.md",
+      "target": ".harness/ezpowers/skills/README.md"
+    },
+    {
+      "source": "harness-kit/v2.0.0/contracts/README.md",
+      "target": ".harness/ezpowers/contracts/README.md"
+    },
+    {
+      "source": "harness-kit/v2.0.0/manifest.json",
+      "target": ".harness/ezpowers/manifest.json"
+    }
+  ],
+  "ui_verification": {
+    "adapter_fallback_task_required": true,
+    "capabilities": [
+      "browser-e2e",
+      "component-dom",
+      "framework-headless",
+      "desktop-gui",
+      "mobile-emulator",
+      "cli-tui",
+      "custom"
+    ]
+  }
+}

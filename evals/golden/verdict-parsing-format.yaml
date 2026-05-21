@@ -2,12 +2,12 @@
 # Golden invariant: Verdict MUST use exact `## Verdict: PASS` or `## Verdict: FAIL` format.
 # Non-standard formats (missing ##, wrong casing, extra whitespace) = treated as FAIL.
 # Source: agents/spec-reviewer.md L102-108, agents/plan-reviewer.md L105-111,
-#         commands/choiceexecutor.md L428-430
+#         commands/choice_execute.md L428-430
 
 case_id: "golden.verdict_parsing_format.001"
 split: golden
 stratum:
-  command: choiceexecutor
+  command: choice_execute
   difficulty: single_step
   pattern: verdict_format
   model_family: agnostic
@@ -30,7 +30,7 @@ input:
       **Issues (if any):**
       - None
 
-    # Case B: missing ## prefix — should be treated as FAIL per choiceexecutor.md
+    # Case B: missing ## prefix — should be treated as FAIL per choice_execute.md
     # "## Verdict: 패턴이 서브에이전트 반환에서 발견되지 않으면 FAIL로 처리"
     reviewer_output_invalid_no_hash: |
       ## Spec Review
@@ -75,10 +75,10 @@ graders:
       - "python -c \"from pathlib import Path; assert not any(line.startswith('## Verdict:') for line in Path($MOCK_reviewer_output_invalid_wrong_level).read_text(encoding='utf-8').splitlines())\""
       # Case D: valid FAIL mock contains exact "## Verdict: FAIL"
       - "python -c \"from pathlib import Path; assert any(line == '## Verdict: FAIL' for line in Path($MOCK_reviewer_output_valid_fail).read_text(encoding='utf-8').splitlines())\""
-      # Verify the parsing rule is documented in choiceexecutor.md
-      - "python -c \"import re; from pathlib import Path; t=Path('commands/choiceexecutor.md').read_text(encoding='utf-8'); assert re.search(r'## Verdict.*PASS.*FAIL|Verdict.*FAIL', t, re.I | re.S)\""
+      # Verify the parsing rule is documented in choice_execute.md
+      - "python -c \"import re; from pathlib import Path; t=Path('commands/choice_execute.md').read_text(encoding='utf-8'); assert re.search(r'## Verdict.*PASS.*FAIL|Verdict.*FAIL', t, re.I | re.S)\""
       # Verify brainstorm.md documents Verdict header parsing
-      - "python -c \"from pathlib import Path; c=Path('commands/brainstorm.md').read_text(encoding='utf-8'); d=Path('docs/reference/dispatch-protocol.md').read_text(encoding='utf-8'); assert 'docs/reference/dispatch-protocol.md' in c; assert all(s in d for s in ['## Verdict: PASS','## Verdict: FAIL','missing or malformed'])\""
+      - "python -c \"from pathlib import Path; c=Path('commands/spec.md').read_text(encoding='utf-8'); d=Path('docs/reference/dispatch-protocol.md').read_text(encoding='utf-8'); assert 'docs/reference/dispatch-protocol.md' in c; assert all(s in d for s in ['## Verdict: PASS','## Verdict: FAIL','missing or malformed'])\""
       # Verify architecture-reviewer uses the same verdict contract
       - "python -c \"from pathlib import Path; t=Path('agents/architecture-reviewer.md').read_text(encoding='utf-8'); assert '\\n## Verdict: PASS' in t or t.startswith('## Verdict: PASS')\""
       - "python -c \"from pathlib import Path; t=Path('agents/architecture-reviewer.md').read_text(encoding='utf-8'); assert '\\n## Verdict: FAIL' in t or t.startswith('## Verdict: FAIL')\""

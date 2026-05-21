@@ -1,7 +1,7 @@
 # Plan Contract
 
 This reference contains the plan structure and review details that do not
-belong in the `/plan` controller prompt.
+belong in the `/prepare_execute` controller prompt.
 
 ## Source Contracts
 
@@ -9,6 +9,7 @@ belong in the `/plan` controller prompt.
 - `docs/reference/spec-contract.md`
 - `docs/reference/architecture-readiness-contract.md`
 - `docs/reference/verification-contract.md`
+- `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/app-delivery-contract.md`
 - `docs/reference/dispatch-protocol.md`
 - `docs/reference/domain-language.md`
@@ -23,8 +24,8 @@ Require:
 - `phases/index.json` audit status `PASS` or `WARN`.
 - Architecture reference when the spec has architecture sections.
 
-If audit is missing or `FAIL`, route to `/pipeline-audit`. If no spec exists,
-route to `/brainstorm`.
+If audit is missing or `FAIL`, route to `internal pipeline audit`. If no spec exists,
+route to `/spec`.
 
 When planning starts, set plan `in_progress` and remove stale audit data.
 
@@ -40,7 +41,7 @@ ASSUMPTIONS ABOUT THIS SPEC:
 -> Correct me if any of these are wrong.
 ```
 
-Clarify one question at a time. Return to `/brainstorm` when requirements or
+Clarify one question at a time. Return to `/spec` when requirements or
 architecture are insufficient.
 
 ## Coverage Matrix
@@ -87,6 +88,29 @@ Rules:
 - Package/deploy rows include build artifact, readiness, and rollback evidence.
 - Matrix rows without mapped tasks or non-trivial Verify commands block
   execution.
+
+## UI Verification Adapter Tasks
+
+When `.harness/config.json` has `ui_verification.required: true`, every UI task
+must include the selected adapter command or a task-local equivalent that
+preserves the same user-observable oracle.
+
+If the adapter is missing, not installed, or cannot run in the project
+environment, add a prerequisite task before feature implementation:
+
+```markdown
+### Task 0: Install UI Verification Adapter {verification}
+
+**Completion criteria (from spec):**
+- [ ] Given: the configured UI surface / When: the adapter smoke command runs /
+  Then: the adapter can assert visible UI behavior / Verify: `<adapter smoke>`
+
+**UI verification adapter:** <capability, adapter, command, oracle>
+```
+
+Do not replace a UI acceptance criterion with a lower-level test unless
+`docs/reference/ui-verification-adapter-contract.md` says the observable oracle
+is equivalent.
 
 ## Structural Invariants
 
@@ -248,7 +272,7 @@ When the spec contains WM-DF entries, at least one plan task must have a Verify
 command that asserts data arriving at the entry point reaches the output with
 correct transformation. A milestone task or the Full-Feature Wiring Gate should
 exercise at least one WM-DF path end-to-end. Plans with WM-DF entries but no
-data flow verification are flagged by pipeline-audit D5.
+data flow verification is flagged by internal pipeline audit D5.
 
 ## Full-Feature Wiring Gate
 
@@ -331,7 +355,8 @@ After plan approval:
 - Set plan `artifact` to the plan path.
 - Set `completed_at`.
 - Keep build `pending`.
-- Dispatch `ezpowers:workflow-runner` for `/pipeline-audit` with invocation
-  mode `post-plan`.
+- Dispatch `ezpowers:workflow-runner` for `internal pipeline audit` with
+  invocation mode `post-prepare_execute`, working directory project root, spec
+  artifact, and plan artifact.
 
-Proceed to `/choiceexecutor` only when audit status is `PASS` or `WARN`.
+Proceed to `/choice_execute` only when audit status is `PASS` or `WARN`.

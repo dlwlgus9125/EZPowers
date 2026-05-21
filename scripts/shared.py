@@ -15,7 +15,7 @@ import time
 from typing import Any
 
 # ---------------------------------------------------------------------------
-# Banned expressions (commands/brainstorm.md L197-205)
+# Banned expressions (commands/spec.md L197-205)
 # ---------------------------------------------------------------------------
 BANNED_KO = [
     "적절히", "적절하게",

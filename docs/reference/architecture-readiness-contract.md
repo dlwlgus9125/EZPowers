@@ -5,7 +5,7 @@ for planning without forcing implementation agents to invent architecture.
 
 ## Required Spec Interface
 
-Every spec produced by `/brainstorm` must contain:
+Every spec produced by `/spec` must contain:
 
 - Architecture Baseline
 - ASR Ledger
@@ -134,7 +134,7 @@ Rules:
 - `hard ceiling/floor` budgets are **blocking** (FAIL at the Quality Budget
   Verification Gate). `soft ceiling/floor` budgets are **advisory** (WARN).
 - The harness executes `verify_command` during the Quality Budget Verification
-  Gate in `/choiceexecutor` Section 12a (after Final Code Review, before
+  Gate in `/choice_execute` Section 12a (after Final Code Review, before
   Completion gates).
 
 ## App Delivery Readiness

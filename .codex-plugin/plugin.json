@@ -1,7 +1,7 @@
 {
   "name": "ezpowers",
-  "version": "1.6.6",
-  "description": "Personal Codex workflow plugin for spec-driven development with setup, brainstorm, plan, and execution guidance.",
+  "version": "2.0.0",
+  "description": "Personal Codex workflow plugin for spec-driven development with setup, design_architecture, spec, prepare_execute, and choice_execute guidance.",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
@@ -12,17 +12,17 @@
   "keywords": [
     "sdd",
     "spec-driven",
-    "brainstorm",
-    "plan",
-    "choiceexecutor",
-    "executeharness",
+    "design_architecture",
+    "spec",
+    "prepare_execute",
+    "choice_execute",
     "skills"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "EZPowers",
     "shortDescription": "Spec-driven planning and execution workflow for Codex.",
-    "longDescription": "EZPowers adapts the existing setup, brainstorm, plan, execution, review, sync, eval, and feedback workflow documents for Codex while preserving the original Claude plugin files.",
+    "longDescription": "EZPowers adapts the v2 setup, design_architecture, spec, prepare_execute, choice_execute, review, sync, eval, and feedback workflow documents for Codex while preserving the original Claude plugin files.",
     "developerName": "dlwlgus9125",
     "category": "Productivity",
     "capabilities": [
@@ -36,15 +36,15 @@
     "termsOfServiceURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/TERMS.md",
     "defaultPrompt": [
       "Use EZPowers to set up this project.",
-      "Run an EZPowers brainstorm for this feature.",
-      "Turn the approved spec into an EZPowers plan."
+      "Run EZPowers design_architecture for this project.",
+      "Turn the approved spec into an EZPowers prepare_execute plan."
     ],
     "brandColor": "#2563EB"
   },
   "metadata": {
     "source_plugin": "claude",
     "eval_version": "1.0.0",
-    "eval_baseline_path": "evals/results/baselines/1.5.2.json",
+    "eval_baseline_path": "evals/results/baselines/2.0.0.json",
     "harness_changelog": "harness_versions/changelog.jsonl",
     "trace_collection": "opt-in"
   }

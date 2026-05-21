@@ -1,7 +1,7 @@
 case_id: "optimization.runtime_probe_live.006"
 split: optimization
 stratum:
-  command: executeharness
+  command: choice_execute
   difficulty: multi_step
   pattern: runtime_probe
   model_family: agnostic

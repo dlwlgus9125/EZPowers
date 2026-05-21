@@ -126,10 +126,10 @@ class EvalRunnerSafetyTests(unittest.TestCase):
 
     def test_case_schema_accepts_digits_and_public_command_names(self):
         case = {
-            "case_id": "optimization.pipeline_audit_v2.001",
+            "case_id": "optimization.internal_pipeline_audit_v2.001",
             "split": "optimization",
             "stratum": {
-                "command": "pipeline-audit",
+                "command": "internal-pipeline-audit",
                 "difficulty": "single_step",
                 "pattern": "contract",
                 "model_family": "agnostic",
@@ -142,7 +142,7 @@ class EvalRunnerSafetyTests(unittest.TestCase):
         }
 
         errors = run_baseline.validate_case_schema(
-            REPO_ROOT / "evals" / "optimization" / "pipeline-audit-v2.yaml",
+            REPO_ROOT / "evals" / "optimization" / "internal-pipeline-audit-v2.yaml",
             case,
         )
 
@@ -278,7 +278,7 @@ class EvalRunnerSafetyTests(unittest.TestCase):
         changed = ["commands/eval.md", "evals/INDEX.md"]
 
         self.assertEqual(validate.behavior_prompt_targets(changed), [])
-        self.assertEqual(validate.behavior_prompt_targets(["commands/plan.md"]), ["commands/plan.md"])
+        self.assertEqual(validate.behavior_prompt_targets(["commands/prepare_execute.md"]), ["commands/prepare_execute.md"])
 
         passed, detail = validate.check_diff_lines(False, changed)
 

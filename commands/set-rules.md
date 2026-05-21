@@ -9,8 +9,8 @@ Design coding rules, code structure guidelines, and architecture constraints thr
 
 Can be invoked at any time after /setup. Adapts to available information:
 - After /setup: stack-based coding rules, test conventions, basic structure
-- After /brainstorm: + architecture decisions, requirement constraints
-- After /plan: + verification commands, module isolation points
+- After /spec: + architecture decisions, requirement constraints
+- After /prepare_execute: + verification commands, module isolation points
 
 ## 1. Pre-flight
 
@@ -37,11 +37,11 @@ Analyze all available inputs and identify rule-worthy areas.
 - AGENTS.md Boundaries → enforceable no-change zones
 - Directory structure → layer boundary candidates, code organization
 
-**If spec exists (after /brainstorm):**
+**If spec exists (after /spec):**
 - Architecture decisions → structural constraints
 - Requirements → enforceable constraints
 
-**If plan exists (after /plan):**
+**If plan exists (after /prepare_execute):**
 - Structural Invariants → rules with verification commands
 - File structure mapping → module isolation rules
 

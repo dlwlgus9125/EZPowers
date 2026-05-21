@@ -1,13 +1,13 @@
 # evals/golden/oscillation-stop-3iter.yaml
 # Golden invariant: Oscillation detection must trigger user escalation when the same
 # {file}:{issue_type} key appears in 2+ prior iterations (checked from iteration 3).
-# Source: commands/choiceexecutor.md L215-216
+# Source: commands/choice_execute.md L215-216
 # "이슈를 {file}:{issue_type} 키로 로깅. 현재 키가 2+ 이전 iteration에도 존재 -> 사용자 에스컬레이션"
 
 case_id: "golden.oscillation_stop_3iter.001"
 split: golden
 stratum:
-  command: choiceexecutor
+  command: choice_execute
   difficulty: multi_step
   pattern: oscillation_trap
   model_family: agnostic
@@ -62,9 +62,9 @@ graders:
       - "python -c \"from pathlib import Path; assert 'src/auth.ts:missing-validation' in Path($MOCK_iteration_3_issues).read_text(encoding='utf-8')\""
       # Verify the escalation expectation is configured as true (fixture sanity)
       - "python -c \"assert '$MOCK_expected_escalation_triggered' == 'true'\""
-      # Verify the choiceexecutor command actually documents oscillation detection logic
-      - "python -c \"from pathlib import Path; assert 'oscillation' in Path('commands/choiceexecutor.md').read_text(encoding='utf-8').lower()\""
-      - "python -c \"import re; from pathlib import Path; t=Path('commands/choiceexecutor.md').read_text(encoding='utf-8'); assert re.search(r'iteration.*3|3.*iteration|2\\+', t, re.I | re.S)\""
+      # Verify the choice_execute command actually documents oscillation detection logic
+      - "python -c \"from pathlib import Path; assert 'oscillation' in Path('commands/choice_execute.md').read_text(encoding='utf-8').lower()\""
+      - "python -c \"import re; from pathlib import Path; t=Path('commands/choice_execute.md').read_text(encoding='utf-8'); assert re.search(r'iteration.*3|3.*iteration|2\\+', t, re.I | re.S)\""
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

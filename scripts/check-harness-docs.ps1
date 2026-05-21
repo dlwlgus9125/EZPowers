@@ -403,6 +403,10 @@ param(
     [string] $Phase
 )
 
+if (-not [string]::IsNullOrWhiteSpace($env:EZPOWERS_MODEL)) {
+    $env:EZPOWERS_MODEL | Set-Content -LiteralPath (Join-Path $ProjectRoot 'selected-model.txt') -Encoding UTF8
+}
+
 $IndexPath = Join-Path $ProjectRoot "phases/$Phase/index.json"
 $Index = Get-Content -LiteralPath $IndexPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $Step = $Index.steps | Where-Object { $_.status -eq 'pending' } | Sort-Object { [int]$_.step } | Select-Object -First 1
@@ -453,12 +457,17 @@ Verify-type: cli
             -ProjectRoot $TempRoot `
             -Phase 'sample' `
             -ExecutorCommand "& '$FakeExecutor' -ProjectRoot '$TempRoot' -Phase 'sample'" `
+            -ExplicitModel 'gpt-explicit-test' `
             -TimeoutSeconds 10 | Out-Null
 
         $Index = Get-Content -LiteralPath (Join-Path $PhaseDir 'index.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         $Pending = @($Index.steps | Where-Object { $_.status -eq 'pending' }).Count
         if ($Pending -ne 0) {
             throw "[FAIL] harness run: expected all steps completed"
+        }
+        $SelectedModel = Get-Content -LiteralPath (Join-Path $TempRoot 'selected-model.txt') -Raw -Encoding UTF8
+        if ($SelectedModel.Trim() -ne 'gpt-explicit-test') {
+            throw "[FAIL] harness run: explicit model override was not passed to executor"
         }
 
         $RunLog = Get-Content -LiteralPath (Join-Path $PhaseDir 'harness-run.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -907,46 +916,69 @@ Static-verify: `python -c "raise SystemExit(0)"`
     }
 }
 
-Assert-Contains 'commands/choiceexecutor.md' 'Harness is the external executor/recovery path, not the only strict verification path.' 'choiceexecutor keeps all paths strict'
-Assert-Contains 'commands/choiceexecutor.md' 'scripts/lightpath-gate.ps1 -Scope task' 'choiceexecutor uses lightpath task gate'
-Assert-Contains 'commands/choiceexecutor.md' 'scripts/lightpath-gate.ps1 -Scope final' 'choiceexecutor uses lightpath final gate'
-Assert-Contains 'commands/choiceexecutor.md' 'scripts/harness-certify.ps1' 'choiceexecutor uses completion certificate gate'
+Assert-Contains 'commands/choice_execute.md' 'Harness is the external executor/recovery path, not the only strict verification path.' 'choice_execute keeps all paths strict'
+Assert-Contains 'commands/choice_execute.md' 'scripts/lightpath-gate.ps1 -Scope task' 'choice_execute uses lightpath task gate'
+Assert-Contains 'commands/choice_execute.md' 'scripts/lightpath-gate.ps1 -Scope final' 'choice_execute uses lightpath final gate'
+Assert-Contains 'commands/choice_execute.md' 'scripts/harness-certify.ps1' 'choice_execute uses completion certificate gate'
 Assert-Contains 'agents/wiring-reviewer.md' 'missing generated gate evidence' 'wiring reviewer fails missing lightpath evidence'
 Assert-ControllerPrompt 'commands/setup.md' 'setup prompt is diet controller'
-Assert-ControllerPrompt 'commands/brainstorm.md' 'brainstorm prompt is diet controller'
-Assert-ControllerPrompt 'commands/plan.md' 'plan prompt is diet controller'
-Assert-ControllerPrompt 'commands/executeharness.md' 'executeharness prompt is diet controller'
+Assert-ControllerPrompt 'commands/design_architecture.md' 'design_architecture prompt is diet controller'
+Assert-ControllerPrompt 'commands/spec.md' 'spec prompt is diet controller'
+Assert-ControllerPrompt 'commands/prepare_execute.md' 'prepare_execute prompt is diet controller'
+Assert-ControllerPrompt 'commands/maintain.md' 'maintain prompt is diet controller'
+Assert-ControllerPrompt 'commands/deploy.md' 'deploy prompt is diet controller'
+Assert-ControllerPrompt 'commands/reset_setup.md' 'reset_setup prompt is diet controller'
+Assert-ControllerPrompt 'docs/reference/strict-execution-adapter.md' 'strict execution adapter is diet controller'
 Assert-Contains 'commands/setup.md' 'docs/reference/setup-contract.md' 'setup reads setup contract'
-Assert-Contains 'commands/brainstorm.md' 'docs/reference/spec-contract.md' 'brainstorm reads spec contract'
-Assert-Contains 'commands/plan.md' 'docs/reference/plan-contract.md' 'plan reads plan contract'
-Assert-Contains 'commands/executeharness.md' 'docs/reference/harness-execution-contract.md' 'executeharness reads harness execution contract'
+Assert-Contains 'commands/setup.md' 'docs/reference/harness-kit-contract.md' 'setup reads harness kit contract'
+Assert-Contains 'commands/design_architecture.md' 'docs/reference/design-architecture-contract.md' 'design_architecture reads architecture contract'
+Assert-Contains 'commands/design_architecture.md' 'docs/reference/ui-verification-adapter-contract.md' 'design_architecture reads UI adapter contract'
+Assert-Contains 'commands/spec.md' 'docs/reference/spec-contract.md' 'spec reads spec contract'
+Assert-Contains 'commands/prepare_execute.md' 'docs/reference/plan-contract.md' 'prepare_execute reads plan contract'
+Assert-Contains 'commands/prepare_execute.md' 'docs/reference/ui-verification-adapter-contract.md' 'prepare_execute reads UI adapter contract'
+Assert-Contains 'docs/reference/strict-execution-adapter.md' 'docs/reference/harness-execution-contract.md' 'strict adapter reads harness execution contract'
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'Avoid conversion work when a usable phase already exists' 'harness contract skips needless conversion'
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'scripts/harness-convert.ps1 -ProjectRoot <project-root> -PlanPath <plan-path>' 'harness contract uses conversion helper'
-Assert-Contains 'commands/executeharness.md' 'scripts/harness-doctor.ps1 -ProjectRoot <project-root> -Phase <phase>' 'executeharness runs doctor first'
-Assert-Contains 'commands/executeharness.md' 'scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>' 'executeharness uses gate helper'
-Assert-Contains 'commands/executeharness.md' 'scripts/harness-phase.ps1' 'executeharness uses phase helper for status'
-Assert-Contains 'commands/executeharness.md' 'scripts/harness-run.ps1 -ProjectRoot <project-root> -Phase <phase>' 'executeharness uses run helper'
-Assert-Contains 'commands/executeharness.md' 'scripts/harness-certify.ps1 -ProjectRoot <project-root> -Phase <phase>' 'executeharness uses certify helper'
+Assert-Contains 'docs/reference/strict-execution-adapter.md' 'scripts/harness-doctor.ps1 -ProjectRoot <project-root> -Phase <phase>' 'strict adapter runs doctor first'
+Assert-Contains 'docs/reference/strict-execution-adapter.md' 'scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>' 'strict adapter uses gate helper'
+Assert-Contains 'docs/reference/strict-execution-adapter.md' 'scripts/harness-phase.ps1' 'strict adapter uses phase helper for status'
+Assert-Contains 'docs/reference/strict-execution-adapter.md' 'scripts/harness-run.ps1 -ProjectRoot <project-root> -Phase <phase>' 'strict adapter uses run helper'
+Assert-Contains 'docs/reference/strict-execution-adapter.md' 'scripts/harness-certify.ps1 -ProjectRoot <project-root> -Phase <phase>' 'strict adapter uses certify helper'
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'Do not reset a step without a concrete pass/fail signal' 'harness contract recovery requires signal'
-Assert-Contains 'commands/executeharness.md' 'mattpocock-harness-adapter.md' 'executeharness reads Matt adapter'
-Assert-Contains 'commands/plan.md' 'vertical red-green slice' 'plan enforces vertical TDD slices'
-Assert-Contains 'commands/plan.md' 'mattpocock-harness-adapter.md' 'plan reads Matt adapter'
+Assert-Contains 'docs/reference/strict-execution-adapter.md' 'mattpocock-harness-adapter.md' 'strict adapter reads Matt adapter'
+Assert-Contains 'commands/prepare_execute.md' 'vertical red-green slice' 'prepare_execute enforces vertical TDD slices'
+Assert-Contains 'commands/prepare_execute.md' 'mattpocock-harness-adapter.md' 'prepare_execute reads Matt adapter'
 Assert-Contains 'commands/setup.md' 'mattpocock-harness-adapter.md' 'setup reads Matt adapter'
-Assert-Contains 'commands/brainstorm.md' 'mattpocock-harness-adapter.md' 'brainstorm reads Matt adapter'
+Assert-Contains 'commands/spec.md' 'mattpocock-harness-adapter.md' 'spec reads Matt adapter'
 Assert-Contains 'docs/reference/setup-contract.md' 'Config Schema' 'setup contract owns config schema'
 Assert-Contains 'docs/reference/model-routing-contract.md' 'Model Routing Contract' 'model routing contract exists'
 Assert-Contains 'docs/reference/dispatch-protocol.md' 'scripts/model-router.py' 'dispatch protocol uses model router'
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'EZPOWERS_MODEL' 'harness contract passes model environment'
-Assert-Contains 'commands/choiceexecutor.md' 'model-routing-contract.md' 'choiceexecutor reads model routing contract'
-Assert-Contains 'commands/choiceexecutor.md' 'context-injector.py verify' 'choiceexecutor verifies context injection sentinels'
+Assert-Contains 'docs/reference/harness-execution-contract.md' '-ExplicitModel <model>' 'harness contract documents explicit model override'
+Assert-Contains 'scripts/harness-run.ps1' 'ExplicitModel' 'harness run exposes explicit model override'
+Assert-Contains 'scripts/harness-run.ps1' '-ExplicitModel $ExplicitModel' 'harness run passes explicit model to router'
+Assert-Contains 'commands/choice_execute.md' 'model-routing-contract.md' 'choice_execute reads model routing contract'
+Assert-Contains 'commands/choice_execute.md' 'context-injector.py verify' 'choice_execute verifies context injection sentinels'
 Assert-Contains 'docs/reference/spec-contract.md' 'Requirement Section Template' 'spec contract owns requirement template'
 Assert-Contains 'docs/reference/plan-contract.md' 'Task Shape' 'plan contract owns task template'
+Assert-Contains 'docs/reference/harness-kit-contract.md' 'No Synthesis Rule' 'harness kit contract forbids setup synthesis'
+Assert-Contains 'docs/reference/ui-verification-adapter-contract.md' 'Capability Matrix' 'UI verification contract defines capability matrix'
+Assert-Contains 'commands/prepare_execute.md' 'select the strongest available adapter' 'prepare_execute selects strongest UI adapter'
+Assert-Contains 'commands/prepare_execute.md' 'user-observable oracle' 'prepare_execute preserves UI oracle'
+Assert-Contains 'commands/prepare_execute.md' 'insert a prerequisite' 'prepare_execute inserts adapter prerequisite'
+Assert-Contains 'docs/reference/ui-verification-adapter-contract.md' 'Playwright is the preferred browser e2e' 'UI contract keeps Playwright preferred not mandatory'
+Assert-Contains 'docs/reference/ui-verification-adapter-contract.md' 'Equivalent means the replacement verifies the same observable claim' 'UI contract defines adapter equivalence'
+Assert-Contains 'docs/reference/ui-verification-adapter-contract.md' 'adapter_fallback_task_required' 'UI contract requires fallback task'
+Assert-Contains 'docs/reference/plan-contract.md' 'Task 0: Install UI Verification Adapter' 'plan contract defines UI adapter prerequisite task'
+Assert-Contains 'docs/reference/plan-contract.md' 'Do not replace a UI acceptance criterion' 'plan contract forbids UI oracle downgrade'
+Assert-Contains 'docs/reference/pipeline-audit-contract.md' 'UI verification adapter availability' 'pipeline audit checks UI adapter availability'
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'Wiring Gate File' 'harness contract owns wiring schema'
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'Completion Certificate' 'harness contract owns completion certificate'
 Assert-Contains 'docs/reference/architecture-readiness-contract.md' 'Deletion test' 'architecture contract has deletion test'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'EZPowers automation wins' 'Matt adapter preserves EZPowers automation'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'commands/setup.md' 'Matt adapter covers setup command'
-Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'commands/brainstorm.md' 'Matt adapter covers brainstorm command'
+Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'commands/spec.md' 'Matt adapter covers spec command'
+Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'commands/prepare_execute.md' 'Matt adapter covers prepare_execute command'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'engineering/tdd' 'Matt adapter maps TDD skill'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'engineering/diagnose' 'Matt adapter maps diagnose skill'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'harness-run.ps1' 'Matt adapter maps run helper'
@@ -956,6 +988,9 @@ Assert-Contains 'docs/INDEX.md' 'Matt Pocock Harness Adapter' 'docs index links 
 Assert-Contains 'docs/INDEX.md' 'Setup Contract' 'docs index links setup contract'
 Assert-Contains 'docs/INDEX.md' 'Spec Contract' 'docs index links spec contract'
 Assert-Contains 'docs/INDEX.md' 'Plan Contract' 'docs index links plan contract'
+Assert-Contains 'docs/INDEX.md' 'Harness Kit Contract' 'docs index links harness kit contract'
+Assert-Contains 'docs/INDEX.md' 'UI Verification Adapter Contract' 'docs index links UI adapter contract'
+Assert-Contains 'docs/INDEX.md' 'Design Architecture Contract' 'docs index links design architecture contract'
 Assert-Contains 'docs/INDEX.md' 'Harness Execution Contract' 'docs index links harness execution contract'
 Assert-Contains 'docs/INDEX.md' 'Model Routing Contract' 'docs index links model routing contract'
 Assert-Contains 'docs/reference/verification-contract.md' 'The rules in this English subsection are canonical' 'view wiring canonical section present'
@@ -964,16 +999,21 @@ Assert-Contains 'docs/reference/domain-language.md' 'Light Path' 'domain languag
 Assert-Contains 'docs/reference/domain-language.md' 'Strict Path' 'domain language defines strict path'
 Assert-Contains 'docs/reference/verification-contract.md' 'scripts/lightpath-gate.ps1' 'verification contract defines lightpath gate'
 Assert-Contains '.githooks/pre-commit' 'check-harness-docs.ps1' 'pre-commit runs harness docs gate'
+Assert-Contains '.githooks/pre-commit' '.agents/plugins/marketplace' 'pre-commit watches agents marketplace'
 Assert-Contains '.githooks/pre-commit' '.claude-plugin/(plugin|marketplace)' 'pre-commit watches Claude plugin metadata'
 Assert-Contains '.githooks/pre-commit' 'agents/wiring-reviewer' 'pre-commit watches wiring reviewer'
-Assert-Contains '.githooks/pre-commit' 'commands/(setup|brainstorm|choiceexecutor|executeharness|pipeline-audit|plan)' 'pre-commit watches prompt diet commands'
+Assert-Contains '.githooks/pre-commit' 'commands/(setup|design_architecture|spec|prepare_execute|choice_execute|maintain|deploy|reset_setup)' 'pre-commit watches prompt diet commands'
 Assert-Contains '.githooks/pre-commit' 'CLAUDE\.md' 'pre-commit watches root guide'
 Assert-Contains '.githooks/pre-commit' 'docs/INDEX\.md' 'pre-commit watches docs index'
 Assert-Contains '.githooks/pre-commit' 'domain-language' 'pre-commit watches domain language'
+Assert-Contains '.githooks/pre-commit' 'app-delivery-contract' 'pre-commit watches app delivery contract'
 Assert-Contains '.githooks/pre-commit' 'mattpocock-harness-adapter' 'pre-commit watches Matt adapter'
 Assert-Contains '.githooks/pre-commit' 'setup-contract' 'pre-commit watches setup contract'
 Assert-Contains '.githooks/pre-commit' 'spec-contract' 'pre-commit watches spec contract'
 Assert-Contains '.githooks/pre-commit' 'plan-contract' 'pre-commit watches plan contract'
+Assert-Contains '.githooks/pre-commit' 'harness-kit-contract' 'pre-commit watches harness kit contract'
+Assert-Contains '.githooks/pre-commit' 'ui-verification-adapter-contract' 'pre-commit watches UI adapter contract'
+Assert-Contains '.githooks/pre-commit' 'design-architecture-contract' 'pre-commit watches design architecture contract'
 Assert-Contains '.githooks/pre-commit' 'harness-execution-contract' 'pre-commit watches harness execution contract'
 Assert-Contains '.githooks/pre-commit' 'harness_versions/changelog' 'pre-commit watches harness changelog'
 Assert-Contains '.githooks/pre-commit' 'harness-convert' 'pre-commit watches harness convert helper'
@@ -989,6 +1029,7 @@ Assert-Contains '.githooks/pre-commit' 'non-harness command, agent, skill, or sk
 Assert-Contains 'CLAUDE.md' 'runs harness docs gate or validate.py by changed path' 'root guide documents split gate'
 Assert-Contains 'CLAUDE.md' 'mattpocock-harness-adapter.md' 'root guide documents Matt adapter'
 Assert-Contains 'harness_versions/changelog.jsonl' 'harness_light_path_refactor' 'harness changelog records refactor'
+Assert-Contains 'harness_versions/changelog.jsonl' 'command_chain_v2_release' 'harness changelog records v2 command chain'
 Assert-Contains '.githooks/pre-commit' 'smoke-plugin' 'pre-commit watches smoke-plugin helper'
 Assert-Contains '.githooks/pre-commit' 'verify-step' 'pre-commit watches verify-step script'
 Assert-Contains '.githooks/pre-commit' 'model-routing-contract' 'pre-commit watches model routing contract'
@@ -996,6 +1037,7 @@ Assert-Contains '.githooks/pre-commit' 'model-router' 'pre-commit watches model 
 Assert-Contains '.githooks/pre-commit' 'hashline-anchor' 'pre-commit watches hashline anchor'
 Assert-Contains '.githooks/pre-commit' 'context-injector' 'pre-commit watches context injector'
 Assert-Contains '.githooks/pre-commit' 'hook-policy' 'pre-commit watches hook policy'
+Assert-Contains '.agents/plugins/marketplace.json' '"path": "./"' 'agents marketplace uses source root plugin'
 
 if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/verify-step.py'))) {
     throw '[FAIL] verify-step.py: missing scripts/verify-step.py'
@@ -1028,6 +1070,17 @@ foreach ($ScriptName in @('model-router.py', 'hashline-anchor.py', 'context-inje
     }
     Write-Output "[PASS] $ScriptName exists"
 }
+
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/verify-harness-kit.py'))) {
+    throw '[FAIL] verify-harness-kit.py: missing scripts/verify-harness-kit.py'
+}
+Write-Output '[PASS] verify-harness-kit.py exists'
+
+& python (Join-Path $RepoRoot 'scripts/verify-harness-kit.py') --repo-root $RepoRoot | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    throw '[FAIL] verify-harness-kit.py: manifest validation failed'
+}
+Write-Output '[PASS] verify-harness-kit manifest'
 
 if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'hooks/hook-policy.json'))) {
     throw '[FAIL] hook-policy.json: missing hooks/hook-policy.json'

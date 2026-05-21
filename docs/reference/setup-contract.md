@@ -10,6 +10,8 @@ artifact shape.
 - `docs/reference/domain-language.md`
 - `docs/reference/verification-contract.md`
 - `docs/reference/app-delivery-contract.md`
+- `docs/reference/harness-kit-contract.md`
+- `docs/reference/ui-verification-adapter-contract.md`
 
 EZPowers automation owns project state. Matt Pocock influence is limited to
 short prompts, explicit stop conditions, and fast evidence loops.
@@ -42,12 +44,14 @@ Infer first, then ask one question at a time for unknowns:
 - Tech stack.
 - Test, build, lint, and smoke commands.
 - Smoke artifact kind and GUI strategy.
-- Preferred `/choiceexecutor` mode.
+- Preferred `/choice_execute` mode.
 - Executor agent, context window, and budget ratio.
 - Canonical product doc path, if any.
 - Existing architecture docs, if any.
 - ADR usage.
 - UI presence.
+- UI verification capability, adapter, fallback adapter, and oracle when UI is
+  present.
 - App delivery profile: surface kind, frontend, backend, packaging,
   deployment, and QA strategy.
 - Architecture profile: lifecycle stage, quality priorities, performance
@@ -95,6 +99,9 @@ Create or update (in the target project, not in the EZPowers plugin repo):
 - `docs/reference/schema.md`
 - `docs/reference/config.md`
 - `docs/reference/conventions.md`
+- `docs/reference/project-structure.md`
+- `docs/reference/testing-methodology.md`
+- `docs/product/ROADMAP.md`
 - `docs/specs/.gitkeep`
 - `docs/plans/.gitkeep`
 
@@ -245,6 +252,15 @@ can be inferred or asked.
       "release_checklist": []
     }
   },
+  "ui_verification": {
+    "required": true,
+    "capability": "browser-e2e",
+    "adapter": "",
+    "command": "",
+    "oracle": "",
+    "fallback_adapter": "",
+    "evidence": []
+  },
   "server": {
     "start_command": "",
     "stop_command": "",
@@ -355,6 +371,23 @@ Stack auto-detection defaults:
 After auto-detection, present the inferred `view_extensions` to the user for
 confirmation. If the user declares no UI presence, require an `exempt_reason`.
 
+## Local Harness Kit
+
+Install the versioned local kit from `harness-kit/v2.0.0/manifest.json` into
+`.harness/ezpowers/`. Setup must copy bundled files only, compute SHA-256 before
+and after install, and write `.harness/ezpowers/ledger.json`.
+
+Do not synthesize `SKILL.md` or contract bodies during setup. Missing bundled
+files are setup failures, not prompts to improvise replacements.
+
+## UI Verification
+
+Populate `ui_verification` from
+`docs/reference/ui-verification-adapter-contract.md`. UI projects require a
+selected capability and an adapter plan. If no adapter can run yet, setup may
+leave `command` empty only when `/prepare_execute` will add a prerequisite
+adapter-install task before feature work.
+
 ## Phase Index
 
 Final setup state:
@@ -364,7 +397,8 @@ Final setup state:
   "current_phase": "setup",
   "phases": {
     "setup": { "status": "complete", "completed_at": "2026-05-13T00:00:00Z" },
-    "brainstorm": { "status": "pending", "artifact": null },
+    "architecture": { "status": "pending", "artifact": null },
+    "spec": { "status": "pending", "artifact": null },
     "plan": { "status": "pending", "artifact": null },
     "build": { "status": "pending", "artifact": null }
   }
@@ -408,6 +442,9 @@ Report:
 - Config values inferred from repo evidence.
 - Config values supplied by the user.
 - App delivery profile values and unresolved deployment or packaging inputs.
+- Local kit version and hash ledger path.
+- UI verification capability, selected adapter, fallback adapter, and unresolved
+  adapter setup task if any.
 - Remaining human-authored docs.
 - Smoke command and GUI strategy.
-- Next command: `/brainstorm`.
+- Next command: `/design_architecture`.

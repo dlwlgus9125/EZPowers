@@ -1,15 +1,17 @@
 # App Delivery Contract
 
 This contract makes user-facing app delivery a first-class part of setup,
-brainstorm, plan, audit, and execution. It covers frontend, backend,
+design_architecture, spec, prepare_execute, audit, and execution. It covers frontend, backend,
 packaging, deployment, and release verification.
 
 ## Source Contracts
 
 - `docs/reference/setup-contract.md`
+- `docs/reference/design-architecture-contract.md`
 - `docs/reference/spec-contract.md`
 - `docs/reference/plan-contract.md`
 - `docs/reference/verification-contract.md`
+- `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/architecture-readiness-contract.md`
 
 ## Setup: App Delivery Profile
@@ -71,7 +73,7 @@ Defaults:
 - `backend.present`: `true` when API routes, server processes, persistence, or
   external services exist.
 
-## Brainstorm: App Experience And Delivery Baseline
+## Spec: App Experience And Delivery Baseline
 
 Every spec for `web`, `mobile`, `desktop`, `cli`, or `api` includes an
 `App Experience And Delivery Baseline` section before requirements. `docs` and
@@ -144,8 +146,8 @@ Additional task rules:
 
 ## D9: App Delivery Readiness
 
-`/pipeline-audit` runs D9 whenever `app_delivery.surface_kind` is not `docs` or
-`library`, or when a spec/plan declares an App Experience And Delivery
+`internal pipeline audit` runs D9 whenever `app_delivery.surface_kind` is not `docs` or
+`library`, or when a spec/prepare_execute declares an App Experience And Delivery
 Baseline.
 
 Spec-only checks:
@@ -172,5 +174,5 @@ Spec+plan checks:
 Routing:
 
 - Setup gaps return to `/setup`.
-- Missing baseline or product-surface decisions return to `/brainstorm`.
-- Missing matrix rows, task coverage, or Verify commands return to `/plan`.
+- Missing baseline or product-surface decisions return to `/spec`.
+- Missing matrix rows, task coverage, or Verify commands return to `/prepare_execute`.

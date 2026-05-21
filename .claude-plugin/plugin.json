@@ -1,12 +1,12 @@
 {
   "name": "ezpowers",
-  "description": "Personal Claude Code skill plugin — SDD-based workflow with brainstorm, plan, choiceexecutor flow",
-  "version": "1.6.6",
+  "description": "Personal Claude Code skill plugin with v2 setup, design_architecture, spec, prepare_execute, and choice_execute flow",
+  "version": "2.0.0",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
   },
   "homepage": "https://github.com/dlwlgus9125/EZPowers",
   "license": "MIT",
-  "keywords": ["sdd", "spec-driven", "brainstorm", "plan", "choiceexecutor", "executeharness", "skills"]
+  "keywords": ["sdd", "spec-driven", "design_architecture", "spec", "prepare_execute", "choice_execute", "skills"]
 }

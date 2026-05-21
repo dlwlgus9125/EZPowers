@@ -13,4 +13,4 @@ static:
   must_contain:
     - "commands/*.md"
     - "Do not use this skill as a background router"
-    - "commands/brainstorm.md"
+    - "commands/spec.md"

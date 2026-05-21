@@ -8,7 +8,7 @@ This file is a session-level pointer. Durable architecture decisions belong in
 - 2026-05-19: Treat this repository as a plugin/library artifact for root
   harness config. Runtime smoke is disabled at the repo root; generated target
   projects still require smoke according to `docs/reference/setup-contract.md`.
-- 2026-05-19: Keep strict `/executeharness` disabled until a real external
+- 2026-05-19: Keep strict `/choice_execute Path 2` disabled until a real external
   EasyPowersHarness executor is configured. Lightpath gates remain the measured
   local execution path.
 - 2026-05-19: Make eval runner semantics explicit: static mode is the current

@@ -1,7 +1,7 @@
 case_id: "optimization.multi_phase_recovery.002"
 split: optimization
 stratum:
-  command: executeharness
+  command: choice_execute
   difficulty: long_horizon
   pattern: brownfield
   model_family: agnostic
@@ -9,7 +9,7 @@ stratum:
 
 input:
   user_message: |
-    /executeharness user-auth --reset-step 2
+    /choice_execute Path 2 user-auth --reset-step 2
   initial_files:
     - "phases/user-auth/step0.md"
     - "phases/user-auth/step1.md"

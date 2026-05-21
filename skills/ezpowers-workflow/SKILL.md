@@ -16,11 +16,15 @@ Do not use this skill as a background router. If the user invokes a named EZPowe
 | Intent | Source |
 | --- | --- |
 | Setup harness | `../../commands/setup.md` |
-| Brainstorm/spec | `../../commands/brainstorm.md` |
-| Pipeline audit | `../../commands/pipeline-audit.md` |
-| Plan tasks | `../../commands/plan.md` |
-| Choose execution | `../../commands/choiceexecutor.md` |
-| Execute harness | `../../commands/executeharness.md` |
+| Design architecture | `../../commands/design_architecture.md` |
+| Spec | `../../commands/spec.md` |
+| Internal pipeline audit | `../../docs/reference/pipeline-audit-contract.md` |
+| Plan tasks | `../../commands/prepare_execute.md` |
+| Choose execution | `../../commands/choice_execute.md` |
+| Strict execution adapter | `../../docs/reference/strict-execution-adapter.md` |
+| Maintain | `../../commands/maintain.md` |
+| Deploy | `../../commands/deploy.md` |
+| Reset setup | `../../commands/reset_setup.md` |
 | Review | `../../commands/review.md` |
 | Sync docs | `../../commands/sync-docs.md` |
 | Eval | `../../commands/eval.md` |

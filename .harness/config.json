@@ -89,6 +89,15 @@
     "health_check_url": "",
     "health_check_timeout": 15
   },
+  "ui_verification": {
+    "required": false,
+    "capability": "",
+    "adapter": "",
+    "command": "",
+    "oracle": "not required for plugin/library repository with no UI runtime surface",
+    "fallback_adapter": "",
+    "evidence": []
+  },
   "architecture": {
     "lifecycle_stage": "personal-production",
     "quality_priorities": [

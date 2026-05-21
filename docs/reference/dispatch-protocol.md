@@ -22,9 +22,9 @@ path is enough. Do not pass previous reviewer output into a fresh review.
 ## Workflow Runner Interface
 
 `ezpowers:workflow-runner` is a scoped adapter for command-level chaining. It
-may run only `/pipeline-audit` or `/sync-docs`.
+may run only `internal pipeline audit` or `/sync-docs`.
 
-For `/pipeline-audit`, allowed writes are limited to the `audit` field in
+For `internal pipeline audit`, allowed writes are limited to the `audit` field in
 `phases/index.json`.
 
 For `/sync-docs`, allowed writes are limited to fact-derived reference docs,
@@ -201,4 +201,4 @@ Wiring review uses the verdict interface from
 ## Agents NOT Covered by This Protocol
 
 - **eval-diagnostician** (`model: claude-opus-4-6`): Called only from `scripts/propose_edit.py`, not from user-facing commands. Not subject to backend dispatch.
-- **implementer-prompt.md**: Template for task implementation subagents. Dispatch is handled by `/choiceexecutor` Section 4 directly, not through this protocol.
+- **implementer-prompt.md**: Template for task implementation subagents. Dispatch is handled by `/choice_execute` Section 4 directly, not through this protocol.

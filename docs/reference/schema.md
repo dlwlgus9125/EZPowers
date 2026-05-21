@@ -12,4 +12,5 @@ Primary schemas and structured artifacts:
 - `phases/index.json`: phase state and audit status.
 - `feature_list.json`: active improvement state machine.
 - `evals/schema.json`: eval case schema.
+- `harness-kit/v2.0.0/manifest.json`: bundled local kit manifest.
 - `harness_versions/changelog.jsonl`: append-only harness change log.

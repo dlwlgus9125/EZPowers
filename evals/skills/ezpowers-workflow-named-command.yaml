@@ -1,7 +1,7 @@
 case_id: skill.ezpowers-workflow.named-command
 skill: ezpowers-workflow
-prompt: "/brainstorm"
-expected_first_action: Read commands/brainstorm.md directly instead of using ezpowers-workflow as a router.
+prompt: "/spec"
+expected_first_action: Read commands/spec.md directly instead of using ezpowers-workflow as a router.
 invariants:
   - Named EZPowers commands load their command files directly.
   - The adapter is only for adapter or Codex translation requests.
@@ -13,4 +13,4 @@ static:
   must_contain:
     - "named EZPowers command"
     - "read that command document directly"
-    - "commands/brainstorm.md"
+    - "commands/spec.md"

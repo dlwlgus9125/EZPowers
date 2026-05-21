@@ -1,7 +1,7 @@
 case_id: "optimization.spec_reviewer_verdict_parsing.005"
 split: optimization
 stratum:
-  command: brainstorm
+  command: spec
   difficulty: single_step
   pattern: contract
   model_family: agnostic

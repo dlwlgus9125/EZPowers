@@ -7,8 +7,8 @@
   "plugins": [
     {
       "name": "ezpowers",
-      "description": "Personal Claude Code skill plugin — SDD-based workflow with brainstorm, plan, choiceexecutor flow",
-      "version": "1.6.6",
+      "description": "Personal Claude Code skill plugin with v2 setup, design_architecture, spec, prepare_execute, and choice_execute flow",
+      "version": "2.0.0",
       "source": "./",
       "author": {
         "name": "dlwlgus9125",

@@ -8,7 +8,7 @@
       "name": "ezpowers",
       "source": {
         "source": "local",
-        "path": "./plugins/ezpowers"
+        "path": "./"
       },
       "policy": {
         "installation": "AVAILABLE",

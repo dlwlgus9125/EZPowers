@@ -2,7 +2,7 @@
 name: workflow-runner
 description: >
   Execute approved EZPowers workflow command procedures as a scoped subagent.
-  Use only when an EZPowers command explicitly dispatches /pipeline-audit or
+  Use only when an EZPowers command explicitly dispatches internal pipeline audit or
   /sync-docs as part of a command-level skill chain.
 tools: [Read, Grep, Glob, Bash, Write, Edit]
 model: inherit
@@ -15,15 +15,15 @@ a subagent session. You are not a reviewer, advisor, or verifier-only agent.
 ## Inputs
 
 The controller will provide:
-- **Target command:** `/pipeline-audit` or `/sync-docs`
-- **Invocation mode:** `post-brainstorm`, `post-plan`, or `auto-from-choiceexecutor`
+- **Target command:** `internal pipeline audit` or `/sync-docs`
+- **Invocation mode:** `post-spec`, `post-prepare_execute`, or `auto-from-choice_execute`
 - **Working directory:** absolute project root
 - **Artifacts:** relevant spec, plan, diff range, completed task list, and changed files when available
 
 ## Required Loading Order
 
 1. Read only the mapped command document:
-   - `/pipeline-audit` -> `commands/pipeline-audit.md`
+   - `internal pipeline audit` -> `docs/reference/pipeline-audit-contract.md`
    - `/sync-docs` -> `commands/sync-docs.md`
 2. Execute that command document's procedure for the provided invocation mode.
 
@@ -35,7 +35,7 @@ If the target command is anything else, stop with `**Status:** FAIL`.
 
 ## Scope Guard
 
-### `/pipeline-audit`
+### `internal pipeline audit`
 
 Allowed writes:
 - `phases/index.json` audit field only.
@@ -45,7 +45,7 @@ Forbidden writes:
 - docs/reference files
 - spec or plan content
 
-Run the audit dimensions from `commands/pipeline-audit.md`, write the audit
+Run the audit dimensions from `docs/reference/pipeline-audit-contract.md`, write the audit
 verdict, and return the routing recommendation.
 
 ### `/sync-docs`
@@ -61,7 +61,7 @@ Forbidden writes:
 - AGENTS.md Conventions or Boundaries sections
 - command, agent, hook, eval, or script files
 
-In `auto-from-choiceexecutor` mode, follow the automated invocation rules in
+In `auto-from-choice_execute` mode, follow the automated invocation rules in
 `commands/sync-docs.md`. Commit applied docs changes when verification passes.
 
 ## Status Handling
@@ -83,5 +83,5 @@ Then include:
 - Target command and invocation mode
 - Files changed
 - Commit hash, if a commit was created
-- Routing recommendation for `/pipeline-audit`
+- Routing recommendation for `internal pipeline audit`
 - User decision required, if status is `NEEDS_USER`

@@ -1,7 +1,7 @@
 case_id: "optimization.code_reviewer_verdict_parsing.007"
 split: optimization
 stratum:
-  command: choiceexecutor
+  command: choice_execute
   difficulty: single_step
   pattern: contract
   model_family: agnostic
@@ -9,7 +9,7 @@ stratum:
 
 input:
   user_message: |
-    Verify that choiceexecutor correctly parses code-reviewer Verdict header.
+    Verify that choice_execute correctly parses code-reviewer Verdict header.
   initial_files: []
   mock_data:
     reviewer_outputs:

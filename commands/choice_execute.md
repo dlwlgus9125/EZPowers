@@ -3,9 +3,9 @@ description: Select and run execution path for plan tasks
 allowed-tools: [Bash, Read, Write, Edit, Agent, AskUserQuestion]
 ---
 
-# /choiceexecutor — Execution Path Selection
+# /choice_execute — Execution Path Selection
 
-Source contracts: `docs/reference/domain-language.md`, `docs/reference/verification-contract.md`, `docs/reference/dispatch-protocol.md`, `docs/reference/model-routing-contract.md`.
+Source contracts: `docs/reference/domain-language.md`, `docs/reference/verification-contract.md`, `docs/reference/ui-verification-adapter-contract.md`, `docs/reference/dispatch-protocol.md`, `docs/reference/model-routing-contract.md`, `docs/reference/strict-execution-adapter.md`.
 Execute tasks from the plan document. Choose an execution mode (subagent / harness / inline), then run tasks + AC verification + conditional security review + final code review.
 
 ## 1. Pre-flight Checks
@@ -15,15 +15,15 @@ Verify the following first:
 2. Plan document exists (priority: argument > `phases/index.json` plan.artifact > latest file at config `defaults.plan_location`)
 3. Spec document referenced by the plan exists
 4. `phases/index.json` audit gate:
-   - `audit.status` is `"FAIL"` → report `"pipeline-audit에서 미해결 항목 있음. 해결 후 /pipeline-audit 재실행하세요."` and stop
-   - `audit` field is missing → report `"/pipeline-audit를 먼저 실행하세요."` and stop
+   - `audit.status` is `"FAIL"` → report `"internal pipeline audit has unresolved findings. Fix them and rerun the internal audit."` and stop
+   - `audit` field is missing → report `"internal pipeline audit를 먼저 실행하세요."` and stop
    - `audit.status` is `"PASS"` or `"WARN"` → proceed
 
 If missing, direct the user to the required step:
 - No config -> `/setup`
-- No plan -> `/plan`
-- No spec -> `/brainstorm`
-- No audit or audit FAIL -> `/pipeline-audit`
+- No plan -> `/prepare_execute`
+- No spec -> `/spec`
+- No audit or audit FAIL -> `internal pipeline audit`
 
 If `phases/index.json` exists, update the build phase to `in_progress`:
 ```json
@@ -72,7 +72,14 @@ Ask the user for the execution mode:
 - `harness.root` configured + external harness logs or step-level recovery needed → **harness**
 - All paths are fail-closed for Verify, runtime smoke, and Full-Feature Wiring Gate. Harness is the external executor/recovery path, not the only strict verification path.
 
-Path 2 follows the `/executeharness` command procedure.
+After selecting the path, show the configured default model from
+`.harness/config.json` `executor` and ask once whether to use it or override it
+for this run. Apply the selected model to subagent dispatch or Path 2
+execution by passing `-ExplicitModel <model>` to `scripts/harness-run.ps1`,
+which sets `EZPOWERS_MODEL` for the harness executor. Keep reviewer model
+routing separate unless the user explicitly overrides reviewer settings.
+
+Path 2 follows `docs/reference/strict-execution-adapter.md`.
 
 ## 3. Task Graph Analysis
 
@@ -82,7 +89,7 @@ Analyze task dependencies before execution to determine execution strategy.
 
 Identify per task:
 - **Explicit dependency:** `Depends on: Task N` marker
-- **File overlap dependency:** `**File overlap with:** Task N` marker — pre-computed file overlap from /plan. Trust over implicit when present.
+- **File overlap dependency:** `**File overlap with:** Task N` marker — pre-computed file overlap from /prepare_execute. Trust over implicit when present.
 - **Implicit dependency:** Same file modified (`Modify:` items match) — fallback when no `File overlap with` marker
   - Detection: normalize each task's `Modify:` paths (strip trailing slash, unify case), then exact string comparison. No partial path matching.
 
@@ -186,7 +193,7 @@ Record git hash (Section 3.6)
       -> PASS -> AC Arbiter (integration/e2e/logic-dense tasks)
         -> PASS -> View Wiring Test (view tasks only)
           -> PASS -> conditional security review (keyword-triggered, no SAST — already ran at 4c)
-        -> TEST_GAP/CODE_GAP/SPEC_GAP -> re-dispatch or return to /plan
+        -> TEST_GAP/CODE_GAP/SPEC_GAP -> re-dispatch or return to /prepare_execute
       -> hard FAIL -> re-dispatch with invariant violation details
       -> soft FAIL -> WARN (log, continue)
     -> FAIL -> re-dispatch with verify/runtime failure details (max 3)
@@ -387,7 +394,7 @@ Simple `pure`/`cli`/`lib` tasks skip the arbiter and proceed directly to securit
 - **PASS** → proceed to conditional security review
 - **TEST_GAP** → re-dispatch implementer: "Verification does not prove the Then clause. Write a probe that directly observes [specific Then clause]."
 - **CODE_GAP** → re-dispatch implementer with verification evidence showing implementation fails
-- **SPEC_GAP** → return to /plan automatically (Section 13): plan lacks an automatable oracle for this AC
+- **SPEC_GAP** → return to /prepare_execute automatically (Section 13): plan lacks an automatable oracle for this AC
 
 **Arbiter dispatch limit:** max 2 rounds per task. If arbiter returns TEST_GAP or CODE_GAP twice, escalate to user.
 
@@ -513,12 +520,12 @@ Execute each row's verification command (timeout: 30s).
 
 | Review type | Source | Max iterations | Warn at | Stop at |
 |-------------|--------|----------------|---------|---------|
-| Spec review | brainstorm.md | 5 | 3 | 5 |
+| Spec review | spec.md | 5 | 3 | 5 |
 | Plan review | plan.md | 5 | 3 | 5 |
-| Implementer AC | choiceexecutor.md | 3 | — | 3 |
-| Security review | choiceexecutor.md | 5 | 3 | 5 |
-| Final code review | choiceexecutor.md | 10 | 5 | 10 |
-| Smoke test | choiceexecutor.md | 3 | — | 3 |
+| Implementer AC | choice_execute.md | 3 | — | 3 |
+| Security review | choice_execute.md | 5 | 3 | 5 |
+| Final code review | choice_execute.md | 10 | 5 | 10 |
+| Smoke test | choice_execute.md | 3 | — | 3 |
 | Test protection | verification-contract.md | 3 | — | 3 |
 | Lint/typecheck | verification-contract.md | 2 | — | 2 |
 
@@ -577,9 +584,16 @@ Include in implementer prompts for tasks modifying existing files:
 
 ### Model Selection
 
-- **Implementer:** Best coding model
-- **Security reviewer:** Model with strong analysis capability
-- **Final code reviewer:** Model with strong judgment
+- Read `executor.agent`, `executor.backend`, and
+  `executor.model_routing.default_profile` from `.harness/config.json`.
+- Ask once: use the configured default for this run, or override the execution
+  model. Record the answer in the run notes.
+- **Implementer:** selected execution model, or router-selected coding model.
+- **Path 2:** pass the selected execution model as
+  `scripts/harness-run.ps1 -ExplicitModel <model>` so the executor receives
+  `EZPOWERS_MODEL`.
+- **Security reviewer:** reviewer routing from `docs/reference/model-routing-contract.md`.
+- **Final code reviewer:** reviewer routing from `docs/reference/model-routing-contract.md`.
 
 ### Parallel Reviewer Limit
 
@@ -654,25 +668,25 @@ Agent tool:
 
 ## 10. Harness Execution (Path 2)
 
-When the user selects Path 2, load `commands/executeharness.md` and follow that
+When the user selects Path 2, load `docs/reference/strict-execution-adapter.md` and follow that
 command as the source of truth for all harness conversion, execution, recovery,
 and restoration behavior. Do not duplicate the harness procedure here.
 
-After `/executeharness` reports all steps complete, require its full-feature
+After `/choice_execute Path 2` reports all steps complete, require its full-feature
 wiring gate verdict before continuing:
 
 - Read `phases/<phase>/wiring-gate.json` directly. Do not rely only on the
-  `/executeharness` status line or process exit code.
+  `/choice_execute Path 2` status line or process exit code.
 - `PASS` or `pass` -> continue at Section 12 (Final Code Review) using the diff range
-  returned by `/executeharness` (`<harness-start-hash>..HEAD`)
+  returned by `/choice_execute Path 2` (`<harness-start-hash>..HEAD`)
 - `review_pending` -> dispatch `ezpowers:wiring-reviewer` with plan path,
   diff range, `wiring-gate.json`, runtime artifacts, and run log path. Write
   the verdict to `wiring-gate.json.reviewer_verdict`, rerun
   `scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>`, then
   reread `wiring-gate.json`. Continue only if status becomes `pass`.
-- `TEST_GAP` -> stop and return to `/plan` or reset the probe-writing step
-- `CODE_GAP` -> reset the related harness step and rerun `/executeharness`
-- `SPEC_GAP` -> return to `/plan`
+- `TEST_GAP` -> stop and return to `/prepare_execute` or reset the probe-writing step
+- `CODE_GAP` -> reset the related harness step and rerun `/choice_execute Path 2`
+- `SPEC_GAP` -> return to `/prepare_execute`
 - `fail`, `pending`, or any unknown status -> do not complete; report the gate
   status and recovery route
 - Missing or malformed wiring verdict -> treat as `TEST_GAP`
@@ -857,7 +871,7 @@ After all tasks complete + Quality Budget gate, dispatch `ezpowers:code-reviewer
 
 **Note:** This gate is intentionally advisory-only. Mutation testing is computationally expensive and may produce false positives (equivalent mutants). The goal is awareness, not blocking.
 
-## 13. Backward Transition: Return to /plan
+## 13. Backward Transition: Return to /prepare_execute
 
 If plan decomposition proves inadequate during execution — tasks too tightly coupled, missing dependencies, misaligned boundaries — do not force a broken plan.
 
@@ -868,25 +882,25 @@ If plan decomposition proves inadequate during execution — tasks too tightly c
 - 2+ consecutive tasks BLOCKED for structural reasons
 
 **Actions:**
-1. Log reason: "Returning to /plan: [specific reason]"
+1. Log reason: "Returning to /prepare_execute: [specific reason]"
 2. Report to user
 3. Save current progress:
    - Completed tasks: check the task's checkbox (`- [x]`) in the plan and commit
    - Incomplete tasks: leave checkboxes unchecked, mark as re-plan targets
    - Record `first-task-start-hash` in plan header: `**Resume hash:** <first-task-start-hash>`
-   - Commit message: `wip: build progress saved before /plan return — Tasks 1-N complete`
+   - Commit message: `wip: build progress saved before /prepare_execute return — Tasks 1-N complete`
 4. Update `phases/index.json`: set build to `pending`, reset plan to `in_progress`
-5. Return to `/plan` for plan revision
-6. Resume `/choiceexecutor` with updated plan
+5. Return to `/prepare_execute` for plan revision
+6. Resume `/choice_execute` with updated plan
 
-### Resume Protocol (after returning from /plan)
+### Resume Protocol (after returning from /prepare_execute)
 
 1. Check for `**Resume hash:**` marker in plan document
 2. If present: restore previous `first-task-start-hash` (preserves final review diff range)
 3. Tasks checked `- [x]` are treated as PASS and skipped
 4. Execute only `- [ ]` tasks (including newly added tasks)
 5. Skipped tasks' artifacts (commits) already exist, so dependencies are satisfied
-6. **Caution:** If the revised plan modifies files from already-completed tasks, those tasks must be manually reset to `- [ ]` — /plan notifies the user
+6. **Caution:** If the revised plan modifies files from already-completed tasks, those tasks must be manually reset to `- [ ]` — /prepare_execute notifies the user
 
 ## 14. Completion
 
@@ -906,19 +920,19 @@ After all tasks + final review complete:
      with `scripts/lightpath-gate.ps1 -Scope final -ReviewerVerdict <verdict>`
      and rerun/finalize the gate.
    - `test_gap`/`code_gap`/`spec_gap`/`fail` -> do not complete. Re-dispatch
-     the responsible implementer or return to `/plan` according to the verdict.
+     the responsible implementer or return to `/prepare_execute` according to the verdict.
    - Missing or malformed `lightpath-gate.json`/`wiring-gate.json` is
      `TEST_GAP`.
    - `scripts/harness-certify.ps1` must produce a PASS completion certificate before completion.
 4. **Wiring Gate Test detail (fail-closed):**
    Path 1/3 run these rules through `lightpath-gate.ps1`; Path 2 receives the
-   same verdict from `/executeharness`. Apply Wiring Config Validation
+   same verdict from `/choice_execute Path 2`. Apply Wiring Config Validation
    (Section 3.7). If exempt/skip, skip wiring gate.
    - Plan `## Full-Feature Wiring Gate` with `Required: yes`:
      - `config.wiring.wiring_gate_command` non-empty → 실행 (timeout: 120s).
      - `config.wiring.wiring_gate_command` empty → plan의 Wiring Gate Verify 커맨드 사용.
      - 양쪽 모두 empty → FAIL: `"Required wiring gate has no executable command."`
-   - `wiring.enabled: true` + plan에 2개 이상 연결된 task 존재 + `## Full-Feature Wiring Gate` 없음 → FAIL: `"Connected tasks exist but plan has no Full-Feature Wiring Gate. Return to /plan."`
+   - `wiring.enabled: true` + plan에 2개 이상 연결된 task 존재 + `## Full-Feature Wiring Gate` 없음 → FAIL: `"Connected tasks exist but plan has no Full-Feature Wiring Gate. Return to /prepare_execute."`
    Exit 0 = PASS. Non-zero = FAIL.
    FAIL → 테스트 출력에서 실패 뷰/파이프라인 식별, Coverage Matrix로 Task 역추적, 해당 Task implementer 재디스패치. Max 3 retries → user 에스컬레이션.
    `Required: yes` → skip 불가. 테스트 파일 미존재 → 테스트 작성 Task를 자동 추가.
@@ -949,7 +963,7 @@ After all tasks + final review complete:
    | 30 | Unsupported platform |
 
 6. Dispatch `ezpowers:workflow-runner` to invoke `/sync-docs` in
-   `auto-from-choiceexecutor` mode:
+   `auto-from-choice_execute` mode:
 
    ```
    Agent tool:
@@ -957,7 +971,7 @@ After all tasks + final review complete:
      description: "Sync reference docs after implementation"
      prompt: |
        **Target command:** /sync-docs
-       **Invocation mode:** auto-from-choiceexecutor
+       **Invocation mode:** auto-from-choice_execute
        **Working directory:** <absolute project root>
        **Plan artifact:** <absolute path to plan file>
        **Diff range:** <first-task-start-hash>..HEAD

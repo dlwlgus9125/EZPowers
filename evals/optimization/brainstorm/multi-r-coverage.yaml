@@ -1,7 +1,7 @@
 case_id: "optimization.multi_r_coverage.005"
 split: optimization
 stratum:
-  command: brainstorm
+  command: spec
   difficulty: long_horizon
   pattern: greenfield
   model_family: agnostic

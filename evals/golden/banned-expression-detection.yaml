@@ -1,11 +1,11 @@
 # evals/golden/banned-expression-detection.yaml
 # Golden invariant: spec-reviewer MUST detect all 14 banned expression patterns.
-# Source: commands/brainstorm.md L192-208, agents/spec-reviewer.md L41-45
+# Source: commands/spec.md L192-208, agents/spec-reviewer.md L41-45
 
 case_id: "golden.banned_expression_detection.001"
 split: golden
 stratum:
-  command: brainstorm
+  command: spec
   difficulty: single_step
   pattern: banned_expression_trap
   model_family: agnostic

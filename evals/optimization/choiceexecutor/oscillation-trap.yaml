@@ -1,7 +1,7 @@
 case_id: "optimization.oscillation_trap.004"
 split: optimization
 stratum:
-  command: choiceexecutor
+  command: choice_execute
   difficulty: multi_step
   pattern: bugfix
   model_family: agnostic

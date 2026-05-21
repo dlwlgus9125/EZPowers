@@ -1,11 +1,11 @@
 # evals/golden/smoke-execution-on-completion.yaml
-# Golden invariant: choiceexecutor Section 14 MUST execute the runtime gate
+# Golden invariant: choice_execute Section 14 MUST execute the runtime gate
 # for executable artifacts.
 
 case_id: "golden.smoke_execution_completion.001"
 split: golden
 stratum:
-  command: choiceexecutor
+  command: choice_execute
   difficulty: single_step
   pattern: smoke_execution
   model_family: agnostic
@@ -14,7 +14,7 @@ stratum:
 
 input:
   user_message: |
-    Verify that choiceexecutor completion phase treats executable runtime smoke as a hard gate.
+    Verify that choice_execute completion phase treats executable runtime smoke as a hard gate.
   initial_files: []
   mock_data:
     smoke_command_present: "npm run smoke"
@@ -23,7 +23,7 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "python -c \"from pathlib import Path; c=Path('commands/choiceexecutor.md').read_text(encoding='utf-8'); v=Path('docs/reference/verification-contract.md').read_text(encoding='utf-8'); assert 'docs/reference/verification-contract.md' in c; assert all(s in c for s in ['config.smoke.required','config.smoke.command','artifact_kind: docs|library','Expected UI text/name missing']); assert all(s in v for s in ['Executable artifacts (`cli`, `server`, `desktop`) require runtime smoke','missing required smoke command is failure, not skip','Runtime probe success never replaces a Verify command'])\""
+      - "python -c \"from pathlib import Path; c=Path('commands/choice_execute.md').read_text(encoding='utf-8'); v=Path('docs/reference/verification-contract.md').read_text(encoding='utf-8'); assert 'docs/reference/verification-contract.md' in c; assert all(s in c for s in ['config.smoke.required','config.smoke.command','artifact_kind: docs|library','Expected UI text/name missing']); assert all(s in v for s in ['Executable artifacts (`cli`, `server`, `desktop`) require runtime smoke','missing required smoke command is failure, not skip','Runtime probe success never replaces a Verify command'])\""
 
 tracked_metrics:
   transcript: [n_turns, n_toolcalls, n_total_tokens]

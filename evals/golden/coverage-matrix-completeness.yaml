@@ -1,11 +1,11 @@
 # evals/golden/coverage-matrix-completeness.yaml
 # Golden invariant: plan-reviewer MUST detect unmapped R in Coverage Matrix.
-# Source: commands/plan.md L51-70, agents/plan-reviewer.md L24-29
+# Source: commands/prepare_execute.md L51-70, agents/plan-reviewer.md L24-29
 
 case_id: "golden.coverage_matrix_completeness.001"
 split: golden
 stratum:
-  command: plan
+  command: prepare_execute
   difficulty: single_step
   pattern: coverage_gap
   model_family: agnostic
@@ -107,7 +107,7 @@ graders:
       - "grep -q 'R3' $REVIEW_OUTPUT"
       - "grep -iE 'R3.*(miss|unmapp|누락|미매핑|없|coverage)|( miss|unmapp|누락|미매핑).*R3' $REVIEW_OUTPUT"
       # Verify controller delegates Coverage Matrix details to the canonical contract.
-      - "python -c \"from pathlib import Path; c=Path('commands/plan.md').read_text(encoding='utf-8'); d=Path('docs/reference/plan-contract.md').read_text(encoding='utf-8'); assert 'docs/reference/plan-contract.md' in c; assert all(s in d for s in ['## Coverage Matrix','Every spec requirement appears.','Every requirement maps to at least one task.'])\""
+      - "python -c \"from pathlib import Path; c=Path('commands/prepare_execute.md').read_text(encoding='utf-8'); d=Path('docs/reference/plan-contract.md').read_text(encoding='utf-8'); assert 'docs/reference/plan-contract.md' in c; assert all(s in d for s in ['## Coverage Matrix','Every spec requirement appears.','Every requirement maps to at least one task.'])\""
       # Codebase invariant: plan-reviewer must check coverage completeness
       - "python -c \"from pathlib import Path; assert 'coverage' in Path('agents/plan-reviewer.md').read_text(encoding='utf-8').lower()\""
   - type: llm_rubric

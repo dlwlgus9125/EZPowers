@@ -1,7 +1,7 @@
 case_id: "optimization.small_plan_conversion.001"
 split: optimization
 stratum:
-  command: executeharness
+  command: choice_execute
   difficulty: multi_step
   pattern: greenfield
   model_family: agnostic

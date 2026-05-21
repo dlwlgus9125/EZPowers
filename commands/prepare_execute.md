@@ -3,7 +3,7 @@ description: Decompose spec into task plans with agent assignments
 allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
 ---
 
-# /plan - Task Sequencing
+# /prepare_execute - Task Sequencing
 
 ## Purpose
 
@@ -18,6 +18,7 @@ slices, runtime evidence, and wiring gates. Do not implement code.
 - `docs/reference/spec-contract.md`
 - `docs/reference/architecture-readiness-contract.md`
 - `docs/reference/verification-contract.md`
+- `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/dispatch-protocol.md`
 - `docs/reference/domain-language.md`
 - `.harness/config.json`, `AGENTS.md`, `phases/index.json`
@@ -26,10 +27,10 @@ slices, runtime evidence, and wiring gates. Do not implement code.
 
 ## Rules
 
-- Require `/pipeline-audit` status `PASS` or `WARN` before planning.
+- Require internal pipeline audit status `PASS` or `WARN` before planning.
 - Set plan `in_progress` in `phases/index.json`; remove stale audit data.
 - Read the spec's architecture sections and declare assumptions before tasking.
-- Return to `/brainstorm` when the spec lacks architecture, has contradictions,
+- Return to `/spec` when the spec lacks architecture, has contradictions,
   or leaves implementation agents to invent requirements.
 - Use `docs/reference/plan-contract.md` for Coverage Matrix, Structural
   Invariants, task template, TDD Slice Contract, impact scope, pipeline matrix,
@@ -43,14 +44,20 @@ slices, runtime evidence, and wiring gates. Do not implement code.
   before feature tasks begin.
 - Add automated runtime and wiring evidence when work touches executable entry
   points, multiple layers, connected tasks, routes, bindings, or registrations.
+- Apply `docs/reference/ui-verification-adapter-contract.md`. For UI work,
+  select the strongest available adapter that preserves the same
+  user-observable oracle. If no valid adapter exists, insert a prerequisite
+  task that installs or builds the adapter before feature implementation.
 - For executable artifacts, every task that creates a new module must include a
   `**Wiring probe:**` section specifying: entry point path, module path, probe
   type (`import-chain` | `runtime-load` | `e2e-touch`), and a Verify command
   where exit 0 proves the module is reachable from the entry point. See
   `docs/reference/verification-contract.md` § Incremental Wiring Probe.
 - Dispatch `ezpowers:plan-reviewer` through the dispatch protocol.
-- After plan approval, dispatch `ezpowers:workflow-runner` for `/pipeline-audit`
-  in `post-plan` mode.
+- After plan approval, dispatch `ezpowers:workflow-runner` through the dispatch
+  protocol: target command `internal pipeline audit`, invocation mode
+  `post-prepare_execute`, working directory project root, artifacts spec path
+  and plan path.
 
 ## Stop conditions
 
@@ -67,6 +74,6 @@ slices, runtime evidence, and wiring gates. Do not implement code.
 - Coverage Matrix and uncovered-risk summary.
 - Task count, dependencies, file overlap, and risky tasks.
 - Runtime, structural invariant, and wiring gate commands.
-- Reviewer verdict and post-plan audit result.
+- Reviewer verdict and post-prepare_execute audit result.
 - Updated `phases/index.json` plan state.
-- Next command: `/choiceexecutor` when audit status is `PASS` or `WARN`.
+- Next command: `/choice_execute` when audit status is `PASS` or `WARN`.

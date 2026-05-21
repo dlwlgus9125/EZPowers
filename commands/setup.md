@@ -8,14 +8,18 @@ allowed-tools: [Bash, Read, Write, Glob, AskUserQuestion]
 ## Purpose
 
 Initialize an EZPowers harness in the target project. Create configuration,
-steering docs, phase state, and reference doc slots. Do not write product code.
+steering docs, phase state, reference doc slots, and a verified local EZPowers
+kit. Do not write product code or synthesize skill bodies.
 
 ## Read
 
 - `docs/reference/mattpocock-harness-adapter.md`
 - `docs/reference/setup-contract.md`
+- `docs/reference/harness-kit-contract.md`
+- `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/domain-language.md`
 - `docs/reference/verification-contract.md`
+- `harness-kit/v2.0.0/manifest.json`
 - Target repo root listing, manifests, source directories, `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`
 - Existing `.harness/config.json`, `phases/index.json`, and `docs/` when present
 
@@ -27,6 +31,11 @@ steering docs, phase state, and reference doc slots. Do not write product code.
 - If `CONTEXT.md` already exists, preserve it; offer to merge new terms only.
 - Use `docs/reference/setup-contract.md` for generated files, config schema,
   smoke settings, optional eval/trace flags, and phase-state details.
+- Install the local project kit exactly as defined by
+  `docs/reference/harness-kit-contract.md`: copy bundled files only, record
+  hashes, and fail if the manifest cannot be verified.
+- Never generate, paraphrase, or merge `SKILL.md` bodies during setup. If the
+  bundled kit is missing, stop and ask the user to update the plugin.
 - Preserve EZPowers automation: `.harness/config.json`, `phases/index.json`,
   docs slots, smoke config, and executor settings are first-class outputs.
 - Executable artifacts require runtime smoke unless the setup contract allows
@@ -44,6 +53,8 @@ steering docs, phase state, and reference doc slots. Do not write product code.
 - A required config value cannot be inferred and the user has not supplied it.
 - A write would overwrite non-harness content without explicit approval.
 - An executable artifact has no viable smoke command or GUI strategy.
+- The local kit manifest, bundled file, or installed hash ledger fails
+  verification.
 - Required directories or files cannot be created.
 
 ## Outputs
@@ -52,5 +63,6 @@ steering docs, phase state, and reference doc slots. Do not write product code.
 - Inferred and user-confirmed project settings.
 - Smoke/runtime verification settings and any unresolved values.
 - `phases/index.json` setup status.
+- Local kit install path, manifest version, and hash ledger path.
 - Human-owned docs that still need content.
-- Next command: `/brainstorm`.
+- Next command: `/design_architecture`.

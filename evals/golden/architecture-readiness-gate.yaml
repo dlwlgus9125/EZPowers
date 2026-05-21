@@ -3,7 +3,7 @@
 case_id: "golden.architecture_readiness_gate.002"
 split: golden
 stratum:
-  command: brainstorm
+  command: spec
   difficulty: single_step
   pattern: architecture_gate
   model_family: agnostic
@@ -18,10 +18,10 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "python -c \"from pathlib import Path; c=Path('commands/brainstorm.md').read_text(encoding='utf-8'); assert all(s in c for s in ['docs/reference/spec-contract.md','docs/reference/architecture-readiness-contract.md','docs/reference/dispatch-protocol.md'])\""
+      - "python -c \"from pathlib import Path; c=Path('commands/spec.md').read_text(encoding='utf-8'); assert all(s in c for s in ['docs/reference/spec-contract.md','docs/reference/architecture-readiness-contract.md','docs/reference/dispatch-protocol.md'])\""
       - "python -c \"from pathlib import Path; d=Path('docs/reference/architecture-readiness-contract.md').read_text(encoding='utf-8'); assert all(s in d for s in ['Architecture Baseline','ASR Ledger','Option Matrix','Lifecycle And Operations','Quality Budgets','Decision Log','Extracted Requirements'])\""
       - "python -c \"from pathlib import Path; s=Path('docs/reference/spec-contract.md').read_text(encoding='utf-8'); p=Path('docs/reference/dispatch-protocol.md').read_text(encoding='utf-8'); assert 'ezpowers:architecture-reviewer' in s and 'ezpowers:architecture-reviewer' in p\""
-      - "python -c \"from pathlib import Path; assert 'D7: Architecture Readiness' in Path('commands/pipeline-audit.md').read_text(encoding='utf-8')\""
+      - "python -c \"from pathlib import Path; assert 'D7: Architecture Readiness' in Path('docs/reference/pipeline-audit-contract.md').read_text(encoding='utf-8')\""
       - "python -c \"from pathlib import Path; assert 'ASR carry-forward' in Path('agents/plan-reviewer.md').read_text(encoding='utf-8')\""
       - "python -c \"from pathlib import Path; assert 'ASR Evidence' in Path('agents/code-reviewer.md').read_text(encoding='utf-8')\""
 

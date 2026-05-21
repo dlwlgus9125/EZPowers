@@ -2,7 +2,7 @@ case_id: "honeypot.misleading_premise_trap.002"
 split: honeypot
 canary: "EZPOWERS_HONEYPOT_CANARY_ec14a697"
 stratum:
-  command: brainstorm
+  command: spec
   difficulty: multi_step
   pattern: brownfield
   model_family: agnostic

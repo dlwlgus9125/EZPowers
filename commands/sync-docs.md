@@ -5,7 +5,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob]
 
 # /sync-docs — Reference Document Synchronization
 
-Reflect the current codebase state in reference docs. Can be invoked independently at any time. At the `/choiceexecutor` completion step, it is invoked by `ezpowers:workflow-runner` in automated mode after final review and smoke verification pass.
+Reflect the current codebase state in reference docs. Can be invoked independently at any time. At the `/choice_execute` completion step, it is invoked by `ezpowers:workflow-runner` in automated mode after final review and smoke verification pass.
 
 ## 1. Pre-flight Checks
 
@@ -124,10 +124,10 @@ The same change may span multiple documents (e.g., new module → `architecture.
 
 - If user confirms, proceed. Otherwise, re-select to include/exclude the entire group.
 
-### Automated Invocation From `/choiceexecutor`
+### Automated Invocation From `/choice_execute`
 
 When `ezpowers:workflow-runner` invokes this command with
-`Invocation mode: auto-from-choiceexecutor`, do not ask for approval before
+`Invocation mode: auto-from-choice_execute`, do not ask for approval before
 safe fact-only updates.
 
 Auto-apply only:
@@ -152,7 +152,7 @@ groups separately.
 ## 7. Apply
 
 For approved documents, or for auto-approved safe groups in
-`auto-from-choiceexecutor` mode:
+`auto-from-choice_execute` mode:
 
 ### 7-1. Document Update Principles
 
@@ -200,7 +200,7 @@ Re-read the updated documents and for each change item:
 
 If a mismatch is found, fix that item only and re-verify. If still mismatched after fix, report to user and exclude that item from the commit.
 
-In `auto-from-choiceexecutor` mode, if a mismatch remains after one focused
+In `auto-from-choice_execute` mode, if a mismatch remains after one focused
 fix, return `**Status:** FAIL` with the mismatched item and do not mark docs
 sync complete.
 
@@ -239,15 +239,15 @@ Status meanings:
 - `NEEDS_USER`: destructive or ambiguous changes need a user decision.
 - `FAIL`: required inputs are missing or verification failed.
 
-## /choiceexecutor Integration
+## /choice_execute Integration
 
-At the `/choiceexecutor` completion step (Section 14), after final code review
-and smoke verification pass, `choiceexecutor` dispatches
+At the `/choice_execute` completion step (Section 14), after final code review
+and smoke verification pass, `choice_execute` dispatches
 `ezpowers:workflow-runner` with:
 
 ```
 **Target command:** /sync-docs
-**Invocation mode:** auto-from-choiceexecutor
+**Invocation mode:** auto-from-choice_execute
 ```
 
 The workflow-runner follows this command in automated mode. `/sync-docs` can

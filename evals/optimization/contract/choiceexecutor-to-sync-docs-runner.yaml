@@ -1,7 +1,7 @@
 case_id: "optimization.workflow_runner.007"
 split: optimization
 stratum:
-  command: choiceexecutor
+  command: choice_execute
   difficulty: single_step
   pattern: contract
   model_family: agnostic
@@ -9,16 +9,16 @@ stratum:
 
 input:
   user_message: |
-    Verify that choiceexecutor invokes sync-docs through workflow-runner after final verification.
+    Verify that choice_execute invokes sync-docs through workflow-runner after final verification.
   initial_files: []
 
 graders:
   - type: deterministic_tests
     commands:
-      - "grep -q 'subagent_type: \"ezpowers:workflow-runner\"' commands/choiceexecutor.md"
-      - "grep -q '\\*\\*Target command:\\*\\* /sync-docs' commands/choiceexecutor.md"
-      - "grep -q '\\*\\*Invocation mode:\\*\\* auto-from-choiceexecutor' commands/choiceexecutor.md"
-      - "grep -q 'docs_sync' commands/choiceexecutor.md"
+      - "grep -q 'subagent_type: \"ezpowers:workflow-runner\"' commands/choice_execute.md"
+      - "grep -q '\\*\\*Target command:\\*\\* /sync-docs' commands/choice_execute.md"
+      - "grep -q '\\*\\*Invocation mode:\\*\\* auto-from-choice_execute' commands/choice_execute.md"
+      - "grep -q 'docs_sync' commands/choice_execute.md"
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

@@ -3,7 +3,7 @@ name: spec-reviewer
 description: >
   Verify spec document completeness and consistency. Checks requirements coverage,
   banned vague expressions, Given-When-Then structure, impact scope.
-  Use when reviewing /brainstorm output or design documents.
+  Use when reviewing /spec output or design documents.
 tools: [Read, Grep, Glob]
 model: sonnet
 maxTurns: 10

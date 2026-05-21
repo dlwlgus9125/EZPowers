@@ -10,29 +10,34 @@ reviews when referring to workflow modules and their interfaces.
 Initializes a target project harness. Its interface is the created project
 configuration, steering documents, phase index, and reference document slots.
 
+**Design Architecture**
+Defines the project-specific architecture, test methodology, structure, roadmap,
+UI verification adapter, and lifecycle/deployment baseline after setup and
+before detailed feature specs.
+
 **Spec**
-The design artifact produced by `/brainstorm`. Its interface is the
+The design artifact produced by `/spec`. Its interface is the
 Architecture Baseline, ASR Ledger, Option Matrix, Lifecycle And Operations,
 Quality Budgets, Decision Log, and Extracted Requirements.
 
 **Plan**
-The implementation artifact produced by `/plan`. Its interface is the Coverage
+The implementation artifact produced by `/prepare_execute`. Its interface is the Coverage
 Matrix, Structural Invariants, tasks (with task categories and wiring
 handoffs), dependency metadata, verification method, Integration Contract
 Matrix, Full-Feature Wiring Gate, and Agent Assignment.
 
 **Pipeline Audit**
 The cross-stage completeness gate. Its interface is an audit verdict written to
-`phases/index.json` plus routing recommendations back to `/brainstorm`,
-`/plan`, or forward to the next command.
+`phases/index.json` plus routing recommendations back to `/spec`,
+`/prepare_execute`, or forward to the next command.
 
 **Choice Executor**
 The implementation controller. Its interface is the selected execution path,
 per-task verification evidence, final review verdict, docs sync status, and
 phase completion state.
 
-**Execute Harness**
-The strict execution adapter for EasyPowersHarness. Its interface is a
+**Strict Execution Adapter**
+The internal EasyPowersHarness adapter used by `/choice_execute` Path 2. Its interface is a
 requested phase, converted step files, step status table, runtime/wiring
 evidence, recovery route, and final review diff range.
 
@@ -98,6 +103,11 @@ A concrete implementation behind a seam, such as `claude-code` reviewer
 dispatch, `codex-cli` reviewer dispatch, harness execution, subagent execution,
 or inline execution.
 
+**UI Verification Adapter**
+A capability-specific automated test adapter selected by
+`/design_architecture` and carried into `/prepare_execute` tasks. It proves the
+same user-observable oracle even when the concrete tool is not Playwright.
+
 **Light Path**
 Execution through inline work or task subagents when strict harness logs and
 runtime/wiring recovery are not needed. Light Path still uses the shared
@@ -105,7 +115,7 @@ lightpath gate for Verify commands, runtime smoke, and Full-Feature Wiring Gate
 completion.
 
 **Strict Path**
-Execution through `/executeharness` when the work needs external harness logs,
+Execution through `/choice_execute Path 2` when the work needs external harness logs,
 step-level recovery, or harness-managed recovery. Strict Path and Light Path
 share the same completion verdict vocabulary.
 

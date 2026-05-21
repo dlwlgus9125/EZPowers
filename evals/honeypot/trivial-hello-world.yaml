@@ -2,7 +2,7 @@ case_id: "honeypot.trivial_hello_world.001"
 split: honeypot
 canary: "EZPOWERS_HONEYPOT_CANARY_0073e2c4"
 stratum:
-  command: brainstorm
+  command: spec
   difficulty: single_step
   pattern: greenfield
   model_family: agnostic

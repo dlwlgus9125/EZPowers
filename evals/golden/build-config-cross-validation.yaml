@@ -5,7 +5,7 @@
 case_id: "golden.build_config_cross_validation.001"
 split: golden
 stratum:
-  command: plan
+  command: prepare_execute
   difficulty: single_step
   pattern: build_dep_compat
   model_family: agnostic

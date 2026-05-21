@@ -1,7 +1,7 @@
 ---
 name: architecture-reviewer
 description: >
-  Verify architecture readiness for /brainstorm outputs. Checks ASR coverage,
+  Verify architecture readiness for /spec outputs. Checks ASR coverage,
   lifecycle design, quality budgets, option tradeoffs, ADR triggers, and
   alignment with project architecture reference docs.
 tools: [Read, Grep, Glob]

@@ -64,7 +64,7 @@ CONSISTENCY_PAIRS = [
         "name": "wiring_config_validation",
         "source": "docs/reference/verification-contract.md",
         "source_heading": "## Wiring Config Validation",
-        "consumer": "commands/choiceexecutor.md",
+        "consumer": "commands/choice_execute.md",
         "consumer_heading": "## 3.7. Wiring Config Validation",
     },
 ]

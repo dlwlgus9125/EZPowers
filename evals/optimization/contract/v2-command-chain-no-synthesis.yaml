@@ -1,0 +1,20 @@
+case_id: "optimization.v2_command_chain_no_synthesis.001"
+split: optimization
+stratum:
+  command: setup
+  difficulty: single_step
+  pattern: contract
+  model_family: agnostic
+  language: en
+  verify_type: pure
+input:
+  user_message: "Verify v2 command chain and setup no-synthesis kit contract."
+graders:
+  - type: deterministic_tests
+    commands:
+      - "python scripts/verify-harness-kit.py"
+      - "python -c \"from pathlib import Path; setup=Path('commands/setup.md').read_text(encoding='utf-8'); reset=Path('commands/reset_setup.md').read_text(encoding='utf-8'); ui=Path('docs/reference/ui-verification-adapter-contract.md').read_text(encoding='utf-8'); assert '/design_architecture' in setup; assert 'synthesize skills' in reset; assert 'prerequisite task' in ui\""
+      - "python -c \"from pathlib import Path; cmds={p.name for p in Path('commands').glob('*.md')}; assert {'brainstorm.md','plan.md','choiceexecutor.md','executeharness.md','pipeline-audit.md'}.isdisjoint(cmds); assert {'design_architecture.md','spec.md','prepare_execute.md','choice_execute.md','reset_setup.md','maintain.md','deploy.md'} <= cmds\""
+tracked_metrics:
+  transcript: []
+  custom: [v2_chain_present, setup_no_synthesis, ui_adapter_fallback]

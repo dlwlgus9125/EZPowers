@@ -32,6 +32,19 @@ function names, class names, internal variables, or private file structure.
 | `e2e` | User-facing or entry-path probe that observes the Then clause, not only process survival. |
 | `data` | Query, migration check, schema check, or file/data assertion against the persisted result. |
 
+## UI Adapter Evidence
+
+UI-facing criteria must use the configured `ui_verification` adapter from
+`.harness/config.json` or an approved equivalent from
+`docs/reference/ui-verification-adapter-contract.md`. The adapter must assert
+the same user-observable Then clause: visible state, route, interaction,
+accessibility, screenshot, terminal screen, or native window behavior as
+appropriate.
+
+If Playwright cannot run in the project, `/design_architecture` chooses another
+capability-equivalent adapter. `/prepare_execute` must add an adapter-install
+or adapter-build task before feature work when no runnable adapter exists.
+
 Broad suite commands are allowed only when they include a feature-specific
 assertion or filter. A command such as `pytest`, `npm test`, or `cargo test`
 without a feature-specific oracle is weak evidence and should be reported as a
@@ -421,7 +434,7 @@ Wiring Gate FAIL 시:
 ## Per-Task Quality Gates
 
 These gates run after each implementer completion, before AC Verification.
-`/choiceexecutor` references these sections by name; this file is the canonical
+`/choice_execute` references these sections by name; this file is the canonical
 procedure.
 
 ### Test Baseline Protection

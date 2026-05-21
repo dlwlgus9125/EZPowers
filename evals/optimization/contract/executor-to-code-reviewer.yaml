@@ -1,7 +1,7 @@
 case_id: "optimization.executor_to_code_reviewer.004"
 split: optimization
 stratum:
-  command: choiceexecutor
+  command: choice_execute
   difficulty: single_step
   pattern: contract
   model_family: agnostic
@@ -9,7 +9,7 @@ stratum:
 
 input:
   user_message: |
-    Verify that choiceexecutor passes diff range correctly to code-reviewer.
+    Verify that choice_execute passes diff range correctly to code-reviewer.
   initial_files: []
   mock_data:
     dispatch_template: |

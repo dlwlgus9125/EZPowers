@@ -1,7 +1,7 @@
 case_id: "optimization.plan_reviewer_verdict_parsing.006"
 split: optimization
 stratum:
-  command: plan
+  command: prepare_execute
   difficulty: single_step
   pattern: contract
   model_family: agnostic

@@ -1,7 +1,7 @@
 case_id: "optimization.brainstorm_to_plan_spec_format.001"
 split: optimization
 stratum:
-  command: brainstorm
+  command: spec
   difficulty: multi_step
   pattern: contract
   model_family: agnostic
