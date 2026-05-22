@@ -1,7 +1,7 @@
 {
   "name": "ezpowers",
   "description": "Personal Claude Code skill plugin with v2 setup, design_architecture, spec, prepare_execute, and choice_execute flow",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"

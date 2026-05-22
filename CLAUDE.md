@@ -46,6 +46,7 @@ EZPowers is a personal Claude Code skill plugin.
 | `zoom-out` | skill | Raise abstraction one level (module map) |
 | `caveman` | skill | Token-saving compressed communication mode |
 | `handoff` | skill | Session handoff document for fresh agent continuation |
+| `deep-interview` | skill | Socratic interview to clarify vague requests into actionable requirements |
 
 ## Directory Structure
 
@@ -76,6 +77,8 @@ skills/               # Independent skills
     SKILL.md          # Token-saving compressed mode
   handoff/
     SKILL.md          # Session handoff document for fresh agent continuation
+  deep-interview/
+    SKILL.md          # Socratic interview to clarify vague requests into actionable requirements
 agents/               # Plugin agents + prompt templates
   code-reviewer.md          # Plugin Agent — final code review (inherit, Read/Grep/Glob/Bash)
   security-reviewer.md      # Plugin Agent — security vulnerability scan (inherit, Read/Grep/Glob/Bash)
