@@ -1,6 +1,6 @@
 ---
 description: Review changes against spec for completeness
-allowed-tools: [Bash, Read, Grep, Glob]
+allowed-tools: [Bash, Read, Grep, Glob, Agent]
 ---
 
 # /review — Change Review
@@ -13,6 +13,7 @@ Read the following first:
 - `CLAUDE.md`
 - `AGENTS.md` (if present)
 - `.harness/config.json` (if present)
+- `docs/reference/reviewer-placement-contract.md` (if present)
 - `docs/reference/conventions.md` (if present — coding rules and constraints)
 - Spec document (if path given as argument, or if a recent spec exists)
 
@@ -22,7 +23,8 @@ git diff --name-only
 git diff --cached --name-only
 ```
 
-If no changes, inform and stop.
+If no changes, inform and stop. If changes exist, finish through the reviewer
+placement gate.
 
 ## 2. Review Principles
 

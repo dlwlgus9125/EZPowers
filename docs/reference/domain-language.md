@@ -50,6 +50,16 @@ commit hash, and routing recommendation.
 A read-focused agent that checks one artifact or diff through a fixed verdict
 interface. Reviewer prompts are procedures, not advisory essays.
 
+**Reviewer Placement Gate**
+The mandatory review step after each successful command or explicit skill
+invocation. Its interface is the required reviewer set from
+`docs/reference/reviewer-placement-contract.md` plus parsed verdicts.
+
+**Review Packet**
+The dynamic input passed to reviewers: invocation name, artifact paths, source
+contracts, changed files or diff range, evidence commands, required reviewers,
+received verdicts, and security surface decision.
+
 ## Evidence Terms
 
 **Acceptance Criterion**

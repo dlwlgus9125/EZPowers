@@ -41,7 +41,7 @@ If `model_routing.enabled` is absent or false, existing defaults apply.
 
 Built-in profiles: `quick-fix`, `balanced`, `deep-analysis`,
 `contract-review`, `runtime-debug`, `frontend-visual`, `security-audit`, and
-`docs-sync`.
+`docs-sync`. `workflow-contract-reviewer` uses `contract-review`.
 
 Supported backends: `claude-code`, `codex-cli`, and `harness-env`.
 

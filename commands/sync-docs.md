@@ -1,6 +1,6 @@
 ---
 description: Synchronize reference docs with codebase state
-allowed-tools: [Bash, Read, Write, Grep, Glob]
+allowed-tools: [Bash, Read, Write, Grep, Glob, Agent]
 ---
 
 # /sync-docs — Reference Document Synchronization
@@ -13,6 +13,7 @@ Read the following:
 - `AGENTS.md`
 - `.harness/config.json`
 - `docs/INDEX.md`
+- `docs/reference/reviewer-placement-contract.md`
 
 If missing, direct and stop: "Run `/setup` first."
 

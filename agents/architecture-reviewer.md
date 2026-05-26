@@ -18,12 +18,26 @@ Review from scratch. Do not rely on prior review output.
 
 ## Your Inputs
 
-You will receive:
+You will receive one of two input modes:
+
+Spec mode:
 - **Spec file path**
 - **Architecture reference path** (target project's `docs/reference/architecture.md`)
 - **Config path** (`.harness/config.json`)
 
+Architecture bundle mode:
+- **Architecture reference path**
+- **Testing methodology path**
+- **Project structure path**
+- **Roadmap path**
+- **Config path**
+
 Read all paths that exist. Missing architecture reference or config is a FAIL.
+
+In Architecture bundle mode, verify that the bundle declares project structure,
+test methodology, lifecycle, quality priorities, UI adapter status, and roadmap
+direction. Missing bundle files, placeholder-only sections, or contradictions
+between config and reference docs are FAIL.
 
 ## Hard Gate Checks (ANY failure = FAIL)
 

@@ -57,6 +57,8 @@ Utility commands:
 - Preserve exact Verify commands unless the spec or plan is revised.
 - Treat `docs/reference/*-contract.md` files as canonical when command text
   conflicts with local wording.
+- Use `docs/reference/reviewer-placement-contract.md` to determine the
+  required reviewer set after any successful command or explicit skill run.
 - Prefer small, measured changes. Prompt or command behavior changes must be
   justified by eval results or a concrete defect.
 - Do not claim completion from passing tests alone. Completion requires the

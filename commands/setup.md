@@ -1,6 +1,6 @@
 ---
 description: Initialize project harness with config and steering docs
-allowed-tools: [Bash, Read, Write, Glob, AskUserQuestion]
+allowed-tools: [Bash, Read, Write, Glob, Agent, AskUserQuestion]
 ---
 
 # /setup - Project Harness Initialization
@@ -16,6 +16,7 @@ kit. Do not write product code or synthesize skill bodies.
 - `docs/reference/mattpocock-harness-adapter.md`
 - `docs/reference/setup-contract.md`
 - `docs/reference/harness-kit-contract.md`
+- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/domain-language.md`
 - `docs/reference/verification-contract.md`
@@ -64,5 +65,6 @@ kit. Do not write product code or synthesize skill bodies.
 - Smoke/runtime verification settings and any unresolved values.
 - `phases/index.json` setup status.
 - Local kit install path, manifest version, and hash ledger path.
+- Reviewer verdict summary from the reviewer placement gate.
 - Human-owned docs that still need content.
 - Next command: `/design_architecture`.

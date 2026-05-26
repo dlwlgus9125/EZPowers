@@ -17,6 +17,7 @@ reporting release readiness.
 - `docs/reference/mattpocock-harness-adapter.md`
 - `docs/reference/verification-contract.md`
 - `docs/reference/plan-contract.md`
+- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/domain-language.md`
 - `.harness/config.json`, `docs/release/`, active specs/plans, CI config,
   package manifests, deployment manifests, environment docs, and recent diffs

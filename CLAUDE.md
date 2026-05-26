@@ -83,6 +83,7 @@ agents/               # Plugin agents + prompt templates
   code-reviewer.md          # Plugin Agent — final code review (inherit, Read/Grep/Glob/Bash)
   security-reviewer.md      # Plugin Agent — security vulnerability scan (inherit, Read/Grep/Glob/Bash)
   wiring-reviewer.md        # Plugin Agent — full-feature wiring gate after harness execution
+  workflow-contract-reviewer.md # Plugin Agent — workflow, utility, and skill contract review
   spec-reviewer.md          # Plugin Agent — spec document verification (sonnet, Read/Grep/Glob)
   architecture-reviewer.md  # Plugin Agent — architecture readiness verification (sonnet, Read/Grep/Glob)
   plan-reviewer.md          # Plugin Agent — plan document verification (sonnet, Read/Grep/Glob)
@@ -130,6 +131,7 @@ bin/
   `docs/reference/mattpocock-harness-adapter.md`, and
   `docs/reference/dispatch-protocol.md`, plus the command-specific contracts
   `docs/reference/setup-contract.md`,
+  `docs/reference/reviewer-placement-contract.md`,
   `docs/reference/design-architecture-contract.md`,
   `docs/reference/harness-kit-contract.md`,
   `docs/reference/ui-verification-adapter-contract.md`,
@@ -137,7 +139,7 @@ bin/
   `docs/reference/plan-contract.md`, and
   `docs/reference/harness-execution-contract.md` as the SSOT for workflow vocabulary,
   verification evidence, architecture readiness, Matt Pocock skill adaptation,
-  reviewer dispatch, verdicts, retries, workflow-runner scope, and long
+  reviewer dispatch, placement, verdicts, retries, workflow-runner scope, and long
   command templates. If command or agent wording conflicts
   with these references, preserve behavior and update the stale local wording.
 

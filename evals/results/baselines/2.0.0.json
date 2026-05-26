@@ -252,6 +252,11 @@
         "pass": null,
         "mode": "manual",
         "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.reviewer_placement.014": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
       }
     },
     "honeypot": {
@@ -268,12 +273,12 @@
     }
   },
   "stats": {
-    "total_cases": 51,
-    "automated": 34,
+    "total_cases": 52,
+    "automated": 35,
     "manual": 17,
-    "auto_pass": 23,
+    "auto_pass": 24,
     "auto_fail": 11,
-    "auto_pass_rate": 0.6764705882352942,
+    "auto_pass_rate": 0.6857142857142857,
     "by_command": {
       "spec": {
         "total": 12,
@@ -300,9 +305,9 @@
         "manual": 0
       },
       "review": {
-        "total": 2,
-        "auto": 0,
-        "pass": 0,
+        "total": 3,
+        "auto": 1,
+        "pass": 1,
         "manual": 2
       },
       "sync-docs": {
@@ -314,9 +319,9 @@
     },
     "by_difficulty": {
       "single_step": {
-        "total": 25,
-        "auto": 17,
-        "pass": 14
+        "total": 26,
+        "auto": 18,
+        "pass": 15
       },
       "multi_step": {
         "total": 21,
@@ -337,9 +342,9 @@
         "manual": 0
       },
       "optimization": {
-        "total": 41,
-        "auto": 25,
-        "pass": 15,
+        "total": 42,
+        "auto": 26,
+        "pass": 16,
         "manual": 16
       },
       "honeypot": {

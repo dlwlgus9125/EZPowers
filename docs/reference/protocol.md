@@ -10,6 +10,7 @@ The canonical workflow protocol is distributed across:
 
 - `docs/reference/domain-language.md`
 - `docs/reference/dispatch-protocol.md`
+- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/setup-contract.md`
 - `docs/reference/design-architecture-contract.md`
 - `docs/reference/spec-contract.md`

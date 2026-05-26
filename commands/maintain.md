@@ -17,6 +17,7 @@ work without bypassing architecture, spec, plan, or evidence gates.
 - `docs/reference/spec-contract.md`
 - `docs/reference/plan-contract.md`
 - `docs/reference/verification-contract.md`
+- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/ui-verification-adapter-contract.md`
 - `.harness/config.json`, `phases/index.json`, active specs/plans, recent diffs,
   logs, failing tests, issue reports, and release notes

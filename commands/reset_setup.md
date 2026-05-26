@@ -1,6 +1,6 @@
 ---
 description: Reinstall EZPowers local kit and refresh harness setup documents
-allowed-tools: [Bash, Read, Write, Glob, AskUserQuestion]
+allowed-tools: [Bash, Read, Write, Glob, Agent, AskUserQuestion]
 ---
 
 # /reset_setup - Harness Setup Refresh
@@ -15,6 +15,7 @@ content. Do not rewrite product code or synthesize skills.
 
 - `docs/reference/harness-kit-contract.md`
 - `docs/reference/mattpocock-harness-adapter.md`
+- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/setup-contract.md`
 - `harness-kit/v2.0.0/manifest.json`
 - Existing `.harness/config.json`, `.harness/ezpowers/ledger.json`,
@@ -43,6 +44,7 @@ content. Do not rewrite product code or synthesize skills.
 
 - Reinstalled kit version and ledger path.
 - Config/doc fields migrated.
+- Workflow contract reviewer verdict.
 - Files left for manual review.
 - Updated phase state.
 - Next command: `/design_architecture` when architecture or verification

@@ -12,6 +12,7 @@ belong in the `/prepare_execute` controller prompt.
 - `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/app-delivery-contract.md`
 - `docs/reference/dispatch-protocol.md`
+- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/domain-language.md`
 
 ## Preflight

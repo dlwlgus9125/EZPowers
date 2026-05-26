@@ -1,6 +1,6 @@
 ---
 description: Define project architecture, test strategy, structure, and roadmap
-allowed-tools: [Bash, Read, Write, Glob, WebSearch, AskUserQuestion]
+allowed-tools: [Bash, Read, Write, Glob, WebSearch, Agent, AskUserQuestion]
 ---
 
 # /design_architecture - Architecture And Test Design
@@ -15,6 +15,7 @@ and verification methodology. Do not implement product code.
 
 - `docs/reference/design-architecture-contract.md`
 - `docs/reference/mattpocock-harness-adapter.md`
+- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/setup-contract.md`
 - `docs/reference/architecture-readiness-contract.md`
 - `docs/reference/ui-verification-adapter-contract.md`
@@ -38,6 +39,7 @@ and verification methodology. Do not implement product code.
   oracle, command, and screenshot/accessibility expectations.
 - Do not leave implementation agents to invent architecture, folder structure,
   data flow, lifecycle, deploy target, or test methodology.
+- Dispatch `ezpowers:architecture-reviewer` through the reviewer placement gate.
 
 ## Stop conditions
 
@@ -57,4 +59,5 @@ and verification methodology. Do not implement product code.
 - Updated `docs/ux/README.md` or `docs/release/README.md` when applicable.
 - Updated `.harness/config.json` verification, app_delivery, and model defaults.
 - Updated `phases/index.json` architecture state.
+- Architecture reviewer verdict.
 - Next command: `/spec`.

@@ -1,11 +1,12 @@
 ---
 description: Attach user scores to session traces
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, Write, Agent]
 ---
 
 # /feedback — Attach User Scores to Session Traces
 
 Record user feedback (score + comment) on the current session's trace. Can be invoked independently at any time.
+Successful writes finish through the reviewer placement gate.
 
 <HARD-GATE>
 Do not record feedback if no trace file exists. Trace collection must be enabled first via `/setup --enable-traces`.

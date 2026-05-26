@@ -1,7 +1,7 @@
 # EZPowers Evaluation Index
 
 ## Counts
-- Optimization: 41 cases (target 70%)
+- Optimization: 42 cases (target 70%)
 - Holdout: 0 tracked cases (target 20%, gitignored/local)
 - Golden: 8 cases (target 10%)
 - Honeypot: 2 cases
@@ -20,7 +20,7 @@
 | prepare_execute | 8 | 0 | 3 | 0 | 11 |
 | choice_execute | 16 | 0 | 3 | 0 | 19 |
 | setup | 4 | 0 | 0 | 0 | 4 |
-| review | 2 | 0 | 0 | 0 | 2 |
+| review | 3 | 0 | 0 | 0 | 3 |
 | sync-docs | 3 | 0 | 0 | 0 | 3 |
 
 Note: Contract cases (12 optimization) are distributed across spec/prepare_execute/choice_execute by their `stratum.command` field.
@@ -37,7 +37,7 @@ Skill cases are intentionally separate from command cases. They guard skill hot-
 | executeharness/ | 6 | legacy directory name; strict adapter cases run under choice_execute |
 | review/ | 2 | spec-match, spec-drift |
 | sync-docs/ | 3 | new-reference, outdated-reference, auto-from-choice_execute |
-| contract/ | 13 | stage interface contracts plus v2 command-chain setup determinism |
+| contract/ | 14 | stage interface contracts plus v2 command-chain setup determinism |
 
 ## Last baseline
 - Version: 2.0.0
@@ -45,19 +45,19 @@ Skill cases are intentionally separate from command cases. They guard skill hot-
 - File: evals/results/baselines/2.0.0.json
 - Git SHA: e3e5b51
 - Eval mode: static
-- Automated pass rate: 23/34 (68%)
-- Manual-only cases: 17/51 require live execution or LLM rubric
+- Automated pass rate: 24/35 (69%)
+- Manual-only cases: 17/52 require live execution or LLM rubric
 - Golden: 8/8 automated
-- Optimization: 15/25 automated, 16 manual
+- Optimization: 16/26 automated, 16 manual
 - Holdout: 0 tracked cases
 - Honeypot: 0/1 automated, 1 manual
 
 ## Latest local static run
-- Date: 2026-05-20
-- File: evals/results/runs/20260520T090019-e3e5b51.jsonl
-- Automated pass rate: 23/34 (68%)
+- Date: 2026-05-26
+- File: evals/results/runs/20260526T034643-cea96fd.jsonl
+- Automated pass rate: 17/35 (49%)
 - Golden: 8/8 automated
-- Optimization: 15/25 automated, 16 manual
-- Setup: 4/4 automated
+- Optimization: 9/26 automated, 16 manual
+- Setup: 1/4 automated
 - Remaining non-live failures are mostly absent generated spec/prepare_execute artifacts
   plus the external runtime probe dependency.

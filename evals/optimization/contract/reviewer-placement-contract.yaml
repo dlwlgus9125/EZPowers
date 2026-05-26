@@ -1,0 +1,29 @@
+case_id: "optimization.reviewer_placement.014"
+split: optimization
+stratum:
+  command: review
+  difficulty: single_step
+  pattern: contract
+  model_family: agnostic
+  language: en
+
+input:
+  user_message: |
+    Verify that every EZPowers command and skill has a mandatory reviewer
+    mapping and that workflow-contract-reviewer is dispatchable.
+  initial_files: []
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "python -m unittest tests.test_reviewer_placement_contract"
+  - type: llm_rubric
+    rubric: evals/rubrics/spec_quality.md
+    assertions:
+      - "Every command and skill maps to at least one reviewer."
+      - "workflow-contract-reviewer is available through dispatch protocol."
+      - "Security and wiring reviewers remain specialized reviewers."
+
+tracked_metrics:
+  transcript: [n_turns, n_toolcalls, n_total_tokens]
+  custom: [reviewer_matrix_complete, workflow_contract_reviewer_dispatchable]

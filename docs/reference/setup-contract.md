@@ -8,6 +8,7 @@ artifact shape.
 
 - `docs/reference/mattpocock-harness-adapter.md`
 - `docs/reference/domain-language.md`
+- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/verification-contract.md`
 - `docs/reference/app-delivery-contract.md`
 - `docs/reference/harness-kit-contract.md`

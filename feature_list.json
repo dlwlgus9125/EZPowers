@@ -78,6 +78,21 @@
         "docs/reference/harness-kit-contract.md and harness-kit/v2.0.0/manifest.json define no-synthesis setup",
         "docs/reference/ui-verification-adapter-contract.md and docs/reference/plan-contract.md require adapter fallback tasks"
       ]
+    },
+    {
+      "id": "F6",
+      "title": "Place mandatory reviewers after every command and skill",
+      "status": "complete",
+      "success_criteria": [
+        "Every command maps to at least one required reviewer",
+        "Every skill maps to at least one required reviewer",
+        "A generic workflow reviewer covers setup, utility command, and skill outputs"
+      ],
+      "evidence": [
+        "docs/reference/reviewer-placement-contract.md defines command and skill reviewer matrices",
+        "agents/workflow-contract-reviewer.md defines the generic workflow review gate",
+        "tests/test_reviewer_placement_contract.py verifies command, skill, dispatch, and routing coverage"
+      ]
     }
   ]
 }

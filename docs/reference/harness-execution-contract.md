@@ -8,6 +8,7 @@ This reference contains the strict-path details that do not belong in the
 - `docs/reference/mattpocock-harness-adapter.md`
 - `docs/reference/verification-contract.md`
 - `docs/reference/dispatch-protocol.md`
+- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/model-routing-contract.md`
 - `docs/reference/domain-language.md`
 

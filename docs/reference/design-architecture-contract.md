@@ -3,6 +3,9 @@
 This reference owns the `/design_architecture` artifact shape. It separates
 project architecture and verification policy from feature-level specs.
 
+Source contract: `docs/reference/reviewer-placement-contract.md` requires
+`ezpowers:architecture-reviewer` before architecture completion.
+
 ## Required Outputs
 
 Update or create these project docs:

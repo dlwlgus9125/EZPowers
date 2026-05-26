@@ -1,6 +1,6 @@
 ---
 description: Run eval suite and report scores per version
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, Write, Agent]
 ---
 
 # /eval — Eval Suite Execution and Score Report
@@ -43,6 +43,7 @@ Parse arguments
 Verify:
 - `evals/` directory exists
 - Read current version from `.codex-plugin/plugin.json` (fallback: `.claude-plugin/plugin.json`)
+- Read `docs/reference/reviewer-placement-contract.md`
 - Identify latest baseline file in `evals/results/baselines/`
 - Default runner mode is `static`: deterministic graders run against current
   files and fixture data. Do not present static scores as live command quality.

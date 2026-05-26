@@ -18,6 +18,7 @@
 - [App Delivery Contract](reference/app-delivery-contract.md): [canonical] frontend, backend, packaging, deployment, and release verification rules.
 - [Matt Pocock Harness Adapter](reference/mattpocock-harness-adapter.md): [canonical] mapping from Matt Pocock engineering skill principles to EZPowers harness positions.
 - [Reviewer Dispatch Protocol](reference/dispatch-protocol.md): [canonical] reviewer backend, workflow-runner, verdict, and retry protocol.
+- [Reviewer Placement Contract](reference/reviewer-placement-contract.md): [canonical] required reviewer matrix for commands and skills.
 - [Model Routing Contract](reference/model-routing-contract.md): [canonical] model profile routing for reviewers, subagents, and harness execution.
 - [Setup Contract](reference/setup-contract.md): [canonical] generated harness config, steering docs, smoke settings, and phase initialization rules.
 - [Harness Kit Contract](reference/harness-kit-contract.md): [canonical] setup/reset setup local kit install, no-synthesis, and hash ledger rules.

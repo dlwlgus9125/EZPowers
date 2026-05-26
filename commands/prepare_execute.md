@@ -20,6 +20,7 @@ slices, runtime evidence, and wiring gates. Do not implement code.
 - `docs/reference/verification-contract.md`
 - `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/dispatch-protocol.md`
+- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/domain-language.md`
 - `.harness/config.json`, `AGENTS.md`, `phases/index.json`
 - Spec artifact from argument, phase state, or latest spec directory entry

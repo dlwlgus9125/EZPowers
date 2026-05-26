@@ -21,6 +21,7 @@ implement code.
 - `docs/reference/verification-contract.md`
 - `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/dispatch-protocol.md`
+- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/domain-language.md`
 - `AGENTS.md`, `.harness/config.json`, `phases/index.json`
 - Existing `docs/reference/`, `docs/decisions/`, specs, and recent git changes
