@@ -36,6 +36,9 @@ kit. Do not write product code or synthesize skill bodies.
 - Install the local project kit exactly as defined by
   `docs/reference/harness-kit-contract.md`: copy bundled files only, record
   hashes, and fail if the manifest cannot be verified.
+- Install every manifest entry, including approved `scripts/` helper targets.
+  Missing gate helpers are setup failures, not a reason to use inline
+  verification.
 - Never generate, paraphrase, or merge `SKILL.md` bodies during setup. If the
   bundled kit is missing, stop and ask the user to update the plugin.
 - Preserve EZPowers automation: `.harness/config.json`, `phases/index.json`,

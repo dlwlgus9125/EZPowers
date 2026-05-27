@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0",
+  "version": "2.0.1",
   "install_root": ".harness/ezpowers",
   "no_synthesis": true,
   "public_commands": [
@@ -28,6 +28,62 @@
     {
       "source": "harness-kit/v2.0.0/manifest.json",
       "target": ".harness/ezpowers/manifest.json"
+    },
+    {
+      "source": "scripts/harness-common.ps1",
+      "target": "scripts/harness-common.ps1"
+    },
+    {
+      "source": "scripts/harness-doctor.ps1",
+      "target": "scripts/harness-doctor.ps1"
+    },
+    {
+      "source": "scripts/harness-convert.ps1",
+      "target": "scripts/harness-convert.ps1"
+    },
+    {
+      "source": "scripts/harness-phase.ps1",
+      "target": "scripts/harness-phase.ps1"
+    },
+    {
+      "source": "scripts/harness-run.ps1",
+      "target": "scripts/harness-run.ps1"
+    },
+    {
+      "source": "scripts/harness-gate.ps1",
+      "target": "scripts/harness-gate.ps1"
+    },
+    {
+      "source": "scripts/harness-certify.ps1",
+      "target": "scripts/harness-certify.ps1"
+    },
+    {
+      "source": "scripts/harness-resume-proof.ps1",
+      "target": "scripts/harness-resume-proof.ps1"
+    },
+    {
+      "source": "scripts/lightpath-gate.ps1",
+      "target": "scripts/lightpath-gate.ps1"
+    },
+    {
+      "source": "scripts/verify-step.py",
+      "target": "scripts/verify-step.py"
+    },
+    {
+      "source": "scripts/frontend-visual-readiness.py",
+      "target": "scripts/frontend-visual-readiness.py"
+    },
+    {
+      "source": "scripts/model-router.py",
+      "target": "scripts/model-router.py"
+    },
+    {
+      "source": "scripts/hashline-anchor.py",
+      "target": "scripts/hashline-anchor.py"
+    },
+    {
+      "source": "scripts/context-injector.py",
+      "target": "scripts/context-injector.py"
     }
   ],
   "ui_verification": {

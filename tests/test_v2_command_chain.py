@@ -1,7 +1,9 @@
 import json
 import pathlib
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 
 
@@ -50,6 +52,10 @@ class V2CommandChainTests(unittest.TestCase):
         self.assertNotIn("brainstorm", manifest["public_commands"])
         self.assertIn("design_architecture", manifest["public_commands"])
         self.assertTrue(manifest["ui_verification"]["adapter_fallback_task_required"])
+        targets = {item["target"] for item in manifest["source_files"]}
+        self.assertIn("scripts/lightpath-gate.ps1", targets)
+        self.assertIn("scripts/harness-resume-proof.ps1", targets)
+        self.assertIn("scripts/verify-step.py", targets)
 
         result = subprocess.run(
             [sys.executable, "scripts/verify-harness-kit.py"],
@@ -60,6 +66,22 @@ class V2CommandChainTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_harness_kit_manifest_installs_gate_helpers(self):
+        manifest = json.loads(
+            (REPO_ROOT / "harness-kit/v2.0.0/manifest.json").read_text(encoding="utf-8")
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target_root = pathlib.Path(temp_dir)
+            for item in manifest["source_files"]:
+                source = REPO_ROOT / item["source"]
+                target = target_root / item["target"]
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, target)
+
+            self.assertTrue((target_root / "scripts/lightpath-gate.ps1").exists())
+            self.assertTrue((target_root / "scripts/harness-resume-proof.ps1").exists())
+            self.assertTrue((target_root / "scripts/verify-step.py").exists())
 
     def test_setup_and_prepare_execute_preserve_ui_adapter_contract(self):
         setup = (REPO_ROOT / "commands/setup.md").read_text(encoding="utf-8")

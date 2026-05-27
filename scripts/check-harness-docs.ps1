@@ -1297,6 +1297,11 @@ Assert-Contains '.githooks/pre-commit' 'hook-policy' 'pre-commit watches hook po
 Assert-Contains '.agents/plugins/marketplace.json' '"path": "./plugins/ezpowers"' 'agents marketplace uses packaged plugin mirror'
 Assert-Contains 'commands/reset_setup.md' 'does not update installed Codex or Claude plugin command caches' 'reset_setup documents plugin cache boundary'
 Assert-Contains 'plugins/ezpowers/commands/reset_setup.md' 'does not update installed Codex or Claude plugin command caches' 'packaged reset_setup documents plugin cache boundary'
+Assert-Contains 'harness-kit/v2.0.0/manifest.json' '"target": "scripts/lightpath-gate.ps1"' 'harness kit installs lightpath gate helper'
+Assert-Contains 'harness-kit/v2.0.0/manifest.json' '"target": "scripts/harness-resume-proof.ps1"' 'harness kit installs resume proof helper'
+Assert-Contains 'harness-kit/v2.0.0/manifest.json' '"target": "scripts/verify-step.py"' 'harness kit installs verify step helper'
+Assert-Contains 'commands/choice_execute.md' 'replace a missing gate script with inline verification' 'choice_execute forbids inline gate substitution'
+Assert-Contains 'docs/reference/verification-contract.md' 'inline verification is not an acceptable replacement' 'verification contract forbids inline gate substitution'
 
 if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'plugins/ezpowers/.codex-plugin/plugin.json'))) {
     throw '[FAIL] packaged plugin mirror: missing plugins/ezpowers/.codex-plugin/plugin.json'

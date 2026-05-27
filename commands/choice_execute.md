@@ -8,6 +8,12 @@ allowed-tools: [Bash, Read, Write, Edit, Agent, AskUserQuestion]
 Source contracts: `docs/reference/domain-language.md`, `docs/reference/verification-contract.md`, `docs/reference/ui-verification-adapter-contract.md`, `docs/reference/dispatch-protocol.md`, `docs/reference/reviewer-placement-contract.md`, `docs/reference/model-routing-contract.md`, `docs/reference/strict-execution-adapter.md`.
 Execute tasks from the plan document. Choose an execution mode (subagent / harness / inline), then run tasks + AC verification + conditional security review + final code review.
 
+Gate scripts are required runtime dependencies. If `scripts/lightpath-gate.ps1`,
+`scripts/harness-certify.ps1`, `scripts/harness-resume-proof.ps1`, or
+`scripts/verify-step.py` is missing, run `/reset_setup` to reinstall the
+manifest helpers. If the helper is still missing, stop as `TEST_GAP`; never
+replace a missing gate script with inline verification.
+
 ## 1. Pre-flight Checks
 
 Verify the following first:

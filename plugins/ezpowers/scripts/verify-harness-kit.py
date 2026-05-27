@@ -39,6 +39,23 @@ REQUIRED_UI_CAPABILITIES = {
     "custom",
 }
 
+REQUIRED_HELPER_TARGETS = {
+    "scripts/context-injector.py",
+    "scripts/frontend-visual-readiness.py",
+    "scripts/harness-certify.ps1",
+    "scripts/harness-common.ps1",
+    "scripts/harness-convert.ps1",
+    "scripts/harness-doctor.ps1",
+    "scripts/harness-gate.ps1",
+    "scripts/harness-phase.ps1",
+    "scripts/harness-resume-proof.ps1",
+    "scripts/harness-run.ps1",
+    "scripts/hashline-anchor.py",
+    "scripts/lightpath-gate.ps1",
+    "scripts/model-router.py",
+    "scripts/verify-step.py",
+}
+
 
 def sha256(path: pathlib.Path) -> str:
     digest = hashlib.sha256()
@@ -87,17 +104,23 @@ def validate(repo_root: pathlib.Path, manifest_path: pathlib.Path) -> list[str]:
     if manifest.get("ui_verification", {}).get("adapter_fallback_task_required") is not True:
         errors.append("ui_verification.adapter_fallback_task_required must be true")
 
+    source_file_targets = set()
     for item in manifest.get("source_files", []):
         source = repo_root / item.get("source", "")
         target = item.get("target", "")
+        source_file_targets.add(target)
         if not source.exists():
             errors.append(f"missing source file: {source.relative_to(repo_root)}")
             continue
-        if not target.startswith(".harness/ezpowers/"):
-            errors.append(f"target outside install root: {target}")
+        if not target.startswith(".harness/ezpowers/") and target not in REQUIRED_HELPER_TARGETS:
+            errors.append(f"target outside install root or helper allowlist: {target}")
         if source.name == "SKILL.md":
             errors.append("source_files must not include synthesized SKILL.md")
         item["sha256"] = sha256(source)
+
+    missing_helpers = REQUIRED_HELPER_TARGETS - source_file_targets
+    if missing_helpers:
+        errors.append(f"missing helper script targets: {sorted(missing_helpers)}")
 
     return errors
 

@@ -1,6 +1,6 @@
 {
   "name": "ezpowers",
-  "version": "2.0.3+codex.local-20260527-073308",
+  "version": "2.0.4+codex.local-20260527-173257",
   "description": "Personal Codex workflow plugin for spec-driven development with setup, design_architecture, spec, prepare_execute, and choice_execute guidance.",
   "author": {
     "name": "dlwlgus9125",

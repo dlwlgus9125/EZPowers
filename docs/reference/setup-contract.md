@@ -399,7 +399,9 @@ confirmation. If the user declares no UI presence, require an `exempt_reason`.
 
 Install the versioned local kit from `harness-kit/v2.0.0/manifest.json` into
 `.harness/ezpowers/`. Setup must copy bundled files only, compute SHA-256 before
-and after install, and write `.harness/ezpowers/ledger.json`.
+and after install, and write `.harness/ezpowers/ledger.json`. The same manifest
+must also install the approved deterministic helper scripts into the target
+project `scripts/` directory so `/choice_execute` can run mechanical gates.
 
 Do not synthesize `SKILL.md` or contract bodies during setup. Missing bundled
 files are setup failures, not prompts to improvise replacements.

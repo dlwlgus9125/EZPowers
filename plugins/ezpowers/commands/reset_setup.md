@@ -28,8 +28,11 @@ new agent session so the host reloads command definitions.
 ## Rules
 
 - Verify the bundled kit before writing.
-- Copy only bundled kit files and generated setup slots. Do not generate
-  `SKILL.md` bodies from prose or merge unrelated command text.
+- Copy every bundled manifest entry, including approved `scripts/` helper
+  targets, plus generated setup slots. Do not generate `SKILL.md` bodies from
+  prose or merge unrelated command text.
+- Missing gate helpers are reset failures, not a reason to use inline
+  verification.
 - Preserve human-authored docs. If a canonical slot needs schema updates,
   append a migration note instead of replacing content.
 - Record previous and new kit versions, file hashes, and migrated fields in

@@ -187,6 +187,13 @@ delegate evidence-heavy work to gate scripts and reviewer/arbiter agents.
   `scripts/harness-certify.ps1` before any `pass` completion. Reviewer
   verdicts map to `pass`, `test_gap`, `code_gap`, or `spec_gap`.
 
+Missing gate helpers are not skippable. If `scripts/lightpath-gate.ps1`,
+`scripts/harness-certify.ps1`, `scripts/harness-resume-proof.ps1`, or
+`scripts/verify-step.py` is absent in the target project, run `/reset_setup` to
+reinstall the manifest helpers. If the helper remains absent, report
+`TEST_GAP`; inline verification is not an acceptable replacement for a missing
+gate script.
+
 `scripts/harness-certify.ps1` is the completion source of truth. It writes
 `phases/<phase>/completion-certificate.json` and fails closed unless every
 completed step has a fresh passing task gate proof, the final wiring gate is

@@ -18,6 +18,24 @@ Required files:
 - `contracts/README.md`
 - `ledger.json`
 
+The manifest also installs the deterministic workflow helper allowlist into the
+target project root under `scripts/`:
+
+- `scripts/harness-common.ps1`
+- `scripts/harness-doctor.ps1`
+- `scripts/harness-convert.ps1`
+- `scripts/harness-phase.ps1`
+- `scripts/harness-run.ps1`
+- `scripts/harness-gate.ps1`
+- `scripts/harness-certify.ps1`
+- `scripts/harness-resume-proof.ps1`
+- `scripts/lightpath-gate.ps1`
+- `scripts/verify-step.py`
+- `scripts/frontend-visual-readiness.py`
+- `scripts/model-router.py`
+- `scripts/hashline-anchor.py`
+- `scripts/context-injector.py`
+
 `ledger.json` is generated in the target project and records installed file
 paths, SHA-256 hashes, source plugin version, install timestamp, and migration
 notes.
@@ -38,7 +56,9 @@ Before installing:
 1. Read `harness-kit/v2.0.0/manifest.json`.
 2. Confirm `no_synthesis` is `true`.
 3. Confirm every listed source file exists.
-4. Compute SHA-256 for each bundled file.
+4. Confirm every target path is either under `.harness/ezpowers/` or in the
+   approved `scripts/` helper allowlist.
+5. Compute SHA-256 for each bundled file.
 
 After installing:
 
@@ -48,9 +68,10 @@ After installing:
 
 ## Reset Setup
 
-`/reset_setup` repeats installation with the current manifest and preserves
-human-authored project docs. If the manifest version changes, record the prior
-version and migrated fields in the ledger.
+`/reset_setup` repeats installation with the current manifest, including the
+approved root `scripts/` helpers, and preserves human-authored project docs. If
+the manifest version changes, record the prior version and migrated fields in
+the ledger.
 
 Breaking migrations must mark affected phases as needing review rather than
 silently keeping stale architecture, spec, or plan state.
