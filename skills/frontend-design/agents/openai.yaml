@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Design"
+  short_description: "Design frontend structure before implementation"
+  default_prompt: "Use frontend-design to create a frontend design readiness artifact for this UI project."

@@ -142,10 +142,11 @@ Rules:
 Specs with `app_delivery.surface_kind` other than `docs` or `library` must
 include App Experience And Delivery Baseline. The baseline must identify the
 user-facing surfaces, frontend/backend contracts, package artifact, deployment
-target, QA strategy, and release verification expected by
-`docs/reference/app-delivery-contract.md`. Missing baseline details are
+target, QA strategy, release verification, and frontend design readiness
+expected by `docs/reference/app-delivery-contract.md` and
+`docs/reference/frontend-design-contract.md`. Missing baseline details are
 architecture gaps because implementers would have to invent product surface,
-delivery, or verification policy during coding.
+delivery, design structure, or verification policy during coding.
 
 ## Decision Log And ADRs
 

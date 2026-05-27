@@ -1,0 +1,19 @@
+case_id: skill.frontend-design.visual-tooling
+skill: frontend-design
+prompt: "Plan visual QA for a project that may or may not have Storybook or Playwright."
+expected_first_action: Inspect project-local tooling before making Storybook, Playwright, screenshots, or visual diff a hard gate.
+invariants:
+  - Global PATH availability alone does not force visual automation.
+  - Existing or planned Storybook requires component state/story coverage.
+  - Existing or planned Playwright or visual diff requires screenshot/visual baseline and review loop coverage.
+forbidden_behaviors:
+  - Requiring Playwright screenshots when no project-local tooling exists and no task adds it.
+  - Treating visual automation as optional after the plan adds the tooling.
+static:
+  max_words: 420
+  must_contain:
+    - "project-local tooling evidence"
+    - "Hard-gate Storybook"
+    - "screenshot/visual review loops"
+  required_reference_links:
+    - "references/frontend-design-readiness.md"

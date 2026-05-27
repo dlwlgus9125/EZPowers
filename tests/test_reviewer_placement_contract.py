@@ -64,9 +64,10 @@ class ReviewerPlacementContractTests(unittest.TestCase):
         for reviewer in sorted(reviewers):
             agent_path = REPO_ROOT / f"agents/{reviewer}.md"
             self.assertTrue(agent_path.exists(), f"missing agent: {reviewer}")
-            if reviewer == "workflow-contract-reviewer":
-                self.assertIn("ezpowers:workflow-contract-reviewer", dispatch)
-                self.assertIn("workflow-contract-reviewer", routing)
+            self.assertIn(f"ezpowers:{reviewer}", dispatch)
+            if reviewer in {"workflow-contract-reviewer", "frontend-experience-reviewer"}:
+                self.assertIn(reviewer, routing)
+        self.assertIn("frontend-experience-reviewer | `frontend-visual`", dispatch)
 
 
 if __name__ == "__main__":

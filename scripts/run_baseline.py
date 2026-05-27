@@ -66,6 +66,23 @@ LIVE_EXEC_VARS = ("$REVIEW_OUTPUT", "$EXECUTOR_OUTPUT")
 EVAL_MODES = ("static", "live")
 
 
+class InfraError(RuntimeError):
+    """Raised when a grader command could not be measured by local infrastructure."""
+
+
+def _is_access_denied_spawn_error(exc: BaseException) -> bool:
+    text = str(exc).lower()
+    winerror = getattr(exc, "winerror", None)
+    errno = getattr(exc, "errno", None)
+    return (
+        winerror == 5
+        or errno == 13
+        or "winerror 5" in text
+        or "access is denied" in text
+        or "permission denied" in text
+    )
+
+
 def parse_timeout(value: str | int | None, default: int, label: str) -> int:
     """Parse a positive timeout value from CLI args or environment."""
     if value is None or value == "":
@@ -251,20 +268,47 @@ def run_shell_command_with_timeout(
     """Run a grader shell command, avoiding shell expansion for simple Python -c."""
     python_argv = _python_inline_argv(command)
     if python_argv:
-        return run_command_with_timeout(python_argv, timeout=timeout, cwd=cwd)
+        try:
+            return run_command_with_timeout(python_argv, timeout=timeout, cwd=cwd)
+        except OSError as exc:
+            if _is_access_denied_spawn_error(exc):
+                raise InfraError(f"command spawn failed: {exc}") from exc
+            raise
 
     bash_path = find_bash()
     if bash_path:
+        try:
+            return run_command_with_timeout(
+                [bash_path, "-c", command],
+                timeout=timeout, cwd=cwd,
+            )
+        except OSError as exc:
+            if not _is_access_denied_spawn_error(exc):
+                raise
+            try:
+                return run_command_with_timeout(
+                    command,
+                    shell=True,
+                    timeout=timeout,
+                    cwd=cwd,
+                )
+            except OSError as fallback_exc:
+                if _is_access_denied_spawn_error(fallback_exc):
+                    raise InfraError(
+                        f"bash and platform shell spawn failed: {fallback_exc}"
+                    ) from fallback_exc
+                raise
+    try:
         return run_command_with_timeout(
-            [bash_path, "-c", command],
-            timeout=timeout, cwd=cwd,
+            command,
+            shell=True,
+            timeout=timeout,
+            cwd=cwd,
         )
-    return run_command_with_timeout(
-        command,
-        shell=True,
-        timeout=timeout,
-        cwd=cwd,
-    )
+    except OSError as exc:
+        if _is_access_denied_spawn_error(exc):
+            raise InfraError(f"platform shell spawn failed: {exc}") from exc
+        raise
 
 
 def load_case(path: pathlib.Path) -> dict:
@@ -526,6 +570,7 @@ def run_deterministic_grader(
     var_map, val_map, temp_files = _prepare_mock_files(case)
     results = []
     all_pass = True
+    infra_error = False
     runnable_commands = [c for c in commands if "grader placeholder" not in c]
     command_number = 0
     executed_commands = 0
@@ -604,6 +649,13 @@ def run_deterministic_grader(
                     "timeout_seconds": round(run_timeout, 3),
                     "stderr": (exc.stderr or "")[:200] if isinstance(exc.stderr, str) else "",
                 })
+            except InfraError as e:
+                infra_error = True
+                results.append({
+                    "command": cmd,
+                    "status": "infra_error",
+                    "error": str(e)[:200],
+                })
             except Exception as e:
                 all_pass = False
                 results.append({
@@ -618,6 +670,8 @@ def run_deterministic_grader(
             except OSError:
                 pass
 
+    if infra_error:
+        return {"pass": None, "infra_error": True, "results": results}
     return {"pass": all_pass if executed_commands else None, "results": results}
 
 
@@ -635,6 +689,7 @@ def run_graders(
     grader_results = []
     overall_pass = True
     has_runnable = False
+    has_infra_error = False
 
     for grader in case.get("graders", []):
         gtype = grader["type"]
@@ -661,6 +716,15 @@ def run_graders(
                 progress_file=progress_file,
                 progress_stream=progress_stream,
             )
+            if result.get("infra_error"):
+                has_infra_error = True
+                grader_results.append({
+                    "type": gtype,
+                    "status": "infra_error",
+                    "reason": "one or more grader commands could not be measured",
+                    "details": result["results"],
+                })
+                continue
             if result["pass"] is None:
                 grader_results.append({
                     "type": gtype,
@@ -733,6 +797,14 @@ def run_graders(
                 "status": "not_run",
                 "reason": f"unknown grader type: {gtype}",
             })
+
+    if has_infra_error:
+        return {
+            "pass": None,
+            "mode": "manual",
+            "reason": "one or more automated graders hit infrastructure errors",
+            "graders": grader_results,
+        }
 
     # If no runnable graders, mark as manual
     if not has_runnable:

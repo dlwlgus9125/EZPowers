@@ -71,6 +71,7 @@ reviewer profiles:
 | Reviewer | Profile |
 | --- | --- |
 | spec-reviewer, plan-reviewer, architecture-reviewer, wiring-reviewer, workflow-contract-reviewer | `contract-review` |
+| frontend-experience-reviewer | `frontend-visual` |
 | code-reviewer | `deep-analysis` |
 | security-reviewer | `security-audit` |
 | workflow-runner | `docs-sync` |
@@ -137,7 +138,8 @@ Agent tool:
     <paste the same dynamic parameters as the claude-code path>
 
     ## Output Contract
-    End your response with exactly one of:
+    End your response with a verdict allowed by the agent file. If the agent
+    file does not define a narrower verdict set, use exactly one of:
       ## Verdict: PASS
       ## Verdict: FAIL
       ## Verdict: PASS_WITH_ISSUES
@@ -151,6 +153,7 @@ Agent tool:
 |-----------------|----------------|------------|
 | `ezpowers:spec-reviewer` | `codex:codex-rescue` + agents/spec-reviewer.md | agents/spec-reviewer.md |
 | `ezpowers:architecture-reviewer` | `codex:codex-rescue` + agents/architecture-reviewer.md | agents/architecture-reviewer.md |
+| `ezpowers:frontend-experience-reviewer` | `codex:codex-rescue` + agents/frontend-experience-reviewer.md | agents/frontend-experience-reviewer.md |
 | `ezpowers:plan-reviewer` | `codex:codex-rescue` + agents/plan-reviewer.md | agents/plan-reviewer.md |
 | `ezpowers:code-reviewer` | `codex:codex-rescue` + agents/code-reviewer.md | agents/code-reviewer.md |
 | `ezpowers:security-reviewer` | `codex:codex-rescue` + agents/security-reviewer.md | agents/security-reviewer.md |
@@ -162,7 +165,10 @@ Agent tool:
 
 Verdict parsing is identical for both paths:
 
-1. Scan the response for `## Verdict: PASS`, `## Verdict: FAIL`, or `## Verdict: PASS_WITH_ISSUES`
+1. Scan the response for a verdict allowed by the agent file. Standard
+   reviewers allow `## Verdict: PASS`, `## Verdict: FAIL`, or
+   `## Verdict: PASS_WITH_ISSUES`. Agents with a narrower verdict set, such as
+   `frontend-experience-reviewer`, are parsed against that narrower set.
 2. If Verdict header is missing or malformed: treat as `FAIL`
 3. On 2 consecutive missing Verdict headers from Codex: escalate to user
    ("Codex reviewer is not returning verdicts in the standard format. Consider switching reviewer_backend to claude-code.")

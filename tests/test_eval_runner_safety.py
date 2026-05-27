@@ -103,6 +103,60 @@ class EvalRunnerSafetyTests(unittest.TestCase):
         args = fake_run.call_args.args[0]
         self.assertEqual(args, ["bash", "-c", command])
 
+    def test_bash_access_denied_falls_back_to_platform_shell(self):
+        command = "echo ok"
+        access_denied = PermissionError(13, "Access is denied")
+
+        with mock.patch.object(run_baseline, "find_bash", return_value="bash"), \
+             mock.patch.object(run_baseline, "run_command_with_timeout") as fake_run:
+            fake_run.side_effect = [
+                access_denied,
+                subprocess.CompletedProcess(command, 0, "ok\n", ""),
+            ]
+
+            result = run_baseline.run_shell_command_with_timeout(
+                command,
+                timeout=1,
+                cwd=REPO_ROOT,
+            )
+
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(fake_run.call_args_list[0].args[0], ["bash", "-c", command])
+        self.assertEqual(fake_run.call_args_list[1].args[0], command)
+        self.assertTrue(fake_run.call_args_list[1].kwargs["shell"])
+
+    def test_bash_and_shell_access_denied_becomes_infra_error(self):
+        command = "echo ok"
+
+        with mock.patch.object(run_baseline, "find_bash", return_value="bash"), \
+             mock.patch.object(run_baseline, "run_command_with_timeout", side_effect=PermissionError(13, "Access is denied")):
+            with self.assertRaises(run_baseline.InfraError):
+                run_baseline.run_shell_command_with_timeout(
+                    command,
+                    timeout=1,
+                    cwd=REPO_ROOT,
+                )
+
+    def test_deterministic_grader_infra_error_is_manual_not_fail(self):
+        case = {
+            "case_id": "optimization.infra_error.001",
+            "graders": [{
+                "type": "deterministic_tests",
+                "commands": ["echo ok"],
+            }],
+        }
+
+        with mock.patch.object(run_baseline, "run_shell_command_with_timeout", side_effect=run_baseline.InfraError("Access is denied")):
+            result = run_baseline.run_graders(
+                case,
+                command_timeout_seconds=1,
+                case_id="optimization.infra_error.001",
+            )
+
+        self.assertIsNone(result["pass"])
+        self.assertEqual(result["mode"], "manual")
+        self.assertEqual(result["graders"][0]["status"], "infra_error")
+
     def test_skill_live_smoke_is_skipped_by_default(self):
         case = {
             "case_id": "skill.diagnose.quick-fix",

@@ -35,6 +35,7 @@ implement code.
 - Read project context before asking. Ask one question at a time.
 - Do not weaken architecture, verification, or UI-adapter decisions recorded by
   `/design_architecture`.
+- For UI work, carry `docs/ux/frontend-design.md` readiness into the App Experience And Delivery Baseline; route missing readiness back to `/design_architecture`.
 - Before extracting requirements, re-check the Operational Requirements
   Checklist in `docs/reference/spec-contract.md`; route material architecture
   changes back to `/design_architecture`.
@@ -50,8 +51,9 @@ implement code.
 - Use `docs/reference/spec-contract.md` for required spec sections,
   requirement schema, banned vague wording, ADR handling, verify script, and
   docs index updates.
-- Dispatch spec and architecture reviewers through
-  `docs/reference/dispatch-protocol.md`; pass paths, not pasted artifacts.
+- Dispatch spec, architecture, and UI-triggered frontend experience reviewers
+  through `docs/reference/dispatch-protocol.md`; pass paths, not pasted
+  artifacts.
 - If maintenance work changes structure, roadmap, testing method, or UI
   adapter requirements, update the corresponding docs before review.
 - After user approval, dispatch `ezpowers:workflow-runner` through the dispatch
@@ -77,6 +79,6 @@ implement code.
 - Confirmed requirement list.
 - Spec path, updated roadmap/structure/test docs, and any ADR or verify-script
   paths.
-- Reviewer verdict summaries.
+- Reviewer verdict summaries, including frontend experience review when UI is present.
 - Updated `phases/index.json` spec state and audit result.
 - Next command: `/prepare_execute` only when audit status is `PASS` or `WARN`.

@@ -11,6 +11,7 @@ EZPowers commands and explicit skill invocations.
 - `docs/reference/verification-contract.md`
 - `docs/reference/spec-contract.md`
 - `docs/reference/plan-contract.md`
+- `docs/reference/frontend-design-contract.md`
 - `docs/reference/harness-execution-contract.md`
 
 ## Completion Rule
@@ -53,9 +54,9 @@ plans, diffs, logs, or previous reviewer reasoning when a path is enough.
 | Invocation | Required reviewers | Required inputs |
 | --- | --- | --- |
 | `/setup` | `ezpowers:workflow-contract-reviewer` | harness config, kit ledger, installed file list, setup evidence |
-| `/design_architecture` | `ezpowers:architecture-reviewer` | architecture, testing methodology, project structure, roadmap, config |
-| `/spec` | `ezpowers:spec-reviewer`, `ezpowers:architecture-reviewer` | spec path, architecture reference, config, post-spec audit result |
-| `/prepare_execute` | `ezpowers:plan-reviewer` | plan path, spec path, post-prepare_execute audit result |
+| `/design_architecture` | `ezpowers:architecture-reviewer`, `ezpowers:frontend-experience-reviewer` when UI is present | architecture, testing methodology, project structure, roadmap, config, frontend design artifact |
+| `/spec` | `ezpowers:spec-reviewer`, `ezpowers:architecture-reviewer`, `ezpowers:frontend-experience-reviewer` when UI is present | spec path, architecture reference, config, frontend design artifact, post-spec audit result |
+| `/prepare_execute` | `ezpowers:plan-reviewer`, `ezpowers:frontend-experience-reviewer` when UI is present | plan path, spec path, frontend design artifact, post-prepare_execute audit result |
 | `/choice_execute` | `ezpowers:security-reviewer` when triggered, `ezpowers:wiring-reviewer`, `ezpowers:code-reviewer` | plan path, diff range, changed files, gate artifacts, runtime evidence |
 | `/review` | `ezpowers:workflow-contract-reviewer` | review target, spec path if present, checks run, findings |
 | `/sync-docs` | `ezpowers:workflow-contract-reviewer` | sync proposal or applied docs, verification results, changed docs |
@@ -77,6 +78,7 @@ plans, diffs, logs, or previous reviewer reasoning when a path is enough.
 | `improve-codebase-architecture` | `ezpowers:architecture-reviewer` | architecture candidates, selected candidate, ADR conflicts |
 | `verifyself` | `ezpowers:workflow-contract-reviewer` | verification target, evidence table, final verdict |
 | `writing-skills` | `ezpowers:workflow-contract-reviewer` | RED/GREEN evidence, skill eval results, changed skill paths |
+| `frontend-design` | `ezpowers:frontend-experience-reviewer` | frontend design artifact, selected direction, frontend readiness evidence, unresolved questions |
 | `handoff` | `ezpowers:workflow-contract-reviewer` | handoff document path, workflow state, next action |
 | `deep-interview` | `ezpowers:workflow-contract-reviewer` | clarified goal, scope, constraints, success criteria |
 | `zoom-out` | `ezpowers:workflow-contract-reviewer` | module map, evidence paths, caller summary |

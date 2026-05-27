@@ -43,6 +43,7 @@ EZPowers is a personal Claude Code skill plugin.
 | `improve-codebase-architecture` | skill | Find deepening opportunities (Module/Depth/Seam vocabulary) |
 | `verifyself` | skill | CoVe (Chain-of-Verification) self-verification (6 dimensions) |
 | `writing-skills` | skill | Meta-skill for writing new skills (TDD-based) |
+| `frontend-design` | skill | Frontend design readiness and design-direction selection before UI implementation |
 | `zoom-out` | skill | Raise abstraction one level (module map) |
 | `caveman` | skill | Token-saving compressed communication mode |
 | `handoff` | skill | Session handoff document for fresh agent continuation |
@@ -71,6 +72,9 @@ skills/               # Independent skills
     SKILL.md          # Skill-writing meta-skill (TDD-based)
     anthropic-best-practices.md
     testing-skills-with-subagents.md
+  frontend-design/
+    SKILL.md          # Frontend design readiness workflow
+    references/frontend-design-readiness.md
   zoom-out/
     SKILL.md          # Raise abstraction (prompt-only)
   caveman/
@@ -84,6 +88,7 @@ agents/               # Plugin agents + prompt templates
   security-reviewer.md      # Plugin Agent — security vulnerability scan (inherit, Read/Grep/Glob/Bash)
   wiring-reviewer.md        # Plugin Agent — full-feature wiring gate after harness execution
   workflow-contract-reviewer.md # Plugin Agent — workflow, utility, and skill contract review
+  frontend-experience-reviewer.md # Plugin Agent — frontend design readiness review
   spec-reviewer.md          # Plugin Agent — spec document verification (sonnet, Read/Grep/Glob)
   architecture-reviewer.md  # Plugin Agent — architecture readiness verification (sonnet, Read/Grep/Glob)
   plan-reviewer.md          # Plugin Agent — plan document verification (sonnet, Read/Grep/Glob)
@@ -108,6 +113,7 @@ harness_versions/
 scripts/
   validate.py         # eval gate (pre-commit hook calls this)
   run_baseline.py     # eval runner + baseline writer
+  frontend-visual-readiness.py # frontend v2 visual readiness lane detector
   promote_trace.py    # trace → eval case converter
   check-harness-docs.ps1 # non-Python harness contract check
   harness-convert.ps1 # non-Python plan-to-phase conversion helper
@@ -133,6 +139,7 @@ bin/
   `docs/reference/setup-contract.md`,
   `docs/reference/reviewer-placement-contract.md`,
   `docs/reference/design-architecture-contract.md`,
+  `docs/reference/frontend-design-contract.md`,
   `docs/reference/harness-kit-contract.md`,
   `docs/reference/ui-verification-adapter-contract.md`,
   `docs/reference/spec-contract.md`,

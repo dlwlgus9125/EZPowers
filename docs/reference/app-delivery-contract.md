@@ -12,6 +12,7 @@ packaging, deployment, and release verification.
 - `docs/reference/plan-contract.md`
 - `docs/reference/verification-contract.md`
 - `docs/reference/ui-verification-adapter-contract.md`
+- `docs/reference/frontend-design-contract.md`
 - `docs/reference/architecture-readiness-contract.md`
 
 ## Setup: App Delivery Profile
@@ -29,7 +30,14 @@ packaging, deployment, and release verification.
       "design_system": "",
       "view_extensions": [],
       "viewport_matrix": ["mobile", "desktop"],
-      "accessibility_baseline": "keyboard navigation and semantic labels"
+      "accessibility_baseline": "keyboard navigation and semantic labels",
+      "design_readiness_required": true,
+      "design_artifact": "docs/ux/frontend-design.md",
+      "token_source": "",
+      "component_inventory": "",
+      "visual_qa": "",
+      "mock_prototype_artifacts": "",
+      "visual_baseline": ""
     },
     "backend": {
       "present": false,
@@ -70,6 +78,8 @@ Defaults:
   deployment requires an explicit user request.
 - `frontend.present`: `true` when UI files, routes, components, or declared UI
   intent exist.
+- `frontend.design_readiness_required`: `true` when a UI surface is present.
+  The artifact path defaults to `docs/ux/frontend-design.md`.
 - `backend.present`: `true` when API routes, server processes, persistence, or
   external services exist.
 
@@ -85,8 +95,14 @@ Required fields:
   screens affected by the work.
 - UX flow map: primary user journeys plus loading, empty, error, permission,
   offline, and cancellation states when applicable.
-- Frontend contract: design system or component source, tokens, assets,
+- Frontend contract: frontend design artifact path, design system or component
+  source, token policy, component taxonomy, UX state matrix, assets,
   responsive breakpoints, accessibility baseline, and state ownership.
+- Frontend visual readiness: mock/prototype artifact handling, Storybook or
+  equivalent component state-story coverage, Playwright screenshot or visual
+  diff baseline, and screenshot/visual review loop when project-local tooling
+  exists or the plan adds it as a prerequisite. Playwright e2e-only evidence
+  does not require screenshot baselines.
 - Backend contract: API style, endpoint/event/schema ownership, auth/session
   behavior, persistence, external service handling, and error response shape.
 - Packaging contract: build artifact, output path, bundle/container/installer
@@ -154,6 +170,16 @@ Spec-only checks:
 
 - FAIL when a UI feature lacks App Experience And Delivery Baseline, UX flow
   map, frontend contract, or at least one browser/e2e/visual Verify command.
+- FAIL when a UI feature lacks frontend design readiness: missing
+  `docs/ux/frontend-design.md`, design direction decision, design-system
+  source, token policy, component taxonomy, UX state matrix, responsive rules,
+  accessibility target, or visual QA strategy.
+- FAIL when available or planned Storybook/component isolation lacks component
+  state-story coverage.
+- FAIL when available or planned Playwright screenshot, visual diff, or
+  equivalent tooling lacks screenshot/visual baseline and review loop coverage.
+- FAIL when a normative mock/prototype artifact lacks token/component mapping
+  or a freshness rule.
 - FAIL when an API/server feature lacks backend contract, auth/session decision
   where applicable, error shape, or API Verify command.
 - WARN when packaging or deployment is `none declared` for an executable app.
@@ -165,11 +191,15 @@ Spec+plan checks:
 - FAIL when the plan lacks an Experience/Delivery Matrix for a spec that has
   App Experience And Delivery Baseline.
 - FAIL when any matrix row has no mapped task or no non-trivial Verify command.
-- FAIL when UI tasks lack viewport/e2e or visual verification.
+- FAIL when UI tasks lack viewport/e2e or visual verification required by the
+  available or planned adapter/tooling.
+- FAIL when a plan starts UI screen implementation before tokens, primitives,
+  and component states/stories when no suitable design system already exists.
 - FAIL when package/deploy tasks lack build artifact, readiness, or rollback
   verification.
-- WARN when visual or accessibility verification is advisory-only; record the
-  accepted risk in the report.
+- FAIL when visual or accessibility verification is advisory-only for an
+  acceptance criterion that depends on visual design or accessibility behavior;
+  otherwise WARN and record the accepted risk in the report.
 
 Routing:
 

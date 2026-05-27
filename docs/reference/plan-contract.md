@@ -11,6 +11,7 @@ belong in the `/prepare_execute` controller prompt.
 - `docs/reference/verification-contract.md`
 - `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/app-delivery-contract.md`
+- `docs/reference/frontend-design-contract.md`
 - `docs/reference/dispatch-protocol.md`
 - `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/domain-language.md`
@@ -44,6 +45,15 @@ ASSUMPTIONS ABOUT THIS SPEC:
 
 Clarify one question at a time. Return to `/spec` when requirements or
 architecture are insufficient.
+
+## Decision Ledger Carry-Forward
+
+Read the spec's `## Decision Ledger` before task slicing. Every task whose
+implementation depends on a ledger entry must include its ID in
+`**Operational decisions:**`; otherwise write `none applicable`. A plan must
+not introduce a new architecture, lifecycle, delivery, or frontend design
+decision without adding a ledger row and updating the referenced canonical
+artifact.
 
 ## Coverage Matrix
 
@@ -85,6 +95,8 @@ Rules:
 - Every surface from the spec baseline appears or is marked `omitted by user`
   with the accepted risk.
 - UI rows include viewport, view wiring, browser/e2e, or visual evidence.
+- UI rows reference the frontend design artifact when visual structure,
+  component states, responsive behavior, or accessibility are in scope.
 - API rows include status, payload, auth/session, and error-shape evidence.
 - Package/deploy rows include build artifact, readiness, and rollback evidence.
 - Matrix rows without mapped tasks or non-trivial Verify commands block
@@ -112,6 +124,33 @@ environment, add a prerequisite task before feature implementation:
 Do not replace a UI acceptance criterion with a lower-level test unless
 `docs/reference/ui-verification-adapter-contract.md` says the observable oracle
 is equivalent.
+
+## Frontend Design Readiness Tasks
+
+When the spec references `docs/ux/frontend-design.md`, carry its design source,
+token policy, component taxonomy, UX state matrix, responsive rules,
+accessibility target, visual QA strategy, mock/prototype artifact handling, and
+tool-conditional visual readiness lanes into the plan. If no suitable design
+system already exists, order UI work as:
+
+```text
+tokens -> primitives -> component states/stories -> screens -> e2e/visual
+```
+
+Do not create screen implementation tasks that require agents to invent token
+values, visual direction, component state behavior, responsive rules, or
+accessibility policy. Add a design-system prerequisite task when those decisions
+are missing from the artifact.
+
+Storybook/component state-story coverage, Playwright screenshot baselines,
+visual diff baselines, and screenshot/visual review loops are required only
+when project-local tooling already exists or the plan adds that tooling as a
+prerequisite. Ordinary Playwright e2e does not require the screenshot/visual
+baseline lane unless screenshot-specific evidence exists. If a normative
+mock/prototype artifact is used, the plan must carry its token/component
+mapping and freshness rule. Use `scripts/frontend-visual-readiness.py --mode
+check` as the non-installing detector when the repository includes it; pass
+`--frontend-root` for monorepo app roots.
 
 ## Structural Invariants
 
@@ -170,7 +209,7 @@ Tasks are independently grabbable vertical slices. Use this template:
 - (b) Call site info: `path` reason
 - (c) Code preservation: `path` reason
 
-**Operational decisions:** Error handling: [pattern from baseline] | Logging: [strategy] | Config: [approach] | Init order: [relevant entry] | or `none applicable`
+**Operational decisions:** Ledger IDs and applied policies, e.g. DL-1 error handling: [pattern from baseline] | DL-2 logging: [strategy] | Config: [approach] | Init order: [relevant entry] | or `none applicable`
 **Depends on:** Task N or none
 **File overlap with:** Task N or none
 **Wiring handoff:** (mandatory when task publishes routes, DI tokens, events, exports, or registrations consumed downstream; references WM IDs)
@@ -344,6 +383,9 @@ Update `docs/INDEX.md`:
 
 Dispatch `ezpowers:plan-reviewer` through
 `docs/reference/dispatch-protocol.md` with plan path and spec path.
+When UI is present, also dispatch `ezpowers:frontend-experience-reviewer` with
+the plan path, spec path, config path, frontend design artifact, and
+post-prepare_execute audit result.
 
 Fresh re-dispatch after each fix. Track issue keys privately. Escalate on
 oscillation or retry limits.

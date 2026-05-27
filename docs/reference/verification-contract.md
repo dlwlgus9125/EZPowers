@@ -192,6 +192,16 @@ delegate evidence-heavy work to gate scripts and reviewer/arbiter agents.
 completed step has a fresh passing task gate proof, the final wiring gate is
 `pass` when required, and required runtime evidence is present.
 
+`scripts/harness-resume-proof.ps1` is the mid-build resume source of truth. It
+writes `phases/<phase>/resume-proof.json` and validates only the checked task
+prefix requested by `/choice_execute`. It must require fresh passing
+`task-gates/task-N.json` proof for each skipped task, including matching step
+hash, nonzero-free and non-timeout Verify evidence, recorded Verify commands,
+120 second minimum e2e timeout, and required runtime evidence. It must not
+require later pending steps, final wiring gate PASS, or a completion
+certificate. Markdown checkboxes and resume hashes are continuity hints only;
+they are never PASS evidence.
+
 The controller may keep only verdict enums, artifact paths, changed-file lists,
 diff ranges, and short failure tails in context. It must not treat an
 implementer subagent's `DONE` report as completion. Completion requires the

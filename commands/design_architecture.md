@@ -19,6 +19,7 @@ and verification methodology. Do not implement product code.
 - `docs/reference/setup-contract.md`
 - `docs/reference/architecture-readiness-contract.md`
 - `docs/reference/ui-verification-adapter-contract.md`
+- `docs/reference/frontend-design-contract.md`
 - `docs/reference/verification-contract.md`
 - `.harness/config.json`, `AGENTS.md`, `CONTEXT.md`, `phases/index.json`
 - Source tree, manifests, existing architecture docs, UI routes, API surfaces,
@@ -37,6 +38,11 @@ and verification methodology. Do not implement product code.
   only when they preserve the same user-observable oracle.
 - For UI projects, write the chosen UI verification adapter, fallback adapter,
   oracle, command, and screenshot/accessibility expectations.
+- For UI projects, invoke `frontend-design` after reading repo evidence. Record
+  the selected design direction, design artifact path, token/component strategy,
+  state matrix, responsive rules, accessibility target, visual QA strategy, and
+  tool-conditional visual readiness lanes. Use
+  `scripts/frontend-visual-readiness.py --mode detect` when available.
 - Do not leave implementation agents to invent architecture, folder structure,
   data flow, lifecycle, deploy target, or test methodology.
 - Dispatch `ezpowers:architecture-reviewer` through the reviewer placement gate.
@@ -48,6 +54,8 @@ and verification methodology. Do not implement product code.
 - The project type, deploy surface, or UI/API boundary cannot be inferred and
   the user has not supplied it.
 - A UI surface exists but no automatable adapter can be selected or planned.
+- A UI surface exists but frontend design readiness cannot be produced or
+  explicitly exempted.
 - Writing would overwrite human-authored architecture docs without approval.
 
 ## Outputs
@@ -56,8 +64,10 @@ and verification methodology. Do not implement product code.
 - Updated `docs/reference/testing-methodology.md`.
 - Updated `docs/reference/project-structure.md`.
 - Updated `docs/product/ROADMAP.md`.
-- Updated `docs/ux/README.md` or `docs/release/README.md` when applicable.
+- Updated `docs/ux/README.md`, `docs/ux/frontend-design.md`, or
+  `docs/release/README.md` when applicable.
 - Updated `.harness/config.json` verification, app_delivery, and model defaults.
 - Updated `phases/index.json` architecture state.
-- Architecture reviewer verdict.
+- Architecture reviewer verdict and frontend experience reviewer verdict when
+  UI is present.
 - Next command: `/spec`.

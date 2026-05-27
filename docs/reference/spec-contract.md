@@ -11,6 +11,7 @@ in the `/spec` controller prompt.
 - `docs/reference/verification-contract.md`
 - `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/app-delivery-contract.md`
+- `docs/reference/frontend-design-contract.md`
 - `docs/reference/dispatch-protocol.md`
 - `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/domain-language.md`
@@ -37,7 +38,8 @@ Use this order:
 1. Read project context.
 2. Declare assumptions.
 3. Ask one question at a time.
-4. Produce an architecture baseline and App Experience And Delivery Baseline.
+4. Produce an architecture baseline and App Experience And Delivery Baseline,
+   including frontend design readiness when UI is present.
 5. Confirm the architecture and app delivery baseline.
 6. Run `grill-with-docs`.
 7. Extract requirements.
@@ -62,6 +64,7 @@ Every spec starts with these sections before requirements:
 - App Experience And Delivery Baseline (app/API artifacts only).
 - Wiring Map (executable artifacts only).
 - Initialization Order (executable artifacts with 2+ startup dependencies).
+- Decision Ledger.
 - Decision Log.
 - Extracted Requirements.
 
@@ -77,6 +80,19 @@ The architecture baseline must identify modules, interfaces, allowed
 dependencies, forbidden dependencies, data ownership, selected approach, and
 rejected options.
 
+## Decision Ledger
+
+Carry forward every applicable decision from `/design_architecture` into a
+`## Decision Ledger` table before requirements:
+
+| ID | Question/Trigger | Decision | Source | Artifacts Updated | Open Follow-up |
+|----|------------------|----------|--------|-------------------|----------------|
+
+Each requirement or baseline constraint that depends on a user answer,
+repo-inferred default, delegated frontend/design choice, or operational policy
+must reference the relevant ledger ID or state `none applicable`. The Decision
+Log may link ADRs, but it does not replace this carry-forward ledger.
+
 Each ASR must affect structure, lifecycle, performance, reliability, security,
 compatibility, cost, or operations. If a quality budget is not declared, state
 `none declared` and explain the risk.
@@ -89,6 +105,16 @@ Required for `web`, `mobile`, `desktop`, `cli`, and `api` surface kinds from
 `docs/reference/app-delivery-contract.md` for the required surface inventory,
 UX flow map, frontend contract, backend contract, packaging contract,
 deployment contract, and QA contract.
+
+For UI surfaces, follow `docs/reference/frontend-design-contract.md`. The
+baseline must reference `docs/ux/frontend-design.md` and carry forward the
+selected design direction, design-system source, token policy, component
+taxonomy, UX state matrix, responsive rules, accessibility target, and visual
+QA strategy. It must also carry forward mock/prototype artifact handling and
+tool-conditional visual readiness lanes for Storybook/component states,
+Playwright or equivalent screenshot baselines, visual diff baselines, and
+screenshot/visual review loops when those tools are available or planned.
+Missing frontend design readiness routes back to `/design_architecture`.
 
 ## Wiring Map (executable artifacts only)
 
@@ -182,7 +208,7 @@ Rules:
 
 - Ask the user about each applicable concern during architecture baseline
   creation. One question at a time.
-- Record each decision as a bullet under the Architecture Baseline section.
+- Record each decision in the Decision Ledger and summarize applicable entries under the Architecture Baseline section.
 - Implementers must follow these decisions — not invent alternatives.
 - If none apply (pure library, docs-only), state `none applicable` and skip.
 
@@ -316,6 +342,8 @@ Dispatch reviewers through `docs/reference/dispatch-protocol.md`:
 - `ezpowers:spec-reviewer` receives the spec path.
 - `ezpowers:architecture-reviewer` receives spec path, architecture reference
   path, and config path.
+- `ezpowers:frontend-experience-reviewer` receives the spec path, config path,
+  frontend design artifact, and post-spec audit result when UI is present.
 
 Parse only verdict headers:
 

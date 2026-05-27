@@ -34,7 +34,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 import run_baseline  # noqa: E402
-from run_baseline import run_command_with_timeout  # noqa: E402
+from run_baseline import run_shell_command_with_timeout  # noqa: E402
 
 from shared import BANNED_KO, BANNED_EN_RE  # noqa: E402
 
@@ -444,22 +444,13 @@ def check_command(
     if not commands:
         return {"pass": True, "checks": []}
 
-    bash_path = run_baseline.find_bash()
     for cmd in commands:
         try:
-            if bash_path:
-                proc = run_command_with_timeout(
-                    [bash_path, "-c", cmd],
-                    timeout=timeout,
-                    cwd=str(project_root),
-                )
-            else:
-                proc = run_command_with_timeout(
-                    cmd,
-                    shell=True,
-                    timeout=timeout,
-                    cwd=str(project_root),
-                )
+            proc = run_shell_command_with_timeout(
+                cmd,
+                timeout=timeout,
+                cwd=str(project_root),
+            )
             passed = proc.returncode == 0
             if not passed:
                 all_pass = False
@@ -477,6 +468,15 @@ def check_command(
                 "command": cmd,
                 "pass": False,
                 "error": f"timeout after {timeout}s",
+            })
+        except run_baseline.InfraError as e:
+            all_pass = False
+            checks.append({
+                "name": "shell_exit",
+                "command": cmd,
+                "status": "infra_error",
+                "pass": False,
+                "error": str(e)[:200],
             })
         except Exception as e:
             all_pass = False
@@ -528,7 +528,6 @@ def check_static(
             }
         return {"pass": True, "checks": []}
 
-    bash_path = run_baseline.find_bash()
     for cmd in commands:
         executable = cmd.strip().split()[0] if cmd.strip() else ""
         if executable and shutil.which(executable) is None and executable.lower() in {"ast-grep", "sg"}:
@@ -545,19 +544,11 @@ def check_static(
             if not required:
                 continue
         try:
-            if bash_path:
-                proc = run_command_with_timeout(
-                    [bash_path, "-c", cmd],
-                    timeout=timeout,
-                    cwd=str(project_root),
-                )
-            else:
-                proc = run_command_with_timeout(
-                    cmd,
-                    shell=True,
-                    timeout=timeout,
-                    cwd=str(project_root),
-                )
+            proc = run_shell_command_with_timeout(
+                cmd,
+                timeout=timeout,
+                cwd=str(project_root),
+            )
             passed = proc.returncode == 0
             if not passed:
                 all_pass = False
@@ -575,6 +566,15 @@ def check_static(
                 "command": cmd,
                 "pass": False,
                 "error": f"timeout after {timeout}s",
+            })
+        except run_baseline.InfraError as e:
+            all_pass = False
+            checks.append({
+                "name": "static_exit",
+                "command": cmd,
+                "status": "infra_error",
+                "pass": False,
+                "error": str(e)[:200],
             })
         except Exception as e:
             all_pass = False

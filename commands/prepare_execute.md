@@ -33,6 +33,7 @@ slices, runtime evidence, and wiring gates. Do not implement code.
 - Read the spec's architecture sections and declare assumptions before tasking.
 - Return to `/spec` when the spec lacks architecture, has contradictions,
   or leaves implementation agents to invent requirements.
+- Return to `/spec` when UI work lacks frontend design readiness; order new UI design-system tasks as tokens, primitives, component states/stories, screens, then e2e/visual verification. Require Storybook, Playwright screenshot, visual diff, or screenshot review loop tasks only when project-local tooling exists or the plan adds it as a prerequisite.
 - Use `docs/reference/plan-contract.md` for Coverage Matrix, Structural
   Invariants, task template, TDD Slice Contract, impact scope, pipeline matrix,
   Full-Feature Wiring Gate, Agent Assignment, review loop, and phase updates.
@@ -54,7 +55,8 @@ slices, runtime evidence, and wiring gates. Do not implement code.
   type (`import-chain` | `runtime-load` | `e2e-touch`), and a Verify command
   where exit 0 proves the module is reachable from the entry point. See
   `docs/reference/verification-contract.md` § Incremental Wiring Probe.
-- Dispatch `ezpowers:plan-reviewer` through the dispatch protocol.
+- Dispatch `ezpowers:plan-reviewer` and, for UI work, the
+  `ezpowers:frontend-experience-reviewer` through the dispatch protocol.
 - After plan approval, dispatch `ezpowers:workflow-runner` through the dispatch
   protocol: target command `internal pipeline audit`, invocation mode
   `post-prepare_execute`, working directory project root, artifacts spec path
@@ -75,6 +77,6 @@ slices, runtime evidence, and wiring gates. Do not implement code.
 - Coverage Matrix and uncovered-risk summary.
 - Task count, dependencies, file overlap, and risky tasks.
 - Runtime, structural invariant, and wiring gate commands.
-- Reviewer verdict and post-prepare_execute audit result.
+- Reviewer verdict, frontend experience review when UI is present, and post-prepare_execute audit result.
 - Updated `phases/index.json` plan state.
 - Next command: `/choice_execute` when audit status is `PASS` or `WARN`.

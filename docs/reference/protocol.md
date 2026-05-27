@@ -16,6 +16,7 @@ The canonical workflow protocol is distributed across:
 - `docs/reference/spec-contract.md`
 - `docs/reference/plan-contract.md`
 - `docs/reference/ui-verification-adapter-contract.md`
+- `docs/reference/frontend-design-contract.md`
 - `docs/reference/harness-kit-contract.md`
 - `docs/reference/pipeline-audit-contract.md`
 - `docs/reference/strict-execution-adapter.md`

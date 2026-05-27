@@ -9,7 +9,7 @@ stratum:
 
 input:
   user_message: |
-    docs/plans/2026-04-25-user-api.md의 plan을 실행해주세요.
+    docs/plans/2026-04-25-user-api.md plan을 이어서 실행해줘.
   initial_files:
     - "docs/plans/2026-04-25-user-api.md"
     - "docs/specs/2026-04-25-user-api-design.md"
@@ -47,15 +47,18 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "echo 'grader placeholder — resume protocol check'"
+      - "python -c \"from pathlib import Path; t=Path('commands/choice_execute.md').read_text(encoding='utf-8'); old1='Treat '+'`- [x]` tasks as PASS'; old2='Tasks checked '+'`- [x]` are treated as PASS'; assert 'scripts/harness-resume-proof.ps1' in t; assert 'checkboxes are progress hints, not PASS evidence' in t; assert old1 not in t; assert old2 not in t\""
+      - "python -c \"from pathlib import Path; t=Path('docs/reference/verification-contract.md').read_text(encoding='utf-8'); assert 'harness-resume-proof.ps1' in t; assert 'Markdown checkboxes and resume hashes are continuity hints only' in t\""
+      - "python -c \"from pathlib import Path; t=Path('scripts/harness-resume-proof.ps1').read_text(encoding='utf-8'); assert 'resume-proof.json' in t; assert 'stale_task_gate' in t; assert 'e2e_timeout_too_short' in t\""
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:
-      - "Resume protocol detects previous session with Task 1 complete"
-      - "User presented with resume/re-run/full-restart/abort options"
-      - "Resume hash abc123def456 preserved for final diff range"
-      - "Task 1 skipped as already complete (- [x] markers)"
+      - "Resume protocol detects the possible previous session but treats checked boxes only as progress hints"
+      - "User is presented with resume verified prefix, re-run, full restart, and abort options"
+      - "Resume hash abc123def456 is preserved for final diff range only, not accepted as proof"
+      - "Task 1 is skipped only if harness-resume-proof accepts fresh passing task-gate evidence"
+      - "Missing or stale task-gate evidence routes to re-run instead of skip"
 
 tracked_metrics:
   transcript: [n_turns, n_toolcalls, n_total_tokens]
-  custom: [resume_detected, tasks_skipped, resume_hash_preserved]
+  custom: [resume_detected, resume_proof_required, resume_hash_preserved]

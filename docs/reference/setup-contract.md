@@ -53,6 +53,8 @@ Infer first, then ask one question at a time for unknowns:
 - UI presence.
 - UI verification capability, adapter, fallback adapter, and oracle when UI is
   present.
+- Frontend design readiness artifact, token source, component inventory, and
+  visual QA strategy when UI is present.
 - App delivery profile: surface kind, frontend, backend, packaging,
   deployment, and QA strategy.
 - Architecture profile: lifecycle stage, quality priorities, performance
@@ -110,6 +112,7 @@ Conditional:
 
 - `docs/decisions/README.md`
 - `docs/ux/README.md`
+- `docs/ux/frontend-design.md`
 - `docs/release/README.md`
 - `CLAUDE.md` only if missing.
 - `CONTEXT.md` when the project has domain-specific terms beyond pure
@@ -188,6 +191,11 @@ Links must be relative to `docs/`.
 Use collected architecture profile values. Do not leave blanks for values that
 can be inferred or asked.
 
+`architecture.lifecycle_stage` defaults to `"undecided"`, not MVP. `/setup`
+may infer the lifecycle from repo evidence or explicit user input, but it must
+not silently shrink scope to MVP. If the value remains `"undecided"`, route to
+`/design_architecture` to confirm it before architecture completion.
+
 ## Config Schema
 
 `.harness/config.json` must preserve these top-level blocks:
@@ -225,7 +233,14 @@ can be inferred or asked.
       "design_system": "",
       "view_extensions": [],
       "viewport_matrix": ["mobile", "desktop"],
-      "accessibility_baseline": "keyboard navigation and semantic labels"
+      "accessibility_baseline": "keyboard navigation and semantic labels",
+      "design_readiness_required": true,
+      "design_artifact": "docs/ux/frontend-design.md",
+      "token_source": "",
+      "component_inventory": "",
+      "visual_qa": "",
+      "mock_prototype_artifacts": "",
+      "visual_baseline": ""
     },
     "backend": {
       "present": false,
@@ -269,7 +284,7 @@ can be inferred or asked.
     "health_check_timeout": 15
   },
   "architecture": {
-    "lifecycle_stage": "mvp",
+    "lifecycle_stage": "undecided",
     "quality_priorities": ["maintainability", "reliability", "performance"],
     "performance_budgets": "none declared",
     "operational_constraints": "local development only",
@@ -320,6 +335,14 @@ Follow `docs/reference/app-delivery-contract.md` when populating
 routes, CI/deploy files, package scripts, and existing docs before asking.
 Present inferred frontend view extensions, deployment target, and packaging
 artifact to the user for confirmation when they affect verification.
+
+## Frontend Design Readiness
+
+Follow `docs/reference/frontend-design-contract.md` when UI is present. Setup
+creates the `docs/ux/frontend-design.md` slot and records readiness fields in
+config, but it must not synthesize the design brief. `/design_architecture`
+owns invoking `frontend-design` and filling the artifact after repo evidence
+and user direction are known.
 
 ## Smoke Rules
 
@@ -443,6 +466,8 @@ Report:
 - Config values inferred from repo evidence.
 - Config values supplied by the user.
 - App delivery profile values and unresolved deployment or packaging inputs.
+- Frontend design readiness artifact path, token source, component inventory,
+  visual QA strategy, and unresolved design inputs.
 - Local kit version and hash ledger path.
 - UI verification capability, selected adapter, fallback adapter, and unresolved
   adapter setup task if any.

@@ -263,6 +263,25 @@ The certificate gate writes
 - An `e2e` proof used less than a 120 second Verify timeout.
 - Required wiring or runtime smoke evidence is not `pass`.
 
+## Resume Proof
+
+Before `/choice_execute` skips checked tasks in a mid-build resume, run:
+
+```powershell
+scripts/harness-resume-proof.ps1 -ProjectRoot <project-root> -Phase <phase> -PlanPath <plan-path> -CompletedTaskCount <N> -ResumeHash <resume-hash>
+```
+
+The resume proof writes `phases/{feature-name}/resume-proof.json` and validates
+only the checked task prefix. It fails closed when any skipped task lacks fresh
+passing `task-gates/task-N.json` proof, when the recorded step hash is stale,
+when Verify evidence is missing, non-zero, timed out, or too short for e2e, or
+when required runtime evidence is absent.
+
+Resume proof is not a final completion certificate. It must allow later pending
+steps and must not require final wiring gate PASS. `- [x]` checkboxes and
+`**Resume hash:**` preserve controller continuity only; they are not PASS
+evidence.
+
 ## Recovery
 
 Do not reset a step without a concrete pass/fail signal.

@@ -5,7 +5,7 @@
 - Holdout: 0 tracked cases (target 20%, gitignored/local)
 - Golden: 8 cases (target 10%)
 - Honeypot: 2 cases
-- Skill: 9 cases (separate runner: `scripts/run_skill_evals.py`)
+- Skill: 19 cases (separate runner: `scripts/run_skill_evals.py`)
 
 ## Runner Modes
 - Static: implemented default. Deterministic graders run against current files
@@ -53,8 +53,8 @@ Skill cases are intentionally separate from command cases. They guard skill hot-
 - Honeypot: 0/1 automated, 1 manual
 
 ## Latest local static run
-- Date: 2026-05-26
-- File: evals/results/runs/20260526T034643-cea96fd.jsonl
+- Date: 2026-05-27
+- File: evals/results/runs/20260527T014147-7a8e6c1.jsonl
 - Automated pass rate: 17/35 (49%)
 - Golden: 8/8 automated
 - Optimization: 9/26 automated, 16 manual

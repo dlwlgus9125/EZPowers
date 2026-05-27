@@ -59,6 +59,9 @@ Utility commands:
   conflicts with local wording.
 - Use `docs/reference/reviewer-placement-contract.md` to determine the
   required reviewer set after any successful command or explicit skill run.
+- For UI work, use `docs/reference/frontend-design-contract.md` and
+  `docs/ux/frontend-design.md` so implementers do not invent design structure
+  during coding.
 - Prefer small, measured changes. Prompt or command behavior changes must be
   justified by eval results or a concrete defect.
 - Do not claim completion from passing tests alone. Completion requires the

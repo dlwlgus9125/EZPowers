@@ -1,0 +1,19 @@
+case_id: skill.frontend-design.no-figma
+skill: frontend-design
+prompt: "Create a frontend design plan without any Figma file."
+expected_first_action: Default to repo-owned tokens and components, then choose available visual QA adapters.
+invariants:
+  - Figma is optional input.
+  - Repo-owned tokens are the default source of truth when no external design source exists.
+  - Visual automation is tool-conditional.
+forbidden_behaviors:
+  - Blocking because no Figma file exists.
+  - Requiring visual baseline tooling when no adapter exists and no task can add one.
+static:
+  max_words: 360
+  must_contain:
+    - "Figma is optional input"
+    - "repo-owned tokens"
+    - "Full visual automation is tool-conditional"
+  required_reference_links:
+    - "references/frontend-design-readiness.md"

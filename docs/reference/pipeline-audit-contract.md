@@ -5,7 +5,9 @@ allowed-tools: [Bash, Read, Write]
 
 # internal pipeline audit — Cross-Stage Completeness Gate
 
-Source contract: `docs/reference/app-delivery-contract.md` defines mandatory D9 App Delivery Readiness; include D9 whenever its trigger applies.
+Source contract: `docs/reference/app-delivery-contract.md` defines mandatory
+D9 App Delivery Readiness; `docs/reference/frontend-design-contract.md` extends
+D9 with frontend design readiness. Include D9 whenever its trigger applies.
 
 Verify that spec and plan documents are complete, traceable, and executable before proceeding to the next pipeline stage. This command checks the **seams between documents** — gaps that individual reviewers (spec-reviewer, plan-reviewer) cannot detect because they only inspect one document at a time.
 
@@ -304,6 +306,14 @@ tasks.
    - **FAIL** when absent for executable artifacts (`cli`/`server`/`desktop`)
      with runtime dependencies.
    - **WARN** when absent for `library` artifacts with startup dependencies.
+10. Decision Ledger carry-forward: spec and plan decisions must be traceable to
+    `## Decision Ledger` rows and to the canonical artifacts named in
+    `Artifacts Updated`.
+    - **FAIL** when a user answer, delegated choice, lifecycle/default
+      decision, architecture policy, or frontend design decision appears in the
+      spec/plan without a ledger ID.
+    - **FAIL** when a task introduces an architecture, lifecycle, delivery, or
+      design decision not present in the ledger.
 
 ### D8: Sensor Completeness (plan required)
 
@@ -323,12 +333,18 @@ Purpose: Verify that expected verification layers are configured and plan-aligne
 
 ### D9: App Delivery Readiness (triggered by app surface)
 
-Purpose: Verify that frontend, backend, packaging, deployment, and release
-surfaces are represented in the spec/prepare_execute when the project is an app or when an
-App Experience And Delivery Baseline is declared.
+Purpose: Verify that frontend, backend, packaging, deployment, release, and
+frontend design readiness surfaces are represented in the spec/prepare_execute
+when the project is an app or when an App Experience And Delivery Baseline is
+declared.
 
 Source of truth: `docs/reference/app-delivery-contract.md` section
-`## D9: App Delivery Readiness`.
+`## D9: App Delivery Readiness` and
+`docs/reference/frontend-design-contract.md`.
+When `scripts/frontend-visual-readiness.py` exists, use
+`python scripts/frontend-visual-readiness.py --project-root <root> --mode check`
+as non-installing evidence for tool-conditional frontend visual lanes. Use
+`--frontend-root` when the UI lives in a monorepo app root.
 
 **Trigger:**
 - Run D9 when `config.app_delivery.surface_kind` is not `docs` or `library`.
@@ -338,10 +354,20 @@ Source of truth: `docs/reference/app-delivery-contract.md` section
 **Spec-only checks:**
 1. UI feature lacks App Experience And Delivery Baseline, UX flow map,
    frontend contract, or browser/e2e/visual Verify command → **FAIL**.
-2. API/server feature lacks backend contract, auth/session decision when
+2. UI feature lacks frontend design readiness: missing
+   `docs/ux/frontend-design.md`, design direction decision, design-system
+   source, token policy, component taxonomy, UX state matrix, responsive rules,
+   accessibility target, or visual QA strategy → **FAIL**.
+   When project-local Storybook, Playwright, screenshot, visual diff, or
+   mock/prototype tooling exists or is planned, missing visual readiness lane
+   details also fail.
+   Missing Decision Ledger entries for selected UI direction, design-system
+   source, token policy, mock/prototype status, or visual QA strategy also
+   fails.
+3. API/server feature lacks backend contract, auth/session decision when
    applicable, error shape, or API Verify command → **FAIL**.
-3. Packaging or deployment is `none declared` for an executable app → **WARN**.
-4. Deployment is in scope but required env vars, preview/staging target,
+4. Packaging or deployment is `none declared` for an executable app → **WARN**.
+5. Deployment is in scope but required env vars, preview/staging target,
    readiness signal, or rollback rule is missing → **FAIL**.
 
 **Spec+plan checks:**
@@ -350,11 +376,20 @@ Source of truth: `docs/reference/app-delivery-contract.md` section
 2. Any Experience/Delivery Matrix row has no mapped task or no non-trivial
    Verify command → **FAIL**.
 3. UI tasks lack viewport/e2e, visual, or approved equivalent adapter
+   verification required by available or planned adapter/tooling → **FAIL**.
+4. Plan starts screen implementation before tokens, primitives, and component
+   states/stories when no suitable design system exists → **FAIL**.
+5. Package/deploy tasks lack build artifact, readiness, or rollback
    verification → **FAIL**.
-4. Package/deploy tasks lack build artifact, readiness, or rollback
-   verification → **FAIL**.
-5. Visual or accessibility verification is advisory-only → **WARN** and record
-   the accepted risk.
+6. Visual or accessibility verification is advisory-only for an AC that depends
+   on visual design or accessibility behavior → **FAIL**. Otherwise → **WARN**
+   and record the accepted risk.
+7. Available or planned Storybook/component isolation lacks component
+   state-story coverage → **FAIL**.
+8. Available or planned Playwright screenshot, visual diff, or equivalent
+   tooling lacks screenshot/visual baseline and review loop coverage → **FAIL**.
+9. Normative mock/prototype artifact lacks token/component mapping or a
+   freshness rule → **FAIL**.
 
 ## 3. Output Report
 
@@ -474,7 +509,9 @@ Each finding maps to a specific routing action:
 | D7: ADR missing | /spec | Create ADR and link it from Decision Log |
 | D9: Missing app_delivery profile | /setup | Regenerate or update app_delivery config |
 | D9: Missing App Experience And Delivery Baseline | /spec | Add frontend/backend/package/deploy baseline |
+| D9: Missing Frontend Design Readiness | /design_architecture | Produce `docs/ux/frontend-design.md` with selected direction, tokens, components, states, responsive rules, accessibility, visual QA, and tool-conditional visual readiness lanes |
 | D9: Missing Experience/Delivery Matrix | /prepare_execute | Add matrix rows with mapped tasks and Verify commands |
+| D9: Screen-first UI task order | /prepare_execute | Add token, primitive, and component-state tasks before screen implementation |
 | D2: Undeclared dependency | /spec or /prepare_execute | Add dependency to manifest or verify built-in |
 | D4: Missing manifest update | /prepare_execute | Add manifest modification step to task |
 

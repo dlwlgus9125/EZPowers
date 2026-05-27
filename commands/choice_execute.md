@@ -32,23 +32,31 @@ If `phases/index.json` exists, update the build phase to `in_progress`:
 
 ### Previous Session Re-entry Detection
 
-If the build phase in `phases/index.json` is already `in_progress` and the plan has tasks checked with `- [x]`, treat it as a resumed session.
+If the build phase in `phases/index.json` is already `in_progress` and the plan has tasks checked with `- [x]`, treat it as a possible resumed session. Checkboxes are progress hints, not PASS evidence.
+
+Before offering to skip any checked task, run resume proof for the checked prefix:
+
+```powershell
+scripts/harness-resume-proof.ps1 -ProjectRoot <project-root> -Phase <phase> -PlanPath <plan-path> -CompletedTaskCount <N> -ResumeHash <resume-hash>
+```
+
+Read `phases/<phase>/resume-proof.json` directly. Only tasks accepted by this proof may be skipped. Missing, stale, nonpassing, timed-out, or too-short e2e task-gate evidence is a `TEST_GAP`/`FAIL` and routes to re-run, not resume.
 
 Present options to the user:
 
-> **Previous session: Tasks 1-{N} complete, Task {N+1} incomplete.**
+> **Previous session: Tasks 1-{N} are checked. Resume proof determines which are verified.**
 >
-> **1. Resume** — skip completed tasks, continue from Task {N+1}
+> **1. Resume verified prefix** - skip only tasks accepted by `resume-proof.json`, continue from the first unverified task
 >
-> **2. Re-run that task** — reset Task {N+1} checkbox, re-implement from scratch (existing commits kept; implementer reworks on current state)
+> **2. Re-run that task** - reset the first unverified or incomplete task checkbox, re-implement from scratch (existing commits kept; implementer reworks on current state)
 >
-> **3. Full re-run** — reset all checkboxes (`- [x]` → `- [ ]`), update `first-task-start-hash`, re-run everything
+> **3. Full re-run** - reset all checkboxes (`- [x]` -> `- [ ]`), update `first-task-start-hash`, re-run everything
 >
-> **4. Abort** — keep current state
+> **4. Abort** - keep current state
 
 Option behavior:
-- **Resume:** Apply Resume Protocol (Section 13). Treat `- [x]` tasks as PASS.
-- **Re-run that task:** Reset the incomplete task's `- [x]` to `- [ ]`. No git revert — implementer re-implements on existing code without conflicts.
+- **Resume verified prefix:** Apply Resume Protocol (Section 13). Skip only the task prefix that passed `scripts/harness-resume-proof.ps1`; a checkbox alone never means PASS.
+- **Re-run that task:** Reset the first unverified or incomplete task's `- [x]` to `- [ ]`. No git revert - implementer re-implements on existing code without conflicts.
 - **Full re-run:** Reset all checkboxes to `- [ ]`. Remove `**Resume hash:**` marker. Record new `first-task-start-hash`.
 - **Abort:** No action.
 
@@ -897,10 +905,11 @@ If plan decomposition proves inadequate during execution — tasks too tightly c
 
 1. Check for `**Resume hash:**` marker in plan document
 2. If present: restore previous `first-task-start-hash` (preserves final review diff range)
-3. Tasks checked `- [x]` are treated as PASS and skipped
-4. Execute only `- [ ]` tasks (including newly added tasks)
-5. Skipped tasks' artifacts (commits) already exist, so dependencies are satisfied
-6. **Caution:** If the revised plan modifies files from already-completed tasks, those tasks must be manually reset to `- [ ]` — /prepare_execute notifies the user
+3. Count the contiguous checked task prefix and run `scripts/harness-resume-proof.ps1` for that prefix.
+4. Skip only tasks that are listed in `resume-proof.json` with status `pass`; checkboxes are progress hints, not PASS evidence.
+5. Execute the first unchecked or unverified task and all following tasks, including newly added tasks.
+6. If a checked task lacks fresh passing task-gate proof, reset that task to `- [ ]` and re-run from there. Do not skip it from checkbox state.
+7. **Caution:** If the revised plan modifies files from already-completed tasks, those tasks must be manually reset to `- [ ]` - /prepare_execute notifies the user
 
 ## 14. Completion
 

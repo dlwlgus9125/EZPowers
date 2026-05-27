@@ -18,6 +18,7 @@ kit. Do not write product code or synthesize skill bodies.
 - `docs/reference/harness-kit-contract.md`
 - `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/ui-verification-adapter-contract.md`
+- `docs/reference/frontend-design-contract.md`
 - `docs/reference/domain-language.md`
 - `docs/reference/verification-contract.md`
 - `harness-kit/v2.0.0/manifest.json`
@@ -39,6 +40,9 @@ kit. Do not write product code or synthesize skill bodies.
   bundled kit is missing, stop and ask the user to update the plugin.
 - Preserve EZPowers automation: `.harness/config.json`, `phases/index.json`,
   docs slots, smoke config, and executor settings are first-class outputs.
+- For UI projects, create the `docs/ux/frontend-design.md` readiness slot and
+  config fields from `docs/reference/frontend-design-contract.md`; do not
+  synthesize the design brief during setup.
 - Executable artifacts require runtime smoke unless the setup contract allows
   an explicit `docs` or `library` exemption.
 - Use `docs/reference/setup-contract.md` Wiring Rules for auto-detecting and
@@ -63,6 +67,7 @@ kit. Do not write product code or synthesize skill bodies.
 - Created or updated file list (including `CONTEXT.md` when generated).
 - Inferred and user-confirmed project settings.
 - Smoke/runtime verification settings and any unresolved values.
+- Frontend design readiness slot, config fields, and unresolved inputs.
 - `phases/index.json` setup status.
 - Local kit install path, manifest version, and hash ledger path.
 - Reviewer verdict summary from the reviewer placement gate.

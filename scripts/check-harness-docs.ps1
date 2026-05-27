@@ -22,6 +22,57 @@ function Assert-Contains {
     Write-Output "[PASS] $Label"
 }
 
+function Assert-NotContains {
+    param(
+        [string] $Path,
+        [string] $Needle,
+        [string] $Label
+    )
+
+    $FullPath = Join-Path $RepoRoot $Path
+    if (-not (Test-Path -LiteralPath $FullPath)) {
+        throw "[FAIL] ${Label}: missing file $Path"
+    }
+
+    $Text = Get-Content -LiteralPath $FullPath -Raw -Encoding UTF8
+    if ($Text.Contains($Needle)) {
+        throw "[FAIL] ${Label}: forbidden text '$Needle' remains in $Path"
+    }
+
+    Write-Output "[PASS] $Label"
+}
+
+function Assert-DeepInterviewUtf8 {
+    $Path = Join-Path $RepoRoot 'skills/deep-interview/SKILL.md'
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw '[FAIL] deep-interview UTF-8: missing skills/deep-interview/SKILL.md'
+    }
+
+    $Text = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
+    function ConvertFrom-CodePoints {
+        param([int[]] $CodePoints)
+        return -join ($CodePoints | ForEach-Object { [char]$_ })
+    }
+
+    $RequiredPhrases = @(
+        (ConvertFrom-CodePoints @(0xBAA8, 0xD638, 0xD55C, 0x20, 0xC694, 0xCCAD)),
+        (ConvertFrom-CodePoints @(0xD55C, 0x20, 0xBC88, 0xC5D0, 0x20, 0xD558, 0xB098)),
+        (ConvertFrom-CodePoints @(0xC644, 0xB8CC, 0x20, 0xAE30, 0xC900))
+    )
+    foreach ($Needle in $RequiredPhrases) {
+        if (-not $Text.Contains($Needle)) {
+            throw "[FAIL] deep-interview UTF-8: missing Korean phrase $Needle"
+        }
+    }
+    foreach ($Needle in @([char]0xfffd, [char]0x5360, [char]0x7652, [char]0xf9cf)) {
+        if ($Text.Contains([string]$Needle)) {
+            throw "[FAIL] deep-interview UTF-8: mojibake marker remains: $Needle"
+        }
+    }
+
+    Write-Output '[PASS] deep-interview UTF-8/mojibake guard'
+}
+
 function Assert-ControllerPrompt {
     param(
         [string] $Path,
@@ -781,6 +832,131 @@ Verify-type: cli
     }
 }
 
+function Assert-HarnessResumeProof {
+    $TempRoot = Join-Path $env:TEMP ("ezpowers-harness-resume-proof-" + [guid]::NewGuid().ToString("N"))
+    $PhaseDir = Join-Path $TempRoot 'phases/sample'
+    $TaskGateDir = Join-Path $PhaseDir 'task-gates'
+    New-Item -ItemType Directory -Force -Path $TaskGateDir | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $TempRoot '.harness') | Out-Null
+
+    function Write-ResumeTaskGate {
+        param(
+            [string] $Hash,
+            [string] $Status = 'pass',
+            [int] $ExitCode = 0,
+            [bool] $TimedOut = $false,
+            [bool] $VerifyPass = $true,
+            [string] $VerifyType = 'cli',
+            [int] $VerifyTimeoutSeconds = 120
+        )
+
+        [pscustomobject]@{
+            schema_version = 1
+            phase = 'sample'
+            task_number = 1
+            step = 0
+            step_md = 'step0.md'
+            step_sha256 = $Hash
+            status = $Status
+            evidence_status = 'task_verified'
+            message = 'task verified'
+            verify_type = $VerifyType
+            verify_commands = @('python -c "raise SystemExit(0)"')
+            verify_commands_count = 1
+            verify_timeout_seconds = $VerifyTimeoutSeconds
+            verify_exit_code = $ExitCode
+            verify_timed_out = $TimedOut
+            verify_result = [pscustomobject]@{ pass = $VerifyPass }
+        } | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $TaskGateDir 'task-1.json') -Encoding UTF8
+    }
+
+    try {
+        '{"smoke":{"required":false,"artifact_kind":"library"},"wiring":{"enabled":true,"view_extensions":[]}}' |
+            Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
+        @'
+{
+  "project": "sample",
+  "phase": "sample",
+  "steps": [
+    { "step": 0, "name": "first", "status": "completed", "step_md": "step0.md" },
+    { "step": 1, "name": "second", "status": "pending", "step_md": "step1.md" }
+  ]
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'index.json') -Encoding UTF8
+        @'
+# Step 0
+
+## Acceptance Criteria
+- [ ] Given: app / When: command runs / Then: command passes / Verify: `python -c "raise SystemExit(0)"`
+
+## Verification
+Verify: `python -c "raise SystemExit(0)"`
+Verify-type: cli
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'step0.md') -Encoding UTF8
+        @'
+# Step 1
+
+## Acceptance Criteria
+- [ ] Given: app / When: command runs / Then: command passes / Verify: `python -c "raise SystemExit(0)"`
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'step1.md') -Encoding UTF8
+
+        $Hash = (Get-FileHash -LiteralPath (Join-Path $PhaseDir 'step0.md') -Algorithm SHA256).Hash.ToLowerInvariant()
+        Write-ResumeTaskGate -Hash $Hash
+        & (Join-Path $RepoRoot 'scripts/harness-resume-proof.ps1') -ProjectRoot $TempRoot -Phase 'sample' -CompletedTaskCount 1 -PlanPath 'docs/plans/sample.md' -ResumeHash 'abc123' | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw '[FAIL] harness resume proof: expected fresh task proof to pass'
+        }
+        $Proof = Get-Content -LiteralPath (Join-Path $PhaseDir 'resume-proof.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($Proof.status -ne 'pass' -or @($Proof.verified_task_gate_paths).Count -ne 1) {
+            throw '[FAIL] harness resume proof: pass proof did not record verified prefix'
+        }
+
+        & (Join-Path $RepoRoot 'scripts/harness-resume-proof.ps1') -ProjectRoot $TempRoot -Phase 'sample' -CompletedTaskCount 2 *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw '[FAIL] harness resume proof: pending checked task should fail'
+        }
+
+        Remove-Item -LiteralPath (Join-Path $TaskGateDir 'task-1.json') -Force
+        & (Join-Path $RepoRoot 'scripts/harness-resume-proof.ps1') -ProjectRoot $TempRoot -Phase 'sample' -CompletedTaskCount 1 *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw '[FAIL] harness resume proof: missing task proof should fail'
+        }
+
+        Write-ResumeTaskGate -Hash 'stale'
+        & (Join-Path $RepoRoot 'scripts/harness-resume-proof.ps1') -ProjectRoot $TempRoot -Phase 'sample' -CompletedTaskCount 1 *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw '[FAIL] harness resume proof: stale task proof should fail'
+        }
+
+        Write-ResumeTaskGate -Hash $Hash -VerifyType 'e2e' -VerifyTimeoutSeconds 30
+        & (Join-Path $RepoRoot 'scripts/harness-resume-proof.ps1') -ProjectRoot $TempRoot -Phase 'sample' -CompletedTaskCount 1 *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw '[FAIL] harness resume proof: e2e proof with short timeout should fail'
+        }
+
+        Write-ResumeTaskGate -Hash $Hash -ExitCode 1 -VerifyPass $false
+        & (Join-Path $RepoRoot 'scripts/harness-resume-proof.ps1') -ProjectRoot $TempRoot -Phase 'sample' -CompletedTaskCount 1 *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw '[FAIL] harness resume proof: failing Verify evidence should fail'
+        }
+
+        '{"smoke":{"required":true,"artifact_kind":"cli","command":"python -c \"print(''smoke'')\""},"wiring":{"enabled":true,"view_extensions":[]}}' |
+            Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
+        Write-ResumeTaskGate -Hash $Hash
+        & (Join-Path $RepoRoot 'scripts/harness-resume-proof.ps1') -ProjectRoot $TempRoot -Phase 'sample' -CompletedTaskCount 1 *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw '[FAIL] harness resume proof: missing required runtime evidence should fail'
+        }
+
+        Write-Output '[PASS] harness resume proof prefix validation'
+    }
+    finally {
+        if (Test-Path -LiteralPath $TempRoot) {
+            Remove-Item -LiteralPath $TempRoot -Recurse -Force
+        }
+    }
+}
+
 function Assert-HarnessSmoke {
     $SmokeOutput = & (Join-Path $RepoRoot 'scripts/harness-smoke.ps1')
     if (($SmokeOutput -join "`n") -notlike '*Harness smoke passed.*') {
@@ -916,10 +1092,80 @@ Static-verify: `python -c "raise SystemExit(0)"`
     }
 }
 
+function Assert-FrontendVisualReadiness {
+    $TempRoot = Join-Path $env:TEMP ("ezpowers-frontend-visual-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path (Join-Path $TempRoot '.harness') | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $TempRoot 'docs/ux') | Out-Null
+    try {
+        @'
+{
+  "app_delivery": {
+    "frontend": {
+      "design_artifact": "docs/ux/frontend-design.md"
+    }
+  }
+}
+'@ | Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
+        @'
+# Frontend Design
+
+Visual QA strategy: component DOM fallback.
+'@ | Set-Content -LiteralPath (Join-Path $TempRoot 'docs/ux/frontend-design.md') -Encoding UTF8
+
+        $Output = & python (Join-Path $RepoRoot 'scripts/frontend-visual-readiness.py') --project-root $TempRoot --json
+        if ($LASTEXITCODE -ne 0) {
+            throw '[FAIL] frontend visual readiness: no-tool advisory path should pass'
+        }
+        $Result = ($Output -join "`n") | ConvertFrom-Json
+        if ($Result.lanes.storybook_component_states.required) {
+            throw '[FAIL] frontend visual readiness: Storybook should not be required without project-local evidence'
+        }
+
+        'export default {}' | Set-Content -LiteralPath (Join-Path $TempRoot 'playwright.config.ts') -Encoding UTF8
+        $Output = & python (Join-Path $RepoRoot 'scripts/frontend-visual-readiness.py') --project-root $TempRoot --json
+        if ($LASTEXITCODE -ne 0) {
+            throw '[FAIL] frontend visual readiness: Playwright e2e-only path should pass'
+        }
+        $Result = ($Output -join "`n") | ConvertFrom-Json
+        if ($Result.lanes.screenshot_visual_baseline.required) {
+            throw '[FAIL] frontend visual readiness: Playwright e2e-only should not require screenshot visual baseline lane'
+        }
+
+        New-Item -ItemType Directory -Force -Path (Join-Path $TempRoot 'tests') | Out-Null
+        "import { expect } from '@playwright/test';`nawait expect(page).toHaveScreenshot();`n" |
+            Set-Content -LiteralPath (Join-Path $TempRoot 'tests/visual.spec.ts') -Encoding UTF8
+        $Output = & python (Join-Path $RepoRoot 'scripts/frontend-visual-readiness.py') --project-root $TempRoot --json
+        if ($LASTEXITCODE -ne 1) {
+            throw '[FAIL] frontend visual readiness: Playwright screenshots without visual baseline should fail'
+        }
+        $Result = ($Output -join "`n") | ConvertFrom-Json
+        if (-not $Result.lanes.screenshot_visual_baseline.required) {
+            throw '[FAIL] frontend visual readiness: Playwright screenshots should require screenshot visual baseline lane'
+        }
+        Write-Output '[PASS] frontend visual readiness runner'
+    }
+    finally {
+        if (Test-Path -LiteralPath $TempRoot) {
+            Remove-Item -LiteralPath $TempRoot -Recurse -Force
+        }
+    }
+}
+
 Assert-Contains 'commands/choice_execute.md' 'Harness is the external executor/recovery path, not the only strict verification path.' 'choice_execute keeps all paths strict'
 Assert-Contains 'commands/choice_execute.md' 'scripts/lightpath-gate.ps1 -Scope task' 'choice_execute uses lightpath task gate'
 Assert-Contains 'commands/choice_execute.md' 'scripts/lightpath-gate.ps1 -Scope final' 'choice_execute uses lightpath final gate'
 Assert-Contains 'commands/choice_execute.md' 'scripts/harness-certify.ps1' 'choice_execute uses completion certificate gate'
+Assert-Contains 'commands/choice_execute.md' 'scripts/harness-resume-proof.ps1' 'choice_execute uses resume proof gate'
+Assert-Contains 'commands/choice_execute.md' 'Checkboxes are progress hints, not PASS evidence.' 'choice_execute treats checkboxes as hints'
+Assert-NotContains 'commands/choice_execute.md' 'Treat `- [x]` tasks as PASS' 'choice_execute removed checkbox PASS resume rule'
+Assert-NotContains 'commands/choice_execute.md' 'Tasks checked `- [x]` are treated as PASS' 'choice_execute removed checked-task skip rule'
+Assert-Contains 'docs/reference/setup-contract.md' '"lifecycle_stage": "undecided"' 'setup lifecycle default is undecided'
+Assert-NotContains 'docs/reference/setup-contract.md' '"lifecycle_stage": "mvp"' 'setup lifecycle does not silently default to MVP'
+Assert-Contains 'docs/reference/verification-contract.md' 'scripts/harness-resume-proof.ps1' 'verification contract defines resume proof'
+Assert-Contains 'docs/reference/harness-execution-contract.md' 'Resume Proof' 'harness execution contract defines resume proof'
+Assert-Contains 'evals/optimization/choiceexecutor/resume-mid-task.yaml' 'resume_proof_required' 'resume eval tracks proof requirement'
+Assert-NotContains 'evals/optimization/choiceexecutor/resume-mid-task.yaml' 'Task 1 skipped as already complete (- [x] markers)' 'resume eval no longer rewards checkbox skip'
+Assert-NotContains 'evals/optimization/choiceexecutor/resume-mid-task.yaml' 'tasks_skipped' 'resume eval no longer tracks skipped checkbox metric'
 Assert-Contains 'agents/wiring-reviewer.md' 'missing generated gate evidence' 'wiring reviewer fails missing lightpath evidence'
 Assert-ControllerPrompt 'commands/setup.md' 'setup prompt is diet controller'
 Assert-ControllerPrompt 'commands/design_architecture.md' 'design_architecture prompt is diet controller'
@@ -1008,6 +1254,7 @@ Assert-Contains '.githooks/pre-commit' '.claude-plugin/(plugin|marketplace)' 'pr
 Assert-Contains '.githooks/pre-commit' 'architecture-reviewer' 'pre-commit watches architecture reviewer'
 Assert-Contains '.githooks/pre-commit' 'wiring-reviewer' 'pre-commit watches wiring reviewer'
 Assert-Contains '.githooks/pre-commit' 'workflow-contract-reviewer' 'pre-commit watches workflow contract reviewer'
+Assert-Contains '.githooks/pre-commit' 'frontend-experience-reviewer' 'pre-commit watches frontend experience reviewer'
 Assert-Contains '.githooks/pre-commit' 'commands/(setup|design_architecture|spec|prepare_execute|choice_execute|maintain|deploy|reset_setup|review|sync-docs|set-rules|eval|feedback)' 'pre-commit watches prompt diet commands'
 Assert-Contains '.githooks/pre-commit' 'CLAUDE\.md' 'pre-commit watches root guide'
 Assert-Contains '.githooks/pre-commit' 'docs/INDEX\.md' 'pre-commit watches docs index'
@@ -1019,12 +1266,14 @@ Assert-Contains '.githooks/pre-commit' 'spec-contract' 'pre-commit watches spec 
 Assert-Contains '.githooks/pre-commit' 'plan-contract' 'pre-commit watches plan contract'
 Assert-Contains '.githooks/pre-commit' 'harness-kit-contract' 'pre-commit watches harness kit contract'
 Assert-Contains '.githooks/pre-commit' 'ui-verification-adapter-contract' 'pre-commit watches UI adapter contract'
+Assert-Contains '.githooks/pre-commit' 'frontend-design-contract' 'pre-commit watches frontend design contract'
 Assert-Contains '.githooks/pre-commit' 'design-architecture-contract' 'pre-commit watches design architecture contract'
 Assert-Contains '.githooks/pre-commit' 'harness-execution-contract' 'pre-commit watches harness execution contract'
 Assert-Contains '.githooks/pre-commit' 'harness_versions/changelog' 'pre-commit watches harness changelog'
 Assert-Contains '.githooks/pre-commit' 'harness-convert' 'pre-commit watches harness convert helper'
 Assert-Contains '.githooks/pre-commit' 'harness-common' 'pre-commit watches harness common helper'
 Assert-Contains '.githooks/pre-commit' 'harness-certify' 'pre-commit watches harness certify helper'
+Assert-Contains '.githooks/pre-commit' 'harness-resume-proof' 'pre-commit watches harness resume proof helper'
 Assert-Contains '.githooks/pre-commit' 'harness-doctor' 'pre-commit watches harness doctor'
 Assert-Contains '.githooks/pre-commit' 'harness-gate' 'pre-commit watches harness gate helper'
 Assert-Contains '.githooks/pre-commit' 'harness-phase' 'pre-commit watches harness phase helper'
@@ -1038,6 +1287,7 @@ Assert-Contains 'harness_versions/changelog.jsonl' 'harness_light_path_refactor'
 Assert-Contains 'harness_versions/changelog.jsonl' 'command_chain_v2_release' 'harness changelog records v2 command chain'
 Assert-Contains '.githooks/pre-commit' 'smoke-plugin' 'pre-commit watches smoke-plugin helper'
 Assert-Contains '.githooks/pre-commit' 'verify-step' 'pre-commit watches verify-step script'
+Assert-Contains '.githooks/pre-commit' 'frontend-visual-readiness' 'pre-commit watches frontend visual readiness script'
 Assert-Contains '.githooks/pre-commit' 'model-routing-contract' 'pre-commit watches model routing contract'
 Assert-Contains '.githooks/pre-commit' 'reviewer-placement-contract' 'pre-commit watches reviewer placement contract'
 Assert-Contains '.githooks/pre-commit' 'model-router' 'pre-commit watches model router'
@@ -1050,6 +1300,11 @@ if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/verify-step.py'))
     throw '[FAIL] verify-step.py: missing scripts/verify-step.py'
 }
 Write-Output '[PASS] verify-step.py exists'
+
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/frontend-visual-readiness.py'))) {
+    throw '[FAIL] frontend-visual-readiness.py: missing scripts/frontend-visual-readiness.py'
+}
+Write-Output '[PASS] frontend-visual-readiness.py exists'
 
 if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/smoke-plugin.ps1'))) {
     throw '[FAIL] smoke-plugin.ps1: missing scripts/smoke-plugin.ps1'
@@ -1065,6 +1320,11 @@ if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/harness-certify.p
     throw '[FAIL] harness-certify.ps1: missing scripts/harness-certify.ps1'
 }
 Write-Output '[PASS] harness-certify.ps1 exists'
+
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/harness-resume-proof.ps1'))) {
+    throw '[FAIL] harness-resume-proof.ps1: missing scripts/harness-resume-proof.ps1'
+}
+Write-Output '[PASS] harness-resume-proof.ps1 exists'
 
 if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/lightpath-gate.ps1'))) {
     throw '[FAIL] lightpath-gate.ps1: missing scripts/lightpath-gate.ps1'
@@ -1101,10 +1361,13 @@ Assert-HarnessGate
 Assert-HarnessRun
 Assert-LightpathGate
 Assert-HarnessCertify
+Assert-HarnessResumeProof
 Assert-HarnessSmoke
 Assert-ModelRouter
 Assert-HashlineAnchor
 Assert-ContextInjector
 Assert-VerifyStepStatic
+Assert-FrontendVisualReadiness
+Assert-DeepInterviewUtf8
 
 Write-Output 'Harness doc checks passed.'
