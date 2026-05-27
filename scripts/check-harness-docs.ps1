@@ -1294,7 +1294,24 @@ Assert-Contains '.githooks/pre-commit' 'model-router' 'pre-commit watches model 
 Assert-Contains '.githooks/pre-commit' 'hashline-anchor' 'pre-commit watches hashline anchor'
 Assert-Contains '.githooks/pre-commit' 'context-injector' 'pre-commit watches context injector'
 Assert-Contains '.githooks/pre-commit' 'hook-policy' 'pre-commit watches hook policy'
-Assert-Contains '.agents/plugins/marketplace.json' '"path": "./"' 'agents marketplace uses source root plugin'
+Assert-Contains '.agents/plugins/marketplace.json' '"path": "./plugins/ezpowers"' 'agents marketplace uses packaged plugin mirror'
+Assert-Contains 'commands/reset_setup.md' 'does not update installed Codex or Claude plugin command caches' 'reset_setup documents plugin cache boundary'
+Assert-Contains 'plugins/ezpowers/commands/reset_setup.md' 'does not update installed Codex or Claude plugin command caches' 'packaged reset_setup documents plugin cache boundary'
+
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'plugins/ezpowers/.codex-plugin/plugin.json'))) {
+    throw '[FAIL] packaged plugin mirror: missing plugins/ezpowers/.codex-plugin/plugin.json'
+}
+Write-Output '[PASS] packaged plugin mirror codex manifest exists'
+
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'plugins/ezpowers/commands/choice_execute.md'))) {
+    throw '[FAIL] packaged plugin mirror: missing plugins/ezpowers/commands/choice_execute.md'
+}
+Write-Output '[PASS] packaged plugin mirror choice_execute exists'
+
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'plugins/ezpowers/scripts/harness-resume-proof.ps1'))) {
+    throw '[FAIL] packaged plugin mirror: missing plugins/ezpowers/scripts/harness-resume-proof.ps1'
+}
+Write-Output '[PASS] packaged plugin mirror harness resume proof exists'
 
 if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/verify-step.py'))) {
     throw '[FAIL] verify-step.py: missing scripts/verify-step.py'

@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "wip_limit": 1,
+  "updated_at": "2026-05-27T01:45:00Z",
+  "features": [
+    {
+      "id": "F1",
+      "title": "Install root harness bootstrap files",
+      "status": "complete",
+      "success_criteria": [
+        "AGENTS.md exists as the cross-agent entry point",
+        ".harness/config.json exists",
+        "phases/index.json records setup complete",
+        "docs/specs and docs/plans exist"
+      ],
+      "evidence": [
+        "AGENTS.md added",
+        ".harness/config.json added",
+        "phases/index.json added",
+        "docs/specs/.gitkeep and docs/plans/.gitkeep added"
+      ]
+    },
+    {
+      "id": "F2",
+      "title": "Separate static and live eval semantics",
+      "status": "complete",
+      "success_criteria": [
+        "run_baseline.py exposes --mode static|live",
+        "live mode fails loudly until implemented",
+        "eval documentation stops presenting static scores as live workflow quality"
+      ],
+      "evidence": [
+        "scripts/run_baseline.py exposes --mode static|live",
+        "live mode exits with an explicit not-implemented error",
+        "commands/eval.md and evals/INDEX.md document static vs live semantics"
+      ]
+    },
+    {
+      "id": "F3",
+      "title": "Close D9 pipeline-audit contract drift",
+      "status": "complete",
+      "success_criteria": [
+        "pipeline-audit state table includes D9 when triggered",
+        "output report template includes D9",
+        "verdict aggregation counts D9"
+      ],
+      "evidence": [
+        "docs/reference/pipeline-audit-contract.md includes D9 in state dimensions",
+        "docs/reference/pipeline-audit-contract.md includes D9 in output template and routing"
+      ]
+    },
+    {
+      "id": "F4",
+      "title": "Define cleanup and packaging policy",
+      "status": "complete",
+      "success_criteria": [
+        "tracked empty numeric files are removed or justified",
+        "plugins/ezpowers mirror is either generated-and-ignored or tracked intentionally",
+        "Claude and Codex plugin versions are reconciled"
+      ],
+      "evidence": [
+        ".gitignore now ignores plugins/ and Python cache directories",
+        "tracked empty numeric files removed",
+        ".codex-plugin/plugin.json version reconciled with .claude-plugin/plugin.json"
+      ]
+    },
+    {
+      "id": "F5",
+      "title": "Simplify v2 harness command chain",
+      "status": "complete",
+      "success_criteria": [
+        "Public flow is setup, design_architecture, spec, prepare_execute, choice_execute",
+        "setup/reset_setup install a verified local kit without synthesizing skills",
+        "UI verification is adapter-capability based and not Playwright-only"
+      ],
+      "evidence": [
+        "commands/design_architecture.md, commands/spec.md, commands/prepare_execute.md, commands/choice_execute.md, commands/reset_setup.md, commands/maintain.md, and commands/deploy.md define the v2 flow",
+        "docs/reference/harness-kit-contract.md and harness-kit/v2.0.0/manifest.json define no-synthesis setup",
+        "docs/reference/ui-verification-adapter-contract.md and docs/reference/plan-contract.md require adapter fallback tasks"
+      ]
+    },
+    {
+      "id": "F6",
+      "title": "Place mandatory reviewers after every command and skill",
+      "status": "complete",
+      "success_criteria": [
+        "Every command maps to at least one required reviewer",
+        "Every skill maps to at least one required reviewer",
+        "A generic workflow reviewer covers setup, utility command, and skill outputs"
+      ],
+      "evidence": [
+        "docs/reference/reviewer-placement-contract.md defines command and skill reviewer matrices",
+        "agents/workflow-contract-reviewer.md defines the generic workflow review gate",
+        "tests/test_reviewer_placement_contract.py verifies command, skill, dispatch, and routing coverage"
+      ]
+    },
+    {
+      "id": "F7",
+      "title": "Add frontend design readiness lane",
+      "status": "complete",
+      "success_criteria": [
+        "Frontend design contract defines required UI design artifact and v2 option-selection skeleton",
+        "frontend-design skill exists and is covered by reviewer placement and skill evals",
+        "Setup, design_architecture, spec, prepare_execute, and D9 audit contracts require frontend design readiness for UI work",
+        "Frontend experience reviewer can fail missing design structure before implementation",
+        "Local tests and skill evals cover the new readiness lane"
+      ],
+      "evidence": [
+        "PROGRESS.md records rollout scope, completion, and future v2 continuation path",
+        "docs/reference/frontend-design-contract.md defines required UI design artifact and v2 option-selection skeleton",
+        "skills/frontend-design/SKILL.md and skills/frontend-design/references/frontend-design-readiness.md define the skill workflow and readiness checklist",
+        "agents/frontend-experience-reviewer.md defines the frontend readiness review gate",
+        "docs/reference/setup-contract.md, design-architecture-contract.md, spec-contract.md, plan-contract.md, app-delivery-contract.md, and pipeline-audit-contract.md wire the readiness lane into the flow",
+        "tests/test_frontend_design_readiness.py covers contract routing and readiness invariants",
+        "evals/skills/frontend-design-*.yaml add four skill eval anchors",
+        "python -m unittest discover -s tests: 22 tests passed on 2026-05-26",
+        "scripts/check-harness-docs.ps1: passed on 2026-05-26",
+        "python scripts/run_skill_evals.py: 13/13 skill evals passed on 2026-05-26",
+        "python scripts/run_baseline.py --version local --splits golden optimization honeypot: golden 8/8 and 17/35 automated cases passed on 2026-05-26"
+      ]
+    },
+    {
+      "id": "F8",
+      "title": "Add frontend v2 visual readiness skeleton",
+      "status": "complete",
+      "success_criteria": [
+        "Mock/prototype artifact handling is recorded in the frontend design contract and skill reference",
+        "Storybook/component-state and Playwright/screenshot baseline lanes are hard-gated only by project-local tooling or explicit prerequisite tasks",
+        "A non-installing runner skeleton detects advisory versus required frontend visual readiness lanes",
+        "Frontend experience reviewer and D9 audit contracts fail missing required visual lanes without forcing absent visual automation",
+        "Local tests and skill evals cover the v2 skeleton"
+      ],
+      "evidence": [
+        "scripts/frontend-visual-readiness.py detects Storybook, Playwright, visual diff, and normative mock/prototype lanes without installing tools",
+        "docs/reference/frontend-design-contract.md and skills/frontend-design/references/frontend-design-readiness.md define mock/prototype artifact handling and tool-conditional visual readiness lanes",
+        "agents/frontend-experience-reviewer.md, docs/reference/app-delivery-contract.md, docs/reference/plan-contract.md, and docs/reference/pipeline-audit-contract.md carry the v2 lane rules",
+        "tests/test_frontend_visual_readiness_runner.py and tests/test_frontend_design_readiness.py cover the runner and contract invariants",
+        "evals/skills/frontend-design-mock-prototype.yaml, frontend-design-visual-tooling.yaml, and frontend-design-visual-runner.yaml add skill anchors",
+        "python -m unittest discover -s tests: 28 tests passed on 2026-05-27",
+        "scripts/check-harness-docs.ps1: passed on 2026-05-27",
+        "python scripts/run_skill_evals.py: 16/16 skill evals passed on 2026-05-27",
+        "python scripts/run_baseline.py --version local --splits golden optimization honeypot: golden 8/8 and 17/35 automated cases passed on 2026-05-27"
+      ]
+    },
+    {
+      "id": "F9",
+      "title": "Harden frontend visual readiness for production planning",
+      "status": "complete",
+      "success_criteria": [
+        "Runner distinguishes Playwright e2e availability from screenshot/visual baseline requirements",
+        "Runner scans monorepo frontend roots and explicit frontend roots without installing tooling",
+        "Equivalent component isolation and visual diff tools are recognized as project-local evidence",
+        "Mock/prototype artifact handling avoids reference-only and negated normative false positives",
+        "Reviewer, dispatch, D9, skill, and eval contracts cover the hardened visual readiness flow"
+      ],
+      "evidence": [
+        "scripts/frontend-visual-readiness.py emits schema_version, warnings, errors, tools, lanes, and frontend_roots",
+        "tests/test_frontend_visual_readiness_runner.py covers monorepo roots, Playwright e2e-only, Playwright screenshots, negated plan text, reference-only mockups, equivalent visual tools, invalid package JSON, and detect/check exit behavior",
+        "docs/reference/frontend-design-contract.md, plan-contract.md, app-delivery-contract.md, design-architecture-contract.md, pipeline-audit-contract.md, dispatch-protocol.md, and agents/frontend-experience-reviewer.md carry the F9 production-hardening rules",
+        "evals/skills/frontend-design-monorepo-visual-tooling.yaml, frontend-design-equivalent-visual-tooling.yaml, and frontend-design-mock-prototype-reference-only.yaml add skill anchors",
+        "python -m unittest discover -s tests: 37 tests passed on 2026-05-27",
+        "scripts/check-harness-docs.ps1: passed on 2026-05-27",
+        "python scripts/run_skill_evals.py: 19/19 skill evals passed on 2026-05-27",
+        "python scripts/run_baseline.py --version local --splits golden optimization honeypot: golden 8/8 and 17/35 automated cases passed on 2026-05-27"
+      ]
+    }
+  ]
+}

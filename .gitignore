@@ -4,6 +4,10 @@ evals/holdout/**
 evals/results/runs/**
 scripts/__pycache__/
 tests/__pycache__/
-plugins/
+__pycache__/
+*.pyc
+plugins/*
+!plugins/ezpowers/
+!plugins/ezpowers/**
 *.ezpowers-traces/
 docs/*.exe
