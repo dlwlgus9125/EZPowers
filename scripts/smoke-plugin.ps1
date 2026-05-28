@@ -57,8 +57,23 @@ else {
     try {
         $CodexPlugin = Get-Content -LiteralPath $CodexPluginPath -Raw -Encoding UTF8 | ConvertFrom-Json
         $SkillsPath = Join-Path $RepoRoot 'skills'
+        $ActiveCodexHooksPath = Join-Path $RepoRoot 'hooks/hooks.json'
+        $PackagedActiveCodexHooksPath = Join-Path $RepoRoot 'plugins/ezpowers/hooks/hooks.json'
+        $TraceHookTemplatePath = Join-Path $RepoRoot 'docs/reference/trace-hooks-template.json'
         if ($CodexPlugin.PSObject.Properties.Name -contains 'commands') {
             Write-Check 'FAIL' 'codex-plugin.json' 'unsupported commands field present; Codex exposes EZPowers through skills'
+            $Failures++
+        }
+        elseif (Test-Path -LiteralPath $ActiveCodexHooksPath) {
+            Write-Check 'FAIL' 'codex-plugin.json' 'active hooks/hooks.json must not ship in the Codex plugin root'
+            $Failures++
+        }
+        elseif (Test-Path -LiteralPath $PackagedActiveCodexHooksPath) {
+            Write-Check 'FAIL' 'codex-plugin.json' 'packaged mirror must not ship active hooks/hooks.json'
+            $Failures++
+        }
+        elseif (-not (Test-Path -LiteralPath $TraceHookTemplatePath)) {
+            Write-Check 'FAIL' 'codex-plugin.json' 'missing docs/reference/trace-hooks-template.json'
             $Failures++
         }
         elseif ($CodexPlugin.skills -ne './skills/') {

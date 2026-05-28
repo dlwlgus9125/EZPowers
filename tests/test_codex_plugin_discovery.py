@@ -41,6 +41,25 @@ class CodexPluginDiscoveryTests(unittest.TestCase):
         self.assertIn("does not imply that Codex will list", text)
         self.assertIn("duplicate skill entries", text)
 
+    def test_codex_plugin_roots_do_not_expose_active_hook_files(self):
+        plugin_roots = [
+            REPO_ROOT,
+            REPO_ROOT / "plugins/ezpowers",
+        ]
+
+        for plugin_root in plugin_roots:
+            with self.subTest(plugin_root=str(plugin_root.relative_to(REPO_ROOT))):
+                if not (plugin_root / ".codex-plugin/plugin.json").exists():
+                    continue
+
+                self.assertFalse(
+                    (plugin_root / "hooks/hooks.json").exists(),
+                    "Codex activates plugin hooks/hooks.json during tool use; "
+                    "keep trace hooks as an opt-in template outside active plugin hooks.",
+                )
+
+        self.assertTrue((REPO_ROOT / "docs/reference/trace-hooks-template.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

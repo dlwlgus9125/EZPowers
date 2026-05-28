@@ -455,8 +455,11 @@ phases to `pending`, and preserve existing artifacts for reference.
 
 It also ignores `evals/holdout/**` and `evals/results/runs/**`.
 
-`/setup --enable-traces` creates or reuses `hooks/hooks.json`, creates the
-plugin data trace directory, and ignores `*.ezpowers-traces/`.
+`/setup --enable-traces` creates or reuses project-local `hooks/hooks.json`
+from `docs/reference/trace-hooks-template.json`, creates the plugin data trace
+directory, and ignores `*.ezpowers-traces/`. Codex plugin bundles must not ship
+an active root `hooks/hooks.json`; Codex activates plugin hook files during
+tool use.
 
 The two flags are independent.
 
