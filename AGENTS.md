@@ -21,6 +21,12 @@ Primary flow:
 /setup -> /design_architecture -> /spec -> internal pipeline audit -> /prepare_execute -> internal pipeline audit -> /choice_execute
 ```
 
+Codex discovery note: EZPowers Codex plugins expose skills through the skill
+surface, for example `$ezpowers:diagnose`, not as guaranteed `/` palette
+entries. The slash-style workflow names above are command documents under
+`commands/`; read `docs/reference/codex-plugin-discovery.md` before changing
+plugin discovery or install behavior.
+
 Utility commands:
 
 - `/eval` runs command and skill eval gates.

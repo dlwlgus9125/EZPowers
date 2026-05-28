@@ -46,6 +46,59 @@ else {
 }
 
 # ---------------------------------------------------------------------------
+# 1b. Assert-CodexPluginJson
+# ---------------------------------------------------------------------------
+$CodexPluginPath = Join-Path $RepoRoot '.codex-plugin/plugin.json'
+if (-not (Test-Path -LiteralPath $CodexPluginPath)) {
+    Write-Check 'FAIL' 'codex-plugin.json' 'missing .codex-plugin/plugin.json'
+    $Failures++
+}
+else {
+    try {
+        $CodexPlugin = Get-Content -LiteralPath $CodexPluginPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $SkillsPath = Join-Path $RepoRoot 'skills'
+        if ($CodexPlugin.PSObject.Properties.Name -contains 'commands') {
+            Write-Check 'FAIL' 'codex-plugin.json' 'unsupported commands field present; Codex exposes EZPowers through skills'
+            $Failures++
+        }
+        elseif ($CodexPlugin.skills -ne './skills/') {
+            Write-Check 'FAIL' 'codex-plugin.json' "skills path must be ./skills/, found '$($CodexPlugin.skills)'"
+            $Failures++
+        }
+        elseif (-not (Test-Path -LiteralPath $SkillsPath)) {
+            Write-Check 'FAIL' 'codex-plugin.json' 'skills path does not exist'
+            $Failures++
+        }
+        else {
+            $Prompts = @($CodexPlugin.interface.defaultPrompt)
+            $PromptText = $Prompts -join "`n"
+            $SlashOnlyPrompt = $false
+            foreach ($Prompt in $Prompts) {
+                if ([string]$Prompt -match '^\s*/') {
+                    $SlashOnlyPrompt = $true
+                }
+            }
+
+            if ($SlashOnlyPrompt -or $PromptText -match '/setup') {
+                Write-Check 'FAIL' 'codex-plugin.json' 'defaultPrompt must use supported skill invocation, not slash-only command examples'
+                $Failures++
+            }
+            elseif ($PromptText -notmatch '\$ezpowers:[a-z0-9-]+') {
+                Write-Check 'FAIL' 'codex-plugin.json' 'defaultPrompt must include an explicit $ezpowers:<skill> example'
+                $Failures++
+            }
+            else {
+                Write-Check 'PASS' 'codex-plugin.json' 'Codex skill discovery metadata valid'
+            }
+        }
+    }
+    catch {
+        Write-Check 'FAIL' 'codex-plugin.json' "invalid JSON: $($_.Exception.Message)"
+        $Failures++
+    }
+}
+
+# ---------------------------------------------------------------------------
 # 2. Assert-AgentFrontmatter
 # ---------------------------------------------------------------------------
 $AgentsDir = Join-Path $RepoRoot 'agents'

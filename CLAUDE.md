@@ -16,6 +16,12 @@ EZPowers is a personal Claude Code skill plugin.
 /setup → /design_architecture → /spec → internal pipeline audit → /prepare_execute → internal pipeline audit → /choice_execute
 ```
 
+Codex discovery note: the Codex plugin manifest exposes EZPowers via skills
+such as `$ezpowers:diagnose`, `$ezpowers:frontend-design`, and
+`$ezpowers:verifyself`. The slash-style names in this document are command
+documents under `commands/`; Codex is not expected to list each skill in the
+host `/` palette. See `docs/reference/codex-plugin-discovery.md`.
+
 | Command | Role |
 |---------|------|
 | `/setup` | Initialize project harness and install verified local kit |

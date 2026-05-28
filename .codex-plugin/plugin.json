@@ -1,7 +1,7 @@
 {
   "name": "ezpowers",
-  "version": "2.0.4+codex.local-20260527-173257",
-  "description": "Personal Codex workflow plugin for spec-driven development with setup, design_architecture, spec, prepare_execute, and choice_execute guidance.",
+  "version": "2.0.5+codex.20260528012128",
+  "description": "Personal Codex workflow plugin for spec-driven planning, command-document guidance, and explicit EZPowers skills.",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
@@ -21,8 +21,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "EZPowers",
-    "shortDescription": "Spec-driven planning and execution workflow for Codex.",
-    "longDescription": "EZPowers adapts the v2 setup, design_architecture, spec, prepare_execute, choice_execute, review, sync, eval, and feedback workflow documents for Codex while preserving the original Claude plugin files.",
+    "shortDescription": "Spec-driven planning, reviews, and workflow skills for Codex.",
+    "longDescription": "EZPowers exposes Codex skills such as ezpowers:diagnose, ezpowers:frontend-design, and ezpowers:verifyself. The setup, design_architecture, spec, prepare_execute, choice_execute, review, sync, eval, and feedback procedures remain command documents under commands/ for agents to read and execute when requested.",
     "developerName": "dlwlgus9125",
     "category": "Productivity",
     "capabilities": [
@@ -35,9 +35,9 @@
     "privacyPolicyURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/PRIVACY.md",
     "termsOfServiceURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/TERMS.md",
     "defaultPrompt": [
-      "Use EZPowers to set up this project.",
-      "Run EZPowers design_architecture for this project.",
-      "Turn the approved spec into an EZPowers prepare_execute plan."
+      "$ezpowers:diagnose Investigate this failing workflow.",
+      "$ezpowers:frontend-design Prepare this UI work.",
+      "$ezpowers:verifyself Check this proposal."
     ],
     "brandColor": "#2563EB"
   }
