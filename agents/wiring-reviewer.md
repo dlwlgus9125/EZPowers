@@ -62,7 +62,13 @@ prompt; use artifact paths and git commands.
 - A unit-only command for one component is not enough for a connected feature.
 - For executable or GUI work, runtime artifacts are present:
   `runtime-probe.json`, `smoke-output.json`, and a screenshot path for desktop
-  artifacts.
+  artifacts. Desktop artifacts must expose `desktop_evidence` with a window
+  signal, screenshot path, pixel variance, and UI text, automation name, or API
+  observation.
+- For client-server work, runtime artifacts must expose
+  `client_server_evidence.api_observation`, or
+  `desktop_evidence.api_observation` for desktop clients. A reviewer `PASS`
+  cannot compensate for missing API-derived client/server evidence.
 
 ### 2. Wiring Evidence
 Look for concrete connections in the diff:
@@ -88,7 +94,7 @@ Read `config.wiring` block.
   does not observe the full Then clause or entry path.
   Missing generated gate evidence, missing runtime artifacts, missing desktop
   screenshot, blank screenshot, or missing expected UI text/name evidence are
-  `TEST_GAP`.
+  `TEST_GAP`. Missing client-server API observation is also `TEST_GAP`.
 - `CODE_GAP`: Evidence shows the implementation is missing a connection,
   registration, binding, subscription, import, route, or call site.
 - `SPEC_GAP`: The plan lacks an automatable oracle or does not define the

@@ -192,7 +192,7 @@ if ($null -eq $Config) {
     Add-CertFailure 'test_gap' 'missing_config' 'missing .harness/config.json'
 }
 else {
-    $RuntimeEvidence = Test-EzpRuntimeEvidence -ProjectRoot $ProjectRoot -Phase $Phase -Config $Config
+    $RuntimeEvidence = Test-EzpRuntimeEvidence -ProjectRoot $ProjectRoot -Phase $Phase -Config $Config -Gate $WiringGate
     $RuntimeArtifacts = @($RuntimeEvidence.artifacts)
     if (-not [bool]$RuntimeEvidence.ok) {
         Add-CertFailure 'test_gap' 'runtime_evidence_missing' $RuntimeEvidence.message

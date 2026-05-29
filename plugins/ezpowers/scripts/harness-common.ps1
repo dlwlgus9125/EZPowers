@@ -226,17 +226,379 @@ function Invoke-EzpRuntimeSmokeIfConfigured {
     return $Result
 }
 
+function Resolve-EzpProjectPath {
+    param(
+        [string] $ProjectRoot,
+        [string] $Path
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ''
+    }
+    if ([IO.Path]::IsPathRooted($Path)) {
+        return $Path
+    }
+    return Join-Path $ProjectRoot $Path
+}
+
+function Test-EzpNonEmptyEvidenceValue {
+    param($Value)
+
+    if ($null -eq $Value) {
+        return $false
+    }
+    if ($Value -is [string]) {
+        return -not [string]::IsNullOrWhiteSpace($Value)
+    }
+    if ($Value -is [System.Array]) {
+        foreach ($Item in @($Value)) {
+            if (Test-EzpNonEmptyEvidenceValue $Item) {
+                return $true
+            }
+        }
+        return $false
+    }
+    return $true
+}
+
+function Get-EzpDesktopEvidenceFromArtifact {
+    param($Artifact)
+
+    if ($null -eq $Artifact) {
+        return $null
+    }
+
+    foreach ($Name in @('desktop_evidence', 'gui_evidence')) {
+        $Evidence = Get-EzpConfigValue $Artifact $Name $null
+        if ($null -ne $Evidence) {
+            return $Evidence
+        }
+    }
+
+    $Nested = Get-EzpConfigValue $Artifact 'evidence' $null
+    if ($null -ne $Nested) {
+        foreach ($Name in @('desktop', 'desktop_evidence', 'gui')) {
+            $Evidence = Get-EzpConfigValue $Nested $Name $null
+            if ($null -ne $Evidence) {
+                return $Evidence
+            }
+        }
+    }
+
+    return $null
+}
+
+function Get-EzpClientServerEvidenceFromArtifact {
+    param($Artifact)
+
+    if ($null -eq $Artifact) {
+        return $null
+    }
+
+    $Evidence = Get-EzpConfigValue $Artifact 'client_server_evidence' $null
+    if ($null -ne $Evidence) {
+        return $Evidence
+    }
+
+    $Nested = Get-EzpConfigValue $Artifact 'evidence' $null
+    if ($null -ne $Nested) {
+        foreach ($Name in @('client_server', 'client_server_evidence')) {
+            $Evidence = Get-EzpConfigValue $Nested $Name $null
+            if ($null -ne $Evidence) {
+                return $Evidence
+            }
+        }
+    }
+
+    return $null
+}
+
+function Get-EzpApiObservationFromArtifact {
+    param($Artifact)
+
+    $ClientServerEvidence = Get-EzpClientServerEvidenceFromArtifact $Artifact
+    $ApiObservation = Get-EzpConfigValue $ClientServerEvidence 'api_observation' ''
+    if (Test-EzpNonEmptyEvidenceValue $ApiObservation) {
+        return [string]$ApiObservation
+    }
+
+    $DesktopEvidence = Get-EzpDesktopEvidenceFromArtifact $Artifact
+    $ApiObservation = Get-EzpConfigValue $DesktopEvidence 'api_observation' ''
+    if (Test-EzpNonEmptyEvidenceValue $ApiObservation) {
+        return [string]$ApiObservation
+    }
+
+    return ''
+}
+
+function Get-EzpApiObservationFromParsedArtifacts {
+    param([object[]] $ParsedArtifacts)
+
+    foreach ($Item in @($ParsedArtifacts)) {
+        $Observation = Get-EzpApiObservationFromArtifact (Get-EzpConfigValue $Item 'value' $null)
+        if (Test-EzpNonEmptyEvidenceValue $Observation) {
+            return [string]$Observation
+        }
+    }
+
+    return ''
+}
+
+function Test-EzpServerApiDependency {
+    param(
+        $Config,
+        [AllowNull()] $Gate = $null
+    )
+
+    $Server = Get-EzpConfigValue $Config 'server' $null
+    foreach ($Name in @('start_command', 'health_check_url')) {
+        if (-not [string]::IsNullOrWhiteSpace([string](Get-EzpConfigValue $Server $Name ''))) {
+            return $true
+        }
+    }
+
+    $AppDelivery = Get-EzpConfigValue $Config 'app_delivery' $null
+    $Backend = Get-EzpConfigValue $AppDelivery 'backend' $null
+    if ([bool](Get-EzpConfigValue $Backend 'present' $false)) {
+        return $true
+    }
+    foreach ($Name in @('api_style', 'auth_session', 'persistence', 'background_jobs')) {
+        if (-not [string]::IsNullOrWhiteSpace([string](Get-EzpConfigValue $Backend $Name ''))) {
+            return $true
+        }
+    }
+
+    $ExpectedObservation = [string](Get-EzpConfigValue $Gate 'expected_observation' '')
+    if ($ExpectedObservation -match '(?i)\b(api|server|http|route|endpoint)\b') {
+        return $true
+    }
+
+    $VerifyType = [string](Get-EzpConfigValue $Gate 'verify_type' '')
+    if ($VerifyType -eq 'api') {
+        return $true
+    }
+
+    return $false
+}
+
+function Test-EzpClientSurface {
+    param(
+        $Config,
+        [AllowNull()] $Gate = $null,
+        [string] $ArtifactKind = ''
+    )
+
+    if ($ArtifactKind -in @('web', 'mobile', 'desktop', 'gui')) {
+        return $true
+    }
+
+    $AppDelivery = Get-EzpConfigValue $Config 'app_delivery' $null
+    $SurfaceKind = [string](Get-EzpConfigValue $AppDelivery 'surface_kind' '')
+    if ($SurfaceKind -in @('web', 'mobile', 'desktop', 'gui')) {
+        return $true
+    }
+
+    $Frontend = Get-EzpConfigValue $AppDelivery 'frontend' $null
+    if ([bool](Get-EzpConfigValue $Frontend 'present' $false)) {
+        return $true
+    }
+
+    $UiVerification = Get-EzpConfigValue $Config 'ui_verification' $null
+    if ([bool](Get-EzpConfigValue $UiVerification 'required' $false)) {
+        return $true
+    }
+
+    $ExpectedObservation = [string](Get-EzpConfigValue $Gate 'expected_observation' '')
+    if ($ExpectedObservation -match '(?i)\b(client|frontend|browser|screen|ui|mobile|desktop|page|render|rendered|renders)\b') {
+        return $true
+    }
+
+    return $false
+}
+
+function Test-EzpClientServerEvidenceRequired {
+    param(
+        $Config,
+        [AllowNull()] $Gate = $null,
+        [string] $ArtifactKind = ''
+    )
+
+    return (Test-EzpClientSurface -Config $Config -Gate $Gate -ArtifactKind $ArtifactKind) -and
+        (Test-EzpServerApiDependency -Config $Config -Gate $Gate)
+}
+
+function Test-EzpClientServerRuntimeEvidence {
+    param(
+        $Config,
+        $Gate,
+        [string] $ArtifactKind,
+        [object[]] $Artifacts,
+        [object[]] $ParsedArtifacts
+    )
+
+    if (-not (Test-EzpClientServerEvidenceRequired -Config $Config -Gate $Gate -ArtifactKind $ArtifactKind)) {
+        return [pscustomobject]@{ ok = $true; artifacts = $Artifacts; message = 'client-server evidence not required' }
+    }
+
+    $ApiObservation = Get-EzpApiObservationFromParsedArtifacts $ParsedArtifacts
+    if (-not (Test-EzpNonEmptyEvidenceValue $ApiObservation)) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = 'client-server evidence missing API observation for server/API wiring' }
+    }
+
+    return [pscustomobject]@{ ok = $true; artifacts = $Artifacts; message = 'client-server runtime evidence present' }
+}
+
+function Test-EzpNonZeroHandle {
+    param($Handle)
+
+    if ($null -eq $Handle) {
+        return $false
+    }
+
+    $Text = ([string]$Handle).Trim()
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return $false
+    }
+    if ($Text -in @('0', '0x0')) {
+        return $false
+    }
+
+    $Number = 0L
+    if ([long]::TryParse($Text, [ref]$Number)) {
+        return $Number -ne 0
+    }
+    return $true
+}
+
+function Test-EzpAnyRegexMatch {
+    param(
+        $Values,
+        [string] $Pattern
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Pattern)) {
+        return [pscustomobject]@{ ok = $true; message = '' }
+    }
+
+    try {
+        foreach ($Value in @($Values)) {
+            $Text = [string]$Value
+            if (-not [string]::IsNullOrWhiteSpace($Text) -and $Text -match $Pattern) {
+                return [pscustomobject]@{ ok = $true; message = '' }
+            }
+        }
+    }
+    catch {
+        return [pscustomobject]@{ ok = $false; message = "invalid desktop evidence regex '$Pattern': $($_.Exception.Message)" }
+    }
+
+    return [pscustomobject]@{ ok = $false; message = "desktop evidence did not match expected regex '$Pattern'" }
+}
+
+function Test-EzpDesktopRuntimeEvidence {
+    param(
+        [string] $ProjectRoot,
+        $Config,
+        $Gate,
+        [object[]] $Artifacts,
+        [object[]] $ParsedArtifacts
+    )
+
+    $Evidence = $null
+    foreach ($Item in @($ParsedArtifacts)) {
+        $Candidate = Get-EzpDesktopEvidenceFromArtifact (Get-EzpConfigValue $Item 'value' $null)
+        if ($null -ne $Candidate) {
+            $Evidence = $Candidate
+            break
+        }
+    }
+
+    if ($null -eq $Evidence) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = 'missing desktop evidence in runtime-probe.json or smoke-output.json' }
+    }
+
+    $WindowFound = [bool](Get-EzpConfigValue $Evidence 'window_found' $false)
+    $MainWindowHandle = Get-EzpConfigValue $Evidence 'main_window_handle' (Get-EzpConfigValue $Evidence 'window_handle' $null)
+    if (-not $WindowFound -and -not (Test-EzpNonZeroHandle $MainWindowHandle)) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = 'desktop evidence missing window_found=true or nonzero main_window_handle' }
+    }
+
+    $Smoke = Get-EzpConfigValue $Config 'smoke' $null
+    $ScreenshotPath = [string](Get-EzpConfigValue $Evidence 'screenshot_path' '')
+    if ([string]::IsNullOrWhiteSpace($ScreenshotPath)) {
+        $ScreenshotPath = [string](Get-EzpConfigValue $Smoke 'screenshot_path' '')
+    }
+    if ([string]::IsNullOrWhiteSpace($ScreenshotPath)) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = 'desktop evidence missing screenshot_path' }
+    }
+
+    $ResolvedScreenshotPath = Resolve-EzpProjectPath -ProjectRoot $ProjectRoot -Path $ScreenshotPath
+    if (-not (Test-Path -LiteralPath $ResolvedScreenshotPath)) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = "desktop screenshot does not exist: $ScreenshotPath" }
+    }
+
+    $PixelVarianceRaw = Get-EzpConfigValue $Evidence 'pixel_variance' $null
+    if ($null -eq $PixelVarianceRaw) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = 'desktop evidence missing pixel_variance' }
+    }
+    $PixelVariance = 0.0
+    if (-not [double]::TryParse(([string]$PixelVarianceRaw), [ref]$PixelVariance)) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = "desktop evidence has invalid pixel_variance: $PixelVarianceRaw" }
+    }
+    $MinPixelVariance = [double](Get-EzpConfigValue $Smoke 'min_pixel_variance' 12.0)
+    if ($PixelVariance -lt $MinPixelVariance) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = "desktop screenshot pixel variance $PixelVariance is below $MinPixelVariance" }
+    }
+
+    $UiText = [string](Get-EzpConfigValue $Evidence 'ui_text' '')
+    $AutomationNames = @(Get-EzpConfigValue $Evidence 'automation_names' @())
+    $ApiObservation = Get-EzpApiObservationFromParsedArtifacts $ParsedArtifacts
+    if (-not (Test-EzpNonEmptyEvidenceValue $UiText) -and -not (Test-EzpNonEmptyEvidenceValue $AutomationNames) -and -not (Test-EzpNonEmptyEvidenceValue $ApiObservation)) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = 'desktop evidence missing UI text, automation name, or API observation' }
+    }
+
+    $ExpectedTextRegex = [string](Get-EzpConfigValue $Smoke 'expected_text_regex' '')
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedTextRegex) -and -not [bool](Get-EzpConfigValue $Evidence 'expected_text_matched' $false)) {
+        $TextMatch = Test-EzpAnyRegexMatch -Values @($UiText) -Pattern $ExpectedTextRegex
+        if (-not $TextMatch.ok) {
+            return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = $TextMatch.message }
+        }
+    }
+
+    $ExpectedNameRegex = [string](Get-EzpConfigValue $Smoke 'expected_automation_name_regex' '')
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedNameRegex) -and -not [bool](Get-EzpConfigValue $Evidence 'expected_automation_name_matched' $false)) {
+        $NameMatch = Test-EzpAnyRegexMatch -Values $AutomationNames -Pattern $ExpectedNameRegex
+        if (-not $NameMatch.ok) {
+            return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = $NameMatch.message }
+        }
+    }
+
+    if ((Test-EzpClientServerEvidenceRequired -Config $Config -Gate $Gate -ArtifactKind 'desktop') -and -not (Test-EzpNonEmptyEvidenceValue $ApiObservation)) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = 'client-server evidence missing API observation for server/API wiring' }
+    }
+
+    $ResultArtifacts = @($Artifacts)
+    if ($ResultArtifacts -notcontains $ScreenshotPath) {
+        $ResultArtifacts += $ScreenshotPath
+    }
+    return [pscustomobject]@{ ok = $true; artifacts = $ResultArtifacts; message = 'desktop runtime evidence present' }
+}
+
 function Test-EzpRuntimeEvidence {
     param(
         [string] $ProjectRoot,
         [string] $Phase,
-        $Config
+        $Config,
+        [AllowNull()] $Gate = $null
     )
 
     $Smoke = Get-EzpConfigValue $Config 'smoke' $null
     $Required = [bool](Get-EzpConfigValue $Smoke 'required' $false)
     $Kind = [string](Get-EzpConfigValue $Smoke 'artifact_kind' '')
-    if (-not $Required -or $Kind -notin @('cli', 'server', 'desktop')) {
+    $ClientServerEvidenceRequired = Test-EzpClientServerEvidenceRequired -Config $Config -Gate $Gate -ArtifactKind $Kind
+    $RuntimeKinds = @('cli', 'server', 'desktop', 'web', 'mobile', 'gui')
+    if ((-not $Required -and -not $ClientServerEvidenceRequired) -or
+        ($Required -and $Kind -notin $RuntimeKinds -and -not $ClientServerEvidenceRequired)) {
         return [pscustomobject]@{ ok = $true; artifacts = @(); message = 'runtime smoke not required' }
     }
 
@@ -254,9 +616,11 @@ function Test-EzpRuntimeEvidence {
     }
 
     $ProbePath = Join-Path $PhaseDir 'runtime-probe.json'
+    $ParsedArtifacts = @()
     if (Test-Path -LiteralPath $ProbePath) {
         try {
             $Probe = Get-Content -LiteralPath $ProbePath -Raw -Encoding UTF8 | ConvertFrom-Json
+            $ParsedArtifacts += [pscustomobject]@{ name = 'runtime-probe.json'; value = $Probe }
             $Status = [string](Get-EzpConfigValue $Probe 'status' '')
             if ($Status -and $Status -ne 'completed') {
                 return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = "runtime-probe status is $Status" }
@@ -271,7 +635,49 @@ function Test-EzpRuntimeEvidence {
         }
     }
 
-    return [pscustomobject]@{ ok = $true; artifacts = $Artifacts; message = 'runtime evidence present' }
+    $SmokeOutputPath = Join-Path $PhaseDir 'smoke-output.json'
+    if (Test-Path -LiteralPath $SmokeOutputPath) {
+        try {
+            $SmokeOutput = Get-Content -LiteralPath $SmokeOutputPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            $ParsedArtifacts += [pscustomobject]@{ name = 'smoke-output.json'; value = $SmokeOutput }
+        }
+        catch {
+            if ($Kind -eq 'desktop') {
+                return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = "smoke-output.json is invalid: $($_.Exception.Message)" }
+            }
+        }
+    }
+
+    $ResultArtifacts = @($Artifacts)
+    $ResultMessage = 'runtime evidence present'
+    if ($Kind -eq 'desktop') {
+        $DesktopRuntimeEvidence = Test-EzpDesktopRuntimeEvidence `
+            -ProjectRoot $ProjectRoot `
+            -Config $Config `
+            -Gate $Gate `
+            -Artifacts $Artifacts `
+            -ParsedArtifacts $ParsedArtifacts
+        if (-not $DesktopRuntimeEvidence.ok) {
+            return $DesktopRuntimeEvidence
+        }
+        $ResultArtifacts = @($DesktopRuntimeEvidence.artifacts)
+        $ResultMessage = 'desktop runtime evidence present'
+    }
+
+    $ClientServerRuntimeEvidence = Test-EzpClientServerRuntimeEvidence `
+        -Config $Config `
+        -Gate $Gate `
+        -ArtifactKind $Kind `
+        -Artifacts $ResultArtifacts `
+        -ParsedArtifacts $ParsedArtifacts
+    if (-not $ClientServerRuntimeEvidence.ok) {
+        return $ClientServerRuntimeEvidence
+    }
+    if ($ClientServerEvidenceRequired -and $Kind -ne 'desktop') {
+        $ResultMessage = 'client-server runtime evidence present'
+    }
+
+    return [pscustomobject]@{ ok = $true; artifacts = $ResultArtifacts; message = $ResultMessage }
 }
 
 function Get-EzpPhaseIndex {

@@ -361,6 +361,16 @@ GUI strategy defaults:
 - Console/server: `skip`, but still require a non-empty smoke command.
 - Docs/library: `skip` only when runtime smoke is explicitly not required.
 
+Desktop smoke output must write `desktop_evidence` to `runtime-probe.json` or
+`smoke-output.json`: window found or a nonzero window handle, screenshot path,
+pixel variance, and UI text, automation name, or API observation. Desktop
+features that use a configured server or API must include API observation.
+
+Client surfaces (`web`, `mobile`, `desktop`, or GUI) that use a configured
+server/API must write `client_server_evidence.api_observation` to
+`runtime-probe.json` or `smoke-output.json`. For desktop clients,
+`desktop_evidence.api_observation` is accepted for backward compatibility.
+
 Fail setup/doctor validation if the smoke command is the same as the build or
 test command.
 

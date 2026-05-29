@@ -150,6 +150,16 @@ Allowed statuses:
 When a plan is exempt, create `required: false`, `status: "pass"`, and a
 reason. Required gates with no command are `spec_gap`.
 
+For client-server wiring, final runtime artifacts must include
+`client_server_evidence.api_observation` inside `runtime-probe.json` or
+`smoke-output.json`, or the backward-compatible
+`desktop_evidence.api_observation` for desktop clients. This evidence proves
+the client consumed server/API data; reviewer `PASS` does not replace it.
+
+For desktop artifacts, final runtime artifacts must also include
+`desktop_evidence` with a window signal, screenshot path, pixel variance, and
+UI text, automation name, or API observation.
+
 ## EZPowers Phase Protection
 
 The harness phase index and EZPowers phase index have different schemas.

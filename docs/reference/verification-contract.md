@@ -134,6 +134,22 @@ A runtime probe passes only when:
 - fatal stdout or stderr patterns are absent
 - GUI artifacts also satisfy configured window, screenshot, non-blank pixel
   variance, and optional UI Automation text/name checks
+- client surfaces that depend on a server/API include an API-derived
+  observation proving the client consumed server data
+
+Client-server runtime evidence is recorded under `client_server_evidence` in
+`runtime-probe.json` or `smoke-output.json`. It is required when a web, mobile,
+desktop, or GUI client surface depends on configured server/API behavior or the
+wiring gate expects API/server behavior. Required field:
+`api_observation`, such as the endpoint/status and the client-rendered result.
+
+Desktop runtime evidence is recorded under `desktop_evidence` in
+`runtime-probe.json` or `smoke-output.json`. Required fields are a positive
+window signal (`window_found: true` or nonzero `main_window_handle`),
+`screenshot_path`, `pixel_variance`, and at least one observable oracle:
+`ui_text`, `automation_names`, or API observation. For desktop server/API
+wiring, either `client_server_evidence.api_observation` or
+`desktop_evidence.api_observation` satisfies the API observation rule.
 
 Executable artifacts (`cli`, `server`, `desktop`) require runtime smoke. A
 missing required smoke command is failure, not skip. Only `docs` and `library`

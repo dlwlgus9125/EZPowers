@@ -178,10 +178,13 @@ Purpose: Verify that integration milestone tasks actually test the full pipeline
    → **FAIL**: `"Pipeline P1 has no Full-Feature Wiring Gate"`
 6. **Weak wiring gate Verify:** gate Verify is empty, placeholder-only, `echo`, `true`, `:`, or a unit-only command for one component.
    → **FAIL**: `"Full-Feature Wiring Gate does not exercise the full feature"`
-7. **Missing runtime evidence for executable gates:** executable or desktop
-   wiring gates must mention `runtime-probe.json`, `smoke-output.json`, or an
-   equivalent runtime probe artifact; desktop gates must include screenshot
-   evidence.
+7. **Missing runtime evidence for executable/client-server gates:** executable
+   or client-server wiring gates must mention `runtime-probe.json`,
+   `smoke-output.json`, or an equivalent runtime probe artifact. Client-server
+   gates must require `client_server_evidence.api_observation` or
+   `desktop_evidence.api_observation`; desktop gates must also include
+   screenshot evidence plus `desktop_evidence` fields for window, pixel
+   variance, and UI text, automation name, or API observation.
    -> **FAIL**: `"Full-Feature Wiring Gate lacks runtime artifact evidence"`
 8. **Data flow path coverage:** for each WM-DF entry in the spec, check whether
    at least one task's Verify command, a milestone task, or the Full-Feature

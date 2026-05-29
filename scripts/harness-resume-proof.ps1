@@ -197,7 +197,16 @@ if ($CompletedTaskCount -gt 0) {
         Add-ResumeFailure 'test_gap' 'missing_config' 'missing .harness/config.json'
     }
     else {
-        $RuntimeEvidence = Test-EzpRuntimeEvidence -ProjectRoot $ProjectRoot -Phase $Phase -Config $Config
+        $WiringGate = $null
+        $WiringPath = Join-Path $PhaseDir 'wiring-gate.json'
+        if (Test-Path -LiteralPath $WiringPath) {
+            try {
+                $WiringGate = Get-Content -LiteralPath $WiringPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            }
+            catch {
+            }
+        }
+        $RuntimeEvidence = Test-EzpRuntimeEvidence -ProjectRoot $ProjectRoot -Phase $Phase -Config $Config -Gate $WiringGate
         $RuntimeArtifacts = @($RuntimeEvidence.artifacts)
         if (-not [bool]$RuntimeEvidence.ok) {
             Add-ResumeFailure 'test_gap' 'runtime_evidence_missing' $RuntimeEvidence.message

@@ -363,6 +363,145 @@ function Assert-HarnessGate {
             throw "[FAIL] harness gate: missing runtime evidence did not set test_gap"
         }
 
+        '{"smoke":{"required":true,"artifact_kind":"desktop","command":"pwsh -NoProfile -Command \"Write-Output smoke\"","screenshot_path":".harness/artifacts/gui-smoke.png","min_pixel_variance":12.0},"server":{"health_check_url":"http://localhost:3000/health"},"wiring":{"enabled":true,"view_extensions":[".tsx"]}}' |
+            Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
+        @'
+{
+  "phase": "sample",
+  "required": true,
+  "verify_type": "e2e",
+  "commands": ["if (1 -eq 1) { Write-Output gate } else { exit 1 }"],
+  "expected_observation": "desktop UI shows server API data",
+  "reviewer_verdict": "PASS",
+  "status": "pending",
+  "attempts": []
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Encoding UTF8
+        @'
+{
+  "status": "completed",
+  "step": 0,
+  "command": "smoke",
+  "exit_code": 0,
+  "timed_out": false
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'runtime-probe.json') -Encoding UTF8
+        & (Join-Path $RepoRoot 'scripts/harness-gate.ps1') -ProjectRoot $TempRoot -Phase 'sample' *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw "[FAIL] harness gate: reviewer PASS must not pass missing desktop evidence"
+        }
+        $Gate = Get-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($Gate.status -ne 'test_gap' -or $Gate.message -notmatch 'desktop evidence') {
+            throw "[FAIL] harness gate: missing desktop evidence did not set runtime test_gap"
+        }
+
+        New-Item -ItemType Directory -Force -Path (Join-Path $TempRoot '.harness/artifacts') | Out-Null
+        'fake screenshot' | Set-Content -LiteralPath (Join-Path $TempRoot '.harness/artifacts/gui-smoke.png') -Encoding UTF8
+        @'
+{
+  "status": "completed",
+  "step": 0,
+  "command": "smoke",
+  "exit_code": 0,
+  "timed_out": false,
+  "desktop_evidence": {
+    "window_found": true,
+    "screenshot_path": ".harness/artifacts/gui-smoke.png",
+    "pixel_variance": 18.5,
+    "ui_text": "Dashboard loaded",
+    "automation_names": ["DashboardWindow"],
+    "api_observation": "GET /api/dashboard returned 200"
+  }
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'runtime-probe.json') -Encoding UTF8
+        @'
+{
+  "phase": "sample",
+  "required": true,
+  "verify_type": "e2e",
+  "commands": ["if (1 -eq 1) { Write-Output gate } else { exit 1 }"],
+  "expected_observation": "desktop UI shows server API data",
+  "reviewer_verdict": "PASS",
+  "status": "pending",
+  "attempts": []
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Encoding UTF8
+        & (Join-Path $RepoRoot 'scripts/harness-gate.ps1') -ProjectRoot $TempRoot -Phase 'sample' | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "[FAIL] harness gate: desktop evidence fixture should pass"
+        }
+        $Gate = Get-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($Gate.status -ne 'pass' -or @($Gate.runtime_artifacts) -notcontains '.harness/artifacts/gui-smoke.png') {
+            throw "[FAIL] harness gate: desktop evidence pass did not record screenshot artifact"
+        }
+
+        '{"smoke":{"required":true,"artifact_kind":"web","command":"pwsh -NoProfile -Command \"Write-Output smoke\""},"app_delivery":{"surface_kind":"web","frontend":{"present":true},"backend":{"present":true}},"server":{"health_check_url":"http://localhost:3000/health"},"ui_verification":{"required":true,"capability":"browser-e2e"},"wiring":{"enabled":true,"view_extensions":[".tsx"]}}' |
+            Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
+        @'
+{
+  "phase": "sample",
+  "required": true,
+  "verify_type": "e2e",
+  "commands": ["if (1 -eq 1) { Write-Output gate } else { exit 1 }"],
+  "expected_observation": "web client renders API endpoint data",
+  "reviewer_verdict": "PASS",
+  "status": "pending",
+  "attempts": []
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Encoding UTF8
+        @'
+{
+  "status": "completed",
+  "step": 0,
+  "command": "smoke",
+  "exit_code": 0,
+  "timed_out": false
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'runtime-probe.json') -Encoding UTF8
+        & (Join-Path $RepoRoot 'scripts/harness-gate.ps1') -ProjectRoot $TempRoot -Phase 'sample' *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw "[FAIL] harness gate: reviewer PASS must not pass missing client-server evidence"
+        }
+        $Gate = Get-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($Gate.status -ne 'test_gap' -or $Gate.message -notmatch 'client-server evidence') {
+            throw "[FAIL] harness gate: missing client-server evidence did not set runtime test_gap"
+        }
+
+        @'
+{
+  "status": "completed",
+  "step": 0,
+  "command": "smoke",
+  "exit_code": 0,
+  "timed_out": false,
+  "client_server_evidence": {
+    "api_observation": "GET /api/dashboard returned 200 and rendered Dashboard",
+    "endpoint": "/api/dashboard",
+    "status_code": 200
+  }
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'runtime-probe.json') -Encoding UTF8
+        @'
+{
+  "phase": "sample",
+  "required": true,
+  "verify_type": "e2e",
+  "commands": ["if (1 -eq 1) { Write-Output gate } else { exit 1 }"],
+  "expected_observation": "web client renders API endpoint data",
+  "reviewer_verdict": "PASS",
+  "status": "pending",
+  "attempts": []
+}
+'@ | Set-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Encoding UTF8
+        & (Join-Path $RepoRoot 'scripts/harness-gate.ps1') -ProjectRoot $TempRoot -Phase 'sample' | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "[FAIL] harness gate: client-server evidence fixture should pass"
+        }
+        $Gate = Get-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($Gate.status -ne 'pass' -or @($Gate.runtime_artifacts) -notcontains 'runtime-probe.json') {
+            throw "[FAIL] harness gate: client-server evidence pass did not record runtime artifact"
+        }
+
         '{"smoke":{"required":false,"artifact_kind":"library"},"wiring":{"enabled":true,"view_extensions":[]}}' |
             Set-Content -LiteralPath (Join-Path $TempRoot '.harness/config.json') -Encoding UTF8
         @'

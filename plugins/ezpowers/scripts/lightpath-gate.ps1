@@ -48,8 +48,32 @@ function Get-LightpathRuntimeArtifacts {
     $PhaseDir = Get-LightpathPhaseDir
     $Artifacts = @()
     foreach ($Name in @('runtime-probe.json', 'smoke-output.json')) {
-        if (Test-Path -LiteralPath (Join-Path $PhaseDir $Name)) {
+        $ArtifactPath = Join-Path $PhaseDir $Name
+        if (Test-Path -LiteralPath $ArtifactPath) {
             $Artifacts += $Name
+            try {
+                $Data = Get-Content -LiteralPath $ArtifactPath -Raw -Encoding UTF8 | ConvertFrom-Json
+                $Evidence = Get-EzpDesktopEvidenceFromArtifact $Data
+                $ScreenshotPath = [string](Get-EzpConfigValue $Evidence 'screenshot_path' '')
+                if (-not [string]::IsNullOrWhiteSpace($ScreenshotPath)) {
+                    $Resolved = Resolve-EzpProjectPath -ProjectRoot $ProjectRoot -Path $ScreenshotPath
+                    if ((Test-Path -LiteralPath $Resolved) -and $Artifacts -notcontains $ScreenshotPath) {
+                        $Artifacts += $ScreenshotPath
+                    }
+                }
+            }
+            catch {
+            }
+        }
+    }
+
+    $Config = Get-EzpHarnessConfig -ProjectRoot $ProjectRoot
+    $Smoke = Get-EzpConfigValue $Config 'smoke' $null
+    $ConfiguredScreenshot = [string](Get-EzpConfigValue $Smoke 'screenshot_path' '')
+    if (-not [string]::IsNullOrWhiteSpace($ConfiguredScreenshot)) {
+        $Resolved = Resolve-EzpProjectPath -ProjectRoot $ProjectRoot -Path $ConfiguredScreenshot
+        if ((Test-Path -LiteralPath $Resolved) -and $Artifacts -notcontains $ConfiguredScreenshot) {
+            $Artifacts += $ConfiguredScreenshot
         }
     }
     return $Artifacts

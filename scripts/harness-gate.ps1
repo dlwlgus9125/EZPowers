@@ -122,7 +122,7 @@ foreach ($Command in $Commands) {
 }
 
 $Gate.attempts = $Attempts
-$RuntimeEvidence = Test-EzpRuntimeEvidence -ProjectRoot $ProjectRoot -Phase $Phase -Config $Config
+$RuntimeEvidence = Test-EzpRuntimeEvidence -ProjectRoot $ProjectRoot -Phase $Phase -Config $Config -Gate $Gate
 if (-not ($Gate.PSObject.Properties.Name -contains 'runtime_artifacts')) {
     $Gate | Add-Member -NotePropertyName runtime_artifacts -NotePropertyValue @() -Force
 }

@@ -1,5 +1,5 @@
 {
-  "version": "2.0.1",
+  "version": "2.0.3",
   "install_root": ".harness/ezpowers",
   "no_synthesis": true,
   "public_commands": [
