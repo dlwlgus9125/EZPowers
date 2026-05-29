@@ -924,7 +924,7 @@ def check_eval_sync() -> tuple[bool, str]:
     else:
         baseline_rel = baseline_path.relative_to(REPO_ROOT).as_posix()
         plugin_baseline = _plugin_baseline_path()
-        if plugin_baseline != baseline_rel:
+        if plugin_baseline is not None and plugin_baseline != baseline_rel:
             errors.append(
                 f".codex-plugin metadata baseline is {plugin_baseline!r}, expected {baseline_rel!r}"
             )

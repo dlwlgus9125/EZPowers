@@ -1,7 +1,7 @@
 # EZPowers Evaluation Index
 
 ## Counts
-- Optimization: 42 cases (target 70%)
+- Optimization: 44 cases (target 70%)
 - Holdout: 0 tracked cases (target 20%, gitignored/local)
 - Golden: 8 cases (target 10%)
 - Honeypot: 2 cases
@@ -18,7 +18,7 @@
 |---|---|---|---|---|---|
 | spec | 8 | 0 | 2 | 2 | 12 |
 | prepare_execute | 8 | 0 | 3 | 0 | 11 |
-| choice_execute | 16 | 0 | 3 | 0 | 19 |
+| choice_execute | 18 | 0 | 3 | 0 | 21 |
 | setup | 4 | 0 | 0 | 0 | 4 |
 | review | 3 | 0 | 0 | 0 | 3 |
 | sync-docs | 3 | 0 | 0 | 0 | 3 |
@@ -34,30 +34,30 @@ Skill cases are intentionally separate from command cases. They guard skill hot-
 | plan/ | 4 | legacy directory name; prepare_execute simple-3R, large-10R, missing-verify, refactor-impact-scope |
 | choiceexecutor/ | 5 | legacy directory name; choice_execute inline-trivial, harness-needed, security-keyword, oscillation, resume |
 | setup/ | 3 | greenfield-empty, brownfield-existing, monorepo-root |
-| executeharness/ | 6 | legacy directory name; strict adapter cases run under choice_execute |
+| executeharness/ | 8 | legacy directory name; strict adapter cases run under choice_execute |
 | review/ | 2 | spec-match, spec-drift |
 | sync-docs/ | 3 | new-reference, outdated-reference, auto-from-choice_execute |
 | contract/ | 14 | stage interface contracts plus v2 command-chain setup determinism |
 
 ## Last baseline
-- Version: 2.0.0
-- Date: 2026-05-20
-- File: evals/results/baselines/2.0.0.json
-- Git SHA: e3e5b51
+- Version: 2.0.7
+- Date: 2026-05-29
+- File: evals/results/baselines/2.0.7.json
+- Git SHA: 4ccd481
 - Eval mode: static
-- Automated pass rate: 24/35 (69%)
-- Manual-only cases: 17/52 require live execution or LLM rubric
+- Automated pass rate: 27/38 (71%)
+- Manual-only cases: 16/54 require live execution or LLM rubric
 - Golden: 8/8 automated
-- Optimization: 16/26 automated, 16 manual
+- Optimization: 19/29 automated, 15 manual
 - Holdout: 0 tracked cases
 - Honeypot: 0/1 automated, 1 manual
 
 ## Latest local static run
-- Date: 2026-05-27
-- File: evals/results/runs/20260527T014147-7a8e6c1.jsonl
-- Automated pass rate: 17/35 (49%)
+- Date: 2026-05-29
+- File: evals/results/baselines/2.0.7.json
+- Automated pass rate: 27/38 (71%)
 - Golden: 8/8 automated
-- Optimization: 9/26 automated, 16 manual
-- Setup: 1/4 automated
+- Optimization: 19/29 automated, 15 manual
+- Setup: 4/4 automated
 - Remaining non-live failures are mostly absent generated spec/prepare_execute artifacts
   plus the external runtime probe dependency.
