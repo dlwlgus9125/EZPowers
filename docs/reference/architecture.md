@@ -23,6 +23,13 @@ stage requires them.
 - `skills/`: reusable agent workflows.
 - `scripts/`: deterministic gates, eval runners, and helper utilities.
 - `evals/`: command and skill regression/capability cases.
+- `bin/`: observation-only JSONL trace collector (`trace.sh`).
+- `hooks/`: opt-in trace-hook policy metadata.
+- `harness-kit/`: bundled verified local kit installed by `/setup`.
+- `harness_versions/`: append-only harness change log.
+- `phases/`: harness phase state generated during setup and execution.
+- `plugins/`: generated Claude/Codex plugin mirror for packaging.
+- `.claude-plugin/`, `.codex-plugin/`: Claude and Codex plugin manifests.
 
 ## Lifecycle And Operations
 

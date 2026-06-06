@@ -54,6 +54,7 @@ host `/` palette. See `docs/reference/codex-plugin-discovery.md`.
 | `caveman` | skill | Token-saving compressed communication mode |
 | `handoff` | skill | Session handoff document for fresh agent continuation |
 | `deep-interview` | skill | Socratic interview to clarify vague requests into actionable requirements |
+| `ezpowers-workflow` | skill | Direct-invocation Codex adapter for EZPowers command documents |
 
 ## Directory Structure
 
@@ -89,6 +90,8 @@ skills/               # Independent skills
     SKILL.md          # Session handoff document for fresh agent continuation
   deep-interview/
     SKILL.md          # Socratic interview to clarify vague requests into actionable requirements
+  ezpowers-workflow/
+    SKILL.md          # Direct-invocation Codex adapter for EZPowers command documents
 agents/               # Plugin agents + prompt templates
   code-reviewer.md          # Plugin Agent — final code review (inherit, Read/Grep/Glob/Bash)
   security-reviewer.md      # Plugin Agent — security vulnerability scan (inherit, Read/Grep/Glob/Bash)
@@ -121,8 +124,15 @@ harness_versions/
 scripts/
   validate.py         # eval gate (pre-commit hook calls this)
   run_baseline.py     # eval runner + baseline writer
+  run_skill_evals.py  # deterministic skill regression eval runner
   frontend-visual-readiness.py # frontend v2 visual readiness lane detector
   promote_trace.py    # trace → eval case converter
+  model-router.py     # resolve model profiles to backend model selections
+  context-injector.py # build/validate context injection blocks
+  hashline-anchor.py  # create/verify sidecar line anchors for harness step files
+  verify-step.py      # multi-dimensional step verification (structural/content/relational/command)
+  verify-harness-kit.py # validate the bundled harness kit manifest
+  shared.py           # shared constants/utilities for eval and verification scripts
   check-harness-docs.ps1 # non-Python harness contract check
   harness-convert.ps1 # non-Python plan-to-phase conversion helper
   harness-doctor.ps1  # non-Python /choice_execute Path 2 pre-flight helper
@@ -131,6 +141,10 @@ scripts/
   harness-phase.ps1   # non-Python harness phase status/reset helper
   harness-run.ps1     # controlled /choice_execute Path 2 step runner with timeout/logging
   harness-smoke.ps1   # non-Python helper flow smoke check
+  harness-resume-proof.ps1 # non-Python harness resume-proof generator
+  harness-common.ps1  # shared PowerShell harness helpers sourced by other scripts
+  lightpath-gate.ps1  # non-Python light-path gate (prepare/task/final scopes)
+  smoke-plugin.ps1    # non-Python plugin smoke check
 .githooks/
   pre-commit          # runs harness docs gate or validate.py by changed path
 bin/
@@ -151,7 +165,10 @@ bin/
   `docs/reference/harness-kit-contract.md`,
   `docs/reference/ui-verification-adapter-contract.md`,
   `docs/reference/spec-contract.md`,
-  `docs/reference/plan-contract.md`, and
+  `docs/reference/plan-contract.md`,
+  `docs/reference/app-delivery-contract.md`,
+  `docs/reference/model-routing-contract.md`,
+  `docs/reference/pipeline-audit-contract.md`, and
   `docs/reference/harness-execution-contract.md` as the SSOT for workflow vocabulary,
   verification evidence, architecture readiness, Matt Pocock skill adaptation,
   reviewer dispatch, placement, verdicts, retries, workflow-runner scope, and long

@@ -14,3 +14,6 @@ Primary schemas and structured artifacts:
 - `evals/schema.json`: eval case schema.
 - `harness-kit/v2.0.0/manifest.json`: bundled local kit manifest.
 - `harness_versions/changelog.jsonl`: append-only harness change log.
+- `.claude-plugin/plugin.json`: Claude plugin manifest.
+- `.claude-plugin/marketplace.json`: Claude plugin marketplace metadata.
+- `.codex-plugin/plugin.json`: Codex plugin manifest.
