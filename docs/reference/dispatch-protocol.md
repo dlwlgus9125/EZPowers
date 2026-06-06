@@ -209,5 +209,5 @@ Wiring review uses the verdict interface from
 
 ## Agents NOT Covered by This Protocol
 
-- **eval-diagnostician** (`model: claude-opus-4-6`): Called only from `scripts/propose_edit.py`, not from user-facing commands. Not subject to backend dispatch.
+- **eval-diagnostician** (`model: claude-opus-4-6`): Diagnostic/internal-only; not called from user-facing commands. Not subject to backend dispatch.
 - **implementer-prompt.md**: Template for task implementation subagents. Dispatch is handled by `/choice_execute` Section 4 directly, not through this protocol.

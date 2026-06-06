@@ -186,7 +186,7 @@ bin/
   invokes `grill-with-docs` after `/design_architecture` approval and before requirement extraction.
   `/spec` and `/prepare_execute` dispatch `ezpowers:workflow-runner` for `internal pipeline audit`;
   `/choice_execute` dispatches it for `/sync-docs` after final verification. Diagnostic
-  subagent (`agents/eval-diagnostician.md`) is called only from `scripts/propose_edit.py`, never from user-facing commands.
+  subagent (`agents/eval-diagnostician.md`) is internal-only (eval analysis) and is never called from user-facing commands.
 - **Hooks: opt-in observation-only** — default: no active hooks in the plugin root. Activate via
   `/setup --enable-traces` when `/eval`, baseline measurement, or regression tracking is needed.
   Setup creates project-local `hooks/hooks.json` from `docs/reference/trace-hooks-template.json`.
