@@ -191,8 +191,15 @@ if (Test-Path -LiteralPath $CommandsDir) {
     }
 }
 else {
-    Write-Check 'FAIL' 'commands' 'commands/ directory not found'
-    $Failures++
+    $WorkflowSkills = @('setup', 'design-architecture', 'spec', 'prepare-execute', 'choice-execute', 'maintain', 'deploy', 'reset-setup', 'review', 'sync-docs', 'set-rules', 'eval', 'feedback')
+    $MissingWorkflow = @($WorkflowSkills | Where-Object { -not (Test-Path -LiteralPath (Join-Path $RepoRoot "skills/$_/SKILL.md")) })
+    if ($MissingWorkflow.Count -gt 0) {
+        Write-Check 'FAIL' 'workflow-skills' ("missing workflow skills: " + ($MissingWorkflow -join ', '))
+        $Failures++
+    }
+    else {
+        Write-Check 'PASS' 'workflow-skills' 'all 13 workflow skills present (commands/ retired)'
+    }
 }
 
 # ---------------------------------------------------------------------------

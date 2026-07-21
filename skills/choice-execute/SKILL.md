@@ -4,6 +4,7 @@ description: Select and run execution path for plan tasks
 disable-model-invocation: true
 argument-hint: "[plan-path] | Path 2"
 allowed-tools: [Bash, Read, Write, Edit, Agent, AskUserQuestion]
+shell: powershell
 ---
 
 # /choice-execute — Execution Path Selection
@@ -18,6 +19,18 @@ manifest helpers. If the helper is still missing, stop as `TEST_GAP`; never
 replace a missing gate script with inline verification.
 
 ## 1. Pre-flight Checks
+
+Live harness state (injected at invocation on Claude Code):
+
+```!
+if (Test-Path .harness/config.json) { "CONFIG: present" } else { "CONFIG: MISSING" }
+if (Test-Path phases/index.json) { "PHASES_INDEX:"; Get-Content phases/index.json -Raw } else { "PHASES_INDEX: MISSING" }
+"HEAD: $(git rev-parse HEAD 2>$null)"
+if (Test-Path .harness/config.json) { "EXECUTOR:"; (Get-Content .harness/config.json -Raw | ConvertFrom-Json).executor | ConvertTo-Json -Depth 4 }
+```
+
+If the block above shows literal PowerShell instead of results (Codex host),
+perform the same checks by reading the files it names.
 
 Verify the following first:
 1. `.harness/config.json` exists
