@@ -1,33 +1,22 @@
 #!/usr/bin/env bash
 set -e
 
-staged_files="$(git diff --cached --name-only)"
+# EZPowers structural commit gate. Fast, mechanical checks only; see
+# scripts/check-repo.ps1 for the full check list. Pass the staged file set so the
+# gate can scope its conditional kit/test checks.
+staged_files="$(git diff --cached --name-only | tr '\n' ',')"
 
-run_harness_docs_check() {
+run_gate() {
   if command -v pwsh >/dev/null 2>&1; then
-    pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/check-harness-docs.ps1
+    pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1 -ChangedFiles "$staged_files"
   elif command -v powershell.exe >/dev/null 2>&1; then
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/check-harness-docs.ps1
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1 -ChangedFiles "$staged_files"
   elif command -v powershell >/dev/null 2>&1; then
-    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-harness-docs.ps1
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1 -ChangedFiles "$staged_files"
   else
-    echo "PowerShell not found; cannot run scripts/check-harness-docs.ps1" >&2
+    echo "PowerShell not found; cannot run scripts/check-repo.ps1" >&2
     exit 1
   fi
 }
 
-# Lightweight non-Python gate for the harness contract docs. This path avoids
-# running the heavier Python eval gate for harness-only prompt/doc edits.
-if echo "$staged_files" | grep -qE '^(CLAUDE\.md|\.githooks/pre-commit|\.agents/plugins/marketplace\.json|\.claude-plugin/(plugin|marketplace)\.json|agents/(architecture-reviewer|wiring-reviewer|workflow-contract-reviewer|frontend-experience-reviewer)\.md|bin/trace\.sh|hooks/(hooks|hook-policy)\.json|commands/(setup|design_architecture|spec|prepare_execute|choice_execute|maintain|deploy|reset_setup|review|sync-docs|set-rules|eval|feedback)\.md|skills/(setup|design-architecture|spec|prepare-execute|choice-execute|maintain|deploy|reset-setup|review|sync-docs|set-rules|eval|feedback)/(SKILL\.md|agents/openai\.yaml)|docs/INDEX\.md|docs/reference/(app-delivery-contract|architecture-readiness-contract|design-architecture-contract|dispatch-protocol|domain-language|frontend-design-contract|harness-execution-contract|harness-kit-contract|inline-execution-adapter|mattpocock-harness-adapter|model-routing-contract|pipeline-audit-contract|plan-contract|reviewer-placement-contract|setup-contract|spec-contract|strict-execution-adapter|ui-verification-adapter-contract|verification-contract)\.md|harness_versions/changelog\.jsonl|harness-kit/v2\.0\.0/.*|scripts/(check-harness-docs|harness-certify|harness-common|harness-convert|harness-doctor|harness-gate|harness-phase|harness-resume-proof|harness-run|harness-smoke|lightpath-gate|smoke-plugin)\.ps1|scripts/(context-injector|frontend-visual-readiness|hashline-anchor|model-router|verify-harness-kit|verify-step)\.py)$'; then
-  echo "EZPowers harness docs gate: relevant files changed, running check-harness-docs.ps1"
-  run_harness_docs_check
-fi
-
-python_gate_files="$(echo "$staged_files" | grep -E '^(commands|agents|skills)/|^evals/(skills|golden|optimization|holdout|honeypot|results/baselines)/|^evals/(schema\.json|INDEX\.md)$|^scripts/(run_skill_evals|run_baseline|validate)\.py$|^\.codex-plugin/plugin\.json$' | grep -vE '^(commands/(setup|design_architecture|spec|prepare_execute|choice_execute|maintain|deploy|reset_setup|review|sync-docs|set-rules|eval|feedback)\.md|skills/(setup|design-architecture|spec|prepare-execute|choice-execute|maintain|deploy|reset-setup|review|sync-docs|set-rules|eval|feedback)/(SKILL\.md|agents/openai\.yaml)|agents/(architecture-reviewer|wiring-reviewer|workflow-contract-reviewer)\.md)$' || true)"
-
-# EZPowers eval gate: fire when non-harness agent, skill, or skill-gate files are staged
-# Also gate eval/baseline/plugin metadata changes.
-if [ -n "$python_gate_files" ]; then
-  echo "EZPowers eval gate: relevant files changed, running validate.py"
-  python scripts/validate.py --staged
-fi
+run_gate

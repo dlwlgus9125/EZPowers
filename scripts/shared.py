@@ -1,7 +1,12 @@
-"""Shared constants and utilities for EZPowers eval/verification scripts.
+"""Shared constants and utilities for EZPowers verification scripts.
 
-Single source of truth for banned expressions and common timeout/progress
-helpers used by validate.py, verify-step.py, and run_skill_evals.py.
+Single source of truth for the banned vague expressions. Run directly to scan
+files (used by the commit gate scripts/check-repo.ps1):
+
+    python scripts/shared.py <file.md> [<file.md> ...]
+
+Exits non-zero and prints one line per violation when a banned expression is
+found. The constants are also consumed by scripts/verify-step.py.
 """
 
 from __future__ import annotations
@@ -11,6 +16,8 @@ import datetime
 import json
 import os
 import pathlib
+import re
+import sys
 import time
 from typing import Any
 
@@ -80,3 +87,44 @@ def remaining_timeout(deadline: float | None, requested: int) -> float:
     if remaining <= 0:
         return 0.0
     return min(float(requested), remaining)
+
+
+# ---------------------------------------------------------------------------
+# Banned-expression scan (commit gate)
+# ---------------------------------------------------------------------------
+
+
+def scan_banned(text: str) -> list[str]:
+    """Return the banned expressions found in text (empty if clean)."""
+    hits: list[str] = []
+    for term in BANNED_KO:
+        if term in text:
+            hits.append(term)
+    for pattern in BANNED_EN_RE:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            hits.append(match.group(0))
+    return hits
+
+
+def _main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(description="Scan files for banned vague expressions.")
+    parser.add_argument("files", nargs="*", help="Files to scan")
+    args = parser.parse_args(argv)
+    violations = 0
+    for name in args.files:
+        path = pathlib.Path(name)
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for hit in scan_banned(text):
+            print(f"{name}: banned expression: {hit}")
+            violations += 1
+    return 1 if violations else 0
+
+
+if __name__ == "__main__":
+    sys.exit(_main(sys.argv[1:]))
