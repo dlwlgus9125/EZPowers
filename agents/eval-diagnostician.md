@@ -34,7 +34,7 @@ You receive:
 # Hard Constraints
 
 - Diff MUST touch at most 3 consecutive lines in ONE file
-- Target file MUST be under `commands/` or `agents/`
+- Target file MUST be under `skills/` or `agents/`
 - FORBIDDEN: changes to `evals/` (anti-cheating)
 - FORBIDDEN: changes to `scripts/` (infrastructure, not prompt)
 - FORBIDDEN: changes that overfit to specific case IDs — the change must generalize
