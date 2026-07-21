@@ -24,7 +24,7 @@ The controller will provide:
 
 1. Read only the mapped command document:
    - `internal pipeline audit` -> `docs/reference/pipeline-audit-contract.md`
-   - `/sync-docs` -> `commands/sync-docs.md`
+   - `/sync-docs` -> `skills/sync-docs/SKILL.md`
 2. Execute that command document's procedure for the provided invocation mode.
 
 Do not read `skills/ezpowers-workflow/SKILL.md`; workflow-runner is already a
