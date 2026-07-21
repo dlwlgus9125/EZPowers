@@ -2,7 +2,7 @@
 name: eval-diagnostician
 description: Analyzes failing eval traces and proposes ONE line change.
 tools: [Read, Grep, Glob]
-model: claude-opus-4-6
+model: inherit
 maxTurns: 8
 ---
 
