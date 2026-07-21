@@ -39,7 +39,7 @@
     {
       "source": "scripts/harness-doctor.ps1",
       "target": "scripts/harness-doctor.ps1",
-      "sha256": "0b572550501af439235c5b686e2d96610eb8096290060161f6bc8964e561c8da"
+      "sha256": "a04d220c12bf9b08b299d6f70a0c7eaab5e8f0457ab318ce08ed1710df2a66c5"
     },
     {
       "source": "scripts/harness-convert.ps1",

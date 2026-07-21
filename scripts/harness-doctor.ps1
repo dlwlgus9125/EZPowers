@@ -225,25 +225,6 @@ function Check-ModelRouting {
     return New-DoctorResult 'model routing' 'model routing' 'pass' "profile=$Profile selected=$Selected"
 }
 
-function Check-HookPolicy {
-    $HooksPath = Join-Path $ProjectRoot 'hooks/hooks.json'
-    $PolicyPath = Join-Path $ProjectRoot 'hooks/hook-policy.json'
-    if (-not (Test-Path -LiteralPath $HooksPath) -and -not (Test-Path -LiteralPath $PolicyPath)) {
-        return New-DoctorResult 'hook policy' 'hook policy' 'pass' 'not configured'
-    }
-    if ((Test-Path -LiteralPath $HooksPath) -and -not (Test-Path -LiteralPath $PolicyPath)) {
-        return New-DoctorResult 'hook policy' 'hook policy' 'warn' 'hooks.json exists without hook-policy.json'
-    }
-    try {
-        $Policy = Get-Content -LiteralPath $PolicyPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        $Count = @($Policy.hooks).Count
-        return New-DoctorResult 'hook policy' 'hook policy' 'pass' "$Count hook policy entries"
-    }
-    catch {
-        return New-DoctorResult 'hook policy' 'hook policy' 'fail' "invalid hook-policy.json: $($_.Exception.Message)"
-    }
-}
-
 function Check-AnchorSidecars {
     if ([string]::IsNullOrWhiteSpace($Phase)) {
         return New-DoctorResult 'hashline anchors' 'hashline anchors' 'skip' 'phase not supplied'
@@ -298,7 +279,6 @@ $CheckDefinitions = @(
     @{ Id = 'wiring'; Name = 'wiring'; Check = ${function:Check-Wiring} },
     @{ Id = 'reviewer_backend'; Name = 'reviewer_backend'; Check = ${function:Check-ReviewerBackend} },
     @{ Id = 'model routing'; Name = 'model routing'; Check = ${function:Check-ModelRouting} },
-    @{ Id = 'hook policy'; Name = 'hook policy'; Check = ${function:Check-HookPolicy} },
     @{ Id = 'hashline anchors'; Name = 'hashline anchors'; Check = ${function:Check-AnchorSidecars} },
     @{ Id = 'static verification'; Name = 'static verification'; Check = ${function:Check-StaticTools} }
 )

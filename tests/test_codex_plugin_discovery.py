@@ -55,10 +55,8 @@ class CodexPluginDiscoveryTests(unittest.TestCase):
                 self.assertFalse(
                     (plugin_root / "hooks/hooks.json").exists(),
                     "Codex activates plugin hooks/hooks.json during tool use; "
-                    "keep trace hooks as an opt-in template outside active plugin hooks.",
+                    "no active plugin hooks ship in a plugin root.",
                 )
-
-        self.assertTrue((REPO_ROOT / "docs/reference/trace-hooks-template.json").exists())
 
 
 if __name__ == "__main__":

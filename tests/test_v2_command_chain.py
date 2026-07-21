@@ -19,8 +19,6 @@ WORKFLOW_DOCS = [
     ("maintain", "maintain"),
     ("deploy", "deploy"),
     ("reset_setup", "reset-setup"),
-    ("eval", "eval"),
-    ("feedback", "feedback"),
     ("review", "review"),
     ("set-rules", "set-rules"),
     ("sync-docs", "sync-docs"),

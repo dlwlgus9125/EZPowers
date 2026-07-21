@@ -1,5 +1,0 @@
-interface:
-  display_name: "Eval"
-  short_description: "Run eval suite and report scores per version"
-policy:
-  allow_implicit_invocation: false

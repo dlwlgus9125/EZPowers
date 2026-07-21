@@ -59,7 +59,6 @@ else {
         $SkillsPath = Join-Path $RepoRoot 'skills'
         $ActiveCodexHooksPath = Join-Path $RepoRoot 'hooks/hooks.json'
         $PackagedActiveCodexHooksPath = Join-Path $RepoRoot 'plugins/ezpowers/hooks/hooks.json'
-        $TraceHookTemplatePath = Join-Path $RepoRoot 'docs/reference/trace-hooks-template.json'
         if ($CodexPlugin.PSObject.Properties.Name -contains 'commands') {
             Write-Check 'FAIL' 'codex-plugin.json' 'unsupported commands field present; Codex exposes EZPowers through skills'
             $Failures++
@@ -70,10 +69,6 @@ else {
         }
         elseif (Test-Path -LiteralPath $PackagedActiveCodexHooksPath) {
             Write-Check 'FAIL' 'codex-plugin.json' 'packaged mirror must not ship active hooks/hooks.json'
-            $Failures++
-        }
-        elseif (-not (Test-Path -LiteralPath $TraceHookTemplatePath)) {
-            Write-Check 'FAIL' 'codex-plugin.json' 'missing docs/reference/trace-hooks-template.json'
             $Failures++
         }
         elseif ($CodexPlugin.skills -ne './skills/') {
@@ -191,14 +186,14 @@ if (Test-Path -LiteralPath $CommandsDir) {
     }
 }
 else {
-    $WorkflowSkills = @('setup', 'design-architecture', 'spec', 'prepare-execute', 'choice-execute', 'maintain', 'deploy', 'reset-setup', 'review', 'sync-docs', 'set-rules', 'eval', 'feedback')
+    $WorkflowSkills = @('setup', 'design-architecture', 'spec', 'prepare-execute', 'choice-execute', 'maintain', 'deploy', 'reset-setup', 'review', 'sync-docs', 'set-rules')
     $MissingWorkflow = @($WorkflowSkills | Where-Object { -not (Test-Path -LiteralPath (Join-Path $RepoRoot "skills/$_/SKILL.md")) })
     if ($MissingWorkflow.Count -gt 0) {
         Write-Check 'FAIL' 'workflow-skills' ("missing workflow skills: " + ($MissingWorkflow -join ', '))
         $Failures++
     }
     else {
-        Write-Check 'PASS' 'workflow-skills' 'all 13 workflow skills present (commands/ retired)'
+        Write-Check 'PASS' 'workflow-skills' 'all 11 workflow skills present'
     }
 }
 
