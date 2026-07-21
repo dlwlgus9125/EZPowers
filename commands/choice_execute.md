@@ -257,28 +257,14 @@ section from `agents/implementer-prompt.md`:
 
 ### Verify Command Baseline (mandatory per-task)
 
-Before every dispatch (initial and re-dispatch), extract and record the Verify Command Baseline for the current task.
-
-**Extraction (mechanical — no interpretation or substitution):**
-
-1. Read the plan file (not memory, not implementer output, not cached context)
-2. Navigate to the current task's `**Completion criteria (from spec):**` section
-3. Extract every `Verify: \`...\`` value verbatim — preserve flags, paths, grep patterns
-4. Extract the `**Verification method:**` line
-5. Extract the `**Runtime verification:**` line (if present)
-6. Extract Verify commands from the `**View wiring verification**` section (if present)
-7. Store as the **Verify Command Baseline** for this task
-
-**Verify Fidelity Check (between prompt construction and dispatch):**
-
-After constructing the implementer prompt, before dispatch:
-1. Extract every Verify command from the constructed prompt — scan Acceptance Criteria, Verification method, Runtime verification, and View wiring verification sections
-2. Compare each extracted command against the corresponding Baseline entry (exact string match; leading/trailing whitespace trimmed, internal whitespace within the command preserved as-is)
-3. Confirm every Baseline entry has a matching prompt entry and vice versa (no additions, no omissions)
-4. **Mismatch → HALT.** Log: `Verify Fidelity FAIL: plan=\`<plan>\`, prompt=\`<prompt>\`. Correct prompt.`
-5. **All match → dispatch**
-
-This is a hard gate, not advisory.
+Before every dispatch (initial and re-dispatch), record the current task's
+Verify Command Baseline and run the Verify Fidelity Check between prompt
+construction and dispatch. Canonical procedure:
+`docs/reference/verification-contract.md` § Verify Command Baseline & Fidelity
+Check. Any prompt/plan Verify mismatch → **HALT.** Log:
+`Verify Fidelity FAIL: plan=\`<plan>\`, prompt=\`<prompt>\`. Correct prompt.`
+Re-check, then dispatch only when all entries match. This is a hard gate, not
+advisory.
 
 **Predictive elimination ban:** If a Verify command appears impractical (e.g., e2e requires a running app), the controller must not remove or replace it. Instead: make infrastructure available (start the app, configure the environment) or escalate to user. Difficulty is not a reason to weaken the oracle.
 
@@ -327,56 +313,32 @@ The implementer subagent's `DONE` report is only a claim; this gate is the
 completion verdict for task Verify and runtime smoke.
 
 1. Re-read the plan file and extract Verify commands from the current task's `**Completion criteria (from spec):**` section. Do not use commands from the implementer report, dispatch prompt, or memory. The plan file is the only source at this step.
-2. Execute each Verify command, check exit code (exit 0 = PASS)
-3. **Timeout by Verify-type:**
-   - `pure` / `cli`: 30s
-   - `e2e`: 120s
-   - `api`: 30s
-   - `data`: 60s
+2. Execute each Verify command and check exit codes (exit 0 = PASS). Use the
+   Verify-type timeouts from `docs/reference/verification-contract.md`
+   § Execution Verification (`pure`/`cli`/`api` 30s, `data` 60s, `e2e` 120s);
+   pass the same value in milliseconds as the Bash tool `timeout` parameter.
+3. **Server management (e2e/api):** if `config.server.start_command` is set,
+   start the server in the background, poll `config.server.health_check_url`
+   (max `config.server.health_check_timeout` seconds, default 15s; 5s fixed
+   wait when no URL is set), run Verify, then stop via
+   `config.server.stop_command` (or kill the started process). If
+   `start_command` is empty, skip server management.
+4. No Verify commands: fall back to the plan's verification method.
+5. ALL PASS -> conditional security review. ANY FAIL -> re-dispatch with
+   failure details. **Re-dispatch loop:** max 3. Then escalate to user.
 
-   **Bash tool timeout mapping:**
-   | Verify-type | Timeout | Bash tool timeout param |
-   |-------------|---------|------------------------|
-   | `pure` / `cli` | 30s | `timeout: 30000` |
-   | `api` | 30s | `timeout: 30000` |
-   | `data` | 60s | `timeout: 60000` |
-   | `e2e` | 120s | `timeout: 120000` |
-
-4. **Server management (e2e/api):**
-   - If `config.server.start_command` is empty, skip server management
-   - Start server: run `config.server.start_command` (background)
-   - Health check: poll GET on `config.server.health_check_url` (max `config.server.health_check_timeout` seconds, default 15s)
-   - If health check URL not set, fall back to 5s wait
-   - Run Verify
-   - Stop server: run `config.server.stop_command` (if not set, kill the started process)
-5. No Verify commands: fall back to plan's verification method
-6. ALL PASS -> conditional security review
-7. ANY FAIL -> re-dispatch with failure details
-
-**Re-dispatch loop:** max 3. Then escalate to user.
-
-**Runtime probe (executable artifacts only):**
-
-After all Verify commands PASS, if the task has a `Runtime verification:` line in the plan:
-1. Execute the runtime verification command (timeout: 30000ms)
-2. Exit 0 = runtime PASS. Non-zero = runtime FAIL.
-3. Runtime FAIL → re-dispatch with error output + exit code.
-4. No `Runtime verification:` line → skip.
-
-Runtime probe is separate from AC verification. AC verifies spec behavior; runtime probe verifies the artifact starts and survives. Both must pass.
-
-**GUI runtime probe (desktop executable artifacts):**
-
-For GUI executable tasks, the runtime probe MUST include multi-layer verification:
-1. **Process survival:** app starts, survives `config.smoke.survival_seconds` (default 8s)
-2. **Fatal output check:** stderr/stdout must NOT match `config.smoke.stderr_fail_regex`
-3. **Window existence:** main window handle != 0 (platform-specific check)
-4. **Screenshot artifact:** capture to `config.smoke.screenshot_path`, verify non-blank (pixel variance > threshold)
-5. **UI oracle:** if `expected_text_regex` or `expected_automation_name_regex` is configured, the UI Automation tree must match it.
-
-All layers must PASS. Any layer FAIL → re-dispatch implementer with the specific layer and exit code.
-
-Desktop/server/CLI artifacts may not skip runtime smoke. Only `artifact_kind: docs|library` with `config.smoke.required: false` may skip.
+**Runtime probe (executable artifacts only):** after all Verify commands PASS,
+if the task has a `Runtime verification:` line in the plan, run it (timeout:
+30000ms); exit 0 = PASS, non-zero -> re-dispatch with error output + exit
+code; no line -> skip. Runtime probe is separate from AC verification: AC
+verifies spec behavior, the probe verifies the artifact starts and survives.
+Both must pass. GUI executable tasks use the multi-layer probe (process
+survival, fatal output check, window existence, screenshot non-blank check,
+optional UI Automation oracle) defined in
+`docs/reference/verification-contract.md` § Runtime Probe; any layer FAIL ->
+re-dispatch implementer with the specific layer and exit code.
+Desktop/server/CLI artifacts may not skip runtime smoke. Only
+`artifact_kind: docs|library` with `config.smoke.required: false` may skip.
 
 **Manual verification items are forbidden in automated harness mode.**
 If a Verify-type `e2e` item has no executable Verify command (empty or placeholder), mark AC verification as FAIL and re-dispatch implementer with: "AC [N] has Verify-type e2e but no executable verification command. Write an automated probe (process health, stdout/stderr pattern, window handle check, headless test, or integration test) and re-submit."
@@ -404,81 +366,58 @@ Simple `pure`/`cli`/`lib` tasks skip the arbiter and proceed directly to securit
 - Verify command outputs (stdout/stderr + exit codes)
 - Runtime probe artifacts (logs, screenshots, exit codes)
 
-**Arbiter verdicts:**
-- **PASS** → proceed to conditional security review
-- **TEST_GAP** → re-dispatch implementer: "Verification does not prove the Then clause. Write a probe that directly observes [specific Then clause]."
-- **CODE_GAP** → re-dispatch implementer with verification evidence showing implementation fails
-- **SPEC_GAP** → return to /prepare_execute automatically (Section 13): plan lacks an automatable oracle for this AC
+**Arbiter verdicts** follow `docs/reference/verification-contract.md`
+§ Arbiter Verdicts: **PASS** → proceed to conditional security review;
+**TEST_GAP** → re-dispatch implementer: "Verification does not prove the Then
+clause. Write a probe that directly observes [specific Then clause].";
+**CODE_GAP** → re-dispatch implementer with the verification evidence showing
+the implementation fails; **SPEC_GAP** → return to /prepare_execute
+automatically (Section 13).
 
 **Arbiter dispatch limit:** max 2 rounds per task. If arbiter returns TEST_GAP or CODE_GAP twice, escalate to user.
 
 ### View Wiring Test (Per-Task, fail-closed)
 **Config validation:** Apply Wiring Config Validation (Section 3.7).
 
-**감지:** `wiring.enabled: true` → Task changed-files에 `config.wiring.view_extensions` 매칭 확장자 포함 여부.
-**실행:** Task의 `**View wiring verification**` 섹션에서 Verify 커맨드 추출. 섹션 없으나 view 파일이 changed-files에 있음 → FAIL (plan에 wiring verification 누락).
-Verify 커맨드 실행 (timeout: 120s). Exit 0 = PASS. Non-zero = FAIL.
-FAIL → 테스트 출력에서 W1-W5 결함 유형 분류. implementer 재디스패치: "View Wiring Test failed. Defect type: [W1-W5]. [출력 발췌]. Fix the wiring defect."
-Max 3 retries → user 에스컬레이션. `wiring.enabled: true` with non-empty `view_extensions` and changed view files → skip 불가.
-**Inline execution (Path 3):** 동일 감지/실행. 재디스패치 대신 fix-in-place.
+**Detection:** with `wiring.enabled: true`, check whether the task's
+changed-files include extensions matching `config.wiring.view_extensions`.
+**Execution:** extract Verify commands from the task's `**View wiring
+verification**` section; a changed view file with no such section is FAIL
+(plan omitted wiring verification). Run the command (timeout: 120s); exit 0 =
+PASS. On FAIL, classify the defect with the W1-W5 taxonomy from
+`docs/reference/verification-contract.md` § View Wiring Verification and
+re-dispatch implementer: "View Wiring Test failed. Defect type: [W1-W5].
+[output excerpt]. Fix the wiring defect." Max 3 retries → user escalation.
+`wiring.enabled: true` with non-empty `view_extensions` and changed view files
+→ no skip. **Inline execution (Path 3):** same detection/execution;
+fix-in-place instead of re-dispatch.
 
 ### Incremental Runnability (executable artifacts, post-skeleton)
 
-After Task 1 `{skeleton}` passes runtime smoke, every subsequent task must
-also pass `config.smoke.command` before proceeding to the next task.
-
 **Trigger:** `config.smoke.artifact_kind` is `cli`/`server`/`desktop` AND at
-least one `{skeleton}` task has completed and passed runtime smoke.
-
-**Execution:** Run `config.smoke.command` (same timeout as Section 14 smoke
-gate). Exit 0 = PASS.
-
-**Failure:** Re-dispatch implementer: "Runtime smoke failed after your changes.
-The app no longer starts. Fix the regression before proceeding." Max 2 retries
-→ escalate to user.
-
-**GUI smoke:** If `config.smoke.gui_strategy` is configured, run the same GUI
-probe as Section 14.
-
-Skeleton task itself already requires runtime smoke in its AC — this gate
-applies to tasks AFTER the skeleton.
+least one `{skeleton}` task has completed and passed runtime smoke. Every
+subsequent task must pass `config.smoke.command` before proceeding (same
+timeout as the Section 14 smoke gate; if `config.smoke.gui_strategy` is
+configured, run the same GUI probe as Section 14). Exit 0 = PASS. Failure →
+re-dispatch implementer: "Runtime smoke failed after your changes. The app no
+longer starts. Fix the regression before proceeding." Max 2 retries →
+escalate to user. Canonical semantics:
+`docs/reference/verification-contract.md` § Incremental Runnability.
 
 ### Incremental Wiring Probe (executable artifacts, post-skeleton)
 
-After Incremental Runnability passes, verify the task's module is reachable
-from the app's entry point. Incremental Runnability proves the app starts;
-this probe proves the task's work is actually connected.
-
 **Trigger:** Task has a `**Wiring probe:**` section in the plan AND at least
-one `{skeleton}` task has completed.
-
-**Execution:** Extract the Wiring Probe Verify command from the plan file
-(not from implementer reports or cached context). Run it (timeout: 120s).
-Exit 0 = PASS.
-
-**Failure classification:**
-- `IMPORT_UNREACHABLE`: module not imported from entry point chain
-- `REGISTRATION_MISSING`: handler/service not registered in DI/IPC/router
-- `RUNTIME_UNREACHABLE`: module imported but not initialized at runtime
-
-FAIL → re-dispatch implementer: "Wiring Probe failed: [type]. Module [path]
-is not reachable from entry point [path]. Add the missing
-import/registration." Max 2 retries → escalate to user.
-
-**Missing probe detection:** Task creates a new module file (not in
-pre-task file list) but plan has no `**Wiring probe:**` section →
-log WARNING: `"Task N creates [path] but has no Wiring Probe. Plan defect."`.
-Execution continues but the warning is surfaced in the completion report.
-
-**Refactoring probe detection:** Task has both `Create:` and `Delete:` entries
-for module files (rename/split pattern), OR task's `Modify:` files include
-path changes detected by `git diff --diff-filter=R` (rename). In either
-case, treat as a wiring-affecting change and require a Wiring Probe section
-in the plan. If missing, log WARNING with the same message as above. If
-present, execute the probe (same as new module flow).
-
-**Inline execution (Path 3):** Same detection/execution. Fix-in-place
-instead of re-dispatch.
+one `{skeleton}` task has completed. Extract the Wiring Probe Verify command
+from the plan file (not from implementer reports or cached context) and run it
+(timeout: 120s); exit 0 = PASS. On FAIL, classify the failure
+(`IMPORT_UNREACHABLE` / `REGISTRATION_MISSING` / `RUNTIME_UNREACHABLE`) and
+re-dispatch implementer: "Wiring Probe failed: [type]. Module [path] is not
+reachable from entry point [path]. Add the missing import/registration." Max 2
+retries → escalate to user. Missing-probe and refactoring-rename detection
+follow `docs/reference/verification-contract.md` § Incremental Wiring Probe:
+log WARNING `"Task N creates [path] but has no Wiring Probe. Plan defect."`
+and surface it in the completion report. **Inline execution (Path 3):** same
+detection/execution; fix-in-place instead of re-dispatch.
 
 ## 6. Conditional Security Review
 

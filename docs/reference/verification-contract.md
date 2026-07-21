@@ -122,6 +122,29 @@ For `api` and `e2e` criteria that need a server, use configured start, health
 check, and stop commands when available. If no server command exists, the audit
 should warn before execution.
 
+### Verify Command Baseline & Fidelity Check
+
+Before every implementer dispatch (initial and re-dispatch), the controller
+records a Verify Command Baseline for the current task. Extraction is
+mechanical — no interpretation or substitution:
+
+1. Read the plan file (not memory, implementer output, or cached context).
+2. From the task's `**Completion criteria (from spec):**` section, extract
+   every `Verify:` value verbatim — preserve flags, paths, and grep patterns.
+3. Extract the `**Verification method:**` line, the `**Runtime verification:**`
+   line (if present), and Verify commands from the `**View wiring
+   verification**` section (if present).
+4. Store the result as the task's Verify Command Baseline.
+
+Fidelity check, between prompt construction and dispatch: extract every Verify
+command from the constructed prompt (Acceptance Criteria, Verification method,
+Runtime verification, and View wiring verification sections) and compare each
+against the corresponding Baseline entry — exact string match with
+leading/trailing whitespace trimmed and internal whitespace preserved as-is.
+Every Baseline entry must have a matching prompt entry and vice versa: no
+additions, no omissions. Any mismatch halts the dispatch until the prompt is
+corrected. This is a hard gate, not advisory.
+
 ## Runtime Probe
 
 Runtime probes prove executable artifacts start and survive long enough for
@@ -279,6 +302,19 @@ Tasks exempt from Wiring Probe:
 
 A task creating a new module with no `**Wiring probe:**` section is a plan
 defect. The executor logs a WARNING; the plan reviewer should have required it.
+Execution continues, but the warning is surfaced in the completion report.
+
+Wiring probe failures are classified as:
+
+- `IMPORT_UNREACHABLE`: module not imported from the entry point chain.
+- `REGISTRATION_MISSING`: handler/service not registered in DI/IPC/router.
+- `RUNTIME_UNREACHABLE`: module imported but not initialized at runtime.
+
+Refactoring detection: a task with both `Create:` and `Delete:` entries for
+module files (rename/split pattern), or renames detected by
+`git diff --diff-filter=R`, is a wiring-affecting change and requires a Wiring
+Probe section. If the section is missing, log the same plan-defect WARNING as
+for a new module; if present, execute the probe as for a new module.
 
 ## Integration And Wiring
 
