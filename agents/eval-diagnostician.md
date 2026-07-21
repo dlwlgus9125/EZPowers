@@ -47,7 +47,7 @@ Return EXACTLY one JSON object:
 
 ```json
 {
-  "file": "commands/spec.md",
+  "file": "skills/spec/SKILL.md",
   "line": 142,
   "before": "original line text (empty string if adding new line)",
   "after": "new or modified line text",
