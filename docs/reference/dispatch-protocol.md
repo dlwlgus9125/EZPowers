@@ -61,7 +61,9 @@ If `.harness/config.json` is missing or `reviewer_backend` is absent, default to
 Use the standard `Agent tool` with `subagent_type` as documented in each command.
 
 **Model override:** If `executor.reviewer_model` is non-empty, add `model: <value>`
-to the Agent tool call. Accepted values: `"sonnet"`, `"opus"`, `"haiku"`.
+to the Agent tool call. Accepted values: `"sonnet"`, `"opus"`, `"haiku"` —
+tier aliases that resolve to the current model of each tier. Use aliases here;
+versioned model IDs belong to `scripts/model-router.py` only.
 If empty, omit the `model` parameter (agent definition default applies).
 
 If `executor.model_routing.enabled` is true and `executor.reviewer_model` is
@@ -197,6 +199,9 @@ Default review loop limits:
 | Final code review | 10 | 5 | 10 |
 | Implementer acceptance criteria | 3 | N/A | 3 |
 | Runtime or smoke probe | 3 | N/A | 3 |
+| Test baseline protection | 3 | N/A | 3 |
+| Lint & typecheck (per sub-gate) | 2 | N/A | 2 |
+| Dependency audit | 2 | N/A | 2 |
 
 `PASS_WITH_ISSUES` is a conditional pass for Important issues only. It permits
 one fix-and-review round. If the next review returns `PASS` or
@@ -209,5 +214,5 @@ Wiring review uses the verdict interface from
 
 ## Agents NOT Covered by This Protocol
 
-- **eval-diagnostician** (`model: claude-opus-4-6`): Diagnostic/internal-only; not called from user-facing commands. Not subject to backend dispatch.
+- **eval-diagnostician** (`model: inherit`): Diagnostic/internal-only; not called from user-facing commands. Not subject to backend dispatch.
 - **implementer-prompt.md**: Template for task implementation subagents. Dispatch is handled by `/choice_execute` Section 4 directly, not through this protocol.
