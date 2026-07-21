@@ -31,6 +31,7 @@
 - [Internal Pipeline Audit Contract](reference/pipeline-audit-contract.md): [canonical] internal cross-stage completeness gate.
 - [Harness Execution Contract](reference/harness-execution-contract.md): [canonical] strict harness conversion, execution, recovery, wiring, and restoration rules.
 - [Strict Execution Adapter](reference/strict-execution-adapter.md): [supporting] internal adapter procedure used by `/choice_execute` Path 2.
+- [Inline Execution Adapter](reference/inline-execution-adapter.md): [supporting] internal adapter procedure used by `/choice_execute` Path 3.
 
 ## Decisions
 - [ADR Index](decisions/README.md): architecture decision record policy.

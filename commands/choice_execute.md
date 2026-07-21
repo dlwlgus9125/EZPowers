@@ -615,79 +615,16 @@ Review PASS`. Step completion alone is not enough.
 
 ## 11. Inline Execution (Path 3)
 
-Execute tasks sequentially in the current session. Inline runs all work in the controller's context, consuming more context than the subagent path.
+When the user selects Path 3, load
+`docs/reference/inline-execution-adapter.md` and follow it as the source of
+truth for the inline context pre-check, per-task fix-in-place loop, and gate
+equivalence rules. Do not duplicate the inline procedure here.
 
-### Context Pre-check
-
-On inline selection, estimate context consumption based on task count and expected complexity. **If estimated consumption exceeds 40% of the context window**, ask the user:
-
-> "Inline execution is estimated to consume over 40% of the context window. Run `/compact` first?"
->
-> 1. `/compact` then proceed
-> 2. Proceed as-is
-> 3. Switch to subagent-driven
-
-Estimation basis:
-- ~3-5K tokens per task (file reads + implementation + tests + Verify)
-- Account for context already consumed in the current session
-
-### Git Hash Recording
-
-Apply Git Hash Recording Protocol (Section 3.6).
-
-Prepare the same lightpath gate artifacts used by the subagent path:
-
-```powershell
-scripts/lightpath-gate.ps1 -Scope prepare -ProjectRoot <project-root> -PlanPath <plan-path> -Phase <phase>
-```
-
-### Per-Task Execution Loop
-
-For each task:
-
-```
-Record git hash (git rev-parse HEAD)
-  -> Read task content
-  -> Implement in TDD order (test -> confirm failure -> implement -> confirm pass)
-  -> Test Baseline Protection (Section 4a, fix-in-place)
-  -> Lint & Typecheck Gate (Section 4b, fix-in-place)
-  -> Lightpath task gate (scripts/lightpath-gate.ps1 -Scope task -TaskNumber N)
-    -> PASS -> conditional security review
-    -> FAIL -> analyze failure -> fix code -> re-verify (max 3)
-    -> 3 failures -> escalate to user
-  -> Commit
-  -> Compute changed-files
-  -> Next task
-```
-
-### Test Baseline Protection & Lint/Typecheck (Inline)
-
-Follow the same procedures as Section 4a (Test Baseline & Protection Gate) and Section 4b (Per-Task Lint & Typecheck Gate). All detection logic, thresholds, and FAIL/WARN outcomes are identical. The only difference: re-dispatch is replaced by fix-in-place -> re-check loops with the same max retry counts (test protection: max 3, lint/typecheck: max 2).
-
-### AC Verification
-
-Follow the same procedure as Section 5 (Acceptance Criteria Verification) by
-running `scripts/lightpath-gate.ps1 -Scope task`. Re-read the plan file through
-the converted step artifact; do not use commands from earlier in the session
-context. If the gate fails, fix the code or plan gap; do not weaken or replace
-the Verify command.
-
-### Conditional Security Review
-
-Same trigger conditions as Section 6 (27 keywords). On trigger, dispatch `ezpowers:security-reviewer` plugin agent via `subagent_type`.
-
-### Failure Handling
-
-Inline uses **fix-in-place → re-verify** loops instead of subagent re-dispatch:
-
-1. Verify fails → analyze failure output
-2. Fix code based on root cause
-3. Re-run Verify
-4. Max 3 attempts. Then escalate to user.
-
-### Quality Budget & Final Code Review
-
-After all tasks complete, proceed to Section 11a (Quality Budget) then Section 12 (Final Code Review). Same as subagent path.
+Inline runs all work in the controller's context. Verification gates are
+identical to the subagent path (Sections 4a/4b, 5, and 6), with re-dispatch
+replaced by fix-in-place -> re-verify at the same retry limits. After all
+tasks complete, continue at Section 11a (Quality Budget) and Section 12
+(Final Code Review).
 
 ## 11a. Quality Budget Verification Gate
 
