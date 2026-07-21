@@ -4,6 +4,7 @@ description: Run eval suite and report scores per version
 disable-model-invocation: true
 argument-hint: "[split | --case <id> | --baseline | --diff <version>]"
 allowed-tools: ["Bash(python scripts/run_baseline.py *)", "Bash(python scripts/run_skill_evals.py *)", "Bash(git *)", Read, Write, Agent]
+shell: powershell
 ---
 
 # /eval — Eval Suite Execution and Score Report
@@ -42,6 +43,15 @@ Parse arguments
 ```
 
 ## 1. Pre-flight Checks
+
+Live eval state (injected at invocation on Claude Code; on Codex, gather the
+same facts by reading the files below):
+
+```!
+"VERSION: $((Get-Content .codex-plugin/plugin.json -Raw | ConvertFrom-Json).version)"
+if (Test-Path evals) { "EVALS: present" } else { "EVALS: MISSING" }
+"LATEST_BASELINE:"; Get-ChildItem evals/results/baselines -File -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1 -ExpandProperty Name
+```
 
 Verify:
 - `evals/` directory exists
