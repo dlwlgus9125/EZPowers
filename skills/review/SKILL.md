@@ -4,6 +4,7 @@ description: Review changes against spec for completeness
 disable-model-invocation: true
 argument-hint: [spec-path]
 allowed-tools: [Bash, Read, Grep, Glob, Agent]
+shell: powershell
 ---
 
 # /review — Change Review
@@ -20,11 +21,16 @@ Read the following first:
 - `docs/reference/conventions.md` (if present — coding rules and constraints)
 - Spec document (if path given as argument, or if a recent spec exists)
 
-Check changed files:
-```bash
-git diff --name-only
-git diff --cached --name-only
+Changed files (injected at invocation on Claude Code):
+
+```!
+"UNSTAGED:"; git diff --name-only
+"STAGED:"; git diff --cached --name-only
+"RECENT:"; git log --oneline -5
 ```
+
+If the block above shows literal commands instead of results (Codex host),
+run `git diff --name-only` and `git diff --cached --name-only` yourself.
 
 If no changes, inform and stop. If changes exist, finish through the reviewer
 placement gate.
