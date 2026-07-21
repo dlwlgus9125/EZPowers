@@ -595,6 +595,9 @@ function Test-EzpRuntimeEvidence {
     $Smoke = Get-EzpConfigValue $Config 'smoke' $null
     $Required = [bool](Get-EzpConfigValue $Smoke 'required' $false)
     $Kind = [string](Get-EzpConfigValue $Smoke 'artifact_kind' '')
+    if (-not $Required -and $Kind -notin @('docs', 'library')) {
+        return [pscustomobject]@{ ok = $false; artifacts = @(); message = "runtime smoke required: smoke.required=false not allowed for artifact_kind: $Kind" }
+    }
     $ClientServerEvidenceRequired = Test-EzpClientServerEvidenceRequired -Config $Config -Gate $Gate -ArtifactKind $Kind
     $RuntimeKinds = @('cli', 'server', 'desktop', 'web', 'mobile', 'gui')
     if ((-not $Required -and -not $ClientServerEvidenceRequired) -or
@@ -617,22 +620,32 @@ function Test-EzpRuntimeEvidence {
 
     $ProbePath = Join-Path $PhaseDir 'runtime-probe.json'
     $ParsedArtifacts = @()
-    if (Test-Path -LiteralPath $ProbePath) {
-        try {
-            $Probe = Get-Content -LiteralPath $ProbePath -Raw -Encoding UTF8 | ConvertFrom-Json
-            $ParsedArtifacts += [pscustomobject]@{ name = 'runtime-probe.json'; value = $Probe }
-            $Status = [string](Get-EzpConfigValue $Probe 'status' '')
-            if ($Status -and $Status -ne 'completed') {
-                return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = "runtime-probe status is $Status" }
-            }
-            $ExitCode = Get-EzpConfigValue $Probe 'exit_code' 0
-            if ([int]$ExitCode -ne 0) {
-                return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = "runtime-probe exit code is $ExitCode" }
-            }
-        }
-        catch {
-            return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = "runtime-probe.json is invalid: $($_.Exception.Message)" }
-        }
+    if (-not (Test-Path -LiteralPath $ProbePath)) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = 'missing runtime-probe.json' }
+    }
+    try {
+        $Probe = Get-Content -LiteralPath $ProbePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    }
+    catch {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = "runtime-probe.json is invalid: $($_.Exception.Message)" }
+    }
+    if ($null -eq $Probe) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = 'runtime-probe.json is empty' }
+    }
+    $ParsedArtifacts += [pscustomobject]@{ name = 'runtime-probe.json'; value = $Probe }
+    if ($Probe.PSObject.Properties.Name -notcontains 'status') {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = 'runtime-probe.json missing status' }
+    }
+    $Status = [string](Get-EzpConfigValue $Probe 'status' '')
+    if ($Status -ne 'completed') {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = "runtime-probe status is $Status" }
+    }
+    if ($Probe.PSObject.Properties.Name -notcontains 'exit_code') {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = 'runtime-probe.json missing exit_code' }
+    }
+    $ExitCode = Get-EzpConfigValue $Probe 'exit_code' 0
+    if ([int]$ExitCode -ne 0) {
+        return [pscustomobject]@{ ok = $false; artifacts = $Artifacts; message = "runtime-probe exit code is $ExitCode" }
     }
 
     $SmokeOutputPath = Join-Path $PhaseDir 'smoke-output.json'

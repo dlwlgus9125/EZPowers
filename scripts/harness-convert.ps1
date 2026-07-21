@@ -236,11 +236,16 @@ $Verification
 }
 
 $ProjectName = Split-Path -Leaf $ProjectRoot
+$ArtifactKind = ''
 $ConfigPath = Join-Path $ProjectRoot '.harness/config.json'
 if (Test-Path -LiteralPath $ConfigPath) {
     $Config = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($Config.PSObject.Properties.Name -contains 'project') {
         $ProjectName = [string]$Config.project
+    }
+    if ($Config.PSObject.Properties.Name -contains 'smoke' -and $null -ne $Config.smoke -and
+        $Config.smoke.PSObject.Properties.Name -contains 'artifact_kind') {
+        $ArtifactKind = [string]$Config.smoke.artifact_kind
     }
 }
 
@@ -264,7 +269,14 @@ if ([string]::IsNullOrWhiteSpace($VerifyType)) {
 }
 $Covers = Get-InlineField $GateText 'Covers'
 $ExpectedObservation = Get-InlineField $GateText 'Expected observation'
-$GateStatus = if ($Required -and $Commands.Count -eq 0) { 'spec_gap' } elseif ($Required) { 'pending' } else { 'pass' }
+
+$Exempt = $ArtifactKind -in @('docs', 'library')
+if (-not $Required -and -not $Exempt) {
+    throw "Plan is invalid: no Full-Feature Wiring Gate section for executable artifact_kind '$ArtifactKind'. Executable artifacts require a Wiring Gate section in the plan."
+}
+
+$GateStatus = if ($Required -and $Commands.Count -eq 0) { 'spec_gap' } elseif ($Required) { 'pending' } else { 'skipped' }
+$GateReason = if ($Required) { '' } else { "wiring gate not required for artifact_kind '$ArtifactKind'" }
 
 [pscustomobject]@{
     phase = $Phase
@@ -276,7 +288,7 @@ $GateStatus = if ($Required -and $Commands.Count -eq 0) { 'spec_gap' } elseif ($
     expected_observation = $ExpectedObservation
     status = $GateStatus
     attempts = @()
-    reason = if ($Required) { '' } else { 'single-task library-only or no executable artifact' }
+    reason = $GateReason
 } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $PhaseDir 'wiring-gate.json') -Encoding UTF8
 
 Write-Output "Converted plan to phase: $PhaseDir"

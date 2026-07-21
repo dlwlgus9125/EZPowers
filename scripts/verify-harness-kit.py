@@ -23,10 +23,7 @@ WORKFLOW_SKILL_DIRS = {
 
 
 def workflow_doc_path(repo_root, command):
-    skill = repo_root / "skills" / WORKFLOW_SKILL_DIRS.get(command, command) / "SKILL.md"
-    if skill.exists():
-        return skill
-    return repo_root / "commands" / f"{command}.md"
+    return repo_root / "skills" / WORKFLOW_SKILL_DIRS.get(command, command) / "SKILL.md"
 
 
 REQUIRED_COMMANDS = {
@@ -84,6 +81,22 @@ def sha256(path: pathlib.Path) -> str:
     return digest.hexdigest()
 
 
+def stamp(repo_root: pathlib.Path, manifest_path: pathlib.Path) -> None:
+    """Compute and persist the sha256 of every bundled source file into the manifest."""
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    for item in manifest.get("source_files", []):
+        source = repo_root / item.get("source", "")
+        # The manifest lists itself; it cannot carry a hash of its own content
+        # (writing the hash would change the bytes the hash was taken over).
+        if source.resolve() == manifest_path.resolve():
+            item.pop("sha256", None)
+            continue
+        if not source.exists():
+            raise SystemExit(f"ERROR: cannot stamp missing source file: {item.get('source')}")
+        item["sha256"] = sha256(source)
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+
 def validate(repo_root: pathlib.Path, manifest_path: pathlib.Path) -> list[str]:
     errors: list[str] = []
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -106,11 +119,6 @@ def validate(repo_root: pathlib.Path, manifest_path: pathlib.Path) -> list[str]:
         command_path = workflow_doc_path(repo_root, command)
         if not command_path.exists():
             errors.append(f"missing command file: {command_path.relative_to(repo_root)}")
-
-    for command in REMOVED_PUBLIC_COMMANDS:
-        command_path = repo_root / "commands" / f"{command}.md"
-        if command_path.exists():
-            errors.append(f"removed command file still public: {command_path.relative_to(repo_root)}")
 
     for adapter in manifest.get("internal_adapters", []):
         if not (repo_root / adapter).exists():
@@ -135,7 +143,17 @@ def validate(repo_root: pathlib.Path, manifest_path: pathlib.Path) -> list[str]:
             errors.append(f"target outside install root or helper allowlist: {target}")
         if source.name == "SKILL.md":
             errors.append("source_files must not include synthesized SKILL.md")
-        item["sha256"] = sha256(source)
+        # The manifest cannot verify a hash of its own content (see stamp()).
+        if source.resolve() == manifest_path.resolve():
+            continue
+        expected = item.get("sha256")
+        if not expected:
+            errors.append(
+                f"missing sha256 for source file {item.get('source')}; "
+                "run: python scripts/verify-harness-kit.py --stamp"
+            )
+        elif sha256(source) != expected:
+            errors.append(f"sha256 mismatch for source file: {item.get('source')}")
 
     missing_helpers = REQUIRED_HELPER_TARGETS - source_file_targets
     if missing_helpers:
@@ -152,10 +170,19 @@ def main() -> int:
         default="harness-kit/v2.0.0/manifest.json",
         help="Manifest path relative to repo root",
     )
+    parser.add_argument(
+        "--stamp",
+        action="store_true",
+        help="Compute and write sha256 hashes of bundled source files into the manifest",
+    )
     args = parser.parse_args()
 
     repo_root = pathlib.Path(args.repo_root).resolve()
     manifest_path = repo_root / args.manifest
+    if args.stamp:
+        stamp(repo_root, manifest_path)
+        print(f"Stamped sha256 hashes into {args.manifest}")
+        return 0
     errors = validate(repo_root, manifest_path)
     if errors:
         for error in errors:

@@ -147,6 +147,11 @@ function Set-LightpathReviewerVerdict {
         $Gate | Add-Member -NotePropertyName reviewer_verdict -NotePropertyValue '' -Force
     }
     $Gate.reviewer_verdict = $Verdict
+    $EvidenceFingerprint = [string](Get-EzpConfigValue $Gate 'evidence_fingerprint' '')
+    if (-not ($Gate.PSObject.Properties.Name -contains 'verdict_fingerprint')) {
+        $Gate | Add-Member -NotePropertyName verdict_fingerprint -NotePropertyValue '' -Force
+    }
+    $Gate.verdict_fingerprint = $EvidenceFingerprint
     if (-not [string]::IsNullOrWhiteSpace($DiffRange)) {
         if (-not ($Gate.PSObject.Properties.Name -contains 'diff_range')) {
             $Gate | Add-Member -NotePropertyName diff_range -NotePropertyValue '' -Force
@@ -311,18 +316,19 @@ if ($Scope -eq 'final') {
     else {
         $null
     }
-    $Status = if ($null -ne $Gate -and $Gate.PSObject.Properties.Name -contains 'status') {
-        [string]$Gate.status
-    }
-    else {
-        'test_gap'
-    }
+    $GateReported = $null -ne $Gate -and $Gate.PSObject.Properties.Name -contains 'status'
+    $ReportedStatus = if ($GateReported) { [string]$Gate.status } else { 'test_gap' }
+    $GateCompleted = $GateReported -and (-not $GateResult.timed_out) -and ($GateResult.exit_code -eq (Get-EzpGateExitCode $ReportedStatus))
 
-    if ($GateResult.timed_out) {
-        $Status = 'fail'
-    }
+    $Status = if ($GateCompleted) { $ReportedStatus } else { 'fail' }
 
-    $Message = if ($Status -eq 'review_pending') {
+    $Message = if ($GateResult.timed_out) {
+        "harness-gate timed out: $(Get-EzpTail ($GateResult.stderr + $GateResult.stdout))"
+    }
+    elseif (-not $GateCompleted) {
+        "harness-gate did not complete cleanly (exit $($GateResult.exit_code)): $(Get-EzpTail ($GateResult.stderr + $GateResult.stdout))"
+    }
+    elseif ($Status -eq 'review_pending') {
         'wiring reviewer verdict required'
     }
     elseif ($GateResult.exit_code -ne 0) {

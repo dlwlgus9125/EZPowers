@@ -19,11 +19,13 @@
   "source_files": [
     {
       "source": "harness-kit/v2.0.0/skills/README.md",
-      "target": ".harness/ezpowers/skills/README.md"
+      "target": ".harness/ezpowers/skills/README.md",
+      "sha256": "bf9002c8680170a9153d966466546cdaf77e5713157f77509b541cdc5d303fc8"
     },
     {
       "source": "harness-kit/v2.0.0/contracts/README.md",
-      "target": ".harness/ezpowers/contracts/README.md"
+      "target": ".harness/ezpowers/contracts/README.md",
+      "sha256": "10f42a76c2b86a2016b5bbe09a27600dd72dfdefc8ab0dde4071b96ad1d12dc4"
     },
     {
       "source": "harness-kit/v2.0.0/manifest.json",
@@ -31,59 +33,73 @@
     },
     {
       "source": "scripts/harness-common.ps1",
-      "target": "scripts/harness-common.ps1"
+      "target": "scripts/harness-common.ps1",
+      "sha256": "c99c4ef985d1989a6a2abbda9d880538a4e16baa04c5415402792592cf19c4cd"
     },
     {
       "source": "scripts/harness-doctor.ps1",
-      "target": "scripts/harness-doctor.ps1"
+      "target": "scripts/harness-doctor.ps1",
+      "sha256": "0b572550501af439235c5b686e2d96610eb8096290060161f6bc8964e561c8da"
     },
     {
       "source": "scripts/harness-convert.ps1",
-      "target": "scripts/harness-convert.ps1"
+      "target": "scripts/harness-convert.ps1",
+      "sha256": "0f8654b4cded7d73613554cbbcba54e82f711e03378624f8b3d482d5547ecbda"
     },
     {
       "source": "scripts/harness-phase.ps1",
-      "target": "scripts/harness-phase.ps1"
+      "target": "scripts/harness-phase.ps1",
+      "sha256": "dbd47eb6b723fbb8cf1d71948db3bf9d82dc774f2b3711dba7611b0d5ef11a7b"
     },
     {
       "source": "scripts/harness-run.ps1",
-      "target": "scripts/harness-run.ps1"
+      "target": "scripts/harness-run.ps1",
+      "sha256": "bc05cc09ac660d0a9f119125c73f18e4189acdfa35ece6a4a8436b9659ac1d19"
     },
     {
       "source": "scripts/harness-gate.ps1",
-      "target": "scripts/harness-gate.ps1"
+      "target": "scripts/harness-gate.ps1",
+      "sha256": "cd2ed88fc7a51666ae1e2e812a75b47dadc142710dde2c304e1f3d017f0c3bae"
     },
     {
       "source": "scripts/harness-certify.ps1",
-      "target": "scripts/harness-certify.ps1"
+      "target": "scripts/harness-certify.ps1",
+      "sha256": "5b0b3320d15d13353c457cbc6a75a601eccdd47745eb28ea4afe8bf25aba8ed7"
     },
     {
       "source": "scripts/harness-resume-proof.ps1",
-      "target": "scripts/harness-resume-proof.ps1"
+      "target": "scripts/harness-resume-proof.ps1",
+      "sha256": "bab19a4b733a200a0da021600e8c75789b27d2f4c37620b5b5321b63c9a51c41"
     },
     {
       "source": "scripts/lightpath-gate.ps1",
-      "target": "scripts/lightpath-gate.ps1"
+      "target": "scripts/lightpath-gate.ps1",
+      "sha256": "0469a918c54cc78a1d53a3858af3fc619fe9e04f9f6462097710db1057e3c45f"
     },
     {
       "source": "scripts/verify-step.py",
-      "target": "scripts/verify-step.py"
+      "target": "scripts/verify-step.py",
+      "sha256": "62b6f431f95e1ab36309bf0a46fedaa01f60c2e807738986b5d4376e49638663"
     },
     {
       "source": "scripts/frontend-visual-readiness.py",
-      "target": "scripts/frontend-visual-readiness.py"
+      "target": "scripts/frontend-visual-readiness.py",
+      "sha256": "f349126ef74175835820ec1beed65e349f33d2982e67c9918b8c95073683b058"
     },
     {
       "source": "scripts/model-router.py",
-      "target": "scripts/model-router.py"
+      "target": "scripts/model-router.py",
+      "sha256": "06cc905227fc94a38f9c90b4e467e3e2fdb738b1699e02ac3fd8a2d8597d0aa1"
     },
     {
       "source": "scripts/hashline-anchor.py",
-      "target": "scripts/hashline-anchor.py"
+      "target": "scripts/hashline-anchor.py",
+      "sha256": "9520c60ada7892a9f2482e04e53a6c9b86c17be932e6e2572f68502d0599718f"
     },
     {
       "source": "scripts/context-injector.py",
-      "target": "scripts/context-injector.py"
+      "target": "scripts/context-injector.py",
+      "sha256": "409d9968c76c5b760bd99ce7cdb9da45cceed11402aa6ac98eb243dbde5cc45a"
     }
   ],
   "ui_verification": {

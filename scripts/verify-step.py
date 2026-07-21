@@ -23,20 +23,271 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
+import signal
 import subprocess
 import sys
 
 # ---------------------------------------------------------------------------
-# Reuse from sibling scripts
+# Self-contained helpers
+#
+# This script is installed into target projects by harness-kit, which does NOT
+# ship run_baseline.py or shared.py. The shell-execution stack and banned-
+# expression constants below are therefore inlined here (previously imported
+# from those sibling scripts) so verify-step.py depends only on the standard
+# library.
 # ---------------------------------------------------------------------------
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
-import run_baseline  # noqa: E402
-from run_baseline import run_shell_command_with_timeout  # noqa: E402
 
-from shared import BANNED_KO, BANNED_EN_RE  # noqa: E402
+# --- Ported from scripts/run_baseline.py -----------------------------------
+class InfraError(RuntimeError):
+    """Raised when a grader command could not be measured by local infrastructure."""
+
+
+def _is_access_denied_spawn_error(exc: BaseException) -> bool:
+    text = str(exc).lower()
+    winerror = getattr(exc, "winerror", None)
+    errno = getattr(exc, "errno", None)
+    return (
+        winerror == 5
+        or errno == 13
+        or "winerror 5" in text
+        or "access is denied" in text
+        or "permission denied" in text
+    )
+
+
+def _kill_process_tree(proc: subprocess.Popen) -> None:
+    if proc.poll() is not None:
+        return
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=5,
+                check=False,
+            )
+            return
+        except Exception:
+            pass
+    else:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+            return
+        except Exception:
+            pass
+    try:
+        proc.kill()
+    except Exception:
+        pass
+
+
+def find_bash() -> str | None:
+    candidates: list[str] = []
+    bash = shutil.which("bash")
+    if bash:
+        candidates.append(bash)
+    if os.name == "nt":
+        candidates.extend(str(p) for p in [
+            pathlib.Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Git" / "bin" / "bash.exe",
+            pathlib.Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Git" / "usr" / "bin" / "bash.exe",
+            pathlib.Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Git" / "bin" / "bash.exe",
+        ])
+    for candidate in candidates:
+        if not pathlib.Path(candidate).exists():
+            continue
+        try:
+            proc = subprocess.run(
+                [candidate, "-lc", "true"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=5,
+                check=False,
+            )
+        except Exception:
+            continue
+        if proc.returncode == 0:
+            return candidate
+    return None
+
+
+def run_command_with_timeout(
+    args,
+    *,
+    timeout: float,
+    cwd: str | pathlib.Path,
+    shell: bool = False,
+    input_text: str | None = None,
+) -> subprocess.CompletedProcess:
+    popen_kwargs = {
+        "cwd": str(cwd),
+        "shell": shell,
+        "stdout": subprocess.PIPE,
+        "stderr": subprocess.PIPE,
+        "text": True,
+        "encoding": "utf-8",
+        "errors": "replace",
+    }
+    if input_text is not None:
+        popen_kwargs["stdin"] = subprocess.PIPE
+    if os.name != "nt":
+        popen_kwargs["start_new_session"] = True
+    proc = subprocess.Popen(args, **popen_kwargs)
+    try:
+        stdout, stderr = proc.communicate(input=input_text, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        _kill_process_tree(proc)
+        try:
+            stdout, stderr = proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            stdout = exc.output or ""
+            stderr = exc.stderr or ""
+            for stream in (proc.stdin, proc.stdout, proc.stderr):
+                try:
+                    if stream:
+                        stream.close()
+                except Exception:
+                    pass
+        raise subprocess.TimeoutExpired(
+            cmd=args,
+            timeout=timeout,
+            output=stdout,
+            stderr=stderr,
+        ) from exc
+    return subprocess.CompletedProcess(args, proc.returncode, stdout, stderr)
+
+
+PYTHON_LAUNCHERS = {"python", "python.exe", "python3", "python3.exe", "py", "py.exe"}
+SHELL_CONTROL_TOKENS = {"&&", "||", ";", "|", "|&", "&", "<", ">", ">>", "2>", "2>>"}
+
+
+def _has_shell_control(token: str) -> bool:
+    return token in SHELL_CONTROL_TOKENS or any(ch in token for ch in "<>|&;")
+
+
+def _python_inline_argv(command: str) -> list[str] | None:
+    """Return argv for a simple Python -c command that should bypass shell parsing."""
+    try:
+        parts = shlex.split(command, posix=True)
+    except ValueError:
+        return None
+    if len(parts) < 3:
+        return None
+    launcher = pathlib.PurePath(parts[0]).name.lower()
+    if launcher not in PYTHON_LAUNCHERS or "-c" not in parts:
+        return None
+    code_index = parts.index("-c")
+    if code_index + 1 >= len(parts):
+        return None
+    surrounding_tokens = parts[1:code_index] + parts[code_index + 2:]
+    if any(_has_shell_control(token) for token in surrounding_tokens):
+        return None
+    return parts
+
+
+def run_shell_command_with_timeout(
+    command: str,
+    *,
+    timeout: float,
+    cwd: str | pathlib.Path,
+) -> subprocess.CompletedProcess:
+    """Run a grader shell command, avoiding shell expansion for simple Python -c."""
+    python_argv = _python_inline_argv(command)
+    if python_argv:
+        try:
+            return run_command_with_timeout(python_argv, timeout=timeout, cwd=cwd)
+        except OSError as exc:
+            if _is_access_denied_spawn_error(exc):
+                raise InfraError(f"command spawn failed: {exc}") from exc
+            raise
+
+    bash_path = find_bash()
+    if bash_path:
+        try:
+            return run_command_with_timeout(
+                [bash_path, "-c", command],
+                timeout=timeout, cwd=cwd,
+            )
+        except OSError as exc:
+            if not _is_access_denied_spawn_error(exc):
+                raise
+            try:
+                return run_command_with_timeout(
+                    command,
+                    shell=True,
+                    timeout=timeout,
+                    cwd=cwd,
+                )
+            except OSError as fallback_exc:
+                if _is_access_denied_spawn_error(fallback_exc):
+                    raise InfraError(
+                        f"bash and platform shell spawn failed: {fallback_exc}"
+                    ) from fallback_exc
+                raise
+    try:
+        return run_command_with_timeout(
+            command,
+            shell=True,
+            timeout=timeout,
+            cwd=cwd,
+        )
+    except OSError as exc:
+        if _is_access_denied_spawn_error(exc):
+            raise InfraError(f"platform shell spawn failed: {exc}") from exc
+        raise
+
+
+# --- Ported verbatim from scripts/shared.py (repo-side origin) --------------
+# Banned expressions (skills/spec/SKILL.md L197-205)
+BANNED_KO = [
+    "적절히", "적절하게",
+    "필요한 경우", "필요 시",
+    "등등", "기타",
+    "올바르게", "정상적으로",
+    "효율적으로", "최적화하여",
+    "가능하면", "가급적",
+    "상황에 맞게", "상황에 따라",
+]
+BANNED_EN_RE = [
+    r"\bappropriately\b",
+    r"\bif necessary\b", r"\bif needed\b",
+    r"\betc\.\b", r"\band so on\b",
+    r"\bproperly\b", r"\bcorrectly\b",
+    r"\befficiently\b", r"\boptimized\b",
+    r"\bif possible\b", r"\bpreferably\b",
+    r"\bas appropriate\b", r"\bdepending on\b",
+]
+
+
+# --- Placeholder / no-op Verify detection ----------------------------------
+# Ported from the wiring-gate rule (scripts/harness-common.ps1
+# Test-EzpTrivialCommand and scripts/harness-doctor.ps1 Test-TrivialCommand)
+# so per-task Verify commands are held to the same "placeholder = failure"
+# standard. `rem` (cmd/batch no-op comment) is added because it is a no-op
+# Verify the audit requires to FAIL and predates that PowerShell-only rule.
+def _is_placeholder_verify(command: str) -> bool:
+    text = command.strip()
+    if not text:
+        return True
+    lower = text.lower()
+    lower = re.sub(
+        r"^(powershell|powershell\.exe|pwsh|pwsh\.exe)\s+"
+        r"(-noprofile\s+)?(-executionpolicy\s+\w+\s+)?(-command\s+)?",
+        "",
+        lower,
+    )
+    lower = lower.strip().strip('"').strip("'").strip()
+    if re.match(r"^(true|:|exit\s+0)$", lower):
+        return True
+    if re.match(r"^(echo|write-output)\b", lower):
+        return True
+    if re.match(r"^rem\b", lower):
+        return True
+    return False
 
 # Verify-type -> which dimensions apply
 DIMENSION_MAP = {
@@ -445,6 +696,15 @@ def check_command(
         return {"pass": True, "checks": []}
 
     for cmd in commands:
+        if _is_placeholder_verify(cmd):
+            all_pass = False
+            checks.append({
+                "name": "placeholder_verify",
+                "command": cmd,
+                "pass": False,
+                "error": "placeholder/no-op Verify command is not real verification",
+            })
+            continue
         try:
             proc = run_shell_command_with_timeout(
                 cmd,
@@ -469,7 +729,7 @@ def check_command(
                 "pass": False,
                 "error": f"timeout after {timeout}s",
             })
-        except run_baseline.InfraError as e:
+        except InfraError as e:
             all_pass = False
             checks.append({
                 "name": "shell_exit",
@@ -567,7 +827,7 @@ def check_static(
                 "pass": False,
                 "error": f"timeout after {timeout}s",
             })
-        except run_baseline.InfraError as e:
+        except InfraError as e:
             all_pass = False
             checks.append({
                 "name": "static_exit",

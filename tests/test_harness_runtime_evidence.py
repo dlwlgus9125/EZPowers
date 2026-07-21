@@ -103,6 +103,13 @@ class HarnessRuntimeEvidenceTests(unittest.TestCase):
         )
         return proc, gate
 
+    def bind_reviewer_verdict(self, root: pathlib.Path, verdict: str = "PASS") -> None:
+        gate_path = root / "phases" / "sample" / "wiring-gate.json"
+        gate = json.loads(gate_path.read_text(encoding="utf-8-sig"))
+        gate["verdict_fingerprint"] = gate["evidence_fingerprint"]
+        gate["reviewer_verdict"] = verdict
+        gate_path.write_text(json.dumps(gate), encoding="utf-8")
+
     def completed_probe(
         self,
         desktop_evidence: dict | None = None,
@@ -164,6 +171,13 @@ class HarnessRuntimeEvidenceTests(unittest.TestCase):
                 server_config={"health_check_url": "http://localhost:3000/health"},
             )
 
+            # An unbound pre-injected verdict is not honored; the reviewer must
+            # bind their verdict to the evidence fingerprint the gate records.
+            first_proc, first_gate = self.run_gate(root)
+            self.assertEqual(first_proc.returncode, 5, first_proc.stdout + first_proc.stderr)
+            self.assertEqual(first_gate["status"], "review_pending")
+
+            self.bind_reviewer_verdict(root)
             proc, gate = self.run_gate(root)
 
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
@@ -184,6 +198,11 @@ class HarnessRuntimeEvidenceTests(unittest.TestCase):
                         expected_observation=f"{artifact_kind} entry point starts",
                     )
 
+                    first_proc, first_gate = self.run_gate(root)
+                    self.assertEqual(first_proc.returncode, 5, first_proc.stdout + first_proc.stderr)
+                    self.assertEqual(first_gate["status"], "review_pending")
+
+                    self.bind_reviewer_verdict(root)
                     proc, gate = self.run_gate(root)
 
                     self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
@@ -266,6 +285,11 @@ class HarnessRuntimeEvidenceTests(unittest.TestCase):
                 expected_observation="web client renders data from an API endpoint",
             )
 
+            first_proc, first_gate = self.run_gate(root)
+            self.assertEqual(first_proc.returncode, 5, first_proc.stdout + first_proc.stderr)
+            self.assertEqual(first_gate["status"], "review_pending")
+
+            self.bind_reviewer_verdict(root)
             proc, gate = self.run_gate(root)
 
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)

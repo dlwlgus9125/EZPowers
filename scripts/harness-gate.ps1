@@ -61,12 +61,62 @@ function New-Attempt {
     }
 }
 
+function Get-EvidenceFingerprint {
+    param(
+        [string] $ProjectRoot,
+        [string] $Phase,
+        [object[]] $Commands,
+        [object[]] $Artifacts
+    )
+
+    $PhaseDir = Join-Path $ProjectRoot "phases/$Phase"
+    $Parts = @()
+    foreach ($Command in @($Commands)) {
+        $Parts += "cmd:$([string]$Command)"
+    }
+    foreach ($Artifact in @($Artifacts)) {
+        $Name = [string]$Artifact
+        $Candidates = @()
+        if ([IO.Path]::IsPathRooted($Name)) {
+            $Candidates += $Name
+        }
+        else {
+            $Candidates += (Join-Path $ProjectRoot $Name)
+            $Candidates += (Join-Path $PhaseDir $Name)
+        }
+        $Hash = 'missing'
+        foreach ($Candidate in $Candidates) {
+            if (Test-Path -LiteralPath $Candidate) {
+                $Hash = (Get-FileHash -LiteralPath $Candidate -Algorithm SHA256).Hash.ToLowerInvariant()
+                break
+            }
+        }
+        $Parts += "art:${Name}:$Hash"
+    }
+
+    $Bytes = [Text.Encoding]::UTF8.GetBytes(($Parts -join "`n"))
+    $Sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $HashBytes = $Sha.ComputeHash($Bytes)
+    }
+    finally {
+        $Sha.Dispose()
+    }
+    return ([BitConverter]::ToString($HashBytes) -replace '-', '').ToLowerInvariant()
+}
+
 $Gate = Get-Content -LiteralPath $GatePath -Raw -Encoding UTF8 | ConvertFrom-Json
 
 if (-not [bool]$Gate.required) {
+    $Config = Get-EzpHarnessConfig -ProjectRoot $ProjectRoot
+    $Smoke = Get-EzpConfigValue $Config 'smoke' $null
+    $ArtifactKind = [string](Get-EzpConfigValue $Smoke 'artifact_kind' '')
+    if ($ArtifactKind -notin @('docs', 'library')) {
+        Set-GateStatus $Gate 'fail' 'invalid_wiring_config' "wiring gate required=false not allowed for artifact_kind: $ArtifactKind" 1
+    }
     $Gate.status = 'pass'
     Save-Gate $Gate $GatePath
-    Write-Output "Wiring gate skipped: required=false"
+    Write-Output "Wiring gate skipped: required=false (artifact_kind=$ArtifactKind)"
     exit 0
 }
 
@@ -142,18 +192,40 @@ if (-not $RuntimeEvidence.ok) {
     exit 3
 }
 
+$EvidenceFingerprint = Get-EvidenceFingerprint -ProjectRoot $ProjectRoot -Phase $Phase -Commands $Commands -Artifacts $Gate.runtime_artifacts
+if (-not ($Gate.PSObject.Properties.Name -contains 'evidence_fingerprint')) {
+    $Gate | Add-Member -NotePropertyName evidence_fingerprint -NotePropertyValue '' -Force
+}
+$Gate.evidence_fingerprint = $EvidenceFingerprint
+if (-not ($Gate.PSObject.Properties.Name -contains 'message')) {
+    $Gate | Add-Member -NotePropertyName message -NotePropertyValue '' -Force
+}
+
 $Verdict = [string](Get-EzpConfigValue $Gate 'reviewer_verdict' '')
+$VerdictFingerprint = [string](Get-EzpConfigValue $Gate 'verdict_fingerprint' '')
 if ($Verdict) {
-    switch ($Verdict) {
-        'PASS' { $Gate.status = 'pass' }
-        'TEST_GAP' { $Gate.status = 'test_gap' }
-        'CODE_GAP' { $Gate.status = 'code_gap' }
-        'SPEC_GAP' { $Gate.status = 'spec_gap' }
-        default { $Gate.status = 'test_gap' }
+    if ([string]::IsNullOrWhiteSpace($VerdictFingerprint)) {
+        $Gate.status = 'review_pending'
+        $Gate.message = 'reviewer_verdict is not bound to current evidence (missing verdict_fingerprint)'
+    }
+    elseif ($VerdictFingerprint -ne $EvidenceFingerprint) {
+        $Gate.status = 'review_pending'
+        $Gate.message = "reviewer_verdict fingerprint does not match current evidence (verdict=$VerdictFingerprint evidence=$EvidenceFingerprint)"
+    }
+    else {
+        switch ($Verdict) {
+            'PASS' { $Gate.status = 'pass' }
+            'TEST_GAP' { $Gate.status = 'test_gap' }
+            'CODE_GAP' { $Gate.status = 'code_gap' }
+            'SPEC_GAP' { $Gate.status = 'spec_gap' }
+            default { $Gate.status = 'test_gap' }
+        }
+        $Gate.message = "reviewer_verdict $Verdict accepted for bound evidence"
     }
 }
 else {
     $Gate.status = 'review_pending'
+    $Gate.message = 'reviewer verdict required'
 }
 if (-not ($Gate.PSObject.Properties.Name -contains 'evidence_status')) {
     $Gate | Add-Member -NotePropertyName evidence_status -NotePropertyValue '' -Force

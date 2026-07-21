@@ -32,6 +32,40 @@ if ($ResetStep -ge 0) {
     $Target.status = 'pending'
     $Index | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $IndexPath -Encoding UTF8
     Write-Output "Reset step $ResetStep to pending in $IndexPath"
+
+    $PhaseDir = Split-Path -Parent $IndexPath
+    $Invalidated = New-Object System.Collections.ArrayList
+
+    $TaskGatePath = Join-Path $PhaseDir "task-gates/task-$($ResetStep + 1).json"
+    if (Test-Path -LiteralPath $TaskGatePath) {
+        Remove-Item -LiteralPath $TaskGatePath -Force
+        [void]$Invalidated.Add($TaskGatePath)
+    }
+
+    $ProbePath = Join-Path $PhaseDir 'runtime-probe.json'
+    if (Test-Path -LiteralPath $ProbePath) {
+        $ProbeStep = -1
+        try {
+            $Probe = Get-Content -LiteralPath $ProbePath -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($null -ne $Probe -and $Probe.PSObject.Properties.Name -contains 'step') {
+                $ProbeStep = [int]$Probe.step
+            }
+        }
+        catch {
+            $ProbeStep = -1
+        }
+        if ($ProbeStep -eq $ResetStep) {
+            Remove-Item -LiteralPath $ProbePath -Force
+            [void]$Invalidated.Add($ProbePath)
+        }
+    }
+
+    if ($Invalidated.Count -gt 0) {
+        Write-Output "Invalidated stale evidence for step ${ResetStep}: $($Invalidated -join ', ')"
+    }
+    else {
+        Write-Output "No stale evidence artifacts found for step $ResetStep"
+    }
 }
 
 if ($Status -or $ResetStep -ge 0) {
