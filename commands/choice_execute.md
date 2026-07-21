@@ -97,21 +97,13 @@ Path 2 follows `docs/reference/strict-execution-adapter.md`.
 
 ## 3. Task Graph Analysis
 
-Analyze task dependencies before execution to determine execution strategy.
-
-### Step 1: Parse Dependencies
-
-Identify per task:
-- **Explicit dependency:** `Depends on: Task N` marker
-- **File overlap dependency:** `**File overlap with:** Task N` marker — pre-computed file overlap from /prepare_execute. Trust over implicit when present.
-- **Implicit dependency:** Same file modified (`Modify:` items match) — fallback when no `File overlap with` marker
-  - Detection: normalize each task's `Modify:` paths (strip trailing slash, unify case), then exact string comparison. No partial path matching.
-
-### Step 2: Build Directed Graph
-
-Construct directed graph: Task A -> Task B = "B depends on A"
-
-### Step 3: Classify Task Groups
+Analyze task dependencies before execution. Per task, identify: **explicit**
+dependency (`Depends on: Task N`), **file overlap** dependency
+(`**File overlap with:** Task N`, pre-computed by /prepare_execute — trust
+over implicit when present), and **implicit** dependency (same `Modify:` file;
+normalize paths — strip trailing slash, unify case — then exact string
+comparison, no partial matching). Build the directed graph
+(Task A -> Task B = "B depends on A") and classify:
 
 | Classification | Condition | Execution Strategy |
 |----------------|-----------|-------------------|
@@ -135,11 +127,9 @@ of a contract are complete.
 
 ### Step 4: Execute by Classification
 
-> **Note:** Claude Code's Agent tool supports sequential execution only. "Independent" means tasks can run in any order without dependency constraints, not that they dispatch concurrently.
-
-- **Independent cluster (2+ tasks):** Sequential dispatch in any order. Per-task AC verification + security review after each.
-- **Pipeline:** Strict sequential execution.
-- **Single independent task:** Sequential dispatch.
+All classifications dispatch sequentially ("independent" means order-agnostic,
+not concurrent). Per-task AC verification + conditional security review run
+after each task regardless of classification.
 
 ### Edge Cases
 
@@ -469,22 +459,16 @@ Execute each row's verification command (timeout: 30s).
 
 **Oscillation detection (from iteration 3):** Log issues by `{file}:{issue_type}` key. If a current key also appeared in 2+ prior iterations -> escalate to user.
 
-**Tiered escalation (unified reference table):**
+**Tiered escalation:** per-review-type max/warn/stop limits follow the review
+loop table in `docs/reference/dispatch-protocol.md` § Retry And Oscillation.
+If the Verdict header is missing 2 consecutive times for any review type,
+immediately escalate to user.
 
-| Review type | Source | Max iterations | Warn at | Stop at |
-|-------------|--------|----------------|---------|---------|
-| Spec review | spec.md | 5 | 3 | 5 |
-| Plan review | plan.md | 5 | 3 | 5 |
-| Implementer AC | choice_execute.md | 3 | — | 3 |
-| Security review | choice_execute.md | 5 | 3 | 5 |
-| Final code review | choice_execute.md | 10 | 5 | 10 |
-| Smoke test | choice_execute.md | 3 | — | 3 |
-| Test protection | verification-contract.md | 3 | — | 3 |
-| Lint/typecheck | verification-contract.md | 2 | — | 2 |
-
-If the Verdict header is missing 2 consecutive times for any review type, immediately escalate to user.
-
-**PASS_WITH_ISSUES handling:** PASS_WITH_ISSUES is a conditional PASS. It triggers exactly 1 additional fix-and-review round for Important issues. If the second review returns PASS or PASS_WITH_ISSUES, accept. If FAIL, enter the FAIL loop at iteration count 2. Max 3 PASS_WITH_ISSUES rounds total prevents endless Important-issue churn.
+**PASS_WITH_ISSUES handling:** conditional PASS per the dispatch protocol —
+exactly 1 additional fix-and-review round for Important issues; second review
+PASS or PASS_WITH_ISSUES → accept; FAIL → enter the FAIL loop at iteration
+count 2. Max 3 PASS_WITH_ISSUES rounds total prevents endless
+Important-issue churn.
 
 **Exemption check:** Before entering the review loop:
 - `AGENTS.md` has `review-skip:` pattern?
@@ -496,34 +480,25 @@ If the Verdict header is missing 2 consecutive times for any review type, immedi
 
 ## 8. Controller Context Hygiene
 
-**Subagent prompt sizing:**
-- Include task description + completion criteria verbatim. Extra context (architecture notes, dependency descriptions) ~2K tokens max
-- **Include the task text and completion criteria directly in the prompt** (see implementer-prompt.md template)
-- **Do not paste the full plan/spec** — provide paths only; subagent reads as needed
-- Do not pre-read source files into the prompt — subagent reads with fresh context
+**Subagent prompt sizing:** include the task text and completion criteria
+verbatim in the prompt (see implementer-prompt.md template); extra context
+(architecture notes, dependency descriptions) ~2K tokens max. Do not paste the
+full plan/spec — provide paths only. Do not pre-read source files into the
+prompt — the subagent reads with fresh context.
 
-**Between-task cleanup:**
-- Preserve after each task: task status (pass/fail), changed files, unresolved issues only
-- Preserve lightpath evidence as paths and verdicts only: `lightpath-gate.json`,
-  `wiring-gate.json`, runtime artifact names, and short failure tails
-- Do not preserve: subagent full output, review details, intermediate reasoning
+**Between-task cleanup:** preserve only task status (pass/fail), changed
+files, unresolved issues, and lightpath evidence as paths + verdicts
+(`lightpath-gate.json`, `wiring-gate.json`, runtime artifact names, short
+failure tails). Do not preserve subagent full output, review details, or
+intermediate reasoning. The controller owns the final completion decision but
+delegates mechanical checks to gate scripts and qualitative checks to
+reviewer/arbiter subagents, parsing only status lines and verdict enums.
 
-The parent/controller owns the final completion decision, but it does not
-perform evidence-heavy review in its own context. It delegates mechanical checks
-to gate scripts and qualitative checks to reviewer/arbiter subagents, then
-parses only their status lines and verdict enums.
-
-**Context pressure relief:**
-- Before Task 5: compact on pressure detection
-- After Task 5: proactive compact unconditionally
-- **Compaction method:** The controller cannot directly shrink its own context window. "Compact" means:
-  1. Stop referencing prior subagent output/review details/intermediate reasoning in subsequent output
-  2. Instead, proceed using only these "work notes":
-     - Remaining task numbers and titles
-     - Cumulative changed files list
-     - Unresolved issue summary (if any)
-     - PASS/FAIL status per completed task
-  3. If the session continues past Task 10, suggest `/compact` or a fresh session to the user
+**Context pressure relief:** before Task 5, compact on pressure detection;
+after Task 5, compact proactively. "Compact" = stop referencing prior
+subagent output/review details and proceed using only work notes (remaining
+task numbers/titles, cumulative changed files, unresolved issue summary,
+per-task PASS/FAIL). Past Task 10, suggest `/compact` or a fresh session.
 
 ### Context Anchoring in Subagent Prompts
 
@@ -599,25 +574,16 @@ Agent tool:
 
 ## 9. Degradation Detection and Response
 
-**5 detection signals:**
-- Implementer reports NEEDS_CONTEXT 2+ times on the same task
-- Same issue category recurs across multiple tasks
-- Implementer self-reports reading 8+ files
-- 3+ re-dispatch cycles
-- Compaction checkpoint reached after Task 5
+| Signal (controller-tracked) | Response |
+|-----------------------------|----------|
+| NEEDS_CONTEXT 2+ times on the same task (per-task counter) | Re-assess complexity, consider splitting |
+| Same issue category recurs across tasks (classify by `[severity]` keyword) | Session-level: 3+ tasks degraded → reconsider plan decomposition |
+| Implementer self-reports reading 8+ files (match "Files read:"/"read N files") | Compact controller context |
+| 3+ re-dispatch cycles (per-task dispatch counter) | Re-assess complexity + splitting |
+| Task completion counter ≥ 5 | Proactive compact (Section 8) |
 
-**Signal extraction rules:**
-- "NEEDS_CONTEXT 2+" → controller maintains per-task NEEDS_CONTEXT counter
-- "Same issue category repeats" → classify reviewer issues by `[severity]` keyword, check for cross-task duplicates
-- "8+ file reads" → pattern-match "Files read:" or "read N files" in implementer report, extract count
-- "3+ re-dispatch" → controller maintains per-task dispatch counter
-- "After Task 5 compaction" → triggers at task completion counter ≥ 5
-
-**Response protocol:**
-1. **Immediate:** Compact controller context
-2. **Per-task:** If failing after 2 dispatches, re-assess complexity + consider splitting
-3. **Session-level:** Degradation across 3+ tasks -> reconsider plan decomposition
-4. **Escalation:** If degradation persists after compaction + splitting -> save state + suggest fresh session
+If degradation persists after compaction + splitting → save state + suggest a
+fresh session.
 
 ## 10. Harness Execution (Path 2)
 
@@ -775,23 +741,18 @@ Gate. Include the score in the final completion report.
 
 If plan decomposition proves inadequate during execution — tasks too tightly coupled, missing dependencies, misaligned boundaries — do not force a broken plan.
 
-**Triggers:**
-- 2+ tasks modify the same file in conflicting ways
-- Task prerequisites missing from the plan
-- Task ordering assumptions are wrong given the actual codebase
-- 2+ consecutive tasks BLOCKED for structural reasons
+**Triggers:** 2+ tasks modify the same file in conflicting ways; task
+prerequisites missing from the plan; task ordering assumptions wrong given the
+actual codebase; 2+ consecutive tasks BLOCKED for structural reasons.
 
-**Actions:**
-1. Log reason: "Returning to /prepare_execute: [specific reason]"
-2. Report to user
-3. Save current progress:
-   - Completed tasks: check the task's checkbox (`- [x]`) in the plan and commit
-   - Incomplete tasks: leave checkboxes unchecked, mark as re-plan targets
-   - Record `first-task-start-hash` in plan header: `**Resume hash:** <first-task-start-hash>`
-   - Commit message: `wip: build progress saved before /prepare_execute return — Tasks 1-N complete`
-4. Update `phases/index.json`: set build to `pending`, reset plan to `in_progress`
-5. Return to `/prepare_execute` for plan revision
-6. Resume `/choice_execute` with updated plan
+**Actions:** Log and report "Returning to /prepare_execute: [specific
+reason]". Save progress: check completed tasks' checkboxes (`- [x]`) in the
+plan, leave incomplete tasks unchecked as re-plan targets, record
+`**Resume hash:** <first-task-start-hash>` in the plan header, and commit
+(`wip: build progress saved before /prepare_execute return — Tasks 1-N
+complete`). Update `phases/index.json` (build `pending`, plan `in_progress`),
+return to `/prepare_execute`, then resume `/choice_execute` with the updated
+plan.
 
 ### Resume Protocol (after returning from /prepare_execute)
 
