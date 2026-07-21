@@ -27,6 +27,10 @@ work without bypassing architecture, spec, plan, or evidence gates.
 - Classify the request as bug fix, refactor, dependency update, test gap,
   operational incident, or documentation maintenance.
 - Reproduce or identify the failing signal before planning changes.
+- For bug fixes and operational incidents, invoke the `diagnose` skill to run
+  the root-cause loop before proposing any fix.
+- For refactor requests, invoke the `improve-codebase-architecture` skill to
+  ground the refactor in deepening opportunities before routing.
 - Route architecture or verification-policy changes to `/design_architecture`.
 - Route behavior changes to `/spec`; route task-only implementation changes to
   `/prepare_execute` only when an existing approved spec already covers them.
