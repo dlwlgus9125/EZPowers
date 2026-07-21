@@ -22,7 +22,7 @@ Verify the following first:
 3. Spec document referenced by the plan exists
 4. `phases/index.json` audit gate:
    - `audit.status` is `"FAIL"` → report `"internal pipeline audit has unresolved findings. Fix them and rerun the internal audit."` and stop
-   - `audit` field is missing → report `"internal pipeline audit를 먼저 실행하세요."` and stop
+   - `audit` field is missing → report `"Run the internal pipeline audit first."` and stop
    - `audit.status` is `"PASS"` or `"WARN"` → proceed
 
 If missing, direct the user to the required step:
@@ -829,39 +829,30 @@ After all tasks + final review complete:
    Path 1/3 run these rules through `lightpath-gate.ps1`; Path 2 receives the
    same verdict from `/choice_execute Path 2`. Apply Wiring Config Validation
    (Section 3.7). If exempt/skip, skip wiring gate.
-   - Plan `## Full-Feature Wiring Gate` with `Required: yes`:
-     - `config.wiring.wiring_gate_command` non-empty → 실행 (timeout: 120s).
-     - `config.wiring.wiring_gate_command` empty → plan의 Wiring Gate Verify 커맨드 사용.
-     - 양쪽 모두 empty → FAIL: `"Required wiring gate has no executable command."`
-   - `wiring.enabled: true` + plan에 2개 이상 연결된 task 존재 + `## Full-Feature Wiring Gate` 없음 → FAIL: `"Connected tasks exist but plan has no Full-Feature Wiring Gate. Return to /prepare_execute."`
-   Exit 0 = PASS. Non-zero = FAIL.
-   FAIL → 테스트 출력에서 실패 뷰/파이프라인 식별, Coverage Matrix로 Task 역추적, 해당 Task implementer 재디스패치. Max 3 retries → user 에스컬레이션.
-   `Required: yes` → skip 불가. 테스트 파일 미존재 → 테스트 작성 Task를 자동 추가.
+   - Plan `## Full-Feature Wiring Gate` with `Required: yes`: run
+     `config.wiring.wiring_gate_command` when non-empty (timeout: 120s); when
+     empty, use the plan's Wiring Gate Verify command; both empty → FAIL:
+     `"Required wiring gate has no executable command."`
+   - `wiring.enabled: true` + plan has 2+ connected tasks + no
+     `## Full-Feature Wiring Gate` → FAIL: `"Connected tasks exist but plan
+     has no Full-Feature Wiring Gate. Return to /prepare_execute."`
+   Exit 0 = PASS. Non-zero = FAIL. On FAIL, identify the failed view/pipeline
+   from test output, trace back to the responsible task via the Coverage
+   Matrix, and re-dispatch that task's implementer. Max 3 retries → user
+   escalation. `Required: yes` → no skip. Missing test file → auto-add a
+   test-writing task.
 5. **Smoke/runtime gate:** Run the configured runtime probe. If `config.smoke.required: true`, missing `config.smoke.command` is FAIL. Empty smoke may skip only for `artifact_kind: docs|library` with `required: false`. Any failure enters the fix loop (max 3).
 
    **GUI smoke (if `config.smoke.gui_strategy` is not `skip` and not absent):**
-   Execute the gui_strategy probe after smoke command:
-   - `process_probe`: start app → survive N seconds → no fatal stderr → window handle exists → kill. PASS/FAIL by exit code.
-   - `screenshot_vision`: process_probe + capture screenshot + deterministic non-blank check. PASS/FAIL.
-   - `headless`: run `config.smoke.command` as headless test runner (Playwright, Avalonia.Headless, FlaUI). Exit 0 = PASS.
-   - Vision is not a v1 hard gate; deterministic process/window/screenshot/UIA evidence is required.
-   - GUI smoke FAIL → same fix loop (max 3). No user confirmation.
-
-   **Exit code convention:**
-
-   | Code | Meaning |
-   |------|---------|
-   | 0 | Pass |
-   | 10 | Start failed |
-   | 11 | Exited before survival window |
-   | 12 | Fatal output matched |
-   | 13 | No main window |
-   | 14 | Invisible/zero-size window |
-   | 15 | Screenshot capture failed |
-   | 16 | Blank screenshot (pixel variance below threshold) |
-   | 18 | Expected UI text/name missing |
-   | 20 | Timeout |
-   | 30 | Unsupported platform |
+   Execute the gui_strategy probe after the smoke command — `process_probe`
+   (start → survive → no fatal stderr → window handle → kill),
+   `screenshot_vision` (process_probe + screenshot + deterministic non-blank
+   check), or `headless` (run `config.smoke.command` as a headless test
+   runner; exit 0 = PASS). Vision is not a v1 hard gate; deterministic
+   process/window/screenshot/UIA evidence is required. GUI smoke FAIL → same
+   fix loop (max 3), no user confirmation. Failures map to the exit code
+   convention in `docs/reference/verification-contract.md` § Runtime Probe
+   (e.g. 13 = No main window, 18 = Expected UI text/name missing).
 
 6. Dispatch `ezpowers:workflow-runner` to invoke `/sync-docs` in
    `auto-from-choice_execute` mode:

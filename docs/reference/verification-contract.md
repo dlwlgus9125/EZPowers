@@ -186,6 +186,22 @@ is not runtime smoke and must not be reused as `smoke.command`.
 Vision checks may be used as advisory evidence, but the v1 hard gate is
 deterministic process/window/screenshot/UI Automation evidence.
 
+GUI smoke probes report failures with this exit code convention:
+
+| Code | Meaning |
+|------|---------|
+| 0 | Pass |
+| 10 | Start failed |
+| 11 | Exited before survival window |
+| 12 | Fatal output matched |
+| 13 | No main window |
+| 14 | Invisible/zero-size window |
+| 15 | Screenshot capture failed |
+| 16 | Blank screenshot (pixel variance below threshold) |
+| 18 | Expected UI text/name missing |
+| 20 | Timeout |
+| 30 | Unsupported platform |
+
 Runtime probe success never replaces a Verify command whose Then clause
 describes feature behavior.
 
