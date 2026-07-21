@@ -5,6 +5,13 @@ import unittest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
+def workflow_doc(skill_name: str, command_name: str) -> str:
+    for candidate in (f"skills/{skill_name}/SKILL.md", f"commands/{command_name}.md"):
+        if (REPO_ROOT / candidate).exists():
+            return candidate
+    return f"commands/{command_name}.md"
+
+
 class FrontendDesignReadinessTests(unittest.TestCase):
     def read(self, path: str) -> str:
         return (REPO_ROOT / path).read_text(encoding="utf-8")
@@ -24,8 +31,8 @@ class FrontendDesignReadinessTests(unittest.TestCase):
     def test_setup_and_design_architecture_require_design_artifact(self):
         setup = self.read("docs/reference/setup-contract.md")
         design = self.read("docs/reference/design-architecture-contract.md")
-        setup_command = self.read("commands/setup.md")
-        design_command = self.read("commands/design_architecture.md")
+        setup_command = self.read(workflow_doc("setup", "setup"))
+        design_command = self.read(workflow_doc("design-architecture", "design_architecture"))
 
         for text in (setup, design, setup_command, design_command):
             self.assertIn("frontend-design", text)

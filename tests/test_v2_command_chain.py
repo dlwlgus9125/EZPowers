@@ -9,26 +9,47 @@ import unittest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 
+# (legacy command name, migrated skill directory name)
+WORKFLOW_DOCS = [
+    ("setup", "setup"),
+    ("design_architecture", "design-architecture"),
+    ("spec", "spec"),
+    ("prepare_execute", "prepare-execute"),
+    ("choice_execute", "choice-execute"),
+    ("maintain", "maintain"),
+    ("deploy", "deploy"),
+    ("reset_setup", "reset-setup"),
+    ("eval", "eval"),
+    ("feedback", "feedback"),
+    ("review", "review"),
+    ("set-rules", "set-rules"),
+    ("sync-docs", "sync-docs"),
+]
+
+
+def workflow_doc(command_name: str, skill_name: str) -> pathlib.Path:
+    for candidate in (
+        REPO_ROOT / "skills" / skill_name / "SKILL.md",
+        REPO_ROOT / "commands" / f"{command_name}.md",
+    ):
+        if candidate.exists():
+            return candidate
+    return REPO_ROOT / "commands" / f"{command_name}.md"
+
 
 class V2CommandChainTests(unittest.TestCase):
     def test_public_commands_are_v2_chain(self):
-        expected = {
-            "setup.md",
-            "design_architecture.md",
-            "spec.md",
-            "prepare_execute.md",
-            "choice_execute.md",
-            "maintain.md",
-            "deploy.md",
-            "reset_setup.md",
-            "eval.md",
-            "feedback.md",
-            "review.md",
-            "set-rules.md",
-            "sync-docs.md",
-        }
-        actual = {path.name for path in (REPO_ROOT / "commands").glob("*.md")}
-        self.assertEqual(expected, actual)
+        missing = [
+            old for old, new in WORKFLOW_DOCS
+            if not workflow_doc(old, new).exists()
+        ]
+        self.assertEqual(missing, [])
+
+        commands_dir = REPO_ROOT / "commands"
+        if commands_dir.is_dir():
+            expected = {f"{old}.md" for old, _ in WORKFLOW_DOCS}
+            actual = {path.name for path in commands_dir.glob("*.md")}
+            self.assertLessEqual(actual, expected)
 
     def test_removed_commands_are_internal_or_absent(self):
         for name in [
@@ -84,8 +105,8 @@ class V2CommandChainTests(unittest.TestCase):
             self.assertTrue((target_root / "scripts/verify-step.py").exists())
 
     def test_setup_and_prepare_execute_preserve_ui_adapter_contract(self):
-        setup = (REPO_ROOT / "commands/setup.md").read_text(encoding="utf-8")
-        prepare = (REPO_ROOT / "commands/prepare_execute.md").read_text(encoding="utf-8")
+        setup = workflow_doc("setup", "setup").read_text(encoding="utf-8")
+        prepare = workflow_doc("prepare_execute", "prepare-execute").read_text(encoding="utf-8")
         ui_contract = (
             REPO_ROOT / "docs/reference/ui-verification-adapter-contract.md"
         ).read_text(encoding="utf-8")

@@ -333,6 +333,11 @@ class EvalRunnerSafetyTests(unittest.TestCase):
 
         self.assertEqual(validate.behavior_prompt_targets(changed), [])
         self.assertEqual(validate.behavior_prompt_targets(["commands/prepare_execute.md"]), ["commands/prepare_execute.md"])
+        self.assertEqual(validate.behavior_prompt_targets(["skills/eval/SKILL.md"]), [])
+        self.assertEqual(
+            validate.behavior_prompt_targets(["skills/prepare-execute/SKILL.md"]),
+            ["skills/prepare-execute/SKILL.md"],
+        )
 
         passed, detail = validate.check_diff_lines(False, changed)
 

@@ -40,7 +40,17 @@ EVALS_ROOT = REPO_ROOT / "evals"
 GOLDEN_DIR = EVALS_ROOT / "golden"
 BASELINES_DIR = EVALS_ROOT / "results" / "baselines"
 COMMAND_EVAL_SPLITS = ("golden", "optimization", "holdout", "honeypot")
-EVAL_TOOL_COMMANDS = {"commands/eval.md"}
+EVAL_TOOL_COMMANDS = {"commands/eval.md", "skills/eval/SKILL.md"}
+
+# Workflow commands live at skills/<name>/SKILL.md after the 3.0.0 migration;
+# both layouts stay behavior-gated during the transition.
+WORKFLOW_SKILL_NAMES = (
+    "setup", "design-architecture", "spec", "prepare-execute", "choice-execute",
+    "maintain", "deploy", "reset-setup", "review", "sync-docs", "set-rules",
+    "eval", "feedback",
+)
+WORKFLOW_SKILL_PATHS = frozenset(f"skills/{n}/SKILL.md" for n in WORKFLOW_SKILL_NAMES)
+WORKFLOW_SKILL_DIR_PREFIXES = tuple(f"skills/{n}/" for n in WORKFLOW_SKILL_NAMES)
 
 # Import run_baseline for grader execution
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
@@ -65,6 +75,10 @@ CONSISTENCY_PAIRS = [
         "source": "docs/reference/verification-contract.md",
         "source_heading": "## Wiring Config Validation",
         "consumer": "commands/choice_execute.md",
+        "consumer_candidates": [
+            "skills/choice-execute/SKILL.md",
+            "commands/choice_execute.md",
+        ],
         "consumer_heading": "## 3.7. Wiring Config Validation",
     },
 ]
@@ -79,6 +93,7 @@ EVAL_SYNC_PATH_PREFIXES = (
 )
 EVAL_SYNC_FILES = (
     "commands/eval.md",
+    "skills/eval/SKILL.md",
     "evals/schema.json",
     "evals/INDEX.md",
     ".codex-plugin/plugin.json",
@@ -162,6 +177,8 @@ def is_behavior_prompt_path(path: str) -> bool:
     if path.startswith("agents/"):
         return True
     if path.startswith("commands/"):
+        return path not in EVAL_TOOL_COMMANDS
+    if path in WORKFLOW_SKILL_PATHS:
         return path not in EVAL_TOOL_COMMANDS
     return False
 
@@ -663,7 +680,10 @@ def check_holdout_delta(
 def check_banned_self_ref(
     staged: bool, changed: list[str], *, base_ref: str | None = None,
 ) -> tuple[bool, str]:
-    targets = [f for f in changed if f.startswith(("commands/", "agents/"))]
+    targets = [
+        f for f in changed
+        if f.startswith(("commands/", "agents/")) or f in WORKFLOW_SKILL_PATHS
+    ]
     if not targets:
         return True, "no commands/agents files changed"
 
@@ -828,7 +848,11 @@ def check_doc_consistency() -> tuple[bool, str]:
     errors: list[str] = []
     for pair in CONSISTENCY_PAIRS:
         src_path = REPO_ROOT / pair["source"]
-        con_path = REPO_ROOT / pair["consumer"]
+        candidates = pair.get("consumer_candidates", [pair["consumer"]])
+        con_path = next(
+            (REPO_ROOT / c for c in candidates if (REPO_ROOT / c).exists()),
+            REPO_ROOT / pair["consumer"],
+        )
         if not src_path.exists() or not con_path.exists():
             errors.append(f"{pair['name']}: missing file")
             continue
@@ -1045,7 +1069,10 @@ def main() -> None:
     target = behavior_prompt_targets(changed)
     skill_target = [
         f for f in changed
-        if f.startswith(("skills/", "evals/skills/"))
+        if (
+            f.startswith(("skills/", "evals/skills/"))
+            and not f.startswith(WORKFLOW_SKILL_DIR_PREFIXES)
+        )
         or f in ("scripts/run_skill_evals.py", "scripts/validate.py", ".githooks/pre-commit")
     ]
     doc_target = [f for f in changed if f.startswith("docs/reference/")]

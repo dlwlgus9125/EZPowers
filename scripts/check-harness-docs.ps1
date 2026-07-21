@@ -42,6 +42,44 @@ function Assert-NotContains {
     Write-Output "[PASS] $Label"
 }
 
+function Resolve-WorkflowDoc {
+    param([string] $Name)
+    $HyphenMap = @{
+        'choice_execute' = 'choice-execute'
+        'prepare_execute' = 'prepare-execute'
+        'design_architecture' = 'design-architecture'
+        'reset_setup' = 'reset-setup'
+    }
+    $SkillName = if ($HyphenMap.ContainsKey($Name)) { $HyphenMap[$Name] } else { $Name }
+    $SkillPath = "skills/$SkillName/SKILL.md"
+    if (Test-Path -LiteralPath (Join-Path $RepoRoot $SkillPath)) {
+        return $SkillPath
+    }
+    return "commands/$Name.md"
+}
+
+function Assert-ContainsAny {
+    param(
+        [string] $Path,
+        [string[]] $Needles,
+        [string] $Label
+    )
+
+    $FullPath = Join-Path $RepoRoot $Path
+    if (-not (Test-Path -LiteralPath $FullPath)) {
+        throw "[FAIL] ${Label}: missing file $Path"
+    }
+
+    $Text = Get-Content -LiteralPath $FullPath -Raw -Encoding UTF8
+    foreach ($Needle in $Needles) {
+        if ($Text.Contains($Needle)) {
+            Write-Output "[PASS] $Label"
+            return
+        }
+    }
+    throw "[FAIL] ${Label}: none of the expected texts found in $Path"
+}
+
 function Assert-DeepInterviewUtf8 {
     $Path = Join-Path $RepoRoot 'skills/deep-interview/SKILL.md'
     if (-not (Test-Path -LiteralPath $Path)) {
@@ -1290,14 +1328,14 @@ Visual QA strategy: component DOM fallback.
     }
 }
 
-Assert-Contains 'commands/choice_execute.md' 'Harness is the external executor/recovery path, not the only strict verification path.' 'choice_execute keeps all paths strict'
-Assert-Contains 'commands/choice_execute.md' 'scripts/lightpath-gate.ps1 -Scope task' 'choice_execute uses lightpath task gate'
-Assert-Contains 'commands/choice_execute.md' 'scripts/lightpath-gate.ps1 -Scope final' 'choice_execute uses lightpath final gate'
-Assert-Contains 'commands/choice_execute.md' 'scripts/harness-certify.ps1' 'choice_execute uses completion certificate gate'
-Assert-Contains 'commands/choice_execute.md' 'scripts/harness-resume-proof.ps1' 'choice_execute uses resume proof gate'
-Assert-Contains 'commands/choice_execute.md' 'Checkboxes are progress hints, not PASS evidence.' 'choice_execute treats checkboxes as hints'
-Assert-NotContains 'commands/choice_execute.md' 'Treat `- [x]` tasks as PASS' 'choice_execute removed checkbox PASS resume rule'
-Assert-NotContains 'commands/choice_execute.md' 'Tasks checked `- [x]` are treated as PASS' 'choice_execute removed checked-task skip rule'
+Assert-Contains (Resolve-WorkflowDoc 'choice_execute') 'Harness is the external executor/recovery path, not the only strict verification path.' 'choice_execute keeps all paths strict'
+Assert-Contains (Resolve-WorkflowDoc 'choice_execute') 'scripts/lightpath-gate.ps1 -Scope task' 'choice_execute uses lightpath task gate'
+Assert-Contains (Resolve-WorkflowDoc 'choice_execute') 'scripts/lightpath-gate.ps1 -Scope final' 'choice_execute uses lightpath final gate'
+Assert-Contains (Resolve-WorkflowDoc 'choice_execute') 'scripts/harness-certify.ps1' 'choice_execute uses completion certificate gate'
+Assert-Contains (Resolve-WorkflowDoc 'choice_execute') 'scripts/harness-resume-proof.ps1' 'choice_execute uses resume proof gate'
+Assert-Contains (Resolve-WorkflowDoc 'choice_execute') 'Checkboxes are progress hints, not PASS evidence.' 'choice_execute treats checkboxes as hints'
+Assert-NotContains (Resolve-WorkflowDoc 'choice_execute') 'Treat `- [x]` tasks as PASS' 'choice_execute removed checkbox PASS resume rule'
+Assert-NotContains (Resolve-WorkflowDoc 'choice_execute') 'Tasks checked `- [x]` are treated as PASS' 'choice_execute removed checked-task skip rule'
 Assert-Contains 'docs/reference/setup-contract.md' '"lifecycle_stage": "undecided"' 'setup lifecycle default is undecided'
 Assert-NotContains 'docs/reference/setup-contract.md' '"lifecycle_stage": "mvp"' 'setup lifecycle does not silently default to MVP'
 Assert-Contains 'docs/reference/verification-contract.md' 'scripts/harness-resume-proof.ps1' 'verification contract defines resume proof'
@@ -1306,21 +1344,21 @@ Assert-Contains 'evals/optimization/choiceexecutor/resume-mid-task.yaml' 'resume
 Assert-NotContains 'evals/optimization/choiceexecutor/resume-mid-task.yaml' 'Task 1 skipped as already complete (- [x] markers)' 'resume eval no longer rewards checkbox skip'
 Assert-NotContains 'evals/optimization/choiceexecutor/resume-mid-task.yaml' 'tasks_skipped' 'resume eval no longer tracks skipped checkbox metric'
 Assert-Contains 'agents/wiring-reviewer.md' 'missing generated gate evidence' 'wiring reviewer fails missing lightpath evidence'
-Assert-ControllerPrompt 'commands/setup.md' 'setup prompt is diet controller'
-Assert-ControllerPrompt 'commands/design_architecture.md' 'design_architecture prompt is diet controller'
-Assert-ControllerPrompt 'commands/spec.md' 'spec prompt is diet controller'
-Assert-ControllerPrompt 'commands/prepare_execute.md' 'prepare_execute prompt is diet controller'
-Assert-ControllerPrompt 'commands/maintain.md' 'maintain prompt is diet controller'
-Assert-ControllerPrompt 'commands/deploy.md' 'deploy prompt is diet controller'
-Assert-ControllerPrompt 'commands/reset_setup.md' 'reset_setup prompt is diet controller'
+Assert-ControllerPrompt (Resolve-WorkflowDoc 'setup') 'setup prompt is diet controller'
+Assert-ControllerPrompt (Resolve-WorkflowDoc 'design_architecture') 'design_architecture prompt is diet controller'
+Assert-ControllerPrompt (Resolve-WorkflowDoc 'spec') 'spec prompt is diet controller'
+Assert-ControllerPrompt (Resolve-WorkflowDoc 'prepare_execute') 'prepare_execute prompt is diet controller'
+Assert-ControllerPrompt (Resolve-WorkflowDoc 'maintain') 'maintain prompt is diet controller'
+Assert-ControllerPrompt (Resolve-WorkflowDoc 'deploy') 'deploy prompt is diet controller'
+Assert-ControllerPrompt (Resolve-WorkflowDoc 'reset_setup') 'reset_setup prompt is diet controller'
 Assert-ControllerPrompt 'docs/reference/strict-execution-adapter.md' 'strict execution adapter is diet controller'
-Assert-Contains 'commands/setup.md' 'docs/reference/setup-contract.md' 'setup reads setup contract'
-Assert-Contains 'commands/setup.md' 'docs/reference/harness-kit-contract.md' 'setup reads harness kit contract'
-Assert-Contains 'commands/design_architecture.md' 'docs/reference/design-architecture-contract.md' 'design_architecture reads architecture contract'
-Assert-Contains 'commands/design_architecture.md' 'docs/reference/ui-verification-adapter-contract.md' 'design_architecture reads UI adapter contract'
-Assert-Contains 'commands/spec.md' 'docs/reference/spec-contract.md' 'spec reads spec contract'
-Assert-Contains 'commands/prepare_execute.md' 'docs/reference/plan-contract.md' 'prepare_execute reads plan contract'
-Assert-Contains 'commands/prepare_execute.md' 'docs/reference/ui-verification-adapter-contract.md' 'prepare_execute reads UI adapter contract'
+Assert-Contains (Resolve-WorkflowDoc 'setup') 'docs/reference/setup-contract.md' 'setup reads setup contract'
+Assert-Contains (Resolve-WorkflowDoc 'setup') 'docs/reference/harness-kit-contract.md' 'setup reads harness kit contract'
+Assert-Contains (Resolve-WorkflowDoc 'design_architecture') 'docs/reference/design-architecture-contract.md' 'design_architecture reads architecture contract'
+Assert-Contains (Resolve-WorkflowDoc 'design_architecture') 'docs/reference/ui-verification-adapter-contract.md' 'design_architecture reads UI adapter contract'
+Assert-Contains (Resolve-WorkflowDoc 'spec') 'docs/reference/spec-contract.md' 'spec reads spec contract'
+Assert-Contains (Resolve-WorkflowDoc 'prepare_execute') 'docs/reference/plan-contract.md' 'prepare_execute reads plan contract'
+Assert-Contains (Resolve-WorkflowDoc 'prepare_execute') 'docs/reference/ui-verification-adapter-contract.md' 'prepare_execute reads UI adapter contract'
 Assert-Contains 'docs/reference/strict-execution-adapter.md' 'docs/reference/harness-execution-contract.md' 'strict adapter reads harness execution contract'
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'Avoid conversion work when a usable phase already exists' 'harness contract skips needless conversion'
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'scripts/harness-convert.ps1 -ProjectRoot <project-root> -PlanPath <plan-path>' 'harness contract uses conversion helper'
@@ -1331,15 +1369,15 @@ Assert-Contains 'docs/reference/strict-execution-adapter.md' 'scripts/harness-ru
 Assert-Contains 'docs/reference/strict-execution-adapter.md' 'scripts/harness-certify.ps1 -ProjectRoot <project-root> -Phase <phase>' 'strict adapter uses certify helper'
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'Do not reset a step without a concrete pass/fail signal' 'harness contract recovery requires signal'
 Assert-Contains 'docs/reference/strict-execution-adapter.md' 'mattpocock-harness-adapter.md' 'strict adapter reads Matt adapter'
-Assert-Contains 'commands/choice_execute.md' 'docs/reference/inline-execution-adapter.md' 'choice_execute delegates Path 3 to inline adapter'
+Assert-Contains (Resolve-WorkflowDoc 'choice_execute') 'docs/reference/inline-execution-adapter.md' 'choice_execute delegates Path 3 to inline adapter'
 Assert-Contains 'docs/reference/inline-execution-adapter.md' 'scripts/lightpath-gate.ps1 -Scope prepare' 'inline adapter prepares lightpath artifacts'
 Assert-Contains 'docs/reference/inline-execution-adapter.md' 'scripts/lightpath-gate.ps1 -Scope task' 'inline adapter runs lightpath task gate'
 Assert-Contains 'docs/reference/inline-execution-adapter.md' 'do not weaken or replace the Verify command' 'inline adapter forbids oracle weakening'
 Assert-Contains 'docs/reference/inline-execution-adapter.md' 'fix-in-place' 'inline adapter uses fix-in-place loops'
-Assert-Contains 'commands/prepare_execute.md' 'vertical red-green slice' 'prepare_execute enforces vertical TDD slices'
-Assert-Contains 'commands/prepare_execute.md' 'mattpocock-harness-adapter.md' 'prepare_execute reads Matt adapter'
-Assert-Contains 'commands/setup.md' 'mattpocock-harness-adapter.md' 'setup reads Matt adapter'
-Assert-Contains 'commands/spec.md' 'mattpocock-harness-adapter.md' 'spec reads Matt adapter'
+Assert-Contains (Resolve-WorkflowDoc 'prepare_execute') 'vertical red-green slice' 'prepare_execute enforces vertical TDD slices'
+Assert-Contains (Resolve-WorkflowDoc 'prepare_execute') 'mattpocock-harness-adapter.md' 'prepare_execute reads Matt adapter'
+Assert-Contains (Resolve-WorkflowDoc 'setup') 'mattpocock-harness-adapter.md' 'setup reads Matt adapter'
+Assert-Contains (Resolve-WorkflowDoc 'spec') 'mattpocock-harness-adapter.md' 'spec reads Matt adapter'
 Assert-Contains 'docs/reference/setup-contract.md' 'Config Schema' 'setup contract owns config schema'
 Assert-Contains 'docs/reference/model-routing-contract.md' 'Model Routing Contract' 'model routing contract exists'
 Assert-Contains 'docs/reference/dispatch-protocol.md' 'scripts/model-router.py' 'dispatch protocol uses model router'
@@ -1350,15 +1388,15 @@ Assert-Contains 'docs/reference/harness-execution-contract.md' 'EZPOWERS_MODEL' 
 Assert-Contains 'docs/reference/harness-execution-contract.md' '-ExplicitModel <model>' 'harness contract documents explicit model override'
 Assert-Contains 'scripts/harness-run.ps1' 'ExplicitModel' 'harness run exposes explicit model override'
 Assert-Contains 'scripts/harness-run.ps1' '-ExplicitModel $ExplicitModel' 'harness run passes explicit model to router'
-Assert-Contains 'commands/choice_execute.md' 'model-routing-contract.md' 'choice_execute reads model routing contract'
-Assert-Contains 'commands/choice_execute.md' 'context-injector.py verify' 'choice_execute verifies context injection sentinels'
+Assert-Contains (Resolve-WorkflowDoc 'choice_execute') 'model-routing-contract.md' 'choice_execute reads model routing contract'
+Assert-Contains (Resolve-WorkflowDoc 'choice_execute') 'context-injector.py verify' 'choice_execute verifies context injection sentinels'
 Assert-Contains 'docs/reference/spec-contract.md' 'Requirement Section Template' 'spec contract owns requirement template'
 Assert-Contains 'docs/reference/plan-contract.md' 'Task Shape' 'plan contract owns task template'
 Assert-Contains 'docs/reference/harness-kit-contract.md' 'No Synthesis Rule' 'harness kit contract forbids setup synthesis'
 Assert-Contains 'docs/reference/ui-verification-adapter-contract.md' 'Capability Matrix' 'UI verification contract defines capability matrix'
-Assert-Contains 'commands/prepare_execute.md' 'select the strongest available adapter' 'prepare_execute selects strongest UI adapter'
-Assert-Contains 'commands/prepare_execute.md' 'user-observable oracle' 'prepare_execute preserves UI oracle'
-Assert-Contains 'commands/prepare_execute.md' 'insert a prerequisite' 'prepare_execute inserts adapter prerequisite'
+Assert-Contains (Resolve-WorkflowDoc 'prepare_execute') 'select the strongest available adapter' 'prepare_execute selects strongest UI adapter'
+Assert-Contains (Resolve-WorkflowDoc 'prepare_execute') 'user-observable oracle' 'prepare_execute preserves UI oracle'
+Assert-Contains (Resolve-WorkflowDoc 'prepare_execute') 'insert a prerequisite' 'prepare_execute inserts adapter prerequisite'
 Assert-Contains 'docs/reference/ui-verification-adapter-contract.md' 'Playwright is the preferred browser e2e' 'UI contract keeps Playwright preferred not mandatory'
 Assert-Contains 'docs/reference/ui-verification-adapter-contract.md' 'Equivalent means the replacement verifies the same observable claim' 'UI contract defines adapter equivalence'
 Assert-Contains 'docs/reference/ui-verification-adapter-contract.md' 'adapter_fallback_task_required' 'UI contract requires fallback task'
@@ -1369,9 +1407,9 @@ Assert-Contains 'docs/reference/harness-execution-contract.md' 'Wiring Gate File
 Assert-Contains 'docs/reference/harness-execution-contract.md' 'Completion Certificate' 'harness contract owns completion certificate'
 Assert-Contains 'docs/reference/architecture-readiness-contract.md' 'Deletion test' 'architecture contract has deletion test'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'EZPowers automation wins' 'Matt adapter preserves EZPowers automation'
-Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'commands/setup.md' 'Matt adapter covers setup command'
-Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'commands/spec.md' 'Matt adapter covers spec command'
-Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'commands/prepare_execute.md' 'Matt adapter covers prepare_execute command'
+Assert-ContainsAny 'docs/reference/mattpocock-harness-adapter.md' @('commands/setup.md', 'skills/setup/SKILL.md') 'Matt adapter covers setup command'
+Assert-ContainsAny 'docs/reference/mattpocock-harness-adapter.md' @('commands/spec.md', 'skills/spec/SKILL.md') 'Matt adapter covers spec command'
+Assert-ContainsAny 'docs/reference/mattpocock-harness-adapter.md' @('commands/prepare_execute.md', 'skills/prepare-execute/SKILL.md') 'Matt adapter covers prepare_execute command'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'engineering/tdd' 'Matt adapter maps TDD skill'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'engineering/diagnose' 'Matt adapter maps diagnose skill'
 Assert-Contains 'docs/reference/mattpocock-harness-adapter.md' 'harness-run.ps1' 'Matt adapter maps run helper'
@@ -1439,12 +1477,12 @@ Assert-Contains '.githooks/pre-commit' 'hashline-anchor' 'pre-commit watches has
 Assert-Contains '.githooks/pre-commit' 'context-injector' 'pre-commit watches context injector'
 Assert-Contains '.githooks/pre-commit' 'hook-policy' 'pre-commit watches hook policy'
 Assert-Contains '.agents/plugins/marketplace.json' '"path": "./plugins/ezpowers"' 'agents marketplace uses packaged plugin mirror'
-Assert-Contains 'commands/reset_setup.md' 'does not update installed Codex or Claude plugin command caches' 'reset_setup documents plugin cache boundary'
+Assert-Contains (Resolve-WorkflowDoc 'reset_setup') 'does not update installed Codex or Claude plugin command caches' 'reset_setup documents plugin cache boundary'
 Assert-Contains 'plugins/ezpowers/commands/reset_setup.md' 'does not update installed Codex or Claude plugin command caches' 'packaged reset_setup documents plugin cache boundary'
 Assert-Contains 'harness-kit/v2.0.0/manifest.json' '"target": "scripts/lightpath-gate.ps1"' 'harness kit installs lightpath gate helper'
 Assert-Contains 'harness-kit/v2.0.0/manifest.json' '"target": "scripts/harness-resume-proof.ps1"' 'harness kit installs resume proof helper'
 Assert-Contains 'harness-kit/v2.0.0/manifest.json' '"target": "scripts/verify-step.py"' 'harness kit installs verify step helper'
-Assert-Contains 'commands/choice_execute.md' 'replace a missing gate script with inline verification' 'choice_execute forbids inline gate substitution'
+Assert-Contains (Resolve-WorkflowDoc 'choice_execute') 'replace a missing gate script with inline verification' 'choice_execute forbids inline gate substitution'
 Assert-Contains 'docs/reference/verification-contract.md' 'inline verification is not an acceptable replacement' 'verification contract forbids inline gate substitution'
 
 if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'plugins/ezpowers/.codex-plugin/plugin.json'))) {
