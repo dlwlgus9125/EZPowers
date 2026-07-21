@@ -1,6 +1,6 @@
 # Implementer Subagent Prompt Template
 
-Use this template when dispatching an implementer subagent from /choice_execute.
+Use this template when dispatching an implementer subagent from /choice-execute.
 
 ```
 Agent tool:
