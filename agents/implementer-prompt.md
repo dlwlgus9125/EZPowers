@@ -96,7 +96,7 @@ Agent tool:
 
     ## Command Safety
 
-    Do not invoke parent commands (`/choice_execute`, `/choice_execute Path 2`, `/prepare_execute`, `/spec`, `/setup`, `/review`). You are a single-task executor.
+    Do not invoke parent commands (`/choice-execute`, `/choice-execute Path 2`, `/prepare-execute`, `/spec`, `/setup`, `/review`). You are a single-task executor.
 
     ## Your Job
 
