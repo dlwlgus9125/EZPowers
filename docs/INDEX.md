@@ -41,8 +41,9 @@
 ## Plans
 - `plans/`: generated implementation plans from `/prepare_execute`.
 
-## Supporting Reports
-- [Better Harness EZPowers Blueprint](Better-Harness-EZPowers-Blueprint.md): supporting improvement blueprint.
-- [EZPowers Comprehensive Report](ezpowers-comprehensive-report.html): supporting architecture report.
-- [EZPowers Comprehensive Report KO](ezpowers-comprehensive-report-ko.html): supporting Korean architecture report.
-- [OMO OpenAgent EZPowers Analysis](omo-openagent-ezpowers-analysis.md): Korean analysis of OMO OpenAgent patterns applicable to the EZPowers harness.
+## Archive
+- `archive/`: [archive] historical reports and session artifacts kept for
+  reference only — Better-Harness blueprint, comprehensive reports,
+  OMO OpenAgent analysis, improvement prompts, session handoff, pipeline
+  efficiency audit, workflow diagram, and the dormant ci-validate.yml CI
+  template. No runtime or contract authority.
