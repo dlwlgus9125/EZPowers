@@ -1,0 +1,5 @@
+interface:
+  display_name: "Review"
+  short_description: "Review changes against spec for completeness"
+policy:
+  allow_implicit_invocation: false

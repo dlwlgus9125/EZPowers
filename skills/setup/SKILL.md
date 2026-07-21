@@ -1,5 +1,8 @@
 ---
+name: setup
 description: Initialize project harness with config and steering docs
+disable-model-invocation: true
+argument-hint: [--enable-traces]
 allowed-tools: [Bash, Read, Write, Glob, Agent, AskUserQuestion]
 ---
 
@@ -75,4 +78,4 @@ kit. Do not write product code or synthesize skill bodies.
 - Local kit install path, manifest version, and hash ledger path.
 - Reviewer verdict summary from the reviewer placement gate.
 - Human-owned docs that still need content.
-- Next command: `/design_architecture`.
+- Next command: `/design-architecture`.

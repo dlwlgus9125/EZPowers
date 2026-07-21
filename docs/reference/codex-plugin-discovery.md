@@ -22,9 +22,17 @@ such as `ezpowers:diagnose`, `ezpowers:frontend-design`, and
 `$ezpowers:diagnose Investigate this failure`, or by asking naturally when the
 skill description clearly matches the request.
 
-The workflow files under `commands/` remain command documents. They are source
-procedures for agents to read and execute when requested, but their existence
-does not imply that Codex will list each workflow under the `/` command palette.
+Workflow commands ship as skills (`skills/<name>/SKILL.md`), so Codex lists
+them alongside the independent skills as `ezpowers:<name>`. Each workflow skill
+sets `policy.allow_implicit_invocation: false` in `agents/openai.yaml`: it is
+hidden from the ambient skill list and runs only on explicit
+`$ezpowers:<name>` invocation, mirroring `disable-model-invocation` on Claude.
+
+## Codex Execution Notes
+
+- Translate Claude-specific tool names to Codex tools only at execution time.
+- Preserve each workflow's evidence and verification gates when executing on
+  Codex; the dispatch protocol's `codex-cli` backend covers reviewer dispatch.
 
 ## Local Install Notes
 

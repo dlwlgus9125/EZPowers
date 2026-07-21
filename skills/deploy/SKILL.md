@@ -1,5 +1,7 @@
 ---
+name: deploy
 description: Prepare and verify package, release, and deployment work
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
 ---
 
@@ -25,10 +27,10 @@ reporting release readiness.
 ## Rules
 
 - If deployment behavior or release surface is not specified, route to
-  `/design_architecture` or `/spec`.
+  `/design-architecture` or `/spec`.
 - Require build artifact verification, environment readiness, smoke or health
   checks, rollback rule, and release notes when deployment is in scope.
-- Deployment tasks still go through `/prepare_execute` and `/choice_execute`
+- Deployment tasks still go through `/prepare-execute` and `/choice-execute`
   unless the command is only producing a release readiness report.
 - UI deployments must preserve the configured UI verification adapter or add a
   deployment-specific equivalent oracle.

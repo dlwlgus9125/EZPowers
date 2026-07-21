@@ -1,0 +1,5 @@
+interface:
+  display_name: "Set Rules"
+  short_description: "Design project rules through guided conversation"
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Setup"
+  short_description: "Initialize project harness with config and steering docs"
+policy:
+  allow_implicit_invocation: false

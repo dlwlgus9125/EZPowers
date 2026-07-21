@@ -1,9 +1,11 @@
 ---
+name: prepare-execute
 description: Decompose spec into task plans with agent assignments
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
 ---
 
-# /prepare_execute - Task Sequencing
+# /prepare-execute - Task Sequencing
 
 ## Purpose
 
@@ -79,4 +81,4 @@ slices, runtime evidence, and wiring gates. Do not implement code.
 - Runtime, structural invariant, and wiring gate commands.
 - Reviewer verdict, frontend experience review when UI is present, and post-prepare_execute audit result.
 - Updated `phases/index.json` plan state.
-- Next command: `/choice_execute` when audit status is `PASS` or `WARN`.
+- Next command: `/choice-execute` when audit status is `PASS` or `WARN`.

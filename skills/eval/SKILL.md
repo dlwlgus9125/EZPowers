@@ -1,5 +1,8 @@
 ---
+name: eval
 description: Run eval suite and report scores per version
+disable-model-invocation: true
+argument-hint: "[split | --case <id> | --baseline | --diff <version>]"
 allowed-tools: [Bash, Read, Write, Agent]
 ---
 
@@ -205,7 +208,7 @@ Reason: golden 6/7 -> banned-expression-detection FAIL
 
 ## Verification
 
-Verify this command works correctly:
+Confirm each check below:
 - `/eval golden` outputs results for the current golden cases
 - `/eval --live` reports that live execution is not implemented
 - `/eval --diff 0.6.0` outputs baseline comparison

@@ -1,5 +1,7 @@
 ---
+name: spec
 description: Deepen architecture decisions into detailed feature specs
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
 ---
 
@@ -30,24 +32,24 @@ implement code.
 
 - If `.harness/config.json` is missing, route to `/setup` and stop.
 - If architecture baselines are missing or stale, route to
-  `/design_architecture` and stop.
+  `/design-architecture` and stop.
 - Set spec `in_progress` in `phases/index.json`; remove stale audit data.
 - Read project context before asking. Ask one question at a time.
 - Do not weaken architecture, verification, or UI-adapter decisions recorded by
-  `/design_architecture`.
-- For UI work, carry `docs/ux/frontend-design.md` readiness into the App Experience And Delivery Baseline; route missing readiness back to `/design_architecture`.
+  `/design-architecture`.
+- For UI work, carry `docs/ux/frontend-design.md` readiness into the App Experience And Delivery Baseline; route missing readiness back to `/design-architecture`.
 - Before extracting requirements, re-check the Operational Requirements
   Checklist in `docs/reference/spec-contract.md`; route material architecture
-  changes back to `/design_architecture`.
+  changes back to `/design-architecture`.
 - For executable artifacts, ask about entry points, component registration
   approach, and cross-module data flow before finalizing the architecture
   baseline. Populate the Wiring Map with unique IDs (WM-EP, WM-REG, WM-DF,
   WM-C) as part of the baseline. For each WM-REG entry, specify the
   recommended Wiring Probe strategy (`import-chain` for pure module imports,
   `runtime-load` for DI/IPC/event registration, `e2e-touch` for user-facing
-  feature wiring). This strategy propagates to `/prepare_execute` task Wiring Probes.
+  feature wiring). This strategy propagates to `/prepare-execute` task Wiring Probes.
 - Use `grill-with-docs` before requirement extraction; unresolved architecture
-  issues return to `/design_architecture`.
+  issues return to `/design-architecture`.
 - Use `docs/reference/spec-contract.md` for required spec sections,
   requirement schema, banned vague wording, ADR handling, verify script, and
   docs index updates.
@@ -81,4 +83,4 @@ implement code.
   paths.
 - Reviewer verdict summaries, including frontend experience review when UI is present.
 - Updated `phases/index.json` spec state and audit result.
-- Next command: `/prepare_execute` only when audit status is `PASS` or `WARN`.
+- Next command: `/prepare-execute` only when audit status is `PASS` or `WARN`.

@@ -1,16 +1,19 @@
 ---
+name: choice-execute
 description: Select and run execution path for plan tasks
+disable-model-invocation: true
+argument-hint: "[plan-path] | Path 2"
 allowed-tools: [Bash, Read, Write, Edit, Agent, AskUserQuestion]
 ---
 
-# /choice_execute — Execution Path Selection
+# /choice-execute — Execution Path Selection
 
 Source contracts: `docs/reference/domain-language.md`, `docs/reference/verification-contract.md`, `docs/reference/ui-verification-adapter-contract.md`, `docs/reference/dispatch-protocol.md`, `docs/reference/reviewer-placement-contract.md`, `docs/reference/model-routing-contract.md`, `docs/reference/strict-execution-adapter.md`.
 Execute tasks from the plan document. Choose an execution mode (subagent / harness / inline), then run tasks + AC verification + conditional security review + final code review.
 
 Gate scripts are required runtime dependencies. If `scripts/lightpath-gate.ps1`,
 `scripts/harness-certify.ps1`, `scripts/harness-resume-proof.ps1`, or
-`scripts/verify-step.py` is missing, run `/reset_setup` to reinstall the
+`scripts/verify-step.py` is missing, run `/reset-setup` to reinstall the
 manifest helpers. If the helper is still missing, stop as `TEST_GAP`; never
 replace a missing gate script with inline verification.
 
@@ -27,7 +30,7 @@ Verify the following first:
 
 If missing, direct the user to the required step:
 - No config -> `/setup`
-- No plan -> `/prepare_execute`
+- No plan -> `/prepare-execute`
 - No spec -> `/spec`
 - No audit or audit FAIL -> `internal pipeline audit`
 
@@ -99,7 +102,7 @@ Path 2 follows `docs/reference/strict-execution-adapter.md`.
 
 Analyze task dependencies before execution. Per task, identify: **explicit**
 dependency (`Depends on: Task N`), **file overlap** dependency
-(`**File overlap with:** Task N`, pre-computed by /prepare_execute — trust
+(`**File overlap with:** Task N`, pre-computed by /prepare-execute — trust
 over implicit when present), and **implicit** dependency (same `Modify:` file;
 normalize paths — strip trailing slash, unify case — then exact string
 comparison, no partial matching). Build the directed graph
@@ -197,7 +200,7 @@ Record git hash (Section 3.6)
       -> PASS -> AC Arbiter (integration/e2e/logic-dense tasks)
         -> PASS -> View Wiring Test (view tasks only)
           -> PASS -> conditional security review (keyword-triggered, no SAST — already ran at 4c)
-        -> TEST_GAP/CODE_GAP/SPEC_GAP -> re-dispatch or return to /prepare_execute
+        -> TEST_GAP/CODE_GAP/SPEC_GAP -> re-dispatch or return to /prepare-execute
       -> hard FAIL -> re-dispatch with invariant violation details
       -> soft FAIL -> WARN (log, continue)
     -> FAIL -> re-dispatch with verify/runtime failure details (max 3)
@@ -361,7 +364,7 @@ Simple `pure`/`cli`/`lib` tasks skip the arbiter and proceed directly to securit
 **TEST_GAP** → re-dispatch implementer: "Verification does not prove the Then
 clause. Write a probe that directly observes [specific Then clause].";
 **CODE_GAP** → re-dispatch implementer with the verification evidence showing
-the implementation fails; **SPEC_GAP** → return to /prepare_execute
+the implementation fails; **SPEC_GAP** → return to /prepare-execute
 automatically (Section 13).
 
 **Arbiter dispatch limit:** max 2 rounds per task. If arbiter returns TEST_GAP or CODE_GAP twice, escalate to user.
@@ -591,21 +594,21 @@ When the user selects Path 2, load `docs/reference/strict-execution-adapter.md` 
 command as the source of truth for all harness conversion, execution, recovery,
 and restoration behavior. Do not duplicate the harness procedure here.
 
-After `/choice_execute Path 2` reports all steps complete, require its full-feature
+After `/choice-execute Path 2` reports all steps complete, require its full-feature
 wiring gate verdict before continuing:
 
 - Read `phases/<phase>/wiring-gate.json` directly. Do not rely only on the
-  `/choice_execute Path 2` status line or process exit code.
+  `/choice-execute Path 2` status line or process exit code.
 - `PASS` or `pass` -> continue at Section 12 (Final Code Review) using the diff range
-  returned by `/choice_execute Path 2` (`<harness-start-hash>..HEAD`)
+  returned by `/choice-execute Path 2` (`<harness-start-hash>..HEAD`)
 - `review_pending` -> dispatch `ezpowers:wiring-reviewer` with plan path,
   diff range, `wiring-gate.json`, runtime artifacts, and run log path. Write
   the verdict to `wiring-gate.json.reviewer_verdict`, rerun
   `scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>`, then
   reread `wiring-gate.json`. Continue only if status becomes `pass`.
-- `TEST_GAP` -> stop and return to `/prepare_execute` or reset the probe-writing step
-- `CODE_GAP` -> reset the related harness step and rerun `/choice_execute Path 2`
-- `SPEC_GAP` -> return to `/prepare_execute`
+- `TEST_GAP` -> stop and return to `/prepare-execute` or reset the probe-writing step
+- `CODE_GAP` -> reset the related harness step and rerun `/choice-execute Path 2`
+- `SPEC_GAP` -> return to `/prepare-execute`
 - `fail`, `pending`, or any unknown status -> do not complete; report the gate
   status and recovery route
 - Missing or malformed wiring verdict -> treat as `TEST_GAP`
@@ -674,7 +677,7 @@ files (timeout: 300s), parse the mutation score, and report per the
 thresholds in `docs/reference/verification-contract.md` § Mutation Testing
 Gate. Include the score in the final completion report.
 
-## 13. Backward Transition: Return to /prepare_execute
+## 13. Backward Transition: Return to /prepare-execute
 
 If plan decomposition proves inadequate during execution — tasks too tightly coupled, missing dependencies, misaligned boundaries — do not force a broken plan.
 
@@ -682,16 +685,16 @@ If plan decomposition proves inadequate during execution — tasks too tightly c
 prerequisites missing from the plan; task ordering assumptions wrong given the
 actual codebase; 2+ consecutive tasks BLOCKED for structural reasons.
 
-**Actions:** Log and report "Returning to /prepare_execute: [specific
+**Actions:** Log and report "Returning to /prepare-execute: [specific
 reason]". Save progress: check completed tasks' checkboxes (`- [x]`) in the
 plan, leave incomplete tasks unchecked as re-plan targets, record
 `**Resume hash:** <first-task-start-hash>` in the plan header, and commit
-(`wip: build progress saved before /prepare_execute return — Tasks 1-N
+(`wip: build progress saved before /prepare-execute return — Tasks 1-N
 complete`). Update `phases/index.json` (build `pending`, plan `in_progress`),
-return to `/prepare_execute`, then resume `/choice_execute` with the updated
+return to `/prepare-execute`, then resume `/choice-execute` with the updated
 plan.
 
-### Resume Protocol (after returning from /prepare_execute)
+### Resume Protocol (after returning from /prepare-execute)
 
 1. Check for `**Resume hash:**` marker in plan document
 2. If present: restore previous `first-task-start-hash` (preserves final review diff range)
@@ -699,7 +702,7 @@ plan.
 4. Skip only tasks that are listed in `resume-proof.json` with status `pass`; checkboxes are progress hints, not PASS evidence.
 5. Execute the first unchecked or unverified task and all following tasks, including newly added tasks.
 6. If a checked task lacks fresh passing task-gate proof, reset that task to `- [ ]` and re-run from there. Do not skip it from checkbox state.
-7. **Caution:** If the revised plan modifies files from already-completed tasks, those tasks must be manually reset to `- [ ]` - /prepare_execute notifies the user
+7. **Caution:** If the revised plan modifies files from already-completed tasks, those tasks must be manually reset to `- [ ]` - /prepare-execute notifies the user
 
 ## 14. Completion
 
@@ -719,13 +722,13 @@ After all tasks + final review complete:
      with `scripts/lightpath-gate.ps1 -Scope final -ReviewerVerdict <verdict>`
      and rerun/finalize the gate.
    - `test_gap`/`code_gap`/`spec_gap`/`fail` -> do not complete. Re-dispatch
-     the responsible implementer or return to `/prepare_execute` according to the verdict.
+     the responsible implementer or return to `/prepare-execute` according to the verdict.
    - Missing or malformed `lightpath-gate.json`/`wiring-gate.json` is
      `TEST_GAP`.
    - `scripts/harness-certify.ps1` must produce a PASS completion certificate before completion.
 4. **Wiring Gate Test detail (fail-closed):**
    Path 1/3 run these rules through `lightpath-gate.ps1`; Path 2 receives the
-   same verdict from `/choice_execute Path 2`. Apply Wiring Config Validation
+   same verdict from `/choice-execute Path 2`. Apply Wiring Config Validation
    (Section 3.7). If exempt/skip, skip wiring gate.
    - Plan `## Full-Feature Wiring Gate` with `Required: yes`: run
      `config.wiring.wiring_gate_command` when non-empty (timeout: 120s); when
@@ -733,7 +736,7 @@ After all tasks + final review complete:
      `"Required wiring gate has no executable command."`
    - `wiring.enabled: true` + plan has 2+ connected tasks + no
      `## Full-Feature Wiring Gate` → FAIL: `"Connected tasks exist but plan
-     has no Full-Feature Wiring Gate. Return to /prepare_execute."`
+     has no Full-Feature Wiring Gate. Return to /prepare-execute."`
    Exit 0 = PASS. Non-zero = FAIL. On FAIL, identify the failed view/pipeline
    from test output, trace back to the responsible task via the Coverage
    Matrix, and re-dispatch that task's implementer. Max 3 retries → user

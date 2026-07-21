@@ -1,5 +1,8 @@
 ---
+name: review
 description: Review changes against spec for completeness
+disable-model-invocation: true
+argument-hint: [spec-path]
 allowed-tools: [Bash, Read, Grep, Glob, Agent]
 ---
 
@@ -63,7 +66,7 @@ placement gate.
 
 ### 3-5. Build/Test
 
-If possible, verify using config commands:
+When `.harness/config.json` defines them, run these config commands:
 - `config.build.command`
 - `config.test.command`
 - `config.lint.command`

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Reset Setup"
+  short_description: "Reinstall EZPowers local kit and refresh harness setup documents"
+policy:
+  allow_implicit_invocation: false

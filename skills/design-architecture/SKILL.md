@@ -1,9 +1,11 @@
 ---
+name: design-architecture
 description: Define project architecture, test strategy, structure, and roadmap
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Glob, WebSearch, Agent, AskUserQuestion]
 ---
 
-# /design_architecture - Architecture And Test Design
+# /design-architecture - Architecture And Test Design
 
 ## Purpose
 

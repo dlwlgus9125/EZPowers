@@ -1,5 +1,7 @@
 ---
+name: set-rules
 description: Design project rules through guided conversation
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Grep, Glob, Agent, AskUserQuestion]
 ---
 
@@ -10,7 +12,7 @@ Design coding rules, code structure guidelines, and architecture constraints thr
 Can be invoked at any time after /setup. Adapts to available information:
 - After /setup: stack-based coding rules, test conventions, basic structure
 - After /spec: + architecture decisions, requirement constraints
-- After /prepare_execute: + verification commands, module isolation points
+- After /prepare-execute: + verification commands, module isolation points
 
 ## 1. Pre-flight
 
@@ -42,7 +44,7 @@ Analyze all available inputs and identify rule-worthy areas.
 - Architecture decisions → structural constraints
 - Requirements → enforceable constraints
 
-**If plan exists (after /prepare_execute):**
+**If plan exists (after /prepare-execute):**
 - Structural Invariants → rules with verification commands
 - File structure mapping → module isolation rules
 

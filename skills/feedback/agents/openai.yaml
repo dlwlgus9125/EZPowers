@@ -1,0 +1,5 @@
+interface:
+  display_name: "Feedback"
+  short_description: "Attach user scores to session traces"
+policy:
+  allow_implicit_invocation: false

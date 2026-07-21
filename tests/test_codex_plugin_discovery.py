@@ -38,7 +38,7 @@ class CodexPluginDiscoveryTests(unittest.TestCase):
 
         self.assertIn("reference/codex-plugin-discovery.md", index)
         self.assertIn("`ezpowers:diagnose`", text)
-        self.assertIn("does not imply that Codex will list", text)
+        self.assertIn("allow_implicit_invocation: false", text)
         self.assertIn("duplicate skill entries", text)
 
     def test_codex_plugin_roots_do_not_expose_active_hook_files(self):

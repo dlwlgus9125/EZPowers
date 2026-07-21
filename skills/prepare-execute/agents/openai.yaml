@@ -1,0 +1,5 @@
+interface:
+  display_name: "Prepare Execute"
+  short_description: "Decompose spec into task plans with agent assignments"
+policy:
+  allow_implicit_invocation: false

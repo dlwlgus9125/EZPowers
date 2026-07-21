@@ -1,5 +1,8 @@
 ---
+name: feedback
 description: Attach user scores to session traces
+disable-model-invocation: true
+argument-hint: "[score] [comment]"
 allowed-tools: [Bash, Read, Write, Agent]
 ---
 

@@ -1,9 +1,11 @@
 ---
+name: reset-setup
 description: Reinstall EZPowers local kit and refresh harness setup documents
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Glob, Agent, AskUserQuestion]
 ---
 
-# /reset_setup - Harness Setup Refresh
+# /reset-setup - Harness Setup Refresh
 
 ## Purpose
 
@@ -54,5 +56,5 @@ new agent session so the host reloads command definitions.
 - Workflow contract reviewer verdict.
 - Files left for manual review.
 - Updated phase state.
-- Next command: `/design_architecture` when architecture or verification
+- Next command: `/design-architecture` when architecture or verification
   settings changed; otherwise resume the prior phase.

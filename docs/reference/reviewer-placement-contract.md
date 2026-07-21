@@ -54,16 +54,16 @@ plans, diffs, logs, or previous reviewer reasoning when a path is enough.
 | Invocation | Required reviewers | Required inputs |
 | --- | --- | --- |
 | `/setup` | `ezpowers:workflow-contract-reviewer` | harness config, kit ledger, installed file list, setup evidence |
-| `/design_architecture` | `ezpowers:architecture-reviewer`, `ezpowers:frontend-experience-reviewer` when UI is present | architecture, testing methodology, project structure, roadmap, config, frontend design artifact |
+| `/design-architecture` | `ezpowers:architecture-reviewer`, `ezpowers:frontend-experience-reviewer` when UI is present | architecture, testing methodology, project structure, roadmap, config, frontend design artifact |
 | `/spec` | `ezpowers:spec-reviewer`, `ezpowers:architecture-reviewer`, `ezpowers:frontend-experience-reviewer` when UI is present | spec path, architecture reference, config, frontend design artifact, post-spec audit result |
-| `/prepare_execute` | `ezpowers:plan-reviewer`, `ezpowers:frontend-experience-reviewer` when UI is present | plan path, spec path, frontend design artifact, post-prepare_execute audit result |
-| `/choice_execute` | `ezpowers:security-reviewer` when triggered, `ezpowers:wiring-reviewer`, `ezpowers:code-reviewer` | plan path, diff range, changed files, gate artifacts, runtime evidence |
+| `/prepare-execute` | `ezpowers:plan-reviewer`, `ezpowers:frontend-experience-reviewer` when UI is present | plan path, spec path, frontend design artifact, post-prepare_execute audit result |
+| `/choice-execute` | `ezpowers:security-reviewer` when triggered, `ezpowers:wiring-reviewer`, `ezpowers:code-reviewer` | plan path, diff range, changed files, gate artifacts, runtime evidence |
 | `/review` | `ezpowers:workflow-contract-reviewer` | review target, spec path if present, checks run, findings |
 | `/sync-docs` | `ezpowers:workflow-contract-reviewer` | sync proposal or applied docs, verification results, changed docs |
 | `/set-rules` | `ezpowers:workflow-contract-reviewer` | conventions artifact, accepted rules, verification commands |
 | `/maintain` | `ezpowers:workflow-contract-reviewer` plus routed stage reviewers | issue classification, failing signal, route decision |
 | `/deploy` | `ezpowers:workflow-contract-reviewer` plus routed stage reviewers for changes | release report, artifact evidence, rollout and rollback checks |
-| `/reset_setup` | `ezpowers:workflow-contract-reviewer` | manifest, ledger, migrated config fields, phase review flags |
+| `/reset-setup` | `ezpowers:workflow-contract-reviewer` | manifest, ledger, migrated config fields, phase review flags |
 | `/eval` | `ezpowers:workflow-contract-reviewer` | eval command, result artifact, split summary, verdict |
 | `/feedback` | `ezpowers:workflow-contract-reviewer` | trace path, appended feedback entry, verification evidence |
 <!-- REVIEWER-MATRIX-COMMANDS-END -->
@@ -83,7 +83,6 @@ plans, diffs, logs, or previous reviewer reasoning when a path is enough.
 | `deep-interview` | `ezpowers:workflow-contract-reviewer` | clarified goal, scope, constraints, success criteria |
 | `zoom-out` | `ezpowers:workflow-contract-reviewer` | module map, evidence paths, caller summary |
 | `caveman` | `ezpowers:workflow-contract-reviewer` | mode change, persistence rule, technical accuracy check |
-| `ezpowers-workflow` | `ezpowers:workflow-contract-reviewer` | adapter request, command source path, preserved contracts |
 <!-- REVIEWER-MATRIX-SKILLS-END -->
 
 ## Verdict Handling

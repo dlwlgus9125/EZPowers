@@ -1,11 +1,13 @@
 ---
+name: sync-docs
 description: Synchronize reference docs with codebase state
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Grep, Glob, Agent]
 ---
 
 # /sync-docs — Reference Document Synchronization
 
-Reflect the current codebase state in reference docs. Can be invoked independently at any time. At the `/choice_execute` completion step, it is invoked by `ezpowers:workflow-runner` in automated mode after final review and smoke verification pass.
+Reflect the current codebase state in reference docs. Can be invoked independently at any time. At the `/choice-execute` completion step, it is invoked by `ezpowers:workflow-runner` in automated mode after final review and smoke verification pass.
 
 ## 1. Pre-flight Checks
 
@@ -125,7 +127,7 @@ The same change may span multiple documents (e.g., new module → `architecture.
 
 - If user confirms, proceed. Otherwise, re-select to include/exclude the entire group.
 
-### Automated Invocation From `/choice_execute`
+### Automated Invocation From `/choice-execute`
 
 When `ezpowers:workflow-runner` invokes this command with
 `Invocation mode: auto-from-choice_execute`, do not ask for approval before
@@ -240,9 +242,9 @@ Status meanings:
 - `NEEDS_USER`: destructive or ambiguous changes need a user decision.
 - `FAIL`: required inputs are missing or verification failed.
 
-## /choice_execute Integration
+## /choice-execute Integration
 
-At the `/choice_execute` completion step (Section 14), after final code review
+At the `/choice-execute` completion step (Section 14), after final code review
 and smoke verification pass, `choice_execute` dispatches
 `ezpowers:workflow-runner` with:
 

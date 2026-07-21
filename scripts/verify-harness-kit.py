@@ -10,6 +10,25 @@ import pathlib
 import sys
 
 
+WORKFLOW_SKILL_DIRS = {
+    "setup": "setup",
+    "design_architecture": "design-architecture",
+    "spec": "spec",
+    "prepare_execute": "prepare-execute",
+    "choice_execute": "choice-execute",
+    "maintain": "maintain",
+    "deploy": "deploy",
+    "reset_setup": "reset-setup",
+}
+
+
+def workflow_doc_path(repo_root, command):
+    skill = repo_root / "skills" / WORKFLOW_SKILL_DIRS.get(command, command) / "SKILL.md"
+    if skill.exists():
+        return skill
+    return repo_root / "commands" / f"{command}.md"
+
+
 REQUIRED_COMMANDS = {
     "setup",
     "design_architecture",
@@ -84,7 +103,7 @@ def validate(repo_root: pathlib.Path, manifest_path: pathlib.Path) -> list[str]:
         errors.append(f"removed public commands still listed: {sorted(removed_commands)}")
 
     for command in REQUIRED_COMMANDS:
-        command_path = repo_root / "commands" / f"{command}.md"
+        command_path = workflow_doc_path(repo_root, command)
         if not command_path.exists():
             errors.append(f"missing command file: {command_path.relative_to(repo_root)}")
 

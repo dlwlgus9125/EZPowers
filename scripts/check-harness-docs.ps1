@@ -129,7 +129,15 @@ function Assert-ControllerPrompt {
         }
     }
 
-    $LineCount = @($Text -split "\r?\n").Count
+    # The diet cap targets controller prose; YAML frontmatter is metadata.
+    $BodyText = $Text
+    if ($BodyText.StartsWith('---')) {
+        $FmEnd = $BodyText.IndexOf("`n---", 3)
+        if ($FmEnd -ge 0) {
+            $BodyText = $BodyText.Substring($FmEnd + 4)
+        }
+    }
+    $LineCount = @($BodyText -split "\r?\n").Count
     if ($LineCount -gt 85) {
         throw "[FAIL] ${Label}: controller prompt is too long ($LineCount lines)"
     }

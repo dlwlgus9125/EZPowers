@@ -1,0 +1,5 @@
+interface:
+  display_name: "Sync Docs"
+  short_description: "Synchronize reference docs with codebase state"
+policy:
+  allow_implicit_invocation: false

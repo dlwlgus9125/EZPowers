@@ -1,0 +1,5 @@
+interface:
+  display_name: "Spec"
+  short_description: "Deepen architecture decisions into detailed feature specs"
+policy:
+  allow_implicit_invocation: false

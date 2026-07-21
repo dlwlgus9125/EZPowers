@@ -1,0 +1,5 @@
+interface:
+  display_name: "Design Architecture"
+  short_description: "Define project architecture, test strategy, structure, and roadmap"
+policy:
+  allow_implicit_invocation: false

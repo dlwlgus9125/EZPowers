@@ -26,11 +26,22 @@ def _reviewer_names(cell: str) -> set[str]:
     return set(re.findall(r"`ezpowers:([a-z-]+)`", cell))
 
 
+def _workflow_skill_dirs() -> set[str]:
+    """Workflow invocations are skills marked user-invoke-only."""
+    dirs: set[str] = set()
+    for path in (REPO_ROOT / "skills").glob("*/SKILL.md"):
+        head = path.read_text(encoding="utf-8")[:500]
+        if "disable-model-invocation: true" in head:
+            dirs.add(path.parent.name)
+    return dirs
+
+
 class ReviewerPlacementContractTests(unittest.TestCase):
     def test_every_command_has_reviewer_mapping(self):
         text = CONTRACT.read_text(encoding="utf-8")
         rows = _section_rows(text, "REVIEWER-MATRIX-COMMANDS")
         commands = {f"/{path.stem}" for path in (REPO_ROOT / "commands").glob("*.md")}
+        commands |= {f"/{name}" for name in _workflow_skill_dirs()}
 
         self.assertEqual(commands, set(rows), "command reviewer matrix drifted")
         for command, reviewers in rows.items():
@@ -42,7 +53,7 @@ class ReviewerPlacementContractTests(unittest.TestCase):
         skills = {
             path.parent.name
             for path in (REPO_ROOT / "skills").glob("*/SKILL.md")
-        }
+        } - _workflow_skill_dirs()
 
         self.assertEqual(skills, set(rows), "skill reviewer matrix drifted")
         for skill, reviewers in rows.items():
