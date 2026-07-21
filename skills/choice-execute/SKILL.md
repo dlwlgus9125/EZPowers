@@ -9,7 +9,7 @@ shell: powershell
 
 # /choice-execute — Execution Path Selection
 
-Source contracts: `docs/reference/domain-language.md`, `docs/reference/verification-contract.md`, `docs/reference/ui-verification-adapter-contract.md`, `docs/reference/dispatch-protocol.md`, `docs/reference/reviewer-placement-contract.md`, `docs/reference/model-routing-contract.md`, `docs/reference/strict-execution-adapter.md`.
+Source contracts: `docs/reference/domain-language.md`, `docs/reference/verification-contract.md`, `docs/reference/dispatch-protocol.md`, `docs/reference/model-routing-contract.md`, `docs/reference/harness-execution-contract.md`.
 Execute tasks from the plan document. Choose an execution mode (subagent / harness / inline), then run tasks + AC verification + conditional security review + final code review.
 
 Gate scripts are required runtime dependencies. If `scripts/lightpath-gate.ps1`,
@@ -109,7 +109,7 @@ execution by passing `-ExplicitModel <model>` to `scripts/harness-run.ps1`,
 which sets `EZPOWERS_MODEL` for the harness executor. Keep reviewer model
 routing separate unless the user explicitly overrides reviewer settings.
 
-Path 2 follows `docs/reference/strict-execution-adapter.md`.
+Path 2 follows the "Path 2 — Strict (EasyPowersHarness) Execution" section of `docs/reference/harness-execution-contract.md`.
 
 ## 3. Task Graph Analysis
 
@@ -603,9 +603,10 @@ fresh session.
 
 ## 10. Harness Execution (Path 2, Strict Path)
 
-When the user selects Path 2, load `docs/reference/strict-execution-adapter.md` and follow that
-command as the source of truth for all harness conversion, execution, recovery,
-and restoration behavior. Do not duplicate the harness procedure here.
+When the user selects Path 2, load the "Path 2 — Strict (EasyPowersHarness)
+Execution" section of `docs/reference/harness-execution-contract.md` and follow
+it as the source of truth for all harness conversion, execution, recovery, and
+restoration behavior. Do not duplicate the harness procedure here.
 
 After `/choice-execute Path 2` reports all steps complete, require its full-feature
 wiring gate verdict before continuing:
@@ -615,8 +616,11 @@ wiring gate verdict before continuing:
 - `PASS` or `pass` -> continue at Section 12 (Final Code Review) using the diff range
   returned by `/choice-execute Path 2` (`<harness-start-hash>..HEAD`)
 - `review_pending` -> dispatch `ezpowers:wiring-reviewer` with plan path,
-  diff range, `wiring-gate.json`, runtime artifacts, and run log path. Write
-  the verdict to `wiring-gate.json.reviewer_verdict`, rerun
+  diff range, `wiring-gate.json`, runtime artifacts, and run log path. Record
+  the verdict with `scripts/lightpath-gate.ps1 -ProjectRoot <project-root>
+  -Phase <phase> -Scope final -ReviewerVerdict <verdict>` so it is bound to the
+  gate's current `evidence_fingerprint` (a raw `reviewer_verdict` written
+  without `verdict_fingerprint` is rejected as `review_pending`). Rerun
   `scripts/harness-gate.ps1 -ProjectRoot <project-root> -Phase <phase>`, then
   reread `wiring-gate.json`. Continue only if status becomes `pass`.
 - `TEST_GAP` -> stop and return to `/prepare-execute` or reset the probe-writing step
@@ -631,8 +635,8 @@ Review PASS`. Step completion alone is not enough.
 
 ## 11. Inline Execution (Path 3)
 
-When the user selects Path 3, load
-`docs/reference/inline-execution-adapter.md` and follow it as the source of
+When the user selects Path 3, load the "Path 3 — Inline Execution" section of
+`docs/reference/harness-execution-contract.md` and follow it as the source of
 truth for the inline context pre-check, per-task fix-in-place loop, and gate
 equivalence rules. Do not duplicate the inline procedure here.
 

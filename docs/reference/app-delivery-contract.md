@@ -11,9 +11,7 @@ packaging, deployment, and release verification.
 - `docs/reference/spec-contract.md`
 - `docs/reference/plan-contract.md`
 - `docs/reference/verification-contract.md`
-- `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/frontend-design-contract.md`
-- `docs/reference/architecture-readiness-contract.md`
 
 ## Setup: App Delivery Profile
 

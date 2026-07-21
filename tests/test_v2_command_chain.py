@@ -60,7 +60,7 @@ class V2CommandChainTests(unittest.TestCase):
             self.assertFalse((REPO_ROOT / "commands" / name).exists(), name)
 
         self.assertTrue((REPO_ROOT / "docs/reference/pipeline-audit-contract.md").exists())
-        self.assertTrue((REPO_ROOT / "docs/reference/strict-execution-adapter.md").exists())
+        self.assertTrue((REPO_ROOT / "docs/reference/harness-execution-contract.md").exists())
 
     def test_harness_kit_manifest_is_no_synthesis_and_verified(self):
         manifest = json.loads(
@@ -106,7 +106,7 @@ class V2CommandChainTests(unittest.TestCase):
         setup = workflow_doc("setup", "setup").read_text(encoding="utf-8")
         prepare = workflow_doc("prepare_execute", "prepare-execute").read_text(encoding="utf-8")
         ui_contract = (
-            REPO_ROOT / "docs/reference/ui-verification-adapter-contract.md"
+            REPO_ROOT / "docs/reference/verification-contract.md"
         ).read_text(encoding="utf-8")
 
         self.assertIn("Never generate, paraphrase, or merge `SKILL.md` bodies", setup)

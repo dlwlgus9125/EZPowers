@@ -35,8 +35,8 @@ function names, class names, internal variables, or private file structure.
 ## UI Adapter Evidence
 
 UI-facing criteria must use the configured `ui_verification` adapter from
-`.harness/config.json` or an approved equivalent from
-`docs/reference/ui-verification-adapter-contract.md`. The adapter must assert
+`.harness/config.json` or an approved equivalent from the UI Verification
+Adapter section below. The adapter must assert
 the same user-observable Then clause: visible state, route, interaction,
 accessibility, screenshot, terminal screen, or native window behavior as
 appropriate.
@@ -64,6 +64,81 @@ SAST (Static Application Security Testing) runs as a **mandatory per-task gate**
 | Evidence | SAST tool output (JSON preferred) recorded in task status |
 
 **Relationship to Security Reviewer:** SAST gate catches pattern-based vulnerabilities (SQL injection, command injection, XSS, path traversal) that LLM review may miss. Security Reviewer catches logic-level security issues (broken auth, privilege escalation, insecure design) that SAST tools miss. Both layers complement each other.
+
+## UI Verification Adapter
+
+UI verification is capability-based. Playwright is the preferred browser e2e
+adapter when it can run, but a project may use another adapter when it preserves
+the same user-observable oracle.
+
+### Config Shape
+
+`.harness/config.json` should include:
+
+```json
+{
+  "ui_verification": {
+    "required": false,
+    "capability": "",
+    "adapter": "",
+    "command": "",
+    "oracle": "",
+    "fallback_adapter": "",
+    "evidence": []
+  }
+}
+```
+
+Set `required: true` for web, mobile, desktop, CLI/TUI, or any user-facing UI
+surface.
+
+### Capability Matrix
+
+| Capability | Valid adapters | Required oracle |
+| --- | --- | --- |
+| `browser-e2e` | Playwright, Cypress, WebDriver, framework browser runner | DOM state, route, network, accessibility, and visible result |
+| `component-dom` | Storybook interaction tests, Testing Library, Vitest browser mode | Rendered component behavior and accessibility-visible state |
+| `framework-headless` | Framework renderer or test harness | View model, bindings, events, and rendered tree |
+| `desktop-gui` | UI automation, process plus screenshot, framework headless runner | Window opens, controls render, interaction changes observable state |
+| `mobile-emulator` | Simulator/emulator integration test | Screen, navigation, gesture, and persisted state |
+| `cli-tui` | Terminal runner, stdout/screen probe, snapshot with interaction | User-visible terminal output and keyboard flow |
+| `custom` | Project-specific adapter documented in config | Same observable behavior as the acceptance criterion |
+
+### Selection Rules
+
+`/design-architecture` selects the strongest viable adapter from repo evidence
+and user confirmation. It records the adapter, command, oracle, and evidence in
+the testing methodology.
+
+`/prepare-execute` must copy that adapter into relevant tasks. If no adapter is
+installed or runnable, it inserts a prerequisite task before feature work to
+install or build the adapter.
+
+`/choice-execute` treats adapter failure as a real Verify failure. A skipped UI
+adapter is valid only when the plan includes an approved non-UI replacement
+that proves the same user-observable result.
+
+`adapter_fallback_task_required`: when a UI acceptance criterion needs an
+adapter and the selected adapter cannot run in the project, the plan must add a
+prerequisite adapter task instead of downgrading the criterion.
+
+### Equivalence Rule
+
+Equivalent means the replacement verifies the same observable claim, not merely
+that it runs in the same test stage. For example, a component test can replace a
+browser test only when route integration, data loading, and user interaction are
+not part of the acceptance criterion, or when those concerns are covered by
+separate automated probes.
+
+### Adapter Audit Rule
+
+Internal pipeline audit fails UI work when:
+
+- `ui_verification.required` is true and no adapter is selected.
+- A UI task lacks a task-level adapter command or approved prerequisite task.
+- The command does not assert user-visible behavior.
+- Visual or accessibility evidence is advisory-only for an acceptance criterion
+  that depends on it.
 
 ## Automatable Criteria
 
@@ -425,8 +500,8 @@ Each dimension produces independent pass/fail results with per-check detail.
 
 | Dimension | What it checks |
 | --- | --- |
-| `structural` | File existence, JSON/YAML parse validity, markdown section presence. |
-| `content` | Regex patterns, count thresholds, banned expression scan. |
+| `structural` | File existence and JSON parse validity, plus hashline-anchor drift and path-traversal rejection. |
+| `content` | Banned-expression scan and Verify-command presence (at least one Verify command). |
 | `relational` | Cross-file reference integrity (R-ids in spec match plan, file refs exist). |
 | `command` | Shell command execution with exit 0 semantics (backwards-compatible). |
 | `static` | Optional `Static-verify:` or `Ast-grep:` command execution. |
@@ -450,71 +525,10 @@ verification also checks that the generated step file has not drifted from its
 conversion-time anchor. If `.harness/config.json` sets
 `verification.static_required: true`, a step without static verification fails.
 
-### Legacy Notes
-
-View를 포함하는 작업의 모델 레벨 테스트만으로는 5가지 와이어링 결함을 잡지
-못한다. 검증 계층 모델:
-
-```
-Layer 1: Model/ViewModel Unit Test  (기존 — Task AC)
-Layer 2: View Wiring Test           (이 섹션)
-Layer 3: Integration Probe          (Full-Feature Wiring Gate)
-Layer 4: Runtime Smoke              (config.smoke)
-```
-
-Layer 1만으로는 와이어링을 검증할 수 없다. Layer 2-3이 반드시 필요하다.
-
-### 적용 조건
-
-`config.wiring.view_extensions`에 해당하는 파일을 Create 또는 Modify하는 Task에
-의무 적용. 모델/로직 전용 Task는 면제.
-
-### Wiring Defect Taxonomy (W1-W5)
-
-| ID | 결함 유형 | 모델 테스트가 못 잡는 이유 | 실앱 증상 |
-|---|---|---|---|
-| W1 | Binding resolution | 뷰를 인스턴스화하지 않음 | 데이터 안 나옴 (조용한 실패) |
-| W2 | Handler connection | 뷰 상호작용 코드 미실행 | 버튼/이벤트 무반응 |
-| W3 | Dependency resolution | Mock 사용, 실제 DI 미검증 | 앱 시작 시 크래시 또는 null |
-| W4 | Activation state | 모델 속성과 무관하게 하드코딩 | 요소 비활성/숨김 |
-| W5 | Template resolution | 모델만 테스트 | 모델은 있으나 뷰 렌더 안 됨 |
-
-### Per-Task View Wiring Test (Layer 2)
-
-View를 생성하거나 수정하는 모든 Task에 의무 적용.
-모델만 생성하는 Task (View 없음)는 면제.
-
-Task의 AC 검증 통과 후, View Wiring Verify 커맨드를 실행한다.
-커맨드 소스: task의 `**View wiring verification**` 섹션 Verify 또는
-`config.wiring.view_test_command`. Exit 0 = PASS.
-
-5대 검증 항목:
-
-- **W1 Binding resolution**: 뷰 인스턴스화 후 핵심 데이터 바인딩 속성이
-  non-null 값으로 렌더됨
-- **W2 Handler connection**: 사용자 상호작용 핸들러를 프로그래밍으로 트리거 →
-  모델 상태 변경 확인
-- **W3 Dependency resolution**: 런타임 DI에서 모델/서비스 해석 → 뷰 컨텍스트
-  설정 → 크래시 없음
-- **W4 Activation state**: 사용자 상호작용 요소의 활성화 상태가 모델에 바인딩,
-  하드코딩 아님
-- **W5 Template resolution**: 모델→뷰 템플릿 매핑이 기대하는 뷰 타입으로 해석
-
-### Integration Probe (Layer 3)
-
-2개 이상의 Task가 완료된 빌드, executable artifact가 있는 빌드, 또는
-Full-Feature Wiring Gate가 plan에 정의된 빌드에서 적용.
-
-Full-Feature Wiring Gate의 Verify 커맨드로 전체 파이프라인 와이어링을 검증한다.
-`config.wiring.wiring_gate_command`가 설정되어 있으면 이를 우선 사용.
-기존 Wiring Gate 계약과 동일한 규칙 적용.
-
-Wiring Gate FAIL 시:
-1. 어떤 View/Pipeline에서 실패했는지 식별
-2. 어떤 유형의 결함인지 (W1-W5) 분류
-3. 해당 Task 역추적 → 재구현 디스패치
-4. Max 3 retries → user 에스컬레이션
-5. Wiring Gate 건너뛰기 불가 (Required: yes인 경우)
+`scripts/verify-step.py` does not mechanically enforce YAML-parse validity or
+markdown-section presence in the `structural` dimension, nor generic
+regex-pattern or count-threshold assertions in the `content` dimension.
+Reviewers should check those concerns; they are guidance, not automated gates.
 
 ## Per-Task Quality Gates
 

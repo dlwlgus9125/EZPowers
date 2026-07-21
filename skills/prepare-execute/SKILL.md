@@ -24,14 +24,11 @@ if (Test-Path phases/index.json) { "PHASES_INDEX:"; Get-Content phases/index.jso
 
 ## Read
 
-- `docs/reference/mattpocock-harness-adapter.md`
 - `docs/reference/plan-contract.md`
 - `docs/reference/spec-contract.md`
-- `docs/reference/architecture-readiness-contract.md`
+- `docs/reference/design-architecture-contract.md`
 - `docs/reference/verification-contract.md`
-- `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/dispatch-protocol.md`
-- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/domain-language.md`
 - `.harness/config.json`, `AGENTS.md`, `phases/index.json`
 - Spec artifact from argument, phase state, or latest spec directory entry
@@ -57,9 +54,9 @@ if (Test-Path phases/index.json) { "PHASES_INDEX:"; Get-Content phases/index.jso
   before feature tasks begin.
 - Add automated runtime and wiring evidence when work touches executable entry
   points, multiple layers, connected tasks, routes, bindings, or registrations.
-- Apply `docs/reference/ui-verification-adapter-contract.md`. For UI work,
-  select the strongest available adapter that preserves the same
-  user-observable oracle. If no valid adapter exists, insert a prerequisite
+- Apply the UI Adapter Evidence section of
+  `docs/reference/verification-contract.md`. For UI work, select the strongest
+  available adapter that preserves the same user-observable oracle. If no valid adapter exists, insert a prerequisite
   task that installs or builds the adapter before feature implementation.
 - For executable artifacts, every task that creates a new module must include a
   `**Wiring probe:**` section specifying: entry point path, module path, probe

@@ -6,16 +6,14 @@ artifact shape.
 
 ## Source Contracts
 
-- `docs/reference/mattpocock-harness-adapter.md`
 - `docs/reference/domain-language.md`
-- `docs/reference/reviewer-placement-contract.md`
+- `docs/reference/dispatch-protocol.md`
 - `docs/reference/verification-contract.md`
 - `docs/reference/app-delivery-contract.md`
 - `docs/reference/harness-kit-contract.md`
-- `docs/reference/ui-verification-adapter-contract.md`
 
-EZPowers automation owns project state. Matt Pocock influence is limited to
-short prompts, explicit stop conditions, and fast evidence loops.
+EZPowers automation owns project state. Harness prompts stay short, with
+explicit stop conditions and fast evidence loops.
 
 ## Project Detection
 
@@ -418,9 +416,9 @@ files are setup failures, not prompts to improvise replacements.
 
 ## UI Verification
 
-Populate `ui_verification` from
-`docs/reference/ui-verification-adapter-contract.md`. UI projects require a
-selected capability and an adapter plan. If no adapter can run yet, setup may
+Populate `ui_verification` from the UI Adapter Evidence section of
+`docs/reference/verification-contract.md`. UI projects require a selected
+capability and an adapter plan. If no adapter can run yet, setup may
 leave `command` empty only when `/prepare-execute` will add a prerequisite
 adapter-install task before feature work.
 

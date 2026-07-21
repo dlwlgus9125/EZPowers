@@ -66,6 +66,6 @@ verification concentrate at one place rather than spreading across callers.
 - **"Boundary"**: overloaded with DDD's bounded context. Say **seam** or
   **interface**.
 
-EZPowers uses the same terms in `docs/reference/architecture-readiness-contract.md`
+EZPowers uses the same terms in `docs/reference/design-architecture-contract.md`
 and `docs/reference/domain-language.md` for workflow-level architecture. This
 reference goes deeper for codebase-level architecture review.

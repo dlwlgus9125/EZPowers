@@ -19,13 +19,11 @@ class FrontendDesignReadinessTests(unittest.TestCase):
     def test_frontend_design_contract_is_indexed_and_routed(self):
         index = self.read("docs/INDEX.md")
         protocol = self.read("docs/reference/protocol.md")
-        reviewer = self.read("docs/reference/reviewer-placement-contract.md")
         dispatch = self.read("docs/reference/dispatch-protocol.md")
 
         self.assertIn("reference/frontend-design-contract.md", index)
         self.assertIn("docs/reference/frontend-design-contract.md", protocol)
-        self.assertIn("frontend-design", reviewer)
-        self.assertIn("frontend-experience-reviewer", reviewer)
+        self.assertIn("frontend-experience-reviewer", dispatch)
         self.assertIn("frontend-experience-reviewer | `frontend-visual`", dispatch)
 
     def test_setup_and_design_architecture_require_design_artifact(self):

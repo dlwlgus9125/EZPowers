@@ -17,7 +17,7 @@ Read the following first:
 - `CLAUDE.md`
 - `AGENTS.md` (if present)
 - `.harness/config.json` (if present)
-- `docs/reference/reviewer-placement-contract.md` (if present)
+- `docs/reference/dispatch-protocol.md` (if present)
 - `docs/reference/conventions.md` (if present — coding rules and constraints)
 - Spec document (if path given as argument, or if a recent spec exists)
 

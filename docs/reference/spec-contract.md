@@ -5,15 +5,11 @@ in the `/spec` controller prompt.
 
 ## Source Contracts
 
-- `docs/reference/mattpocock-harness-adapter.md`
 - `docs/reference/design-architecture-contract.md`
-- `docs/reference/architecture-readiness-contract.md`
 - `docs/reference/verification-contract.md`
-- `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/app-delivery-contract.md`
 - `docs/reference/frontend-design-contract.md`
 - `docs/reference/dispatch-protocol.md`
-- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/domain-language.md`
 
 ## Preflight
@@ -283,7 +279,7 @@ in Impact scope.
 
 ## ADR Rules
 
-Use the ADR policy in `docs/reference/architecture-readiness-contract.md`.
+Use the ADR Policy section of `docs/reference/design-architecture-contract.md`.
 
 When ADRs are required:
 

@@ -98,7 +98,7 @@ Lifecycle commands:
 Internal adapters:
 
 - `docs/reference/pipeline-audit-contract.md`
-- `docs/reference/strict-execution-adapter.md`
+- `docs/reference/harness-execution-contract.md`
 
 Old public commands `/brainstorm`, `/plan`, `/choiceexecutor`,
 `/executeharness`, and `/pipeline-audit` are not aliases in v2.

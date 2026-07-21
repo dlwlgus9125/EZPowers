@@ -22,7 +22,7 @@ Can be invoked at any time after /setup. Adapts to available information:
 
 **Always read:**
 - `CLAUDE.md`
-- `docs/reference/reviewer-placement-contract.md`
+- `docs/reference/dispatch-protocol.md`
 - Existing `docs/reference/conventions.md` (if any — update mode)
 
 **Optional enrichment** (use what's available):

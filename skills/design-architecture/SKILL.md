@@ -25,11 +25,8 @@ if (Test-Path phases/index.json) { "PHASES_INDEX:"; Get-Content phases/index.jso
 ## Read
 
 - `docs/reference/design-architecture-contract.md`
-- `docs/reference/mattpocock-harness-adapter.md`
-- `docs/reference/reviewer-placement-contract.md`
+- `docs/reference/dispatch-protocol.md`
 - `docs/reference/setup-contract.md`
-- `docs/reference/architecture-readiness-contract.md`
-- `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/frontend-design-contract.md`
 - `docs/reference/verification-contract.md`
 - `.harness/config.json`, `AGENTS.md`, `CONTEXT.md`, `phases/index.json`

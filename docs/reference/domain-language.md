@@ -37,9 +37,11 @@ per-task verification evidence, final review verdict, docs sync status, and
 phase completion state.
 
 **Strict Execution Adapter**
-The internal EasyPowersHarness adapter used by `/choice-execute` Path 2. Its interface is a
-requested phase, converted step files, step status table, runtime/wiring
-evidence, recovery route, and final review diff range.
+The internal EasyPowersHarness adapter used by `/choice-execute` Path 2,
+specified in the "Path 2 — Strict (EasyPowersHarness) Execution" section of
+`docs/reference/harness-execution-contract.md`. Its interface is a requested
+phase, converted step files, step status table, runtime/wiring evidence,
+recovery route, and final review diff range.
 
 **Workflow Runner**
 A scoped runner agent for command-level chaining. Its interface is a target
@@ -50,10 +52,11 @@ commit hash, and routing recommendation.
 A read-focused agent that checks one artifact or diff through a fixed verdict
 interface. Reviewer prompts are procedures, not advisory essays.
 
-**Reviewer Placement Gate**
-The mandatory review step after each successful command or explicit skill
-invocation. Its interface is the required reviewer set from
-`docs/reference/reviewer-placement-contract.md` plus parsed verdicts.
+**Reviewer Placement**
+Review at the load-bearing moments where a wrong artifact is expensive — the
+wiring gate verdict, the final code review, one pre-approval design review per
+stage, and conditional security review — not after every invocation. Defined in
+the Reviewer Placement section of `docs/reference/dispatch-protocol.md`.
 
 **Review Packet**
 The dynamic input passed to reviewers: invocation name, artifact paths, source

@@ -15,7 +15,7 @@ Read the following:
 - `AGENTS.md`
 - `.harness/config.json`
 - `docs/INDEX.md`
-- `docs/reference/reviewer-placement-contract.md`
+- `docs/reference/dispatch-protocol.md`
 
 If missing, direct and stop: "Run `/setup` first."
 

@@ -20,8 +20,7 @@ new agent session so the host reloads command definitions.
 ## Read
 
 - `docs/reference/harness-kit-contract.md`
-- `docs/reference/mattpocock-harness-adapter.md`
-- `docs/reference/reviewer-placement-contract.md`
+- `docs/reference/dispatch-protocol.md`
 - `docs/reference/setup-contract.md`
 - `harness-kit/v2.0.0/manifest.json`
 - Existing `.harness/config.json`, `.harness/ezpowers/ledger.json`,

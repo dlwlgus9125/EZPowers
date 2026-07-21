@@ -5,15 +5,12 @@ belong in the `/prepare-execute` controller prompt.
 
 ## Source Contracts
 
-- `docs/reference/mattpocock-harness-adapter.md`
 - `docs/reference/spec-contract.md`
-- `docs/reference/architecture-readiness-contract.md`
+- `docs/reference/design-architecture-contract.md`
 - `docs/reference/verification-contract.md`
-- `docs/reference/ui-verification-adapter-contract.md`
 - `docs/reference/app-delivery-contract.md`
 - `docs/reference/frontend-design-contract.md`
 - `docs/reference/dispatch-protocol.md`
-- `docs/reference/reviewer-placement-contract.md`
 - `docs/reference/domain-language.md`
 
 ## Preflight
@@ -121,9 +118,9 @@ environment, add a prerequisite task before feature implementation:
 **UI verification adapter:** <capability, adapter, command, oracle>
 ```
 
-Do not replace a UI acceptance criterion with a lower-level test unless
-`docs/reference/ui-verification-adapter-contract.md` says the observable oracle
-is equivalent.
+Do not replace a UI acceptance criterion with a lower-level test unless the UI
+Adapter Evidence section of `docs/reference/verification-contract.md` says the
+observable oracle is equivalent.
 
 ## Frontend Design Readiness Tasks
 

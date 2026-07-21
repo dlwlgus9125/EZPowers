@@ -14,7 +14,7 @@
   ],
   "internal_adapters": [
     "docs/reference/pipeline-audit-contract.md",
-    "docs/reference/strict-execution-adapter.md"
+    "docs/reference/harness-execution-contract.md"
   ],
   "source_files": [
     {

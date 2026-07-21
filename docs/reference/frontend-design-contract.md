@@ -2,7 +2,7 @@
 
 This contract makes frontend design readiness a first-class gate before UI
 implementation. It complements `docs/reference/app-delivery-contract.md` and
-`docs/reference/ui-verification-adapter-contract.md`.
+the UI Adapter Evidence section of `docs/reference/verification-contract.md`.
 
 ## Required Artifact
 
@@ -94,7 +94,7 @@ Playwright availability alone is not enough to require the screenshot/visual
 baseline lane. The lane becomes required when project evidence or the plan
 mentions screenshot-specific Playwright use, such as `toHaveScreenshot`,
 snapshot baselines, screenshot review, or visual snapshots. Ordinary Playwright
-e2e is handled by the UI verification adapter contract.
+e2e is handled by the UI Adapter Evidence section of the verification contract.
 
 When a mock or prototype artifact is normative, the artifact must state how it
 maps to tokens and components plus a freshness rule. Reference-only artifacts

@@ -4,11 +4,37 @@ Backend-aware dispatch for reviewer subagents. Commands reference this document
 before dispatching any reviewer or workflow-runner agent.
 
 This document is also the canonical workflow dispatch contract for reviewer
-verdict parsing, retry handling, and workflow-runner scope. Reviewer placement
-follows `docs/reference/reviewer-placement-contract.md`. Model profile
-selection follows `docs/reference/model-routing-contract.md`. It complements
-`docs/reference/domain-language.md`, `docs/reference/verification-contract.md`,
-and `docs/reference/architecture-readiness-contract.md`.
+placement, verdict parsing, retry handling, and workflow-runner scope. Model
+profile selection follows `docs/reference/model-routing-contract.md`. It
+complements `docs/reference/domain-language.md`,
+`docs/reference/verification-contract.md`, and
+`docs/reference/design-architecture-contract.md`.
+
+## Reviewer Placement
+
+Review happens at the moments where a wrong artifact is expensive, not after
+every skill. A skill that produces no reviewable artifact (a preflight abort, a
+read-only utility) needs no reviewer. The load-bearing review moments are:
+
+1. **Wiring gate verdict** — `ezpowers:wiring-reviewer` records the final wiring
+   verdict during `/choice-execute` (Path 2 and the lightpath final gate). This
+   is structural: `scripts/harness-gate.ps1` stays `review_pending` (exit 5)
+   until a verdict is bound to the current evidence fingerprint. Verdicts:
+   `PASS`, `TEST_GAP`, `CODE_GAP`, `SPEC_GAP`.
+2. **Final code review** — `ezpowers:code-reviewer` reviews the actual diff at
+   the end of `/choice-execute` (tri-state `PASS` / `PASS_WITH_ISSUES` / `FAIL`).
+3. **Pre-approval design review, once per stage** — `ezpowers:spec-reviewer`
+   (`/spec`), `ezpowers:plan-reviewer` (`/prepare-execute`), and
+   `ezpowers:architecture-reviewer` (`/design-architecture`, and `grill-with-docs`
+   / `improve-codebase-architecture` when they change architecture). Add
+   `ezpowers:frontend-experience-reviewer` when the stage produces UI artifacts.
+4. **Conditional security review** — `ezpowers:security-reviewer` only when the
+   change exposes user input, auth, crypto, filesystem paths, network I/O,
+   dependency manifests, or secrets. Otherwise record "no security surface" and
+   move on.
+
+Pass paths and short dynamic facts to reviewers; do not paste whole specs,
+plans, diffs, or previous reviewer reasoning when a path is enough.
 
 ## Dispatch Interface
 
@@ -219,5 +245,4 @@ Wiring review uses the verdict interface from
 
 ## Agents NOT Covered by This Protocol
 
-- **eval-diagnostician** (`model: inherit`): Diagnostic/internal-only; not called from user-facing commands. Not subject to backend dispatch.
 - **implementer-prompt.md**: Template for task implementation subagents. Dispatch is handled by `/choice-execute` Section 4 directly, not through this protocol.
