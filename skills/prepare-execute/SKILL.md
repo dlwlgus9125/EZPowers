@@ -3,6 +3,7 @@ name: prepare-execute
 description: Decompose spec into task plans with agent assignments
 disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
+shell: powershell
 ---
 
 # /prepare-execute - Task Sequencing
@@ -12,6 +13,14 @@ allowed-tools: [Bash, Read, Write, Agent, AskUserQuestion]
 Convert an approved spec into an implementation plan that independent agents can
 execute safely. Preserve requirement coverage, architecture invariants, TDD
 slices, runtime evidence, and wiring gates. Do not implement code.
+
+Harness state (injected on Claude Code; on Codex read the files directly):
+
+```!
+if (Test-Path .harness/config.json) { "CONFIG: present" } else { "CONFIG: MISSING" }
+if (Test-Path phases/index.json) { "PHASES_INDEX:"; Get-Content phases/index.json -Raw } else { "PHASES_INDEX: MISSING" }
+"HEAD: $(git rev-parse HEAD 2>$null)"
+```
 
 ## Read
 

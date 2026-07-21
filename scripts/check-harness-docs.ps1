@@ -129,6 +129,12 @@ function Assert-ControllerPrompt {
         }
     }
 
+    # Dynamic-context injection fences (```! ... ```) are harness mechanism,
+    # not controller prose: exclude them from the marker scan and line cap.
+    $Text = [regex]::Replace($Text, '(?s)```!?
+.*??
+```?
+?', '')
     # The diet cap targets controller prose; YAML frontmatter is metadata.
     $BodyText = $Text
     if ($BodyText.StartsWith('---')) {

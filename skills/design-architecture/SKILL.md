@@ -3,6 +3,7 @@ name: design-architecture
 description: Define project architecture, test strategy, structure, and roadmap
 disable-model-invocation: true
 allowed-tools: [Bash, Read, Write, Glob, WebSearch, Agent, AskUserQuestion]
+shell: powershell
 ---
 
 # /design-architecture - Architecture And Test Design
@@ -12,6 +13,14 @@ allowed-tools: [Bash, Read, Write, Glob, WebSearch, Agent, AskUserQuestion]
 Convert the initialized harness into a project-specific operating model:
 backend/frontend direction, project structure, roadmap, lifecycle constraints,
 and verification methodology. Do not implement product code.
+
+Harness state (injected on Claude Code; on Codex read the files directly):
+
+```!
+if (Test-Path .harness/config.json) { "CONFIG: present" } else { "CONFIG: MISSING" }
+if (Test-Path phases/index.json) { "PHASES_INDEX:"; Get-Content phases/index.json -Raw } else { "PHASES_INDEX: MISSING" }
+"HEAD: $(git rev-parse HEAD 2>$null)"
+```
 
 ## Read
 
