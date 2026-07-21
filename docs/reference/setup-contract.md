@@ -489,3 +489,27 @@ Report:
 - Remaining human-authored docs.
 - Smoke command and GUI strategy.
 - Next command: `/design-architecture`.
+
+## Gate Script Permissions
+
+With user approval, `/setup` appends allow rules to the target project's
+`.claude/settings.json` `permissions.allow` so harness gates run without
+per-call prompts across turns (skill-level `allowed-tools` grants clear each
+turn, but the execution loop spans many turns):
+
+```json
+[
+  "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File scripts/lightpath-gate.ps1 *)",
+  "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-resume-proof.ps1 *)",
+  "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-certify.ps1 *)",
+  "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-gate.ps1 *)",
+  "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-run.ps1 *)",
+  "Bash(python scripts/verify-step.py *)",
+  "Bash(python scripts/context-injector.py *)"
+]
+```
+
+Before writing, confirm the matcher strings against how the current session
+actually invokes the scripts (a session may route through the PowerShell tool
+rather than Bash; adjust the tool prefix to match). Never write without the
+user's explicit yes; record the decision in the setup summary.
