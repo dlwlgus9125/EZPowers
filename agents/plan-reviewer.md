@@ -3,7 +3,7 @@ name: plan-reviewer
 description: >
   Verify plan document executability. Checks coverage matrix, task decomposition,
   verification methods, reference breakage, code preservation.
-  Use when reviewing /prepare_execute output or work plans.
+  Use when reviewing /prepare-execute output or work plans.
 tools: [Read, Grep, Glob]
 model: sonnet
 maxTurns: 10
