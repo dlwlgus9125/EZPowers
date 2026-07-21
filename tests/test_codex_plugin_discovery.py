@@ -44,7 +44,6 @@ class CodexPluginDiscoveryTests(unittest.TestCase):
     def test_codex_plugin_roots_do_not_expose_active_hook_files(self):
         plugin_roots = [
             REPO_ROOT,
-            REPO_ROOT / "plugins/ezpowers",
         ]
 
         for plugin_root in plugin_roots:

@@ -53,7 +53,8 @@ if (Test-Path phases/index.json) { "PHASES_INDEX:"; Get-Content phases/index.jso
   `scripts/frontend-visual-readiness.py --mode detect` when available.
 - Do not leave implementation agents to invent architecture, folder structure,
   data flow, lifecycle, deploy target, or test methodology.
-- Dispatch `ezpowers:architecture-reviewer` through the reviewer placement gate.
+- Dispatch `ezpowers:architecture-reviewer` for the pre-approval design review
+  (see `docs/reference/dispatch-protocol.md` § Reviewer Placement).
 
 ## Stop conditions
 

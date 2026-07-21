@@ -446,7 +446,7 @@ and reference docs should reference this section instead of restating.
 ### Cross-Reference Policy
 
 When a rule from this contract appears in another document:
-- **Subagent-consumed documents** (commands/, agents/): inline restatement allowed (isolation principle; SOCpilot: inline compliance 0.87 vs cross-ref 0.36). Must annotate canonical source.
+- **Subagent-consumed documents** (skills/, agents/): inline restatement allowed (isolation principle; SOCpilot: inline compliance 0.87 vs cross-ref 0.36). Must annotate canonical source.
 - **Reference documents** (docs/reference/): cross-reference only, no restatement.
 - Inline restatements must include a `Canonical definition:` annotation pointing here.
 

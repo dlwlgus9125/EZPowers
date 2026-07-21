@@ -52,7 +52,6 @@ new agent session so the host reloads command definitions.
 
 - Reinstalled kit version and ledger path.
 - Config/doc fields migrated.
-- Workflow contract reviewer verdict.
 - Files left for manual review.
 - Updated phase state.
 - Next command: `/design-architecture` when architecture or verification

@@ -32,8 +32,8 @@ Changed files (injected at invocation on Claude Code):
 If the block above shows literal commands instead of results (Codex host),
 run `git diff --name-only` and `git diff --cached --name-only` yourself.
 
-If no changes, inform and stop. If changes exist, finish through the reviewer
-placement gate.
+If no changes, inform and stop. If changes exist, review them against the
+principles below and report findings.
 
 ## 2. Review Principles
 

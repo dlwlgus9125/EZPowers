@@ -40,7 +40,7 @@ description: Use when creating new skills, editing existing skills, or verifying
 | Type | Description | Example |
 |------|-------------|---------|
 | **Technique** | Concrete method with steps | diagnose |
-| **Pattern** | Mental model for a problem | flatten-with-flags |
+| **Pattern** | Mental model for a problem | zoom-out |
 | **Reference** | API docs, syntax, tool reference | office docs |
 
 ## Directory Structure

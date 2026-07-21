@@ -78,6 +78,5 @@ kit. Do not write product code or synthesize skill bodies.
 - Frontend design readiness slot, config fields, and unresolved inputs.
 - `phases/index.json` setup status.
 - Local kit install path, manifest version, and hash ledger path.
-- Reviewer verdict summary from the reviewer placement gate.
 - Human-owned docs that still need content.
 - Next command: `/design-architecture`.

@@ -63,7 +63,7 @@
     },
     "packaging": {
       "artifact": "codex-and-claude-plugin",
-      "build_output": "plugins/ezpowers",
+      "build_output": ".",
       "installer_or_image": ""
     },
     "deployment": {

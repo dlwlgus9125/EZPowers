@@ -585,7 +585,7 @@ Agent tool:
 
 **Post-substitution validation:** Before dispatch:
 1. **Placeholder check:** Scan the completed prompt for `[` + alpha + `]` patterns (e.g., `[SPEC_FILE_PATH]`, `[directory]`). Unsubstituted → do not dispatch.
-2. **Verify Fidelity Check:** Execute the fidelity check from Section 4.1. Any Verify command mismatch between prompt and plan = HALT dispatch.
+2. **Verify Fidelity Check:** Execute the fidelity check from Section 4 (`docs/reference/verification-contract.md` § Verify Command Baseline & Fidelity). Any Verify command mismatch between prompt and plan = HALT dispatch.
 3. **Context Injection Check:** If the prompt contains `EZP_CONTEXT` sentinels, run `python scripts/context-injector.py verify --file <prompt-file> --json`; duplicate or missing markers block dispatch.
 
 ## 9. Degradation Detection and Response
@@ -808,13 +808,7 @@ After all tasks + final review complete:
    }
    ```
 
-7. **Conditional eval regression check (advisory):**
-   If changed-files include any path under `commands/`, `agents/`, or
-   `skills/`, run `/eval` to detect cumulative regression across all tasks.
-   Record result in `phases/index.json` under `eval_check`. This gate is
-   advisory — WARN on regression, never FAIL or block completion.
-
-8. Next recommendation: `/review`
+7. Next recommendation: `/review`
 
 Update `phases/index.json`:
 - build: `status: "complete"`, `completed_at: "<ISO 8601>"`

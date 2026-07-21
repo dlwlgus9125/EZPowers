@@ -27,9 +27,8 @@ The controller will provide:
    - `/sync-docs` -> `skills/sync-docs/SKILL.md`
 2. Execute that command document's procedure for the provided invocation mode.
 
-Do not read `skills/ezpowers-workflow/SKILL.md`; workflow-runner is already a
-scoped command runner, and the target command document is the procedure source
-of truth.
+The target command document is the procedure source of truth; workflow-runner is
+only the scoped runner around it.
 
 If the target command is anything else, stop with `**Status:** FAIL`.
 

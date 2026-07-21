@@ -98,7 +98,7 @@ reviewer profiles:
 
 | Reviewer | Profile |
 | --- | --- |
-| spec-reviewer, plan-reviewer, architecture-reviewer, wiring-reviewer, workflow-contract-reviewer | `contract-review` |
+| spec-reviewer, plan-reviewer, architecture-reviewer, wiring-reviewer | `contract-review` |
 | frontend-experience-reviewer | `frontend-visual` |
 | code-reviewer | `deep-analysis` |
 | security-reviewer | `security-audit` |
@@ -191,7 +191,6 @@ Agent tool:
 | `ezpowers:code-reviewer` | `codex:codex-rescue` + agents/code-reviewer.md | agents/code-reviewer.md |
 | `ezpowers:security-reviewer` | `codex:codex-rescue` + agents/security-reviewer.md | agents/security-reviewer.md |
 | `ezpowers:wiring-reviewer` | `codex:codex-rescue` + agents/wiring-reviewer.md | agents/wiring-reviewer.md |
-| `ezpowers:workflow-contract-reviewer` | `codex:codex-rescue` + agents/workflow-contract-reviewer.md | agents/workflow-contract-reviewer.md |
 | `ezpowers:workflow-runner` | `codex:codex-rescue` + agents/workflow-runner.md | agents/workflow-runner.md |
 
 ### Verdict Parsing
@@ -226,7 +225,6 @@ Default review loop limits:
 | Architecture review | 5 | 3 | 5 |
 | Plan review | 5 | 3 | 5 |
 | Security review | 5 | 3 | 5 |
-| Workflow contract review | 5 | 3 | 5 |
 | Final code review | 10 | 5 | 10 |
 | Implementer acceptance criteria | 3 | N/A | 3 |
 | Runtime or smoke probe | 3 | N/A | 3 |
