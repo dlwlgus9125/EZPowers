@@ -13,7 +13,7 @@ case results and propose a SINGLE targeted change to improve pass rates.
 
 Read failing trace clusters. Identify a SINGLE common root cause across the
 failing cases. Propose ONE change of at most 3 consecutive lines in ONE file
-under `commands/` or `agents/`.
+under `skills/` or `agents/`.
 
 # Input
 
