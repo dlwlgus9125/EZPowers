@@ -1,6 +1,6 @@
 # Design Architecture Contract
 
-This reference owns the `/design_architecture` artifact shape. It separates
+This reference owns the `/design-architecture` artifact shape. It separates
 project architecture and verification policy from feature-level specs.
 
 Source contract: `docs/reference/reviewer-placement-contract.md` requires
@@ -27,7 +27,7 @@ the relevant artifact's `## Decision Ledger` table:
 | ID | Question/Trigger | Decision | Source | Artifacts Updated | Open Follow-up |
 |----|------------------|----------|--------|-------------------|----------------|
 
-`Source` is `user`, `repo`, `default`, or `delegated`. `/design_architecture`
+`Source` is `user`, `repo`, `default`, or `delegated`. `/design-architecture`
 must carry ledger entries into `docs/reference/architecture.md`,
 `docs/reference/testing-methodology.md`, `docs/product/ROADMAP.md`, and
 `docs/ux/frontend-design.md` when UI is present. ADRs remain reserved for
@@ -71,7 +71,7 @@ Document the test strategy by surface:
 
 ## Frontend Design
 
-When UI is present, `/design_architecture` invokes the `frontend-design` skill
+When UI is present, `/design-architecture` invokes the `frontend-design` skill
 after repo evidence is read and before architecture completion. The skill must
 offer 2-3 design directions, record the selected option or delegated choice,
 and produce `docs/ux/frontend-design.md`. The architecture bundle is incomplete
@@ -120,5 +120,5 @@ general best practices.
 }
 ```
 
-If `/design_architecture` changes verification policy after specs or plans
+If `/design-architecture` changes verification policy after specs or plans
 exist, mark affected later phases as needing review.

@@ -1,7 +1,7 @@
 # Harness Execution Contract
 
 This reference contains the strict-path details that do not belong in the
-`/choice_execute Path 2` controller prompt.
+`/choice-execute Path 2` controller prompt.
 
 ## Source Contracts
 
@@ -185,7 +185,7 @@ Prefer:
 scripts/harness-run.ps1 -ProjectRoot <project-root> -Phase <phase> -TimeoutSeconds 600
 ```
 
-When `/choice_execute` selected a one-run execution model override, use:
+When `/choice-execute` selected a one-run execution model override, use:
 
 ```powershell
 scripts/harness-run.ps1 -ProjectRoot <project-root> -Phase <phase> -TimeoutSeconds 600 -ExplicitModel <model>
@@ -234,7 +234,7 @@ Gate rules:
   `review_pending`, not `pass`.
 - `scripts/harness-gate.ps1` exits `5` for `review_pending`; it is not a
   successful completion.
-- Parent `/choice_execute` dispatches `ezpowers:wiring-reviewer` through the
+- Parent `/choice-execute` dispatches `ezpowers:wiring-reviewer` through the
   dispatch protocol, then writes the verdict back to `wiring-gate.json` and
   reruns or finalizes the gate.
 
@@ -275,7 +275,7 @@ The certificate gate writes
 
 ## Resume Proof
 
-Before `/choice_execute` skips checked tasks in a mid-build resume, run:
+Before `/choice-execute` skips checked tasks in a mid-build resume, run:
 
 ```powershell
 scripts/harness-resume-proof.ps1 -ProjectRoot <project-root> -Phase <phase> -PlanPath <plan-path> -CompletedTaskCount <N> -ResumeHash <resume-hash>
@@ -303,8 +303,8 @@ Step N failed: summary
 
 Recovery:
 1. Fix the root cause.
-2. /choice_execute Path 2 phase --reset-step N
-3. /choice_execute Path 2 phase
+2. /choice-execute Path 2 phase --reset-step N
+3. /choice-execute Path 2 phase
 ```
 
 Use zero-indexed step numbers in reset commands.
@@ -319,14 +319,14 @@ Completion requires:
 - Runtime smoke evidence when required.
 - Completion certificate PASS.
 - EZPowers `phases/index.json` restored.
-- Parent `/choice_execute` completion requires Final code review PASS.
+- Parent `/choice-execute` completion requires Final code review PASS.
 
 After success:
 
 - Print per-step summary.
 - Print wiring and runtime evidence.
 - Print the diff range `<harness-start-hash>..HEAD`.
-- Continue to `/choice_execute` Path 2 finalization with plan path, diff range,
+- Continue to `/choice-execute` Path 2 finalization with plan path, diff range,
   `wiring-gate.json`, runtime artifacts, and run log path.
-- Continue to `/choice_execute` Final Code Review only after Path 2
+- Continue to `/choice-execute` Final Code Review only after Path 2
   finalization produces wiring gate PASS.

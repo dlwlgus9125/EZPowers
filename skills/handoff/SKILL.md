@@ -39,6 +39,6 @@ Save to `docs/handoff-session{N}.md` where `{N}` is the next available number (c
 
 1. **No duplication** - if it is already in a spec, plan, ADR, or CONTEXT.md, reference by path only
 2. **Capture what artifacts miss** - reasoning, failed approaches, deferred decisions, verbal agreements
-3. **Include workflow position** - the next session must know exactly where to resume in the `/setup` -> `/design_architecture` -> `/spec` -> internal audit -> `/prepare_execute` -> internal audit -> `/choice_execute` flow
+3. **Include workflow position** - the next session must know exactly where to resume in the `/setup` -> `/design-architecture` -> `/spec` -> internal audit -> `/prepare-execute` -> internal audit -> `/choice-execute` flow
 4. **Tailor to arguments** - if the user describes what the next session will focus on, shape the document accordingly
 5. **Keep it short** - a handoff that is longer than the conversation it summarizes has failed

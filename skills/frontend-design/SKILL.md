@@ -8,7 +8,7 @@ description: Use when frontend, UI, UX, design system, screen structure, compone
 ## Overview
 
 Design frontend decisions before implementation. Output
-`docs/ux/frontend-design.md` for `/spec` and `/prepare_execute`.
+`docs/ux/frontend-design.md` for `/spec` and `/prepare-execute`.
 
 ## Workflow
 

@@ -1,7 +1,7 @@
 # Plan Contract
 
 This reference contains the plan structure and review details that do not
-belong in the `/prepare_execute` controller prompt.
+belong in the `/prepare-execute` controller prompt.
 
 ## Source Contracts
 
@@ -402,4 +402,4 @@ After plan approval:
   invocation mode `post-prepare_execute`, working directory project root, spec
   artifact, and plan artifact.
 
-Proceed to `/choice_execute` only when audit status is `PASS` or `WARN`.
+Proceed to `/choice-execute` only when audit status is `PASS` or `WARN`.

@@ -21,9 +21,9 @@ in the `/spec` controller prompt.
 `/spec` requires `.harness/config.json`. If it is missing, route to
 `/setup`.
 
-`/spec` also requires the architecture artifacts from `/design_architecture`.
+`/spec` also requires the architecture artifacts from `/design-architecture`.
 If `docs/reference/architecture.md`, `docs/reference/testing-methodology.md`,
-or the architecture phase state is missing, route to `/design_architecture`.
+or the architecture phase state is missing, route to `/design-architecture`.
 
 When `phases/index.json` exists:
 
@@ -82,7 +82,7 @@ rejected options.
 
 ## Decision Ledger
 
-Carry forward every applicable decision from `/design_architecture` into a
+Carry forward every applicable decision from `/design-architecture` into a
 `## Decision Ledger` table before requirements:
 
 | ID | Question/Trigger | Decision | Source | Artifacts Updated | Open Follow-up |
@@ -114,7 +114,7 @@ QA strategy. It must also carry forward mock/prototype artifact handling and
 tool-conditional visual readiness lanes for Storybook/component states,
 Playwright or equivalent screenshot baselines, visual diff baselines, and
 screenshot/visual review loops when those tools are available or planned.
-Missing frontend design readiness routes back to `/design_architecture`.
+Missing frontend design readiness routes back to `/design-architecture`.
 
 ## Wiring Map (executable artifacts only)
 
@@ -256,7 +256,7 @@ Acceptance criteria must describe observable behavior. Do not mention private
 function names, class names, variables, or implementation-only files in
 Given/When/Then.
 
-`Automatable: false` requires `/prepare_execute` to replace the criterion with an
+`Automatable: false` requires `/prepare-execute` to replace the criterion with an
 automated probe. For `api` and `e2e`, missing automation blocks execution.
 
 ## Vague Language Ban
@@ -366,4 +366,4 @@ After reviewers pass and the user approves:
   invocation mode `post-spec`, working directory project root, spec artifact,
   and architecture reference artifacts.
 
-Proceed to `/prepare_execute` only when audit status is `PASS` or `WARN`.
+Proceed to `/prepare-execute` only when audit status is `PASS` or `WARN`.

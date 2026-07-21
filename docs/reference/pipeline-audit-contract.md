@@ -12,13 +12,13 @@ D9 with frontend design readiness. Include D9 whenever its trigger applies.
 Verify that spec and plan documents are complete, traceable, and executable before proceeding to the next pipeline stage. This command checks the **seams between documents** — gaps that individual reviewers (spec-reviewer, plan-reviewer) cannot detect because they only inspect one document at a time.
 
 <HARD-GATE>
-Internal pipeline audit is a mandatory gate. /prepare_execute and /choice_execute will not proceed without a passing audit.
+Internal pipeline audit is a mandatory gate. /prepare-execute and /choice-execute will not proceed without a passing audit.
 </HARD-GATE>
 
 ## Pipeline Position
 
 ```
-/spec → internal pipeline audit → /prepare_execute → internal pipeline audit → /choice_execute
+/spec → internal pipeline audit → /prepare-execute → internal pipeline audit → /choice-execute
                 D2 + D6L1 + D7 + D9    D1-D9 full audit
 ```
 
@@ -42,7 +42,7 @@ Read project state to determine which dimensions to run:
 
 For `mid-build`, include D7, D8, and D9 in addition to the listed dimensions.
 D9 is triggered when `config.app_delivery.surface_kind` is not `docs` or
-`library`, or when the spec/prepare_execute declares an App Experience And Delivery
+`library`, or when the spec/prepare-execute declares an App Experience And Delivery
 Baseline.
 
 5. Report state to user:
@@ -102,7 +102,7 @@ Purpose: Pre-check that Verify commands can run in the project environment.
    port is not already occupied by another process. → **INFO**: advisory only,
    service may start at execution time.
 9. **Dependency resolution** (spec+plan required):
-   - Scan Verify commands and spec/prepare_execute text for import/require/use statements referencing external packages
+   - Scan Verify commands and spec/prepare-execute text for import/require/use statements referencing external packages
    - Cross-reference with project manifest files (`package.json`, `requirements.txt`, `Pipfile`, `Cargo.toml`, `go.mod`, etc.)
    - For packages referenced in Verify commands but NOT in manifest:
      → **WARN**: `"Verify command references '{package}' but it is not declared in {manifest}. Add to dependencies or verify it's a built-in."`
@@ -267,7 +267,7 @@ Each task's completion criteria must be specific enough for meaningful verificat
 
 ### D7: Architecture Readiness (spec required)
 
-Purpose: Catch architecture gaps before `/prepare_execute` turns them into implementation
+Purpose: Catch architecture gaps before `/prepare-execute` turns them into implementation
 tasks.
 
 **Checks:**
@@ -337,7 +337,7 @@ Purpose: Verify that expected verification layers are configured and plan-aligne
 ### D9: App Delivery Readiness (triggered by app surface)
 
 Purpose: Verify that frontend, backend, packaging, deployment, release, and
-frontend design readiness surfaces are represented in the spec/prepare_execute
+frontend design readiness surfaces are represented in the spec/prepare-execute
 when the project is an app or when an App Experience And Delivery Baseline is
 declared.
 
@@ -452,11 +452,11 @@ as non-installing evidence for tool-conditional frontend visual lanes. Use
 - [specific R/AC references with reason]
 - [D9: missing App Experience And Delivery Baseline or surface decisions]
 
-### Return to /prepare_execute (plan-level gaps)
+### Return to /prepare-execute (plan-level gaps)
 - [specific T/AC references with reason, D8 missing View wiring sections]
 - [D9: missing Experience/Delivery Matrix rows or delivery Verify commands]
 
-### Proceed to [/prepare_execute | /choice_execute]
+### Proceed to [/prepare-execute | /choice-execute]
 - [conditions met, or all gaps are WARN-level only]
 ```
 
@@ -485,7 +485,7 @@ After generating the report, record the verdict in `phases/index.json`:
 }
 ```
 
-This field is read by `/prepare_execute` and `/choice_execute` pre-flight checks. FAIL or missing field = next stage blocked.
+This field is read by `/prepare-execute` and `/choice-execute` pre-flight checks. FAIL or missing field = next stage blocked.
 
 ## 5. Route Recommendations
 
@@ -498,25 +498,25 @@ Each finding maps to a specific routing action:
 | D6 L1: Verify not specific | /spec | Add feature-specific test filter |
 | D2: Tool not in PATH | User decision | Install tool or rewrite Verify |
 | D2: Port mismatch | /spec or config | Align Verify port with server config |
-| D2: File path missing | /spec or /prepare_execute | Create test file or fix path |
-| D1: AC not in plan | /prepare_execute | Add completion criteria to task |
-| D3: AC count mismatch | /prepare_execute | Add missing AC bullets to task |
-| D4: File ordering conflict | /prepare_execute | Add Depends on or reorder tasks |
-| D5: Missing milestone | /prepare_execute | Add integration milestone task |
-| D6 L2: No completion criteria | /prepare_execute | Add Given/When/Then from spec |
-| D6 L2: Trivial Verify | /prepare_execute or /spec | Write real verification command |
-| D6 L2: E2E not automatable | /prepare_execute | Add automated probe replacement |
+| D2: File path missing | /spec or /prepare-execute | Create test file or fix path |
+| D1: AC not in plan | /prepare-execute | Add completion criteria to task |
+| D3: AC count mismatch | /prepare-execute | Add missing AC bullets to task |
+| D4: File ordering conflict | /prepare-execute | Add Depends on or reorder tasks |
+| D5: Missing milestone | /prepare-execute | Add integration milestone task |
+| D6 L2: No completion criteria | /prepare-execute | Add Given/When/Then from spec |
+| D6 L2: Trivial Verify | /prepare-execute or /spec | Write real verification command |
+| D6 L2: E2E not automatable | /prepare-execute | Add automated probe replacement |
 | D7: Missing architecture section | /spec | Add architecture baseline sections |
 | D7: R has no ASR linkage | /spec | Add `ASR:` field to R section |
-| D7: ASR not carried to plan | /prepare_execute | Map ASR to task or Structural Invariant |
+| D7: ASR not carried to plan | /prepare-execute | Map ASR to task or Structural Invariant |
 | D7: ADR missing | /spec | Create ADR and link it from Decision Log |
 | D9: Missing app_delivery profile | /setup | Regenerate or update app_delivery config |
 | D9: Missing App Experience And Delivery Baseline | /spec | Add frontend/backend/package/deploy baseline |
-| D9: Missing Frontend Design Readiness | /design_architecture | Produce `docs/ux/frontend-design.md` with selected direction, tokens, components, states, responsive rules, accessibility, visual QA, and tool-conditional visual readiness lanes |
-| D9: Missing Experience/Delivery Matrix | /prepare_execute | Add matrix rows with mapped tasks and Verify commands |
-| D9: Screen-first UI task order | /prepare_execute | Add token, primitive, and component-state tasks before screen implementation |
-| D2: Undeclared dependency | /spec or /prepare_execute | Add dependency to manifest or verify built-in |
-| D4: Missing manifest update | /prepare_execute | Add manifest modification step to task |
+| D9: Missing Frontend Design Readiness | /design-architecture | Produce `docs/ux/frontend-design.md` with selected direction, tokens, components, states, responsive rules, accessibility, visual QA, and tool-conditional visual readiness lanes |
+| D9: Missing Experience/Delivery Matrix | /prepare-execute | Add matrix rows with mapped tasks and Verify commands |
+| D9: Screen-first UI task order | /prepare-execute | Add token, primitive, and component-state tasks before screen implementation |
+| D2: Undeclared dependency | /spec or /prepare-execute | Add dependency to manifest or verify built-in |
+| D4: Missing manifest update | /prepare-execute | Add manifest modification step to task |
 
 Present routing grouped by target command:
 
@@ -527,7 +527,7 @@ Present routing grouped by target command:
 - spec2 R1 AC-1: Then is "정상 동작한다" (not observable)
   → Rewrite: "CPU 사용률이 0-100% 숫자로 1초마다 갱신된다"
 
-### Return to /prepare_execute
+### Return to /prepare-execute
 - T3: No completion criteria
   → Copy Given/When/Then from spec2 R1 AC-1 through AC-3
 - T5 AC-1: Verify-type e2e with Automatable: false

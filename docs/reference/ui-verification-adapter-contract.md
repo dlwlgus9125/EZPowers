@@ -39,15 +39,15 @@ surface.
 
 ## Selection Rules
 
-`/design_architecture` selects the strongest viable adapter from repo evidence
+`/design-architecture` selects the strongest viable adapter from repo evidence
 and user confirmation. It records the adapter, command, oracle, and evidence in
 the testing methodology.
 
-`/prepare_execute` must copy that adapter into relevant tasks. If no adapter is
+`/prepare-execute` must copy that adapter into relevant tasks. If no adapter is
 installed or runnable, it inserts a prerequisite task before feature work to
 install or build the adapter.
 
-`/choice_execute` treats adapter failure as a real Verify failure. A skipped UI
+`/choice-execute` treats adapter failure as a real Verify failure. A skipped UI
 adapter is valid only when the plan includes an approved non-UI replacement
 that proves the same user-observable result.
 

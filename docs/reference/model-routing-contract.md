@@ -54,7 +54,7 @@ Selection precedence:
 4. Profile fallback list
 5. Backend current default
 
-`/choice_execute` asks once per run whether to use the configured default or an
+`/choice-execute` asks once per run whether to use the configured default or an
 explicit execution override. That override applies to implementer dispatch and
 strict Path 2 `EZPOWERS_MODEL`; reviewer routing remains governed by reviewer
 settings unless the user explicitly changes it.

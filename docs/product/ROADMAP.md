@@ -2,7 +2,7 @@
 
 ## Current
 
-- v2 command chain: `/setup -> /design_architecture -> /spec -> /prepare_execute -> /choice_execute`.
+- v2 command chain: `/setup -> /design-architecture -> /spec -> /prepare-execute -> /choice-execute`.
 - Verified local kit installation for setup/reset setup.
 - Capability-based UI verification adapter policy.
 

@@ -1,6 +1,6 @@
 # Harness Kit Contract
 
-This contract keeps `/setup` and `/reset_setup` deterministic. The plugin owns
+This contract keeps `/setup` and `/reset-setup` deterministic. The plugin owns
 the bundled kit; setup only installs and verifies it inside the target project.
 
 ## Install Root
@@ -73,7 +73,7 @@ After installing:
 
 ## Reset Setup
 
-`/reset_setup` repeats installation with the current manifest, including the
+`/reset-setup` repeats installation with the current manifest, including the
 approved root `scripts/` helpers, and preserves human-authored project docs. If
 the manifest version changes, record the prior version and migrated fields in
 the ledger.
@@ -86,14 +86,14 @@ silently keeping stale architecture, spec, or plan state.
 The v2 public chain is:
 
 ```text
-/setup -> /design_architecture -> /spec -> /prepare_execute -> /choice_execute
+/setup -> /design-architecture -> /spec -> /prepare-execute -> /choice-execute
 ```
 
 Lifecycle commands:
 
 - `/maintain`
 - `/deploy`
-- `/reset_setup`
+- `/reset-setup`
 
 Internal adapters:
 

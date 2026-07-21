@@ -41,8 +41,8 @@ the same user-observable Then clause: visible state, route, interaction,
 accessibility, screenshot, terminal screen, or native window behavior as
 appropriate.
 
-If Playwright cannot run in the project, `/design_architecture` chooses another
-capability-equivalent adapter. `/prepare_execute` must add an adapter-install
+If Playwright cannot run in the project, `/design-architecture` chooses another
+capability-equivalent adapter. `/prepare-execute` must add an adapter-install
 or adapter-build task before feature work when no runnable adapter exists.
 
 Broad suite commands are allowed only when they include a feature-specific
@@ -244,7 +244,7 @@ delegate evidence-heavy work to gate scripts and reviewer/arbiter agents.
 
 Missing gate helpers are not skippable. If `scripts/lightpath-gate.ps1`,
 `scripts/harness-certify.ps1`, `scripts/harness-resume-proof.ps1`, or
-`scripts/verify-step.py` is absent in the target project, run `/reset_setup` to
+`scripts/verify-step.py` is absent in the target project, run `/reset-setup` to
 reinstall the manifest helpers. If the helper remains absent, report
 `TEST_GAP`; inline verification is not an acceptable replacement for a missing
 gate script.
@@ -256,7 +256,7 @@ completed step has a fresh passing task gate proof, the final wiring gate is
 
 `scripts/harness-resume-proof.ps1` is the mid-build resume source of truth. It
 writes `phases/<phase>/resume-proof.json` and validates only the checked task
-prefix requested by `/choice_execute`. It must require fresh passing
+prefix requested by `/choice-execute`. It must require fresh passing
 `task-gates/task-N.json` proof for each skipped task, including matching step
 hash, nonzero-free and non-timeout Verify evidence, recorded Verify commands,
 120 second minimum e2e timeout, and required runtime evidence. It must not
@@ -519,7 +519,7 @@ Wiring Gate FAIL 시:
 ## Per-Task Quality Gates
 
 These gates run after each implementer completion, before AC Verification.
-`/choice_execute` references these sections by name; this file is the canonical
+`/choice-execute` references these sections by name; this file is the canonical
 procedure.
 
 ### Test Baseline Protection
@@ -621,7 +621,7 @@ Inline execution (Path 3): Same detection/execution. Re-dispatch is replaced by 
 
 ## Final Quality Gates
 
-These gates run once per build, around Final Code Review. `/choice_execute`
+These gates run once per build, around Final Code Review. `/choice-execute`
 references these sections by name; this file is the canonical procedure.
 
 ### Quality Budget Gate

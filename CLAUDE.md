@@ -13,37 +13,36 @@ EZPowers is a personal Claude Code skill plugin.
 ## Main Flow
 
 ```
-/setup → /design_architecture → /spec → internal pipeline audit → /prepare_execute → internal pipeline audit → /choice_execute
+/setup → /design-architecture → /spec → internal pipeline audit → /prepare-execute → internal pipeline audit → /choice-execute
 ```
 
-Codex discovery note: the Codex plugin manifest exposes EZPowers via skills
-such as `$ezpowers:diagnose`, `$ezpowers:frontend-design`, and
-`$ezpowers:verifyself`. The slash-style names in this document are command
-documents under `commands/`; Codex is not expected to list each skill in the
-host `/` palette. See `docs/reference/codex-plugin-discovery.md`.
+All workflow commands live at `skills/<name>/SKILL.md` (Agent Skills
+standard). On Claude Code they invoke as `/ezpowers:<name>`; on Codex as
+`$ezpowers:<name>` (explicit invocation only, via each skill's
+`agents/openai.yaml` policy). See `docs/reference/codex-plugin-discovery.md`.
 
 | Command | Role |
 |---------|------|
 | `/setup` | Initialize project harness and install verified local kit |
-| `/design_architecture` | Define architecture, test methodology, project structure, roadmap, and UI verification adapter |
+| `/design-architecture` | Define architecture, test methodology, project structure, roadmap, and UI verification adapter |
 | `/spec` | Deepen approved architecture into detailed feature specs |
-| `internal pipeline audit` | Cross-stage completeness gate (D1-D9, mandatory before /prepare_execute and /choice_execute) |
-| `/prepare_execute` | Spec → step decomposition + agent assignment |
-| `/choice_execute` | Choose execution path (subagent / harness / inline) |
-| `/choice_execute Path 2` | Delegate to EasyPowersHarness executor (plan → phase conversion + step execution) |
+| `internal pipeline audit` | Cross-stage completeness gate (D1-D9, mandatory before /prepare-execute and /choice-execute) |
+| `/prepare-execute` | Spec → step decomposition + agent assignment |
+| `/choice-execute` | Choose execution path (subagent / harness / inline) |
+| `/choice-execute Path 2` | Delegate to EasyPowersHarness executor (plan → phase conversion + step execution) |
 
 ## Independent Utilities
 
 | Name | Type | Role |
 |------|------|------|
-| `/set-rules` | command | Design coding rules through conversation → docs/reference/conventions.md |
-| `/review` | command | Review changes (implementation completeness vs spec) |
-| `/sync-docs` | command | Sync reference docs with codebase (standalone + suggested after /choice_execute) |
-| `/eval` | command | Run eval suite, report scores by version |
-| `/feedback` | command | Attach user scores to current session trace |
-| `/reset_setup` | command | Reinstall verified local kit and migrate setup docs |
-| `/maintain` | command | Route bug, refactor, and issue-response work |
-| `/deploy` | command | Prepare release and deployment verification |
+| `/set-rules` | workflow skill | Design coding rules through conversation → docs/reference/conventions.md |
+| `/review` | workflow skill | Review changes (implementation completeness vs spec) |
+| `/sync-docs` | workflow skill | Sync reference docs with codebase (standalone + suggested after /choice-execute) |
+| `/eval` | workflow skill | Run eval suite, report scores by version |
+| `/feedback` | workflow skill | Attach user scores to current session trace |
+| `/reset-setup` | workflow skill | Reinstall verified local kit and migrate setup docs |
+| `/maintain` | workflow skill | Route bug, refactor, and issue-response work (invokes diagnose / improve-codebase-architecture as named gates) |
+| `/deploy` | workflow skill | Prepare release and deployment verification |
 | `diagnose` | skill | 6-phase diagnosis loop (feedback-loop-first + post-mortem) |
 | `grill-with-docs` | skill | Plan/design stress test with CONTEXT.md and ADR side effects |
 | `improve-codebase-architecture` | skill | Find deepening opportunities (Module/Depth/Seam vocabulary) |
@@ -54,17 +53,16 @@ host `/` palette. See `docs/reference/codex-plugin-discovery.md`.
 | `caveman` | skill | Token-saving compressed communication mode |
 | `handoff` | skill | Session handoff document for fresh agent continuation |
 | `deep-interview` | skill | Socratic interview to clarify vague requests into actionable requirements |
-| `ezpowers-workflow` | skill | Direct-invocation Codex adapter for EZPowers command documents |
 
 ## Directory Structure
 
 ```
-.claude-plugin/   # plugin.json
-commands/         # Slash command controller prompts
-skills/           # Independent skills + Codex workflow adapter (each: SKILL.md [+ references/])
+.claude-plugin/   # plugin.json + marketplace.json
+.codex-plugin/    # Codex plugin manifest (skills exposure)
+skills/           # Workflow skills (disable-model-invocation) + independent skills (each: SKILL.md [+ references/, agents/openai.yaml])
 agents/           # Reviewer + workflow-runner agent procedures and prompt templates
-phases/           # Phase state (generated by /setup and /choice_execute Path 2)
-docs/             # INDEX.md, product/, reference/ (contracts), decisions/ (ADR), ux/, specs/, plans/
+phases/           # Phase state (generated by /setup and /choice-execute Path 2)
+docs/             # INDEX.md, product/, reference/ (contracts), decisions/ (ADR), archive/, ux/ (UI projects), specs/, plans/
 harness_versions/ # changelog.jsonl (append-only change log)
 harness-kit/      # versioned setup/reset local kit bundle
 scripts/          # Python eval/verify helpers + PowerShell harness helpers (*.ps1)
@@ -85,17 +83,17 @@ See `docs/reference/project-structure.md` for directory roles and source-of-trut
   see `docs/INDEX.md` for the full contract catalog. If command or agent wording conflicts
   with these references, preserve behavior and update the stale local wording.
 
-- **Command lazy-loading**: EZPowers slash commands use default lazy-loading —
-  descriptions appear in context for discoverability, but command bodies load
-  only when the user explicitly invokes or another command delegates.
-  Commands are workflow procedures, not reactive triggers; the model should not
-  auto-invoke them. `/choice_execute Path 2` owns all EasyPowersHarness
-  conversion/execution details; `/choice_execute` only delegates to it for Path 2.
+- **Workflow skills are user-invoked only**: every workflow skill sets
+  `disable-model-invocation: true` (and `allow_implicit_invocation: false` for
+  Codex) — bodies load only when the user explicitly invokes or another
+  workflow delegates by reading the document. They are procedures, not
+  reactive triggers. `/choice-execute Path 2` owns all EasyPowersHarness
+  conversion/execution details; `/choice-execute` only delegates to it for Path 2.
 
 - **Explicit skill chaining only** — skills are independent unless a command names a gate. `/spec`
-  invokes `grill-with-docs` after `/design_architecture` approval and before requirement extraction.
-  `/spec` and `/prepare_execute` dispatch `ezpowers:workflow-runner` for `internal pipeline audit`;
-  `/choice_execute` dispatches it for `/sync-docs` after final verification. Diagnostic
+  invokes `grill-with-docs` after `/design-architecture` approval and before requirement extraction.
+  `/spec` and `/prepare-execute` dispatch `ezpowers:workflow-runner` for `internal pipeline audit`;
+  `/choice-execute` dispatches it for `/sync-docs` after final verification. Diagnostic
   subagent (`agents/eval-diagnostician.md`) is internal-only (eval analysis) and is never called from user-facing commands.
 - **Hooks: opt-in observation-only** — plugin hooks are opt-in and observe-only (no tool I/O modification; append-only JSONL writes); see `docs/reference/trace-hooks-template.json`.
 - **Keep docs lightweight** — place context where any agent can find it
@@ -106,11 +104,11 @@ See `docs/reference/project-structure.md` for directory roles and source-of-trut
 
 ## Eval Gate
 
-Harness-only prompt and doc changes for setup, design_architecture, spec,
-prepare_execute, choice_execute, reset_setup, maintain, deploy, internal audit,
-and strict execution run `scripts/check-harness-docs.ps1` and do not
-invoke the Python eval gate. Other commits touching `commands/`, `agents/`,
-skills, or skill-gate files run `scripts/validate.py`.
+Workflow-skill and harness doc changes (the 13 `skills/<name>/SKILL.md`
+workflow documents, contracts, gate scripts, internal audit, and strict
+execution) run `scripts/check-harness-docs.ps1` and do not invoke the Python
+eval gate. Other commits touching `agents/`, independent skills, or
+skill-gate files run `scripts/validate.py`.
 The commit is blocked if:
 - Harness doc contracts fail the PowerShell harness docs gate
 - Diff exceeds 3 lines per Better-Harness "one line at a time" rule

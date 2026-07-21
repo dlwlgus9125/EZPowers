@@ -6,7 +6,7 @@ status: draft
 
 # Project Structure
 
-Maintained by `/design_architecture` and `/sync-docs`. Generated structure map.
+Maintained by `/design-architecture` and `/sync-docs`. Generated structure map.
 
 - `commands/`: public slash command controller prompts.
 - `docs/reference/`: canonical workflow contracts and internal adapters.

@@ -45,7 +45,7 @@ Infer first, then ask one question at a time for unknowns:
 - Tech stack.
 - Test, build, lint, and smoke commands.
 - Smoke artifact kind and GUI strategy.
-- Preferred `/choice_execute` mode.
+- Preferred `/choice-execute` mode.
 - Executor agent, context window, and budget ratio.
 - Canonical product doc path, if any.
 - Existing architecture docs, if any.
@@ -194,7 +194,7 @@ can be inferred or asked.
 `architecture.lifecycle_stage` defaults to `"undecided"`, not MVP. `/setup`
 may infer the lifecycle from repo evidence or explicit user input, but it must
 not silently shrink scope to MVP. If the value remains `"undecided"`, route to
-`/design_architecture` to confirm it before architecture completion.
+`/design-architecture` to confirm it before architecture completion.
 
 ## Config Schema
 
@@ -340,7 +340,7 @@ artifact to the user for confirmation when they affect verification.
 
 Follow `docs/reference/frontend-design-contract.md` when UI is present. Setup
 creates the `docs/ux/frontend-design.md` slot and records readiness fields in
-config, but it must not synthesize the design brief. `/design_architecture`
+config, but it must not synthesize the design brief. `/design-architecture`
 owns invoking `frontend-design` and filling the artifact after repo evidence
 and user direction are known.
 
@@ -411,7 +411,7 @@ Install the versioned local kit from `harness-kit/v2.0.0/manifest.json` into
 `.harness/ezpowers/`. Setup must copy bundled files only, compute SHA-256 before
 and after install, and write `.harness/ezpowers/ledger.json`. The same manifest
 must also install the approved deterministic helper scripts into the target
-project `scripts/` directory so `/choice_execute` can run mechanical gates.
+project `scripts/` directory so `/choice-execute` can run mechanical gates.
 
 Do not synthesize `SKILL.md` or contract bodies during setup. Missing bundled
 files are setup failures, not prompts to improvise replacements.
@@ -421,7 +421,7 @@ files are setup failures, not prompts to improvise replacements.
 Populate `ui_verification` from
 `docs/reference/ui-verification-adapter-contract.md`. UI projects require a
 selected capability and an adapter plan. If no adapter can run yet, setup may
-leave `command` empty only when `/prepare_execute` will add a prerequisite
+leave `command` empty only when `/prepare-execute` will add a prerequisite
 adapter-install task before feature work.
 
 ## Phase Index
@@ -488,4 +488,4 @@ Report:
   adapter setup task if any.
 - Remaining human-authored docs.
 - Smoke command and GUI strategy.
-- Next command: `/design_architecture`.
+- Next command: `/design-architecture`.

@@ -134,7 +134,7 @@ Rules:
 - `hard ceiling/floor` budgets are **blocking** (FAIL at the Quality Budget
   Verification Gate). `soft ceiling/floor` budgets are **advisory** (WARN).
 - The harness executes `verify_command` during the Quality Budget Verification
-  Gate in `/choice_execute` Section 12a (after Final Code Review, before
+  Gate in `/choice-execute` Section 12a (after Final Code Review, before
   Completion gates).
 
 ## App Delivery Readiness

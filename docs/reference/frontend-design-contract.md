@@ -14,7 +14,7 @@ docs/ux/frontend-design.md
 
 The artifact records decisions that implementation agents must not invent.
 Each decision must also be reflected in the project-level Decision Ledger so
-`/spec` and `/prepare_execute` can carry it forward by ID.
+`/spec` and `/prepare-execute` can carry it forward by ID.
 
 Required sections:
 
@@ -123,13 +123,13 @@ tools or generates screenshots. `--mode detect` is advisory and always exits
 - `/setup`: detect UI presence, create `docs/ux/`, create the
   `docs/ux/frontend-design.md` slot, and populate frontend design config
   fields.
-- `/design_architecture`: invoke `frontend-design` when UI is present and
+- `/design-architecture`: invoke `frontend-design` when UI is present and
   record the selected design direction, artifact path, QA strategy, and
   tool-conditional visual readiness lanes.
 - `/spec`: App Experience And Delivery Baseline must reference the frontend
   design artifact, design system source, token policy, component taxonomy,
   state matrix, responsive rules, accessibility target, and visual QA strategy.
-- `/prepare_execute`: UI plans that need a new design system sequence work as
+- `/prepare-execute`: UI plans that need a new design system sequence work as
   `tokens -> primitives -> component states/stories -> screens -> e2e/visual`.
 - `internal pipeline audit`: D9 fails UI work when frontend design readiness is
   missing or when implementation agents would still need to invent design

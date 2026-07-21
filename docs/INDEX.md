@@ -30,8 +30,8 @@
 - [Plan Contract](reference/plan-contract.md): [canonical] task plan shape, TDD slice, impact scope, pipeline, wiring gate, and plan review rules.
 - [Internal Pipeline Audit Contract](reference/pipeline-audit-contract.md): [canonical] internal cross-stage completeness gate.
 - [Harness Execution Contract](reference/harness-execution-contract.md): [canonical] strict harness conversion, execution, recovery, wiring, and restoration rules.
-- [Strict Execution Adapter](reference/strict-execution-adapter.md): [supporting] internal adapter procedure used by `/choice_execute` Path 2.
-- [Inline Execution Adapter](reference/inline-execution-adapter.md): [supporting] internal adapter procedure used by `/choice_execute` Path 3.
+- [Strict Execution Adapter](reference/strict-execution-adapter.md): [supporting] internal adapter procedure used by `/choice-execute` Path 2.
+- [Inline Execution Adapter](reference/inline-execution-adapter.md): [supporting] internal adapter procedure used by `/choice-execute` Path 3.
 
 ## Decisions
 - [ADR Index](decisions/README.md): architecture decision record policy.
@@ -40,7 +40,7 @@
 - `specs/`: generated feature specs from `/spec`.
 
 ## Plans
-- `plans/`: generated implementation plans from `/prepare_execute`.
+- `plans/`: generated implementation plans from `/prepare-execute`.
 
 ## Archive
 - `archive/`: [archive] historical reports and session artifacts kept for

@@ -32,7 +32,7 @@
       "evidence": [
         "scripts/run_baseline.py exposes --mode static|live",
         "live mode exits with an explicit not-implemented error",
-        "commands/eval.md and evals/INDEX.md document static vs live semantics"
+        "skills/eval/SKILL.md and evals/INDEX.md document static vs live semantics"
       ]
     },
     {
@@ -70,11 +70,11 @@
       "status": "complete",
       "success_criteria": [
         "Public flow is setup, design_architecture, spec, prepare_execute, choice_execute",
-        "setup/reset_setup install a verified local kit without synthesizing skills",
+        "setup/reset-setup install a verified local kit without synthesizing skills",
         "UI verification is adapter-capability based and not Playwright-only"
       ],
       "evidence": [
-        "commands/design_architecture.md, commands/spec.md, commands/prepare_execute.md, commands/choice_execute.md, commands/reset_setup.md, commands/maintain.md, and commands/deploy.md define the v2 flow",
+        "skills/design-architecture/SKILL.md, skills/spec/SKILL.md, skills/prepare-execute/SKILL.md, skills/choice-execute/SKILL.md, skills/reset-setup/SKILL.md, skills/maintain/SKILL.md, and skills/deploy/SKILL.md define the v2 flow",
         "docs/reference/harness-kit-contract.md and harness-kit/v2.0.0/manifest.json define no-synthesis setup",
         "docs/reference/ui-verification-adapter-contract.md and docs/reference/plan-contract.md require adapter fallback tasks"
       ]

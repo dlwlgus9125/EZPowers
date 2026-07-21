@@ -7,7 +7,7 @@ authority: supporting
 
 ## Purpose
 
-Internal adapter used by `/choice_execute` Path 3. Execute plan tasks
+Internal adapter used by `/choice-execute` Path 3. Execute plan tasks
 sequentially in the controller's own session when the task count is small and
 context headroom allows. All verification gates match the subagent path;
 re-dispatch loops become fix-in-place loops with the same retry limits.
@@ -34,7 +34,7 @@ ask the user:
 
 ## Git Hash Recording And Gate Preparation
 
-Apply the Git Hash Recording Protocol (`/choice_execute` Section 3.6), then
+Apply the Git Hash Recording Protocol (`/choice-execute` Section 3.6), then
 prepare the same lightpath gate artifacts used by the subagent path:
 
 ```powershell
@@ -71,9 +71,9 @@ Record git hash (git rev-parse HEAD)
   earlier session context. If the gate fails, fix the code or the plan gap;
   do not weaken or replace the Verify command.
 - Conditional security review uses the same trigger conditions as
-  `/choice_execute` Section 6 (27 keywords). On trigger, dispatch the
+  `/choice-execute` Section 6 (27 keywords). On trigger, dispatch the
   `ezpowers:security-reviewer` plugin agent via `subagent_type`.
 - Failure handling is fix-in-place -> re-verify: analyze the failure output,
   fix by root cause, re-run Verify. Max 3 attempts, then escalate to user.
-- After all tasks complete, proceed to `/choice_execute` Section 11a (Quality
+- After all tasks complete, proceed to `/choice-execute` Section 11a (Quality
   Budget) and Section 12 (Final Code Review), same as the subagent path.

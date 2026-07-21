@@ -163,7 +163,7 @@ Additional task rules:
 ## D9: App Delivery Readiness
 
 `internal pipeline audit` runs D9 whenever `app_delivery.surface_kind` is not `docs` or
-`library`, or when a spec/prepare_execute declares an App Experience And Delivery
+`library`, or when a spec/prepare-execute declares an App Experience And Delivery
 Baseline.
 
 Spec-only checks:
@@ -205,4 +205,4 @@ Routing:
 
 - Setup gaps return to `/setup`.
 - Missing baseline or product-surface decisions return to `/spec`.
-- Missing matrix rows, task coverage, or Verify commands return to `/prepare_execute`.
+- Missing matrix rows, task coverage, or Verify commands return to `/prepare-execute`.

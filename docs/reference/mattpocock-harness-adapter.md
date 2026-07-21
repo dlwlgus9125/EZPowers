@@ -11,13 +11,13 @@ state, routing, reviewers, phase files, and automated gates.
 
 | Matt skill | EZPowers position | Adopted rule |
 |------------|-------------------|--------------|
-| `engineering/tdd` | `/prepare_execute` task shape | Each task is one vertical red-green slice through a public interface. Do not write all tests first and then all implementation. |
+| `engineering/tdd` | `/prepare-execute` task shape | Each task is one vertical red-green slice through a public interface. Do not write all tests first and then all implementation. |
 | `engineering/tdd` | Verify evidence | Tests and Verify commands must assert observable behavior through the public interface, not internal call shape. |
-| `engineering/diagnose` | `/choice_execute Path 2` failure recovery | Build or identify a fast pass/fail signal before resetting steps or redispatching agents. |
+| `engineering/diagnose` | `/choice-execute Path 2` failure recovery | Build or identify a fast pass/fail signal before resetting steps or redispatching agents. |
 | `engineering/diagnose` | Harness helper scripts | Prefer deterministic, narrow, agent-runnable feedback loops such as `harness-smoke.ps1`, `harness-doctor.ps1`, `harness-run.ps1`, and `harness-gate.ps1`. |
 | `engineering/improve-codebase-architecture` | Architecture baseline and plan invariants | Use Module, Interface, Depth, Seam, Adapter, Locality, and Deletion test language when reviewing architecture and task boundaries. |
 | `engineering/improve-codebase-architecture` | Test surface selection | The interface is the test surface; tests should survive internal refactors. |
-| `engineering/to-issues` | `/prepare_execute` task decomposition | EZPowers plan tasks are the issue analogue. They must be independently grabbable vertical slices with explicit blockers. |
+| `engineering/to-issues` | `/prepare-execute` task decomposition | EZPowers plan tasks are the issue analogue. They must be independently grabbable vertical slices with explicit blockers. |
 | `engineering/grill-with-docs` | `CONTEXT.md` generation and maintenance | Target projects get a domain glossary at `CONTEXT.md`. Skills that challenge terminology (`grill-with-docs`, `improve-codebase-architecture`) update it inline. |
 | `misc/setup-pre-commit` | `.githooks/pre-commit` | Keep commit-time checks fast and targeted. Harness-only edits use the PowerShell harness docs gate instead of the heavier Python eval gate. |
 
@@ -27,7 +27,7 @@ state, routing, reviewers, phase files, and automated gates.
 |-----------------|-------------------|
 | Local/GitHub/GitLab issue tracker setup | Deferred. EZPowers already tracks workflow state in `phases/index.json`, plan files, and harness phase directories. |
 | Human approval before every TDD cycle | Rejected for harness execution. EZPowers requires automated verification and only escalates on missing information, blocked state, or repeated failure. |
-| Bulk issue publication from a plan | Replaced by `/prepare_execute` tasks plus `/choice_execute` or `/choice_execute Path 2` routing. |
+| Bulk issue publication from a plan | Replaced by `/prepare-execute` tasks plus `/choice-execute` or `/choice-execute Path 2` routing. |
 | Direct Husky/npm pre-commit setup | Replaced by the existing `.githooks/pre-commit` shell hook and PowerShell/Python split gates. |
 
 ## Position Rules
@@ -44,7 +44,7 @@ state, routing, reviewers, phase files, and automated gates.
 - Ask for missing project facts one at a time after reading repo evidence.
 - Generate `CONTEXT.md` slot when domain terms are detected or user-confirmed.
 
-### `/design_architecture`
+### `/design-architecture`
 
 - Define architecture, testing methodology, project structure, and roadmap
   before feature-level specs.
@@ -61,7 +61,7 @@ state, routing, reviewers, phase files, and automated gates.
 - Keep requirement schema, ADR rules, and vague-language exceptions in
   `docs/reference/spec-contract.md`.
 
-### `/prepare_execute`
+### `/prepare-execute`
 
 - Convert requirements into vertical slices, not layer batches.
 - Each behavior-bearing task must name its public interface, behavior under
@@ -70,7 +70,7 @@ state, routing, reviewers, phase files, and automated gates.
 - Integration milestones and the Full-Feature Wiring Gate cover cross-task
   wiring when a feature spans layers or executable entry points.
 
-### `/choice_execute Path 2`
+### `/choice-execute Path 2`
 
 - Treat the harness as the strict path for step logs, runtime smoke, recovery,
   and wiring evidence.
@@ -103,11 +103,11 @@ state, routing, reviewers, phase files, and automated gates.
 
 This adapter is covered when:
 
-- `commands/setup.md`, `commands/design_architecture.md`, and
-  `commands/spec.md` read this adapter directly.
+- `skills/setup/SKILL.md`, `skills/design-architecture/SKILL.md`, and
+  `skills/spec/SKILL.md` read this adapter directly.
 - Controller commands use Purpose, Read, Rules, Stop conditions, and
   Outputs as their visible prompt surface.
-- `commands/prepare_execute.md` contains vertical red-green slice task rules.
+- `skills/prepare-execute/SKILL.md` contains vertical red-green slice task rules.
 - `docs/reference/strict-execution-adapter.md` routes status, reset, preflight, conversion, and
   step/gate work through the PowerShell helpers.
 - `docs/reference/setup-contract.md`, `docs/reference/spec-contract.md`,

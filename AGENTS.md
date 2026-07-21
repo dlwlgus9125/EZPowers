@@ -18,7 +18,7 @@ conversation memory.
 Primary flow:
 
 ```text
-/setup -> /design_architecture -> /spec -> internal pipeline audit -> /prepare_execute -> internal pipeline audit -> /choice_execute
+/setup -> /design-architecture -> /spec -> internal pipeline audit -> /prepare-execute -> internal pipeline audit -> /choice-execute
 ```
 
 Codex discovery note: EZPowers Codex plugins expose skills through the skill
@@ -30,7 +30,7 @@ plugin discovery or install behavior.
 Utility commands:
 
 - `/eval` runs command and skill eval gates.
-- `/reset_setup` reinstalls the verified local kit after plugin changes.
+- `/reset-setup` reinstalls the verified local kit after plugin changes.
 - `/maintain` routes bug, refactor, and issue-response work.
 - `/deploy` prepares release and deployment verification.
 - `/review` checks implementation against a spec or diff.
@@ -96,5 +96,5 @@ python scripts/run_baseline.py --version local --splits golden optimization hone
 ```
 
 Use `scripts/harness-doctor.ps1` for strict harness-path preflight. An empty
-`harness.root` means `/choice_execute Path 2` is intentionally disabled until an
+`harness.root` means `/choice-execute Path 2` is intentionally disabled until an
 external EasyPowersHarness executor is configured.
