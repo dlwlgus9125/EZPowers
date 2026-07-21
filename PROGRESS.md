@@ -2,9 +2,13 @@
 
 ## Current State
 
-- Stage: frontend v2 visual readiness production hardening complete.
-- Active item: `F9` in `feature_list.json` is complete.
-- Last verified baseline: `evals/results/baselines/2.0.0.json`.
+- v4.0.0 slim-core reorganization in progress on branch `slim-core-4.0.0`:
+  the doc-eval and trace infrastructure and the 3-line diff rule are retired,
+  contracts are consolidated 27 -> 21, and the structural commit gate
+  `scripts/check-repo.ps1` (wired via `core.hooksPath`) replaces the retired
+  harness-docs gate. Active item: `F10` in `feature_list.json`.
+- Frontend v2 visual readiness (items `F7`-`F9`) is complete; continue future
+  visual work from `docs/reference/frontend-design-contract.md`.
 - Strict external harness path: disabled until `.harness/config.json` gets a
   real `harness.root` containing `scripts/execute.py`.
 
@@ -47,64 +51,25 @@
 
 ## Latest Evidence
 
-- `python -m unittest discover -s tests`: 37 tests passed on 2026-05-27 after
-  frontend visual readiness production hardening.
-- `scripts/check-harness-docs.ps1`: passed on 2026-05-27 after updating the
-  frontend visual readiness runner smoke check.
-- `python scripts/run_skill_evals.py`: 19/19 skill evals passed on 2026-05-27.
-- `python scripts/run_baseline.py --version local --splits golden optimization honeypot`:
-  17/35 automated cases passed on 2026-05-27; golden was 8/8.
-- `python -m unittest discover -s tests`: 28 tests passed on 2026-05-27 after
-  adding the frontend v2 visual readiness skeleton.
-- `scripts/check-harness-docs.ps1`: passed on 2026-05-27 and includes the
-  frontend visual readiness runner smoke check.
-- `python scripts/run_skill_evals.py`: 16/16 skill evals passed on 2026-05-27.
-- `python scripts/run_baseline.py --version local --splits golden optimization honeypot`:
-  17/35 automated cases passed on 2026-05-27; golden was 8/8.
-- `python -m unittest discover -s tests`: 18 tests passed on 2026-05-26.
-- `scripts/check-harness-docs.ps1`: passed on 2026-05-26.
-- `python scripts/run_skill_evals.py`: 9/9 skill evals passed on 2026-05-26.
-- `scripts/smoke-plugin.ps1`: PASS with the known implementer-prompt
-  frontmatter warning on 2026-05-26.
-- `scripts/validate.py --changed-files ...reviewer-placement...`: eval sync
-  passed with 52 command cases on 2026-05-26.
-- `scripts/run_baseline.py --version local --splits golden optimization honeypot`:
-  17/35 automated cases passed on 2026-05-26 after the frontend design
-  readiness rollout; golden was 8/8.
-- `python -m unittest discover -s tests`: 22 tests passed on 2026-05-26 after
-  the frontend design readiness rollout.
-- `scripts/check-harness-docs.ps1`: passed on 2026-05-26 after the frontend
-  design readiness rollout.
-- `python scripts/run_skill_evals.py`: 13/13 skill evals passed on 2026-05-26
-  after adding `frontend-design`.
-- `scripts/run_baseline.py --version local --splits golden optimization honeypot`:
-  17/35 automated cases passed on 2026-05-26; golden was 8/8 and the new
-  `optimization.reviewer_placement.014` case passed.
-- `scripts/run_baseline.py --mode static --splits golden optimization honeypot`:
-  23/34 automated cases passed on 2026-05-20; golden was 8/8 and setup was
-  4/4.
-- `scripts/validate.py` eval-sync check: 51 command cases synced with
-  `evals/results/baselines/2.0.0.json` on 2026-05-20.
-- Skill eval gate: 9/9 skill evals passed on 2026-05-20.
+The pre-4.0.0 doc-eval, skill-eval, and harness-docs evidence is retired along
+with that tooling. Current root verification is
+`python -m unittest discover -s tests`, `scripts/check-repo.ps1`,
+`scripts/harness-runtime-smoke.ps1`, and `python scripts/verify-harness-kit.py`.
+
 - `scripts/harness-doctor.ps1 -Status`: expected strict-path failure until an
   external EasyPowersHarness executor is configured.
 
 ## Open Problems
 
-- Live slash-command eval is not implemented; current runner default is static
-  grader mode.
 - Full visual automation is not implemented; v2 currently provides contracts
   and a non-installing readiness detector.
-- Holdout has no tracked cases by design, but no private holdout store is wired.
-- `plugins/ezpowers/` is an untracked generated mirror and remains generated,
-  not source of truth.
 
 ## Next Actions
 
 1. Decide whether to configure a real external `harness.root` or keep strict
    `/choice_execute Path 2` disabled for this repository.
-2. If reviewer placement behavior is changed again, update
-   `docs/reference/reviewer-placement-contract.md` first and let tests catch
+2. If reviewer placement behavior changes again, update the Reviewer Placement
+   section of `docs/reference/dispatch-protocol.md` first and let tests catch
    command or skill matrix drift.
 3. Future frontend visual automation work can add real Storybook/Playwright
    baseline generation and visual diff execution behind the existing

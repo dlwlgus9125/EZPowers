@@ -23,19 +23,17 @@ Primary flow:
 
 Codex discovery note: EZPowers Codex plugins expose skills through the skill
 surface, for example `$ezpowers:diagnose`, not as guaranteed `/` palette
-entries. The slash-style workflow names above are command documents under
-`commands/`; read `docs/reference/codex-plugin-discovery.md` before changing
-plugin discovery or install behavior.
+entries. The slash-style workflow names above are skill documents under
+`skills/<name>/SKILL.md`; read `docs/reference/codex-plugin-discovery.md` before
+changing plugin discovery or install behavior.
 
 Utility commands:
 
-- `/eval` runs command and skill eval gates.
 - `/reset-setup` reinstalls the verified local kit after plugin changes.
 - `/maintain` routes bug, refactor, and issue-response work.
 - `/deploy` prepares release and deployment verification.
 - `/review` checks implementation against a spec or diff.
 - `/sync-docs` updates docs after implementation.
-- `/feedback` attaches user signal to the current harness trace.
 
 ## Steering Paths
 
@@ -50,11 +48,10 @@ Utility commands:
 ## Stack
 
 - Markdown prompt and contract documents
-- PowerShell harness helpers in `scripts/*.ps1`
-- Python eval and validation helpers in `scripts/*.py`
+- PowerShell harness runtime in `scripts/*.ps1`
+- Python verify/model-router helpers in `scripts/*.py`
 - Claude plugin metadata in `.claude-plugin/plugin.json`
 - Codex plugin metadata in `.codex-plugin/plugin.json`
-- Bash trace collector in `bin/trace.sh`
 
 ## Conventions
 
@@ -63,23 +60,21 @@ Utility commands:
 - Preserve exact Verify commands unless the spec or plan is revised.
 - Treat `docs/reference/*-contract.md` files as canonical when command text
   conflicts with local wording.
-- Use `docs/reference/reviewer-placement-contract.md` to determine the
-  required reviewer set after any successful command or explicit skill run.
+- Use the Reviewer Placement section of `docs/reference/dispatch-protocol.md`
+  for the load-bearing review moments (wiring gate, final code review,
+  pre-approval design review, conditional security review).
 - For UI work, use `docs/reference/frontend-design-contract.md` and
   `docs/ux/frontend-design.md` so implementers do not invent design structure
   during coding.
 - Prefer small, measured changes. Prompt or command behavior changes must be
-  justified by eval results or a concrete defect.
+  justified by a concrete defect or a stated design goal.
 - Do not claim completion from passing tests alone. Completion requires the
-  relevant Verify, smoke, wiring, review, or eval gate evidence.
+  relevant Verify, smoke, wiring, or review evidence.
 
 ## No-Change Boundaries
 
-- Do not edit `evals/holdout/**`.
-- Do not commit trace/run output under `evals/results/runs/**`.
-- Do not rewrite generated plugin mirrors under `plugins/` unless the task is
-  explicitly about packaging or publishing the plugin.
-- Do not weaken golden eval cases to make a change pass.
+- Do not weaken a Verify command, wiring gate, or runtime evidence check to make
+  a change pass.
 
 ## Review Skip Patterns
 
@@ -91,8 +86,8 @@ Use these local checks for repo-level changes:
 
 ```powershell
 python -m unittest discover -s tests
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-harness-docs.ps1
-python scripts/run_baseline.py --version local --splits golden optimization honeypot
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1
 ```
 
 Use `scripts/harness-doctor.ps1` for strict harness-path preflight. An empty

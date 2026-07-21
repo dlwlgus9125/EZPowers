@@ -65,7 +65,7 @@ remains owned by the parent `/choice-execute`.
 
 ### Stop Conditions
 
-- `harness.root` is empty, invalid, or missing `scripts/execute.py`.
+- `harness.root` is empty, invalid, or missing `{harness.root}/scripts/execute.py`.
 - `harness-doctor.ps1` reports FAIL.
 - Prior `phases/index.ezpowers.json` backup needs user choice.
 - Conversion cannot produce valid step files, phase index, or wiring gate.

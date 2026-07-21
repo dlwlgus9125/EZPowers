@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-05-27T01:45:00Z",
+  "updated_at": "2026-07-22T00:00:00Z",
   "features": [
     {
       "id": "F1",
@@ -163,6 +163,18 @@
         "python scripts/run_skill_evals.py: 19/19 skill evals passed on 2026-05-27",
         "python scripts/run_baseline.py --version local --splits golden optimization honeypot: golden 8/8 and 17/35 automated cases passed on 2026-05-27"
       ]
+    },
+    {
+      "id": "F10",
+      "title": "Slim-core v4.0.0 reorganization",
+      "status": "in_progress",
+      "success_criteria": [
+        "Doc-eval and trace infrastructure and the 3-line diff rule are removed",
+        "Contracts are consolidated from 27 to 21",
+        "scripts/check-repo.ps1 replaces the retired commit gate and core.hooksPath is enabled",
+        "Steering and state docs drop retired eval, trace, command, and plugin-mirror references"
+      ],
+      "evidence": []
     }
   ]
 }

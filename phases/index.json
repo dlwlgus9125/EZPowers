@@ -38,10 +38,5 @@
     "timestamp": null,
     "changed_docs": [],
     "commit": null
-  },
-  "eval_check": {
-    "status": "pending",
-    "timestamp": null,
-    "summary": "Run /eval or scripts/run_baseline.py after behavior changes."
   }
 }

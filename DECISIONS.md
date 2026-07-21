@@ -14,3 +14,6 @@ This file is a session-level pointer. Durable architecture decisions belong in
 - 2026-05-19: Make eval runner semantics explicit: static mode is the current
   implemented default; live slash-command execution must be opt-in and fail
   loudly until implemented.
+- 2026-07-22: Retire the doc-eval and trace infrastructure and the 3-line diff
+  rule; consolidate 27 contracts to 21; replace the never-activated commit gate
+  with `scripts/check-repo.ps1` and enable `core.hooksPath`.

@@ -10,7 +10,8 @@ Maintained by `/set-rules`. Generated project conventions; edit through `/set-ru
 
 - Use `AGENTS.md` as the cross-agent entry point.
 - Keep progress in `PROGRESS.md` and active work in `feature_list.json`.
-- Keep command controllers short and move detailed rules into
+- Keep workflow-skill controllers short and move detailed rules into
   `docs/reference/`.
-- Run unit tests, harness doc checks, and relevant evals before reporting done.
-- Do not weaken Verify commands or golden evals to make a change pass.
+- Run unit tests and the repo gate (`scripts/check-repo.ps1`) before reporting
+  done.
+- Do not weaken Verify commands to make a change pass.
