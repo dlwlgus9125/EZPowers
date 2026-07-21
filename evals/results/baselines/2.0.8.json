@@ -1,10 +1,52 @@
 {
   "version": "2.0.8",
-  "date": "2026-07-21T08:47:44.011226+00:00Z",
+  "date": "2026-07-21T10:23:02.863375+00:00Z",
   "model": "claude-opus-4-5",
   "eval_mode": "static",
-  "git_sha": "70ce933",
+  "git_sha": "8a8ada2",
   "scores": {
+    "golden": {
+      "golden.architecture_readiness_gate.002": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.banned_expression_detection.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.build_config_cross_validation.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.coverage_matrix_completeness.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.oscillation_stop_3iter.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.smoke_execution_completion.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.ui_verification_adapter.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.verdict_parsing_format.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      }
+    },
     "optimization": {
       "optimization.brownfield_feature_add.002": {
         "pass": false,
@@ -227,61 +269,37 @@
         "reason": "no automated graders available; requires live execution"
       }
     },
-    "golden": {
-      "golden.architecture_readiness_gate.002": {
-        "pass": true,
-        "mode": "automated",
-        "reason": ""
+    "honeypot": {
+      "honeypot.misleading_premise_trap.002": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
       },
-      "golden.banned_expression_detection.001": {
-        "pass": true,
-        "mode": "automated",
-        "reason": ""
-      },
-      "golden.build_config_cross_validation.001": {
-        "pass": true,
-        "mode": "automated",
-        "reason": ""
-      },
-      "golden.coverage_matrix_completeness.001": {
-        "pass": true,
-        "mode": "automated",
-        "reason": ""
-      },
-      "golden.oscillation_stop_3iter.001": {
-        "pass": true,
-        "mode": "automated",
-        "reason": ""
-      },
-      "golden.smoke_execution_completion.001": {
-        "pass": true,
-        "mode": "automated",
-        "reason": ""
-      },
-      "golden.ui_verification_adapter.001": {
-        "pass": true,
-        "mode": "automated",
-        "reason": ""
-      },
-      "golden.verdict_parsing_format.001": {
-        "pass": true,
+      "honeypot.trivial_hello_world.001": {
+        "pass": false,
         "mode": "automated",
         "reason": ""
       }
     }
   },
   "stats": {
-    "total_cases": 52,
-    "automated": 37,
-    "manual": 15,
+    "total_cases": 54,
+    "automated": 38,
+    "manual": 16,
     "auto_pass": 27,
-    "auto_fail": 10,
-    "auto_pass_rate": 0.7297297297297297,
+    "auto_fail": 11,
+    "auto_pass_rate": 0.7105263157894737,
     "by_command": {
       "spec": {
-        "total": 10,
-        "auto": 9,
+        "total": 12,
+        "auto": 10,
         "pass": 4,
+        "manual": 2
+      },
+      "prepare_execute": {
+        "total": 11,
+        "auto": 10,
+        "pass": 6,
         "manual": 1
       },
       "choice_execute": {
@@ -289,12 +307,6 @@
         "auto": 12,
         "pass": 11,
         "manual": 9
-      },
-      "prepare_execute": {
-        "total": 11,
-        "auto": 10,
-        "pass": 6,
-        "manual": 1
       },
       "review": {
         "total": 3,
@@ -316,8 +328,13 @@
       }
     },
     "by_difficulty": {
+      "single_step": {
+        "total": 26,
+        "auto": 18,
+        "pass": 15
+      },
       "multi_step": {
-        "total": 22,
+        "total": 23,
         "auto": 17,
         "pass": 11
       },
@@ -325,25 +342,26 @@
         "total": 5,
         "auto": 3,
         "pass": 1
-      },
-      "single_step": {
-        "total": 25,
-        "auto": 17,
-        "pass": 15
       }
     },
     "by_split": {
+      "golden": {
+        "total": 8,
+        "auto": 8,
+        "pass": 8,
+        "manual": 0
+      },
       "optimization": {
         "total": 44,
         "auto": 29,
         "pass": 19,
         "manual": 15
       },
-      "golden": {
-        "total": 8,
-        "auto": 8,
-        "pass": 8,
-        "manual": 0
+      "honeypot": {
+        "total": 2,
+        "auto": 1,
+        "pass": 0,
+        "manual": 1
       }
     },
     "eval_mode": "static"
