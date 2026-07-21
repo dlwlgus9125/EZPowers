@@ -13,8 +13,8 @@ graders:
   - type: deterministic_tests
     commands:
       - "python scripts/verify-harness-kit.py"
-      - "python -c \"from pathlib import Path; setup=Path('commands/setup.md').read_text(encoding='utf-8'); reset=Path('commands/reset_setup.md').read_text(encoding='utf-8'); ui=Path('docs/reference/ui-verification-adapter-contract.md').read_text(encoding='utf-8'); assert '/design_architecture' in setup; assert 'synthesize skills' in reset; assert 'prerequisite task' in ui\""
-      - "python -c \"from pathlib import Path; cmds={p.name for p in Path('commands').glob('*.md')}; assert {'brainstorm.md','plan.md','choiceexecutor.md','executeharness.md','pipeline-audit.md'}.isdisjoint(cmds); assert {'design_architecture.md','spec.md','prepare_execute.md','choice_execute.md','reset_setup.md','maintain.md','deploy.md'} <= cmds\""
+      - "python -c \"from pathlib import Path; setup=[p for p in (Path('skills/setup/SKILL.md'),Path('commands/setup.md')) if p.exists()][0].read_text(encoding='utf-8'); reset=[p for p in (Path('skills/reset-setup/SKILL.md'),Path('commands/reset_setup.md')) if p.exists()][0].read_text(encoding='utf-8'); ui=Path('docs/reference/ui-verification-adapter-contract.md').read_text(encoding='utf-8'); assert ('/design_architecture' in setup) or ('/design-architecture' in setup); assert 'synthesize skills' in reset; assert 'prerequisite task' in ui\""
+      - "python -c \"from pathlib import Path; cmds={p.name for p in Path('commands').glob('*.md')} if Path('commands').is_dir() else set(); legacy={'brainstorm.md','plan.md','choiceexecutor.md','executeharness.md','pipeline-audit.md'}; assert legacy.isdisjoint(cmds); import itertools; wf=[('design_architecture','design-architecture'),('spec','spec'),('prepare_execute','prepare-execute'),('choice_execute','choice-execute'),('reset_setup','reset-setup'),('maintain','maintain'),('deploy','deploy')]; missing=[o for o,n in wf if f'{o}.md' not in cmds and not Path(f'skills/{n}/SKILL.md').exists()]; assert not missing, missing\""
 tracked_metrics:
   transcript: []
   custom: [v2_chain_present, setup_no_synthesis, ui_adapter_fallback]

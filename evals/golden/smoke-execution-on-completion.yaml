@@ -23,7 +23,7 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "python -c \"from pathlib import Path; c=Path('commands/choice_execute.md').read_text(encoding='utf-8'); v=Path('docs/reference/verification-contract.md').read_text(encoding='utf-8'); assert 'docs/reference/verification-contract.md' in c; assert all(s in c for s in ['config.smoke.required','config.smoke.command','artifact_kind: docs|library','Expected UI text/name missing']); assert all(s in v for s in ['Executable artifacts (`cli`, `server`, `desktop`) require runtime smoke','missing required smoke command is failure, not skip','Runtime probe success never replaces a Verify command'])\""
+      - "python -c \"from pathlib import Path; c=[p for p in (Path('skills/choice-execute/SKILL.md'),Path('commands/choice_execute.md')) if p.exists()][0].read_text(encoding='utf-8'); v=Path('docs/reference/verification-contract.md').read_text(encoding='utf-8'); assert 'docs/reference/verification-contract.md' in c; assert all(s in c for s in ['config.smoke.required','config.smoke.command','artifact_kind: docs|library','Expected UI text/name missing']); assert all(s in v for s in ['Executable artifacts (`cli`, `server`, `desktop`) require runtime smoke','missing required smoke command is failure, not skip','Runtime probe success never replaces a Verify command'])\""
 
 tracked_metrics:
   transcript: [n_turns, n_toolcalls, n_total_tokens]

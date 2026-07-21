@@ -43,9 +43,9 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "python -c \"from pathlib import Path; assert 'Verify Command Baseline' in Path('commands/choice_execute.md').read_text(encoding='utf-8')\""
-      - "python -c \"from pathlib import Path; assert 'Verify Fidelity Check' in Path('commands/choice_execute.md').read_text(encoding='utf-8')\""
-      - "python -c \"from pathlib import Path; assert 'Re-read the plan file' in Path('commands/choice_execute.md').read_text(encoding='utf-8')\""
+      - "python -c \"from pathlib import Path; assert 'Verify Command Baseline' in [p for p in (Path('skills/choice-execute/SKILL.md'),Path('commands/choice_execute.md')) if p.exists()][0].read_text(encoding='utf-8')\""
+      - "python -c \"from pathlib import Path; assert 'Verify Fidelity Check' in [p for p in (Path('skills/choice-execute/SKILL.md'),Path('commands/choice_execute.md')) if p.exists()][0].read_text(encoding='utf-8')\""
+      - "python -c \"from pathlib import Path; assert 'Re-read the plan file' in [p for p in (Path('skills/choice-execute/SKILL.md'),Path('commands/choice_execute.md')) if p.exists()][0].read_text(encoding='utf-8')\""
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

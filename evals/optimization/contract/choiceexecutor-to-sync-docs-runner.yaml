@@ -15,10 +15,10 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "grep -q 'subagent_type: \"ezpowers:workflow-runner\"' commands/choice_execute.md"
-      - "grep -q '\\*\\*Target command:\\*\\* /sync-docs' commands/choice_execute.md"
-      - "grep -q '\\*\\*Invocation mode:\\*\\* auto-from-choice_execute' commands/choice_execute.md"
-      - "grep -q 'docs_sync' commands/choice_execute.md"
+      - "cat skills/choice-execute/SKILL.md commands/choice_execute.md 2>/dev/null | grep -q 'subagent_type: \"ezpowers:workflow-runner\"'"
+      - "cat skills/choice-execute/SKILL.md commands/choice_execute.md 2>/dev/null | grep -q '\\*\\*Target command:\\*\\* /sync-docs'"
+      - "cat skills/choice-execute/SKILL.md commands/choice_execute.md 2>/dev/null | grep -q '\\*\\*Invocation mode:\\*\\* auto-from-choice_execute'"
+      - "cat skills/choice-execute/SKILL.md commands/choice_execute.md 2>/dev/null | grep -q 'docs_sync'"
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

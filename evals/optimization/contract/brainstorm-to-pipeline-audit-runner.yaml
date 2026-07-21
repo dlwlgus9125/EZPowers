@@ -15,7 +15,7 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "python -c \"from pathlib import Path; c=Path('commands/spec.md').read_text(encoding='utf-8'); s=Path('docs/reference/spec-contract.md').read_text(encoding='utf-8'); d=Path('docs/reference/dispatch-protocol.md').read_text(encoding='utf-8'); assert all(x in c for x in ['docs/reference/dispatch-protocol.md','ezpowers:workflow-runner','internal pipeline audit','post-spec']); assert all(x in s for x in ['ezpowers:workflow-runner','internal pipeline audit','post-spec']); assert 'may run only `internal pipeline audit` or `/sync-docs`' in d\""
+      - "python -c \"from pathlib import Path; c=[p for p in (Path('skills/spec/SKILL.md'),Path('commands/spec.md')) if p.exists()][0].read_text(encoding='utf-8'); s=Path('docs/reference/spec-contract.md').read_text(encoding='utf-8'); d=Path('docs/reference/dispatch-protocol.md').read_text(encoding='utf-8'); assert all(x in c for x in ['docs/reference/dispatch-protocol.md','ezpowers:workflow-runner','internal pipeline audit','post-spec']); assert all(x in s for x in ['ezpowers:workflow-runner','internal pipeline audit','post-spec']); assert 'may run only `internal pipeline audit` or `/sync-docs`' in d\""
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

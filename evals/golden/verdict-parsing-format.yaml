@@ -76,9 +76,9 @@ graders:
       # Case D: valid FAIL mock contains exact "## Verdict: FAIL"
       - "python -c \"from pathlib import Path; assert any(line == '## Verdict: FAIL' for line in Path($MOCK_reviewer_output_valid_fail).read_text(encoding='utf-8').splitlines())\""
       # Verify the parsing rule is documented in choice_execute.md
-      - "python -c \"import re; from pathlib import Path; t=Path('commands/choice_execute.md').read_text(encoding='utf-8'); assert re.search(r'## Verdict.*PASS.*FAIL|Verdict.*FAIL', t, re.I | re.S)\""
+      - "python -c \"import re; from pathlib import Path; t=[p for p in (Path('skills/choice-execute/SKILL.md'),Path('commands/choice_execute.md')) if p.exists()][0].read_text(encoding='utf-8'); assert re.search(r'## Verdict.*PASS.*FAIL|Verdict.*FAIL', t, re.I | re.S)\""
       # Verify brainstorm.md documents Verdict header parsing
-      - "python -c \"from pathlib import Path; c=Path('commands/spec.md').read_text(encoding='utf-8'); d=Path('docs/reference/dispatch-protocol.md').read_text(encoding='utf-8'); assert 'docs/reference/dispatch-protocol.md' in c; assert all(s in d for s in ['## Verdict: PASS','## Verdict: FAIL','missing or malformed'])\""
+      - "python -c \"from pathlib import Path; c=[p for p in (Path('skills/spec/SKILL.md'),Path('commands/spec.md')) if p.exists()][0].read_text(encoding='utf-8'); d=Path('docs/reference/dispatch-protocol.md').read_text(encoding='utf-8'); assert 'docs/reference/dispatch-protocol.md' in c; assert all(s in d for s in ['## Verdict: PASS','## Verdict: FAIL','missing or malformed'])\""
       # Verify architecture-reviewer uses the same verdict contract
       - "python -c \"from pathlib import Path; t=Path('agents/architecture-reviewer.md').read_text(encoding='utf-8'); assert '\\n## Verdict: PASS' in t or t.startswith('## Verdict: PASS')\""
       - "python -c \"from pathlib import Path; t=Path('agents/architecture-reviewer.md').read_text(encoding='utf-8'); assert '\\n## Verdict: FAIL' in t or t.startswith('## Verdict: FAIL')\""

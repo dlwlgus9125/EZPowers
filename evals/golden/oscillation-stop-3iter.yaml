@@ -63,8 +63,8 @@ graders:
       # Verify the escalation expectation is configured as true (fixture sanity)
       - "python -c \"assert '$MOCK_expected_escalation_triggered' == 'true'\""
       # Verify the choice_execute command actually documents oscillation detection logic
-      - "python -c \"from pathlib import Path; assert 'oscillation' in Path('commands/choice_execute.md').read_text(encoding='utf-8').lower()\""
-      - "python -c \"import re; from pathlib import Path; t=Path('commands/choice_execute.md').read_text(encoding='utf-8'); assert re.search(r'iteration.*3|3.*iteration|2\\+', t, re.I | re.S)\""
+      - "python -c \"from pathlib import Path; assert 'oscillation' in [p for p in (Path('skills/choice-execute/SKILL.md'),Path('commands/choice_execute.md')) if p.exists()][0].read_text(encoding='utf-8').lower()\""
+      - "python -c \"import re; from pathlib import Path; t=[p for p in (Path('skills/choice-execute/SKILL.md'),Path('commands/choice_execute.md')) if p.exists()][0].read_text(encoding='utf-8'); assert re.search(r'iteration.*3|3.*iteration|2\\+', t, re.I | re.S)\""
   - type: llm_rubric
     rubric: evals/rubrics/spec_quality.md
     assertions:

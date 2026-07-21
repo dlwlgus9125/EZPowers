@@ -5,7 +5,7 @@
 - Holdout: 0 tracked cases (target 20%, gitignored/local)
 - Golden: 8 cases (target 10%)
 - Honeypot: 2 cases
-- Skill: 19 cases (separate runner: `scripts/run_skill_evals.py`)
+- Skill: 17 cases (separate runner: `scripts/run_skill_evals.py`)
 
 ## Runner Modes
 - Static: implemented default. Deterministic graders run against current files

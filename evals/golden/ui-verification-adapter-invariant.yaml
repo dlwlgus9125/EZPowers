@@ -20,7 +20,7 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "python -c \"from pathlib import Path; c=Path('commands/prepare_execute.md').read_text(encoding='utf-8'); assert all(s in c for s in ['select the strongest available adapter','user-observable oracle','insert a prerequisite'])\""
+      - "python -c \"from pathlib import Path; c=[p for p in (Path('skills/prepare-execute/SKILL.md'),Path('commands/prepare_execute.md')) if p.exists()][0].read_text(encoding='utf-8'); assert all(s in c for s in ['select the strongest available adapter','user-observable oracle','insert a prerequisite'])\""
       - "python -c \"from pathlib import Path; u=Path('docs/reference/ui-verification-adapter-contract.md').read_text(encoding='utf-8'); assert all(s in u for s in ['Playwright is the preferred browser e2e','Equivalent means the replacement verifies the same observable claim','adapter_fallback_task_required'])\""
       - "python -c \"from pathlib import Path; p=Path('docs/reference/plan-contract.md').read_text(encoding='utf-8'); assert all(s in p for s in ['## UI Verification Adapter Tasks','Task 0: Install UI Verification Adapter','Do not replace a UI acceptance criterion'])\""
       - "python -c \"from pathlib import Path; a=Path('docs/reference/pipeline-audit-contract.md').read_text(encoding='utf-8'); assert 'UI verification adapter availability' in a\""

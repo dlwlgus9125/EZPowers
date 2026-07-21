@@ -47,7 +47,7 @@ input:
 graders:
   - type: deterministic_tests
     commands:
-      - "python -c \"from pathlib import Path; t=Path('commands/choice_execute.md').read_text(encoding='utf-8'); old1='Treat '+'`- [x]` tasks as PASS'; old2='Tasks checked '+'`- [x]` are treated as PASS'; assert 'scripts/harness-resume-proof.ps1' in t; assert 'checkboxes are progress hints, not PASS evidence' in t; assert old1 not in t; assert old2 not in t\""
+      - "python -c \"from pathlib import Path; t=[p for p in (Path('skills/choice-execute/SKILL.md'),Path('commands/choice_execute.md')) if p.exists()][0].read_text(encoding='utf-8'); old1='Treat '+'`- [x]` tasks as PASS'; old2='Tasks checked '+'`- [x]` are treated as PASS'; assert 'scripts/harness-resume-proof.ps1' in t; assert 'checkboxes are progress hints, not PASS evidence' in t; assert old1 not in t; assert old2 not in t\""
       - "python -c \"from pathlib import Path; t=Path('docs/reference/verification-contract.md').read_text(encoding='utf-8'); assert 'harness-resume-proof.ps1' in t; assert 'Markdown checkboxes and resume hashes are continuity hints only' in t\""
       - "python -c \"from pathlib import Path; t=Path('scripts/harness-resume-proof.ps1').read_text(encoding='utf-8'); assert 'resume-proof.json' in t; assert 'stale_task_gate' in t; assert 'e2e_timeout_too_short' in t\""
   - type: llm_rubric
