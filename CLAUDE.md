@@ -95,7 +95,7 @@ See `docs/reference/project-structure.md` for directory roles and source-of-trut
   `/spec` and `/prepare-execute` dispatch `ezpowers:workflow-runner` for `internal pipeline audit`;
   `/choice-execute` dispatches it for `/sync-docs` after final verification. Diagnostic
   subagent (`agents/eval-diagnostician.md`) is internal-only (eval analysis) and is never called from user-facing commands.
-- **Hooks: opt-in observation-only** — plugin hooks are opt-in and observe-only (no tool I/O modification; append-only JSONL writes); see `docs/reference/trace-hooks-template.json`.
+- **Hooks: opt-in observation-only** — plugin hooks are opt-in and observe-only (no tool I/O modification; append-only JSONL writes); see `docs/reference/trace-hooks-template.json`. The trace unit is the session, so hooks stay session-scoped template copies (not skill-scoped frontmatter hooks), and no active `hooks/hooks.json` ships in the plugin root because Codex auto-activates it.
 - **Keep docs lightweight** — place context where any agent can find it
 - **Evidence-based verification** — "should work" is banned; prove with execution results
 - **State assumptions explicitly** — declare assumptions before design/planning and get user confirmation

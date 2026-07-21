@@ -102,3 +102,19 @@ External harness executors receive resolved routing through process environment:
 
 The external executor may ignore these variables, but it must not silently
 choose a different model without logging the reason when it consumes them.
+
+## Selection Precedence
+
+Model selection layers resolve in this order (first non-empty wins):
+
+1. Agent frontmatter `model:` alias (`sonnet` / `opus` / `haiku` / `inherit`)
+   — the default tier for that agent.
+2. `.harness/config.json` `executor.reviewer_model` (or
+   `codex_reviewer_model` on the codex-cli backend) — per-project override.
+3. `scripts/model-router.py` profile resolution when
+   `executor.model_routing.enabled` is true — per-profile, per-backend.
+4. Explicit per-run override passed by the user through the dispatching
+   workflow (for example the execution-model question in `/choice-execute`).
+
+Aliases live in frontmatter and dispatch calls; versioned model IDs live only
+in `scripts/model-router.py` profiles.
