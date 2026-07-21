@@ -1,6 +1,6 @@
 {
   "name": "ezpowers",
-  "version": "3.0.0+codex.20260721200246",
+  "version": "4.0.0+codex.20260722120000",
   "description": "Personal Codex workflow plugin: every EZPowers workflow and utility ships as an explicit skill.",
   "author": {
     "name": "dlwlgus9125",
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "EZPowers",
     "shortDescription": "Spec-driven planning, reviews, and workflow skills for Codex.",
-    "longDescription": "EZPowers exposes all workflows as Codex skills. Workflow skills (ezpowers:setup, ezpowers:design-architecture, ezpowers:spec, ezpowers:prepare-execute, ezpowers:choice-execute, ezpowers:review, ezpowers:sync-docs, ezpowers:eval, and more) are explicit-invocation only ($ezpowers:<name>); independent skills such as ezpowers:diagnose, ezpowers:frontend-design, and ezpowers:verifyself also match implicitly.",
+    "longDescription": "EZPowers exposes all workflows as Codex skills. Workflow skills (ezpowers:setup, ezpowers:design-architecture, ezpowers:spec, ezpowers:prepare-execute, ezpowers:choice-execute, ezpowers:review, ezpowers:sync-docs, and more) are explicit-invocation only ($ezpowers:<name>); independent skills such as ezpowers:diagnose, ezpowers:frontend-design, and ezpowers:verifyself also match implicitly.",
     "developerName": "dlwlgus9125",
     "category": "Productivity",
     "capabilities": [

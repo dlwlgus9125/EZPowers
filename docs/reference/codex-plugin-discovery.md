@@ -1,7 +1,7 @@
 ---
 doc_type: reference
 authority: canonical
-status: draft
+status: active
 ---
 
 # Codex Plugin Discovery
@@ -44,11 +44,8 @@ If both `ezpowers@local` and another EZPowers marketplace entry are enabled,
 Codex can inject duplicate skill entries. Disable or remove the extra install
 before checking whether discovery is fixed.
 
-Codex also activates plugin root hook files during tool use. EZPowers trace
-collection is opt-in, so Codex plugin roots must not contain an active
-`hooks/hooks.json`; keep the trace hook body as
-`docs/reference/trace-hooks-template.json` until `/setup --enable-traces`
-creates a project-local hook file.
+Codex activates plugin root hook files during tool use, so a Codex plugin root
+must not contain an active `hooks/hooks.json`. EZPowers ships no plugin hooks.
 
 After changing plugin metadata or skills:
 

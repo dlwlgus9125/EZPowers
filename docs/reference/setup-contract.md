@@ -446,31 +446,6 @@ Completed phases require `completed_at`. Phases that produce artifacts require
 On backward transition, set the target phase to `in_progress`, reset later
 phases to `pending`, and preserve existing artifacts for reference.
 
-## Optional Flags
-
-`/setup --with-evals` creates:
-
-- `evals/optimization`
-- `evals/holdout`
-- `evals/golden`
-- `evals/honeypot`
-- `evals/results/baselines`
-- `evals/results/runs`
-- `evals/rubrics`
-- `evals/INDEX.md`
-- `evals/schema.json`
-- `evals/rubrics/spec_quality.md`
-
-It also ignores `evals/holdout/**` and `evals/results/runs/**`.
-
-`/setup --enable-traces` creates or reuses project-local `hooks/hooks.json`
-from `docs/reference/trace-hooks-template.json`, creates the plugin data trace
-directory, and ignores `*.ezpowers-traces/`. Codex plugin bundles must not ship
-an active root `hooks/hooks.json`; Codex activates plugin hook files during
-tool use.
-
-The two flags are independent.
-
 ## Completion Report
 
 Report:

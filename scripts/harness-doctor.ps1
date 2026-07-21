@@ -96,7 +96,7 @@ function Check-HarnessRoot {
     $Harness = Get-ConfigValue $script:Config 'harness' $null
     $HarnessRoot = [string](Get-ConfigValue $Harness 'root' '')
     if ([string]::IsNullOrWhiteSpace($HarnessRoot)) {
-        return New-DoctorResult 'harness.root' 'harness.root' 'fail' 'empty; /choice_execute Path 2 is disabled'
+        return New-DoctorResult 'harness.root' 'harness.root' 'fail' 'empty; /choice-execute Path 2 is disabled'
     }
     $ExecutePath = Join-Path $HarnessRoot 'scripts/execute.py'
     if (Test-Path -LiteralPath $ExecutePath) {

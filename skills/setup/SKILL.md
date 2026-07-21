@@ -2,7 +2,6 @@
 name: setup
 description: Initialize project harness with config and steering docs
 disable-model-invocation: true
-argument-hint: [--enable-traces]
 allowed-tools: [Bash, Read, Write, Glob, Agent, AskUserQuestion]
 ---
 
@@ -33,8 +32,7 @@ kit. Do not write product code or synthesize skill bodies.
 - If `.harness/config.json` already exists, ask before overwriting.
 - If `CONTEXT.md` already exists, preserve it; offer to merge new terms only.
 - Use `docs/reference/setup-contract.md` for generated files, config schema,
-  smoke settings, optional eval/trace flags, gate-script permission rules,
-  and phase-state details.
+  smoke settings, gate-script permission rules, and phase-state details.
 - After kit install, offer (ask first) to append the gate-script allow rules
   from `docs/reference/setup-contract.md` § Gate Script Permissions to the
   target project's `.claude/settings.json`.
