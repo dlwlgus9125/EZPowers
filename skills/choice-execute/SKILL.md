@@ -761,6 +761,7 @@ After all tasks + final review complete:
    ```
    Agent tool:
      subagent_type: "ezpowers:workflow-runner"
+     model: sonnet
      description: "Sync reference docs after implementation"
      prompt: |
        **Target command:** /sync-docs

@@ -78,6 +78,11 @@ reviewer profiles:
 | security-reviewer | `security-audit` |
 | workflow-runner | `docs-sync` |
 
+Workflow-runner dispatch model by invocation mode (applies even with routing
+disabled): `auto-from-choice_execute` (docs sync, fact-only updates) →
+`model: sonnet`; `post-spec` and `post-prepare_execute` (pipeline audit,
+D1-D9 judgment) → inherit (omit the model parameter).
+
 Example with override:
 
 ```

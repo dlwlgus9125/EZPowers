@@ -35,13 +35,13 @@ DEFAULT_PROFILES: dict[str, dict[str, list[dict[str, Any]]]] = {
     "balanced": {
         "claude-code": [{"model": "sonnet"}, {"model": "opus"}],
         "codex-cli": [{"model": "gpt-5.5"}, {"model": "gpt-5.4"}],
-        "harness-env": [{"model": "claude-sonnet-4-6"}, {"model": "gpt-5.5"}],
+        "harness-env": [{"model": "claude-sonnet-5"}, {"model": "gpt-5.5"}],
     },
     "deep-analysis": {
         "claude-code": [{"model": "opus"}, {"model": "sonnet"}],
         "codex-cli": [{"model": "gpt-5.5-pro"}, {"model": "gpt-5.5"}],
         "harness-env": [
-            {"model": "claude-opus-4-7", "variant": "max"},
+            {"model": "claude-opus-4-8", "variant": "max"},
             {"model": "gpt-5.5", "reasoning_effort": "high"},
         ],
     },
@@ -49,35 +49,35 @@ DEFAULT_PROFILES: dict[str, dict[str, list[dict[str, Any]]]] = {
         "claude-code": [{"model": "opus"}, {"model": "sonnet"}],
         "codex-cli": [{"model": "gpt-5.5"}, {"model": "gpt-5.4"}],
         "harness-env": [
-            {"model": "claude-opus-4-7", "variant": "max"},
+            {"model": "claude-opus-4-8", "variant": "max"},
             {"model": "gpt-5.5", "reasoning_effort": "high"},
         ],
     },
     "runtime-debug": {
         "claude-code": [{"model": "sonnet"}, {"model": "opus"}],
         "codex-cli": [{"model": "gpt-5.5"}, {"model": "gpt-5.4"}],
-        "harness-env": [{"model": "claude-sonnet-4-6"}, {"model": "gpt-5.5"}],
+        "harness-env": [{"model": "claude-sonnet-5"}, {"model": "gpt-5.5"}],
     },
     "frontend-visual": {
         "claude-code": [{"model": "opus"}, {"model": "sonnet"}],
         "codex-cli": [{"model": "gpt-5.5"}, {"model": "gpt-5.4"}],
         "harness-env": [
             {"model": "gemini-3.1-pro", "reasoning_effort": "high"},
-            {"model": "claude-opus-4-7", "variant": "max"},
+            {"model": "claude-opus-4-8", "variant": "max"},
         ],
     },
     "security-audit": {
         "claude-code": [{"model": "opus"}, {"model": "sonnet"}],
         "codex-cli": [{"model": "gpt-5.5-pro"}, {"model": "gpt-5.5"}],
         "harness-env": [
-            {"model": "claude-opus-4-7", "variant": "max"},
+            {"model": "claude-opus-4-8", "variant": "max"},
             {"model": "gpt-5.5", "reasoning_effort": "high"},
         ],
     },
     "docs-sync": {
         "claude-code": [{"model": "sonnet"}, {"model": "haiku"}],
         "codex-cli": [{"model": "gpt-5.4"}, {"model": "gpt-5.3-codex-spark"}],
-        "harness-env": [{"model": "claude-sonnet-4-6"}, {"model": "gpt-5.4-mini"}],
+        "harness-env": [{"model": "claude-sonnet-5"}, {"model": "gpt-5.4-mini"}],
     },
 }
 

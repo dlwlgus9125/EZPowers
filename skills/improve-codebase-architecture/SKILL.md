@@ -1,6 +1,7 @@
 ---
 name: improve-codebase-architecture
 description: Find deepening opportunities in a codebase using Module/Interface/Depth/Seam vocabulary. Use when user wants to improve architecture, find refactoring opportunities, consolidate modules, make code more testable or AI-navigable, or run an architecture review. Not for workflow/harness architecture (use the internal pipeline audit).
+context: fork
 ---
 
 # Improve Codebase Architecture

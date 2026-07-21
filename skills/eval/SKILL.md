@@ -3,7 +3,7 @@ name: eval
 description: Run eval suite and report scores per version
 disable-model-invocation: true
 argument-hint: "[split | --case <id> | --baseline | --diff <version>]"
-allowed-tools: [Bash, Read, Write, Agent]
+allowed-tools: ["Bash(python scripts/run_baseline.py *)", "Bash(python scripts/run_skill_evals.py *)", "Bash(git *)", Read, Write, Agent]
 ---
 
 # /eval — Eval Suite Execution and Score Report
