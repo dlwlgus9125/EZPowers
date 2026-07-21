@@ -1,0 +1,351 @@
+{
+  "version": "2.0.8",
+  "date": "2026-07-21T08:47:44.011226+00:00Z",
+  "model": "claude-opus-4-5",
+  "eval_mode": "static",
+  "git_sha": "70ce933",
+  "scores": {
+    "optimization": {
+      "optimization.brownfield_feature_add.002": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.greenfield_cli_tool.001": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.multi_r_coverage.005": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.refactor_narrow_scope.003": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.vague_spec_ko.004": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.harness_needed.002": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.inline_trivial.001": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.oscillation_trap.004": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.resume_mid_task.005": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.security_keyword_trip.003": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.workflow_runner.005": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.brainstorm_to_plan_spec_format.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.workflow_runner.007": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.choice_execute_verify_fidelity.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.code_reviewer_verdict_parsing.007": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.executor_to_code_reviewer.004": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.executor_to_security_reviewer.003": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.plan_reviewer_verdict_parsing.006": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.plan_to_executor_task_structure.002": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.workflow_runner.006": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.reviewer_placement.014": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.spec_reviewer_verdict_parsing.005": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.tdd_slice_contract.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.v2_command_chain_no_synthesis.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.client_server_evidence_gap.008": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.desktop_runtime_evidence_gap.007": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.full_feature_wiring_gate.003": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.harness_smoke_gate.004": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.multi_phase_recovery.002": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.runtime_probe_live.006": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.small_plan_conversion.001": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.wiring_code_gap.005": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.large_ten_r_spec.002": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.missing_verify.003": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.refactor_impact_scope.004": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.simple_three_r_spec.001": {
+        "pass": false,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.spec_drift.002": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.spec_match.001": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.brownfield_existing.002": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.greenfield_empty.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.monorepo_root.003": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.sync_docs.003": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "optimization.new_reference.001": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      },
+      "optimization.outdated_reference.002": {
+        "pass": null,
+        "mode": "manual",
+        "reason": "no automated graders available; requires live execution"
+      }
+    },
+    "golden": {
+      "golden.architecture_readiness_gate.002": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.banned_expression_detection.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.build_config_cross_validation.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.coverage_matrix_completeness.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.oscillation_stop_3iter.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.smoke_execution_completion.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.ui_verification_adapter.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      },
+      "golden.verdict_parsing_format.001": {
+        "pass": true,
+        "mode": "automated",
+        "reason": ""
+      }
+    }
+  },
+  "stats": {
+    "total_cases": 52,
+    "automated": 37,
+    "manual": 15,
+    "auto_pass": 27,
+    "auto_fail": 10,
+    "auto_pass_rate": 0.7297297297297297,
+    "by_command": {
+      "spec": {
+        "total": 10,
+        "auto": 9,
+        "pass": 4,
+        "manual": 1
+      },
+      "choice_execute": {
+        "total": 21,
+        "auto": 12,
+        "pass": 11,
+        "manual": 9
+      },
+      "prepare_execute": {
+        "total": 11,
+        "auto": 10,
+        "pass": 6,
+        "manual": 1
+      },
+      "review": {
+        "total": 3,
+        "auto": 1,
+        "pass": 1,
+        "manual": 2
+      },
+      "setup": {
+        "total": 4,
+        "auto": 4,
+        "pass": 4,
+        "manual": 0
+      },
+      "sync-docs": {
+        "total": 3,
+        "auto": 1,
+        "pass": 1,
+        "manual": 2
+      }
+    },
+    "by_difficulty": {
+      "multi_step": {
+        "total": 22,
+        "auto": 17,
+        "pass": 11
+      },
+      "long_horizon": {
+        "total": 5,
+        "auto": 3,
+        "pass": 1
+      },
+      "single_step": {
+        "total": 25,
+        "auto": 17,
+        "pass": 15
+      }
+    },
+    "by_split": {
+      "optimization": {
+        "total": 44,
+        "auto": 29,
+        "pass": 19,
+        "manual": 15
+      },
+      "golden": {
+        "total": 8,
+        "auto": 8,
+        "pass": 8,
+        "manual": 0
+      }
+    },
+    "eval_mode": "static"
+  }
+}
