@@ -602,3 +602,86 @@ Inline execution (Path 3): Same detection/execution. Re-dispatch is replaced by 
    - Critical/High CVE → **FAIL** (max 2 retries: use alternative package or pin safe version)
    - Medium/Low CVE → **WARN** (include in final report)
 5. Record audit results in task status
+
+## Final Quality Gates
+
+These gates run once per build, around Final Code Review. `/choice_execute`
+references these sections by name; this file is the canonical procedure.
+
+### Quality Budget Gate
+
+**Purpose:** Enforce Quality Budget targets declared in the spec at execution
+time, not just as documentation.
+
+**Extraction:** Read the spec file → Architecture Baseline → Quality Budgets
+section. For each budget category (performance, reliability, security, cost,
+maintainability), extract `metric`, `rule` (hard/soft ceiling/floor), and
+`verify_command`. Skip categories with `none declared` or missing
+`verify_command`.
+
+**Execution:** For each budget with `verify_command`, run the command
+(timeout: 180s for performance/load tests, 60s for others), parse the measured
+value from output, and compare against the declared threshold. Within
+threshold → **PASS**; exceeded → **FAIL** with measured vs expected.
+
+**Verdict aggregation:** all budgets PASS or SKIP → overall **PASS**. Any
+`hard ceiling/floor` FAIL → **FAIL** (re-dispatch last relevant task, max 2
+retries). Any `soft ceiling/floor` FAIL → **WARN** (advisory). No
+`verify_command` configured anywhere → **SKIP** (log: `"No Quality Budget
+verify commands configured"`).
+
+**Report:** Include per-budget results in the final completion report:
+
+| Budget | Metric | Target | Measured | Rule | Verdict |
+|--------|--------|--------|----------|------|---------|
+| (from spec) | (from spec) | (from spec) | (from execution) | hard/soft | PASS / FAIL / WARN / SKIP |
+
+### Code Duplication Gate
+
+**Purpose:** Detect AI-generated code duplication that inflates maintenance
+cost (GitClear: 4x duplication increase with AI coding).
+
+**Execution:**
+1. If `config.quality.duplication_command` is configured, run it against
+   changed files (timeout: 60s). Common tools:
+   `jscpd --min-lines=5 --threshold=3 {changed_files}`,
+   `pylint --disable=all --enable=duplicate-code {files}`. Parse output for
+   duplication percentage or block count. Duplication >5% of changed code →
+   **WARN** (`"Code duplication detected: {pct}%. Consider extracting shared
+   function/module."`); >15% → **FAIL** (re-dispatch with: "Extract duplicated
+   logic into shared function. Duplicated blocks: {list}").
+2. If not configured, run the heuristic check: extract all function/method
+   bodies from changed files (>5 lines), compare each pair for structural
+   similarity (normalize whitespace and variable names), flag pairs with >80%
+   similarity. 3+ duplicated blocks → **WARN**.
+
+**Verdict:** WARN does not block. FAIL triggers 1 fix round (max 1 retry, then
+downgrade to WARN).
+
+### Mutation Testing Gate
+
+**Purpose:** Verify that Verify commands and tests actually detect code
+defects, not just exercise code paths. Prevents the "tests that test nothing"
+pattern common in AI-generated code.
+
+**Execution:** Run `config.quality.mutation_command` against changed source
+files (timeout: 300s). Common tools:
+
+| Stack | Command |
+|-------|---------|
+| Python | `mutmut run --paths-to-mutate={changed_files} --runner="pytest {test_files}"` |
+| JavaScript | `npx stryker run --mutate='{changed_files}'` |
+| Java | `mvn pitest:mutationCoverage -DtargetClasses={changed_classes}` |
+
+Parse the mutation score (killed mutants / total mutants x 100):
+
+- >= 70% → **PASS** (tests are meaningful)
+- 40-69% → **WARN** (`"Mutation score {score}%: tests may not catch real
+  bugs. Consider strengthening assertions."`)
+- < 40% → **WARN** (strong) (`"Mutation score {score}%: tests are weak —
+  {survived_count} mutations survived. Review test quality."`)
+- Tool not configured → **SKIP**
+
+This gate is intentionally advisory-only (never FAIL): mutation testing is
+computationally expensive and may produce false positives (equivalent
+mutants). The goal is awareness, not blocking.

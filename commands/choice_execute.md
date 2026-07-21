@@ -725,37 +725,19 @@ After all tasks complete, proceed to Section 11a (Quality Budget) then Section 1
 
 ## 11a. Quality Budget Verification Gate
 
-**Purpose:** Enforce Quality Budget targets declared in the spec at execution time, not just as documentation.
+**Trigger:** After all tasks complete, before Final Code Review. Only for
+budgets where `verify_command` is specified in the spec's Quality Budgets
+section. Canonical procedure: `docs/reference/verification-contract.md`
+§ Quality Budget Gate.
 
-**Trigger:** After all tasks complete, before Final Code Review. Only for budgets where `verify_command` is specified.
+- All budgets PASS or SKIP → overall **PASS**.
+- `hard ceiling/floor` FAIL → **FAIL**: re-dispatch the last relevant task
+  (max 2 retries). `soft ceiling/floor` FAIL → **WARN** (advisory).
+- No `verify_command` configured → **SKIP** (log: `"No Quality Budget verify
+  commands configured"`).
 
-**Extraction:**
-- Read spec file → Architecture Baseline → Quality Budgets section.
-- For each budget category (performance, reliability, security, cost, maintainability):
-  - Extract `metric`, `rule` (hard/soft ceiling/floor), and `verify_command` fields.
-  - Skip categories with `none declared` or missing `verify_command`.
-
-**Execution:**
-- For each budget with `verify_command`:
-  - Run command (timeout: 180s for performance/load tests, 60s for others).
-  - Parse output for measured value.
-  - Compare against declared metric threshold.
-- Per-budget result:
-  - Measured value within threshold → **PASS**
-  - Measured value exceeds threshold → **FAIL** with measured vs expected
-
-**Verdict aggregation:**
-- All budgets PASS or SKIP → Overall **PASS**
-- Any budget FAIL:
-  - `hard ceiling/floor` budget → **FAIL** (re-dispatch last relevant task, max 2 retries)
-  - `soft ceiling/floor` budget → **WARN** (advisory)
-- No `verify_command` configured → **SKIP** (log: `"No Quality Budget verify commands configured"`)
-
-**Report:** Include budget verification results in final completion report.
-
-| Budget | Metric | Target | Measured | Rule | Verdict |
-|--------|--------|--------|----------|------|---------|
-| (from spec) | (from spec) | (from spec) | (from execution) | hard/soft | PASS / FAIL / WARN / SKIP |
+Include the per-budget table (target vs measured vs verdict) in the final
+completion report.
 
 ## 12. Final Code Review
 
@@ -774,55 +756,20 @@ After all tasks complete + Quality Budget gate, dispatch `ezpowers:code-reviewer
 
 ### 12a. Code Duplication Gate
 
-**Purpose:** Detect AI-generated code duplication that inflates maintenance cost (GitClear: 4x duplication increase with AI coding).
-
-**Trigger:** After Final Code Review, before Completion.
-
-**Execution:**
-1. Check `config.quality.duplication_command` in `.harness/config.json`
-   - If configured: run command against changed files (timeout: 60s)
-   - If not configured: run heuristic check (see below)
-
-2. **Heuristic duplication check** (when no dedicated tool):
-   - Extract all function/method bodies from changed files (>5 lines)
-   - Compare each pair for structural similarity (normalize whitespace, variable names)
-   - Flag pairs with >80% structural similarity
-   - Threshold: 3+ duplicated blocks → **WARN**
-
-3. **Tool-based check** (when `duplication_command` configured):
-   - Common tools: `jscpd --min-lines=5 --threshold=3 {changed_files}`, `pylint --disable=all --enable=duplicate-code {files}`
-   - Parse output for duplication percentage or block count
-   - Duplication >5% of changed code → **WARN** (`"Code duplication detected: {pct}%. Consider extracting shared function/module."`)
-   - Duplication >15% → **FAIL** (re-dispatch with: "Extract duplicated logic into shared function. Duplicated blocks: {list}")
-
-4. **Verdict:** WARN does not block. FAIL triggers 1 fix round (max 1 retry, then downgrade to WARN).
+**Trigger:** After Final Code Review, before Completion. Run
+`config.quality.duplication_command` against changed files when configured;
+otherwise run the heuristic pair-similarity check. Canonical procedure and
+thresholds: `docs/reference/verification-contract.md` § Code Duplication Gate.
+**Verdict:** WARN does not block. FAIL triggers 1 fix round (max 1 retry,
+then downgrade to WARN).
 
 ### 12b. Mutation Testing Gate (Optional)
 
-**Purpose:** Verify that Verify commands and tests actually detect code defects, not just exercise code paths. Prevents "tests that test nothing" pattern common in AI-generated code.
-
-**Trigger:** Only when `config.quality.mutation_command` is configured. Advisory gate (WARN only, never FAIL).
-
-**Execution:**
-1. Run `config.quality.mutation_command` against changed source files (timeout: 300s)
-   - Common tools:
-     | Stack | Command |
-     |-------|---------|
-     | Python | `mutmut run --paths-to-mutate={changed_files} --runner="pytest {test_files}"` |
-     | JavaScript | `npx stryker run --mutate='{changed_files}'` |
-     | Java | `mvn pitest:mutationCoverage -DtargetClasses={changed_classes}` |
-
-2. Parse mutation score (killed mutants / total mutants x 100)
-
-3. **Verdict:**
-   - Mutation score >= 70% → **PASS** (tests are meaningful)
-   - Mutation score 40-69% → **WARN** (`"Mutation score {score}%: tests may not catch real bugs. Consider strengthening assertions."`)
-   - Mutation score < 40% → **WARN** (strong) (`"Mutation score {score}%: tests are weak — {survived_count} mutations survived. Review test quality."`)
-   - Tool not configured → **SKIP**
-
-4. **Report:** Include mutation score in final completion report alongside other metrics.
-
-**Note:** This gate is intentionally advisory-only. Mutation testing is computationally expensive and may produce false positives (equivalent mutants). The goal is awareness, not blocking.
+**Trigger:** Only when `config.quality.mutation_command` is configured.
+Advisory gate (WARN only, never FAIL). Run the command against changed source
+files (timeout: 300s), parse the mutation score, and report per the
+thresholds in `docs/reference/verification-contract.md` § Mutation Testing
+Gate. Include the score in the final completion report.
 
 ## 13. Backward Transition: Return to /prepare_execute
 
