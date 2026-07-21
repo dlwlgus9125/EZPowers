@@ -1476,29 +1476,13 @@ Assert-Contains '.githooks/pre-commit' 'model-router' 'pre-commit watches model 
 Assert-Contains '.githooks/pre-commit' 'hashline-anchor' 'pre-commit watches hashline anchor'
 Assert-Contains '.githooks/pre-commit' 'context-injector' 'pre-commit watches context injector'
 Assert-Contains '.githooks/pre-commit' 'hook-policy' 'pre-commit watches hook policy'
-Assert-Contains '.agents/plugins/marketplace.json' '"path": "./plugins/ezpowers"' 'agents marketplace uses packaged plugin mirror'
+Assert-Contains '.agents/plugins/marketplace.json' '"path": "./"' 'agents marketplace serves the repo root as the plugin payload'
 Assert-Contains (Resolve-WorkflowDoc 'reset_setup') 'does not update installed Codex or Claude plugin command caches' 'reset_setup documents plugin cache boundary'
-Assert-Contains 'plugins/ezpowers/commands/reset_setup.md' 'does not update installed Codex or Claude plugin command caches' 'packaged reset_setup documents plugin cache boundary'
 Assert-Contains 'harness-kit/v2.0.0/manifest.json' '"target": "scripts/lightpath-gate.ps1"' 'harness kit installs lightpath gate helper'
 Assert-Contains 'harness-kit/v2.0.0/manifest.json' '"target": "scripts/harness-resume-proof.ps1"' 'harness kit installs resume proof helper'
 Assert-Contains 'harness-kit/v2.0.0/manifest.json' '"target": "scripts/verify-step.py"' 'harness kit installs verify step helper'
 Assert-Contains (Resolve-WorkflowDoc 'choice_execute') 'replace a missing gate script with inline verification' 'choice_execute forbids inline gate substitution'
 Assert-Contains 'docs/reference/verification-contract.md' 'inline verification is not an acceptable replacement' 'verification contract forbids inline gate substitution'
-
-if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'plugins/ezpowers/.codex-plugin/plugin.json'))) {
-    throw '[FAIL] packaged plugin mirror: missing plugins/ezpowers/.codex-plugin/plugin.json'
-}
-Write-Output '[PASS] packaged plugin mirror codex manifest exists'
-
-if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'plugins/ezpowers/commands/choice_execute.md'))) {
-    throw '[FAIL] packaged plugin mirror: missing plugins/ezpowers/commands/choice_execute.md'
-}
-Write-Output '[PASS] packaged plugin mirror choice_execute exists'
-
-if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'plugins/ezpowers/scripts/harness-resume-proof.ps1'))) {
-    throw '[FAIL] packaged plugin mirror: missing plugins/ezpowers/scripts/harness-resume-proof.ps1'
-}
-Write-Output '[PASS] packaged plugin mirror harness resume proof exists'
 
 if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/verify-step.py'))) {
     throw '[FAIL] verify-step.py: missing scripts/verify-step.py'

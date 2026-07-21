@@ -6,8 +6,6 @@ scripts/__pycache__/
 tests/__pycache__/
 __pycache__/
 *.pyc
-plugins/*
-!plugins/ezpowers/
-!plugins/ezpowers/**
+/plugins/
 *.ezpowers-traces/
 docs/*.exe
