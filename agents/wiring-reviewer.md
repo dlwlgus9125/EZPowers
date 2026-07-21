@@ -79,6 +79,7 @@ Look for concrete connections in the diff:
 - Startup/lifecycle hookup for services, workers, jobs, or listeners
 
 ### 2.5 Dynamic Wiring Verification (fail-closed)
+Canonical definition: `docs/reference/verification-contract.md` § Wiring Config Validation (TEST_GAP mapping is intentional here).
 Read `config.wiring` block.
 - `wiring` block missing → TEST_GAP: `"config.json has no wiring block. Cannot verify wiring."`
 - `wiring.enabled: false` + `wiring.exempt_reason` empty → TEST_GAP: `"wiring disabled without exempt_reason."`

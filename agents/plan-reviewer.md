@@ -147,6 +147,7 @@ WM-EP item from the spec's Wiring Map.
 - Existing runnable app → skip.
 
 **9. View wiring verification check (fail-closed):**
+Canonical definition: `docs/reference/verification-contract.md` § Wiring Config Validation.
 Read `.harness/config.json` `wiring` block.
 - `wiring` block missing → FAIL: `"config.json has no wiring block. Run /setup to regenerate."`
 - `wiring.enabled: true` + `wiring.view_extensions` empty → skip only the view wiring verification check. CLI/server/headless projects may have an empty `view_extensions` array. The Full-Feature Wiring Gate requirements still apply.
