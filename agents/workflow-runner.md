@@ -62,7 +62,7 @@ Forbidden writes:
 - command, agent, hook, eval, or script files
 
 In `auto-from-choice_execute` mode, follow the automated invocation rules in
-`commands/sync-docs.md`. Commit applied docs changes when verification passes.
+`skills/sync-docs/SKILL.md`. Commit applied docs changes when verification passes.
 
 ## Status Handling
 
