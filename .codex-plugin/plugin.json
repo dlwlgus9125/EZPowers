@@ -1,7 +1,7 @@
 {
   "name": "ezpowers",
-  "version": "2.0.7+codex.20260528234925",
-  "description": "Personal Codex workflow plugin for spec-driven planning, command-document guidance, and explicit EZPowers skills.",
+  "version": "3.0.0+codex.20260721192445",
+  "description": "Personal Codex workflow plugin: every EZPowers workflow and utility ships as an explicit skill.",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
@@ -12,17 +12,17 @@
   "keywords": [
     "sdd",
     "spec-driven",
-    "design_architecture",
+    "design-architecture",
     "spec",
-    "prepare_execute",
-    "choice_execute",
+    "prepare-execute",
+    "choice-execute",
     "skills"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "EZPowers",
     "shortDescription": "Spec-driven planning, reviews, and workflow skills for Codex.",
-    "longDescription": "EZPowers exposes Codex skills such as ezpowers:diagnose, ezpowers:frontend-design, and ezpowers:verifyself. The setup, design_architecture, spec, prepare_execute, choice_execute, review, sync, eval, and feedback procedures remain command documents under commands/ for agents to read and execute when requested.",
+    "longDescription": "EZPowers exposes all workflows as Codex skills. Workflow skills (ezpowers:setup, ezpowers:design-architecture, ezpowers:spec, ezpowers:prepare-execute, ezpowers:choice-execute, ezpowers:review, ezpowers:sync-docs, ezpowers:eval, and more) are explicit-invocation only ($ezpowers:<name>); independent skills such as ezpowers:diagnose, ezpowers:frontend-design, and ezpowers:verifyself also match implicitly.",
     "developerName": "dlwlgus9125",
     "category": "Productivity",
     "capabilities": [
@@ -35,8 +35,8 @@
     "privacyPolicyURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/PRIVACY.md",
     "termsOfServiceURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/TERMS.md",
     "defaultPrompt": [
+      "$ezpowers:setup Initialize the harness for this project.",
       "$ezpowers:diagnose Investigate this failing workflow.",
-      "$ezpowers:frontend-design Prepare this UI work.",
       "$ezpowers:verifyself Check this proposal."
     ],
     "brandColor": "#2563EB"

@@ -1,12 +1,20 @@
 {
   "name": "ezpowers",
-  "description": "Personal Claude Code skill plugin with v2 setup, design_architecture, spec, prepare_execute, and choice_execute flow",
-  "version": "2.0.8",
+  "description": "Personal SDD harness plugin: setup, design-architecture, spec, prepare-execute, and choice-execute workflow skills with reviewer agents and eval gates",
+  "version": "3.0.0",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
   },
   "homepage": "https://github.com/dlwlgus9125/EZPowers",
   "license": "MIT",
-  "keywords": ["sdd", "spec-driven", "design_architecture", "spec", "prepare_execute", "choice_execute", "skills"]
+  "keywords": [
+    "sdd",
+    "spec-driven",
+    "design-architecture",
+    "spec",
+    "prepare-execute",
+    "choice-execute",
+    "skills"
+  ]
 }
