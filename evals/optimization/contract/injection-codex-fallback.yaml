@@ -1,0 +1,25 @@
+case_id: "optimization.injection_codex_fallback.001"
+split: optimization
+stratum:
+  command: choice_execute
+  difficulty: single_step
+  pattern: contract
+  model_family: agnostic
+  language: en
+  verify_type: pure
+
+input:
+  user_message: |
+    Verify that every workflow skill with a dynamic-context injection block
+    also carries a Codex fallback instruction.
+  initial_files: []
+
+graders:
+  - type: deterministic_tests
+    commands:
+      - "python -c \"from pathlib import Path; bad=[str(p) for p in Path('skills').glob('*/SKILL.md') if '```!' in p.read_text(encoding='utf-8') and 'Codex' not in p.read_text(encoding='utf-8')]; assert not bad, bad\""
+      - "python -c \"from pathlib import Path; bad=[str(p) for p in Path('skills').glob('*/SKILL.md') if '```!' in p.read_text(encoding='utf-8') and 'shell: powershell' not in p.read_text(encoding='utf-8')[:600]]; assert not bad, bad\""
+
+tracked_metrics:
+  transcript: []
+  custom: [injection_fallback_present, injection_shell_declared]

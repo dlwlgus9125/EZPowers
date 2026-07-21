@@ -1,7 +1,7 @@
 # EZPowers Evaluation Index
 
 ## Counts
-- Optimization: 44 cases (target 70%)
+- Optimization: 46 cases (target 70%)
 - Holdout: 0 tracked cases (target 20%, gitignored/local)
 - Golden: 8 cases (target 10%)
 - Honeypot: 2 cases
@@ -42,22 +42,22 @@ Skill cases are intentionally separate from command cases. They guard skill hot-
 ## Last baseline
 - Version: 2.0.7
 - Date: 2026-05-29
-- File: evals/results/baselines/2.0.7.json
-- Git SHA: 4ccd481
+- File: evals/results/baselines/3.0.0.json
+- Git SHA: 1fd7846
 - Eval mode: static
-- Automated pass rate: 27/38 (71%)
-- Manual-only cases: 16/54 require live execution or LLM rubric
+- Automated pass rate: 29/40 (72%)
+- Manual-only cases: 16/56 require live execution or LLM rubric
 - Golden: 8/8 automated
-- Optimization: 19/29 automated, 15 manual
+- Optimization: 21/31 automated, 15 manual
 - Holdout: 0 tracked cases
 - Honeypot: 0/1 automated, 1 manual
 
 ## Latest local static run
-- Date: 2026-05-29
-- File: evals/results/baselines/2.0.7.json
-- Automated pass rate: 27/38 (71%)
+- Date: 2026-07-21
+- File: evals/results/baselines/3.0.0.json
+- Automated pass rate: 29/40 (72%)
 - Golden: 8/8 automated
-- Optimization: 19/29 automated, 15 manual
+- Optimization: 21/31 automated, 15 manual
 - Setup: 4/4 automated
-- Remaining non-live failures are mostly absent generated spec/prepare_execute artifacts
+- Remaining non-live failures are mostly absent generated spec/prepare-execute artifacts
   plus the external runtime probe dependency.
