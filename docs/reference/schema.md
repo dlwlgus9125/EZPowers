@@ -1,10 +1,12 @@
 ---
 doc_type: reference
-authority: canonical
+authority: generated
 status: active
 ---
 
 # Schema
+
+Maintained by `/sync-docs`. Generated artifact inventory; no rule authority.
 
 Primary schemas and structured artifacts:
 

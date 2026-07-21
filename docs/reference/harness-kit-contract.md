@@ -51,6 +51,11 @@ This prevents setup from installing a diluted or mixed version of the harness.
 
 ## Verification
 
+The `v2.0.0` directory name is a fixed install-channel label pinned by the
+pre-commit gate and installers; the manifest's `kit_version` field records the
+actual kit content revision, and the plugin version is tracked separately in
+`.claude-plugin/plugin.json`. These three values are independent by design.
+
 Before installing:
 
 1. Read `harness-kit/v2.0.0/manifest.json`.

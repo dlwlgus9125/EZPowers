@@ -5,13 +5,13 @@
 - [Roadmap](product/ROADMAP.md): [canonical] current workflow improvement direction.
 
 ## System Reference
-- [Architecture](reference/architecture.md): [canonical] repository architecture overview.
-- [Protocol](reference/protocol.md): [canonical] pointer to workflow protocol contracts.
-- [Schema](reference/schema.md): [canonical] structured artifact inventory.
-- [Config](reference/config.md): [canonical] root configuration pointer.
-- [Conventions](reference/conventions.md): [canonical] local coding and harness conventions.
-- [Project Structure](reference/project-structure.md): [canonical] repository structure and source-of-truth boundaries.
-- [Testing Methodology](reference/testing-methodology.md): [canonical] repo-level verification commands and UI adapter exemption.
+- [Architecture](reference/architecture.md): [generated] repository architecture overview.
+- [Protocol](reference/protocol.md): [generated] pointer to workflow protocol contracts.
+- [Schema](reference/schema.md): [generated] structured artifact inventory.
+- [Config](reference/config.md): [generated] root configuration pointer.
+- [Conventions](reference/conventions.md): [generated] local coding and harness conventions.
+- [Project Structure](reference/project-structure.md): [generated] repository structure and source-of-truth boundaries.
+- [Testing Methodology](reference/testing-methodology.md): [generated] repo-level verification commands and UI adapter exemption.
 - [Domain Language](reference/domain-language.md): [canonical] workflow vocabulary and module names.
 - [Verification Contract](reference/verification-contract.md): [canonical] acceptance criteria, Verify command, runtime probe, and wiring evidence rules.
 - [Architecture Readiness Contract](reference/architecture-readiness-contract.md): [canonical] architecture baseline, ASR, quality budget, and ADR readiness rules.

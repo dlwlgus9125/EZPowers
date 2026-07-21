@@ -1,10 +1,9 @@
 ---
-description: Delegate plan execution to EasyPowersHarness executor
-argument-hint: "[phase] [--status|--reset-step N|--push]"
-allowed-tools: [Bash, Read, Write]
+doc_type: reference
+authority: supporting
 ---
 
-# Strict Execution Adapter - EasyPowersHarness Delegation
+# Strict Execution Adapter - EasyPowersHarness Delegation (Strict Path)
 
 ## Purpose
 

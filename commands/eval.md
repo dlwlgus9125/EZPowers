@@ -97,6 +97,9 @@ After recording, auto-update the "Last baseline" section in `evals/INDEX.md`.
 
 ### 2-5. `/eval --live`
 
+Status: not implemented — the runner fails loudly by design; this stub
+documents the no-silent-downgrade contract.
+
 Live mode is the future runner path that must execute the actual slash-command
 workflow in a disposable target repo, then grade the produced artifacts and
 trace. Until implemented, call:

@@ -1,10 +1,12 @@
 ---
 doc_type: reference
-authority: canonical
+authority: generated
 status: active
 ---
 
 # Protocol
+
+Maintained by `/sync-docs`. Pointer document; contract authority lives in the linked contracts.
 
 The canonical workflow protocol is distributed across:
 

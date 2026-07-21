@@ -1,10 +1,12 @@
 ---
 doc_type: reference
-authority: canonical
+authority: generated
 status: draft
 ---
 
 # Project Structure
+
+Maintained by `/design_architecture` and `/sync-docs`. Generated structure map.
 
 - `commands/`: public slash command controller prompts.
 - `docs/reference/`: canonical workflow contracts and internal adapters.

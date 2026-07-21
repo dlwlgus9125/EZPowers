@@ -1,10 +1,12 @@
 ---
 doc_type: reference
-authority: canonical
+authority: generated
 status: draft
 ---
 
 # Testing Methodology
+
+Maintained by `/design_architecture` and `/sync-docs`. Generated methodology record.
 
 EZPowers is a plugin/library repository. Root verification uses:
 

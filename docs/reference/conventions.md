@@ -1,10 +1,12 @@
 ---
 doc_type: reference
-authority: canonical
+authority: generated
 status: draft
 ---
 
 # Conventions
+
+Maintained by `/set-rules`. Generated project conventions; edit through `/set-rules`.
 
 - Use `AGENTS.md` as the cross-agent entry point.
 - Keep progress in `PROGRESS.md` and active work in `feature_list.json`.

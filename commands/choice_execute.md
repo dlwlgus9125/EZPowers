@@ -74,7 +74,7 @@ Ask the user for the execution mode:
 >
 > **1. Subagent-driven (recommended)** — fresh agent per task, fast iteration
 >
-> **2. Harness execution** — step-by-step execution via EasyPowersHarness Python executor (`harness.root` required)
+> **2. Harness execution (Strict Path)** — step-by-step execution via EasyPowersHarness Python executor (`harness.root` required)
 >
 > **3. Inline execution** — sequential execution in the current session
 >
@@ -585,7 +585,7 @@ Agent tool:
 If degradation persists after compaction + splitting → save state + suggest a
 fresh session.
 
-## 10. Harness Execution (Path 2)
+## 10. Harness Execution (Path 2, Strict Path)
 
 When the user selects Path 2, load `docs/reference/strict-execution-adapter.md` and follow that
 command as the source of truth for all harness conversion, execution, recovery,

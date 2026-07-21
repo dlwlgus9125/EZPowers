@@ -1,10 +1,12 @@
 ---
 doc_type: reference
-authority: canonical
+authority: generated
 status: active
 ---
 
 # Config
+
+Maintained by `/sync-docs`. Generated pointer; setup-contract owns the rules.
 
 Root harness configuration lives in `.harness/config.json`.
 

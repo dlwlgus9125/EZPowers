@@ -1,10 +1,12 @@
 ---
 doc_type: reference
-authority: canonical
+authority: generated
 status: active
 ---
 
 # Architecture
+
+Maintained by `/sync-docs`. Generated overview; contracts own enforceable rules.
 
 EZPowers is organized as a harness interface around command prompts, reference
 contracts, reviewer agents, skills, and local verification scripts.
