@@ -8,7 +8,7 @@
     {
       "name": "ezpowers",
       "description": "Personal SDD harness plugin: setup, design-architecture, spec, prepare-execute, and choice-execute workflow skills with reviewer agents and a structural commit gate",
-      "version": "4.0.0",
+      "version": "4.0.1",
       "source": "./",
       "author": {
         "name": "dlwlgus9125",
