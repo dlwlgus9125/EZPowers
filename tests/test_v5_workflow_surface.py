@@ -25,13 +25,59 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             self.assertTrue((REPO_ROOT / "skills" / name / "SKILL.md").is_file())
             self.assertTrue((REPO_ROOT / "skills" / name / "agents" / "openai.yaml").is_file())
 
-    def test_deep_interview_contract_declares_clarify_and_stress_test(self) -> None:
+    def test_deep_interview_contract_is_session_only_request_clarification(self) -> None:
         skill = (REPO_ROOT / "skills" / "deep-interview" / "SKILL.md").read_text(encoding="utf-8")
-        for phrase in ("clarify", "stress-test", "grill me", "CONTEXT.md", "one question"):
-            self.assertIn(phrase, skill)
+        normalized_skill = " ".join(skill.split())
+        for phrase in (
+            "current conversation",
+            "one question",
+            "materially change",
+            "Clarified request",
+            "explicit confirmation",
+            "native structured question surface",
+            "plain-text question",
+            "Do not create or update",
+            "numerical ambiguity score",
+            "a required constraint or a tentative means",
+        ):
+            self.assertIn(phrase, normalized_skill)
+        for phrase in (
+            "stress-test mode",
+            "docs/interviews",
+            "references/context-format.md",
+            "## Stress-test",
+            "Write the decision brief",
+        ):
+            self.assertNotIn(phrase, normalized_skill)
+        self.assertFalse(
+            (REPO_ROOT / "skills" / "deep-interview" / "references" / "context-format.md").exists()
+        )
+
         spec = (REPO_ROOT / "skills" / "spec" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertNotIn("grill-with-docs", spec)
+        self.assertNotIn("docs/interviews", spec)
+        self.assertIn("current conversation", spec)
+        self.assertIn("explicit `deep-interview` invocation", spec)
         self.assertIn("settled decisions", spec)
+
+        metadata = (
+            REPO_ROOT / "skills" / "deep-interview" / "agents" / "openai.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("one question at a time", metadata)
+        self.assertIn("confirmed rewritten request", metadata)
+        self.assertNotIn("stress-test", metadata)
+
+        manifest = json.loads(
+            (REPO_ROOT / "project-kit" / "v5.0.0" / "manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        deep_interview = next(
+            entry for entry in manifest["skills"] if entry["name"] == "deep-interview"
+        )
+        self.assertEqual(
+            {entry["path"] for entry in deep_interview["files"]},
+            {"SKILL.md", "agents/openai.yaml"},
+        )
 
     def test_removed_execution_and_reviewer_layers_are_absent(self) -> None:
         self.assertFalse((REPO_ROOT / "agents").exists())
@@ -57,9 +103,9 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.0.1")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.0.1")
-        self.assertTrue(codex["version"].startswith("5.0.1+codex."))
+        self.assertEqual(claude["version"], "5.0.2")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.0.2")
+        self.assertTrue(codex["version"].startswith("5.0.2+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)

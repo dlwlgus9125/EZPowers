@@ -2,7 +2,8 @@
 
 ## Current: v5.0.0
 
-- Merge clarification and “grill me” stress-testing under `deep-interview`.
+- Keep `deep-interview` session-local and focused on rewriting vague intent as
+  one clear, user-confirmed request.
 - Keep `spec` narrow: settled decisions become acceptance criteria.
 - Replace `choice-execute` and all external/phase execution machinery with one
   host-native `execute` flow.

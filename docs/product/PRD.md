@@ -13,8 +13,9 @@ Claude Code and Codex while leaving implementation mechanics to the host.
 
 ## User Outcome
 
-A user can install EZPowers into a project, describe or stress-test intent,
-write traceable acceptance criteria, map them to real project checks, implement
+A user can install EZPowers into a project, clarify vague intent within the
+current session, explicitly write confirmed intent as traceable acceptance
+criteria when desired, map those criteria to real project checks, implement
 with either supported host, and receive the same pass/fail completion verdict
 from evidence stored in the repository. A new session can determine what is
 fresh without trusting conversation memory.

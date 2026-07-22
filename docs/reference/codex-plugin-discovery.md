@@ -47,6 +47,11 @@ matched implicitly from their descriptions. Both hosts must encode the same
 intent using their own policy field; one host's field is not evidence that the
 other host enforces it.
 
+`deep-interview` uses a host-native structured question surface when one is
+callable and appropriate, and otherwise asks one plain-text question. The
+shared contract is one consequential question per turn and a confirmed request
+in the current conversation, not identical question UI capabilities.
+
 ## Project Installation
 
 `setup` copies eight project workflow skills to the canonical

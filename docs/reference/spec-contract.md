@@ -11,7 +11,8 @@ frontend-design artifacts, existing specs, public entry points, tests, and
 `.ezpowers/config.json`.
 
 - Use `setup` when `.ezpowers/ezpowers.py` is missing.
-- Use `deep-interview` when a material product decision remains ambiguous.
+- When a material product decision remains ambiguous, stop and recommend an
+  explicit `deep-interview` invocation rather than interviewing inside `spec`.
 - Return to `design-architecture` when implementation would otherwise invent a
   boundary, data flow, lifecycle, deployment, or verification decision.
 

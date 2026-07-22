@@ -21,7 +21,7 @@ evidence before conversation memory.
 ## Current Workflow
 
 ```text
-setup -> deep-interview (when decisions are unclear or need stress-testing)
+setup -> deep-interview (when the user's request is ambiguous)
       -> design-architecture (when technical boundaries are unsettled)
       -> spec -> prepare-execute -> execute
 ```
@@ -32,7 +32,8 @@ skill syntax. See `docs/reference/codex-plugin-discovery.md`.
 
 Roles are intentionally narrow:
 
-- `deep-interview`: clarification plus the former “grill me” stress-test mode.
+- `deep-interview`: session-only clarification that rewrites a vague request;
+  it does not review artifacts, write files, or hand off automatically.
 - `spec`: settled decisions only, expressed as traceable acceptance criteria.
 - `prepare-execute`: criterion coverage and exact project checks.
 - `execute`: host-native implementation followed by local verify/certify.

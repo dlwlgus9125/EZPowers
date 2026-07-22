@@ -8,7 +8,7 @@ evidence, and resume state—not a second agent orchestrator.
 
 ```text
 /ezpowers:setup
-  -> /ezpowers:deep-interview          # optional clarification/stress-test
+  -> /ezpowers:deep-interview          # optional session-only clarification
   -> /ezpowers:design-architecture     # when architecture is unsettled
   -> /ezpowers:spec
   -> /ezpowers:prepare-execute
@@ -22,7 +22,7 @@ those files through its own native mechanism.
 | Skill | Responsibility |
 |---|---|
 | `setup` | Install or refresh the self-contained local kit and configure real checks |
-| `deep-interview` | Clarify vague intent or stress-test an artifact (“grill me”) |
+| `deep-interview` | Turn vague intent into a clear, user-confirmed request in the current session |
 | `design-architecture` | Record project boundaries and verification design |
 | `spec` | Write settled decisions as machine-readable acceptance criteria |
 | `prepare-execute` | Map every criterion exactly once to ordered tasks and checks |

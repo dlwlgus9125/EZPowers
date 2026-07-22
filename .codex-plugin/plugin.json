@@ -1,6 +1,6 @@
 {
   "name": "ezpowers",
-  "version": "5.0.1+codex.20260722183946",
+  "version": "5.0.2+codex.20260722112111",
   "description": "Project-local specification, planning, deterministic verification, evidence, and resume support for Claude Code and Codex.",
   "author": {
     "name": "dlwlgus9125",
@@ -38,7 +38,7 @@
     "termsOfServiceURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/TERMS.md",
     "defaultPrompt": [
       "$ezpowers:setup Install the project-local EZPowers workflow and verification kit.",
-      "$ezpowers:deep-interview Clarify this request before specification.",
+      "$ezpowers:deep-interview Turn this vague request into a clear, confirmed request.",
       "$ezpowers:execute Run the prepared plan and deterministic project checks.",
       "$ezpowers:hud Configure the native Codex model and usage footer."
     ],

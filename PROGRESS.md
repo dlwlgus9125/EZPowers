@@ -10,7 +10,7 @@ standard-library Python runtime installed inside each target project.
 
 The retained core is:
 
-- optional `deep-interview` clarification and stress-test modes;
+- optional, session-only `deep-interview` request clarification;
 - architecture, frontend design, spec, and plan artifacts;
 - project-specific argv checks and complete criterion coverage;
 - real stdout/stderr logs, hashes, Git-workspace freshness, certification, and
@@ -58,8 +58,9 @@ Final v5 verification on 2026-07-22:
 Full screenshot generation and visual-diff execution are still outside the
 core. The readiness detector continues to hard-gate those lanes only when the
 target project already has suitable tooling or its plan explicitly adds it.
-`deep-interview` trigger/mode and conditional CONTEXT/ADR behavior have static
-skill-contract coverage, not a deterministic two-host model-behavior oracle.
+`deep-interview` question selection, one-question loop, no-write boundary, and
+confirmation contract have static skill coverage, not a deterministic
+two-host model-behavior oracle.
 Cryptographic hashes detect accidental or partial tampering but are not an
 authenticity boundary against an attacker who can rewrite state, artifacts,
 sidecars, and hashes together; hostile environments need repository/CI

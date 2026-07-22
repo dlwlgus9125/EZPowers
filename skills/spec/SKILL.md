@@ -7,8 +7,9 @@ disable-model-invocation: true
 # Spec
 
 Convert settled decisions into a feature acceptance contract. This is narrower
-than general specification writing: `deep-interview` settles ambiguous intent;
-`spec` records what this project must prove before a feature is complete.
+than general specification writing: `deep-interview` can clarify ambiguous
+intent inside the current conversation; an explicitly invoked `spec` records
+what this project must prove before a feature is complete.
 
 ## Load and inspect
 
@@ -17,12 +18,13 @@ Read `.ezpowers/contracts/spec-contract.md` and
 for artifact shape, managed markers, fields, identifiers, and validation. If
 the local kit is absent, route to `setup`.
 
-Read repository instructions, `CONTEXT.md`, relevant ADRs, decision briefs
-under `docs/interviews/`, architecture and frontend-design artifacts, existing
-specs, public entry points, and tests. Use
-`deep-interview` when a material product decision remains open. Return to
-`design-architecture` when implementation would otherwise invent a boundary,
-data flow, lifecycle, deployment, or verification decision.
+Read settled decisions from the current conversation, repository instructions,
+`CONTEXT.md`, relevant ADRs, architecture and frontend-design artifacts,
+existing specs, public entry points, and tests. If a material product decision
+remains open, stop and recommend an explicit `deep-interview` invocation rather
+than interviewing inside `spec`. Return to `design-architecture` when
+implementation would otherwise invent a boundary, data flow, lifecycle,
+deployment, or verification decision.
 
 ## Write and validate
 

@@ -1,103 +1,88 @@
 ---
 name: deep-interview
-description: Use when a request is ambiguous, the user asks for deep-interview or requirement clarification, or says "grill me", "그릴미", "grill-with-docs", stress-test, or challenge assumptions about an existing spec, design, or plan. Not for small concrete edits whose goal, scope, constraints, and completion criteria are already settled.
+description: Use when a user's request is vague, underspecified, solution-shaped, or explicitly asks for deep-interview, requirement clarification, "grill me", or "그릴미". Turn the request into a clear, confirmed request within the current session. Not for reviewing an existing spec, design, or plan, writing artifacts, or small concrete edits whose outcome, scope, constraints, and completion criteria are already settled.
 ---
 
 # Deep Interview
 
-Turn uncertainty into explicit decisions before implementation. Keep the
-interview separate from `spec`: this skill settles decisions; `spec` records
-settled decisions as an acceptance contract.
+Turn a vague request into a clear request the user recognizes as their own.
+Clarify intent before implementation without turning the conversation into a
+specification workflow.
 
-## Select a mode
+## Keep it session-only
 
-- Use `clarify` for a rough request whose goal, scope, constraints, or success
-  criteria are unclear.
-- Use `stress-test` when the user says "grill me" or "그릴미", names that mode,
-  or supplies an existing spec, design, or plan to challenge.
-- State the selected mode. Never silently reduce a stress test to ordinary
-  requirement clarification.
+The interview and its result exist only in the current conversation. Do not
+create or update `CONTEXT.md`, ADRs, interview briefs, specs, plans, or any other
+file. Do not automatically invoke or hand off to another workflow. A later
+explicitly invoked skill may use the confirmed request from this session.
 
-## Common rules
+## Ground the interview
 
-1. Read the repository, target artifact, `CONTEXT.md`, relevant ADRs, and
-   prior artifacts (`docs/interviews/`, `docs/specs/`, `docs/plans/`, decision
-   records) before asking anything the files can answer. When a prior brief on
-   the same topic still has open decisions, resume from those decisions
-   instead of restarting.
-2. When repository evidence triggers a question, cite that evidence (file
-   path, symbol, or pattern) inside the question instead of asking the user to
-   rediscover it.
-3. Track resolved decisions and the highest-impact open decision.
-4. Ask one question at a time. Include the current understanding, the blocked
-   decision, and a recommended answer with its tradeoff.
-5. Wait for the answer before advancing. Do not invent user preferences.
-6. When answers keep renaming the core concept or describe symptoms instead of
-   outcomes, pause detail questions and ask what the thing fundamentally is;
-   capture the settled term under the durable-context rules.
-7. When the user cuts the interview short, neither refuse nor silently comply:
-   present the remaining open decisions once with the rework risk of each,
-   record them as open, then finish.
-8. Stop when the remaining questions cannot materially change the work.
+1. When the request concerns an existing project or artifact, inspect enough
+   repository evidence to answer factual questions before asking the user.
+2. Separate discoverable facts from choices only the user can make. Never ask
+   the user to rediscover repository facts.
+3. Cite the path, symbol, behavior, or other evidence when it materially
+   motivates a question.
+4. Maintain a provisional restatement of what the user appears to want. Treat
+   it as a falsifiable hypothesis, not as a user decision.
+5. When the request prescribes a solution, determine whether that solution is
+   a required constraint or a tentative means to the desired outcome. Do not
+   discard the user's proposed solution without evidence.
 
-## Clarify mode
+## Find the consequential gaps
 
-Before walking the dimensions, list the top-level components you read from the
-request — outcomes that can succeed or fail independently, at most six — and
-confirm additions, removals, merges, and deferrals as the first question.
-Track open decisions per component so clarity on one component cannot hide
-ambiguity in a sibling.
+Silently check the request for gaps in:
 
-Resolve these dimensions in dependency order:
+- the person or system affected, the underlying problem, relevant status quo
+  or workaround, and desired outcome;
+- included scope, explicit non-goals, and independently useful outcomes;
+- constraints, compatibility boundaries, and terms with multiple meanings;
+- observable success and examples that distinguish success from failure.
 
-- goal and audience;
-- included and excluded scope;
-- constraints and compatibility boundaries;
-- observable completion criteria;
-- unresolved decisions that would change implementation.
+Use this as an internal coverage map, not a questionnaire. Do not ask about a
+dimension that is already settled or would not materially change the request.
+For multi-part requests, make sure clarity in one part does not hide an
+unresolved sibling.
 
-Finish with a compact decision brief containing those five fields, each marked
-settled or open. Do not create a spec automatically; hand the settled brief to
-`spec` when requested.
+## Interview loop
 
-## Stress-test mode
+1. Select the single unresolved point with the greatest combination of impact
+   and uncertainty. Do not calculate or report a numerical ambiguity score.
+2. Ask exactly one question, then wait for the answer. Never bundle questions.
+3. When useful, include the current hypothesis or a recommended answer and its
+   consequence or tradeoff. Mark it as provisional and make correction easy.
+4. Prefer an open question when predefined choices would anchor the answer.
+   Use choices only when the alternatives are real and distinct, and let the
+   user correct or replace them in free text.
+5. Update the provisional restatement after every answer. Do not invent a
+   preference to close a gap.
+6. If an answer stays at the surface, pressure-test it with one focused probe:
+   a concrete example, counterexample, hidden assumption, boundary case,
+   tradeoff, simplest useful version, or reframing of the core problem.
+7. Keep clarifying; do not implement or write project artifacts during the
+   interview.
 
-Walk the target's decision branches rather than merely asking for more scope.
-Challenge, in order:
+Use the current host's native structured question surface when it is callable
+and appropriate. Otherwise ask one plain-text question. Never require a host or
+mode change merely to present a question.
 
-1. terms that conflict with `CONTEXT.md` or have multiple meanings;
-2. assumptions contradicted by repository evidence;
-3. omitted failure modes and boundary cases;
-4. credible alternatives and why the chosen option wins;
-5. constraints that are assumed rather than measured, and whether the design
-   would change fundamentally if one were dropped;
-6. the simplest version that would still be valuable, and which complexity
-   survives that comparison;
-7. dependency order, reversibility, and explicit exclusions;
-8. whether each success claim has an observable test or evidence source.
+## Stop and confirm
 
-When a branch survives, record the decision and move to the next unresolved
-branch. When it fails, revise the target decision before continuing.
+Stop asking when all of the following are true:
 
-## Durable context
+- the request can be rewritten without inventing a user preference;
+- no remaining question is likely to materially change the outcome, scope,
+  constraints, non-goals, or observable success;
+- all independently useful parts of a multi-part request have been checked.
 
-Use [references/context-format.md](references/context-format.md) when domain
-language changes.
+Present **Clarified request** in the user's language as a self-contained
+replacement for the original request. Preserve the user's intent and voice;
+use short supporting bullets only when they make the request more usable. Ask
+the user to confirm or correct it. The interview is complete only after that
+explicit confirmation.
 
-- Update `CONTEXT.md` immediately after the user resolves a project-specific
-  term. Do not record generic programming vocabulary or implementation names.
-- Offer an ADR only when the decision is hard to reverse, surprising without
-  context, and the result of a real tradeoff. All three conditions are required.
-  Create or update it only after the user accepts the offer.
-- Preserve existing human-authored content and ask before replacing a
-  conflicting definition or ADR decision.
-
-## Finish
-
-Write the decision brief to `docs/interviews/<slug>.md`. When the interview
-ended early, state the open decisions at the top of the brief.
-
-Return the selected mode, settled decisions, rejected alternatives, changed
-context or ADR paths, the brief path, remaining open decisions, and the next
-appropriate workflow step. Do not claim readiness while a material decision
-remains open.
+If the user ends the interview early, provide the best current clarified
+request and mark only the material unresolved points. Do not claim that the
+request is fully clarified, create an artifact, or suggest an automatic next
+step.

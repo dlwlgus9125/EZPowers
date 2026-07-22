@@ -36,17 +36,12 @@
         {
           "source": "skills/deep-interview/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "e31dfc19f02de1109b902307b5bc1cb7af75436272807c7f7635487615b6cdff"
+          "sha256": "f582f6152aafba4343408bd08059873a9e2051bb552da0a23cdf78eae60dffb7"
         },
         {
           "source": "skills/deep-interview/agents/openai.yaml",
           "path": "agents/openai.yaml",
-          "sha256": "c6e15872db38681366cc0d8626326e9a189d259cf9d52fb4bf85cd43b5fefcd0"
-        },
-        {
-          "source": "skills/deep-interview/references/context-format.md",
-          "path": "references/context-format.md",
-          "sha256": "15e42c9e04f96373bcf698fbbc8b962d6b779567c4f6b69941ad5863c4e2533c"
+          "sha256": "498097304171eecf2b897b2124674cdd9692180002ced8238991e788c9f91407"
         }
       ]
     },
@@ -71,7 +66,7 @@
         {
           "source": "skills/spec/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "a80284c25a3724d0f59d5f7a4ecb25d3c531390b8ec8bfc83d8e718cbf343af8"
+          "sha256": "692cff6c55b36a83f170fa6ef4433d52ae14a5e90586d72216d137df3651bacd"
         },
         {
           "source": "skills/spec/agents/openai.yaml",
@@ -175,7 +170,7 @@
     {
       "source": "docs/reference/spec-contract.md",
       "target": ".ezpowers/contracts/spec-contract.md",
-      "sha256": "88f56b67e6bb9f1e718886e0e3f5233c825cc4ca70afabe959a063aad3018dc0"
+      "sha256": "0d468d46020f970554a295b7e513738c0820dde367751650b34a2698f7294868"
     },
     {
       "source": "docs/reference/plan-contract.md",
