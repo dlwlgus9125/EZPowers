@@ -499,6 +499,9 @@ usage with reset countdowns, and context usage. Example output:
 14:32 | 5h:12%(2h10m) wk:26%(2d5h) | ctx:34%
 ```
 
+Usage segments carry ANSI threshold colors (green below 70%, yellow from 70%,
+red from 90%); the time and the parse-failure fallback line are uncolored.
+
 This is a terminal HUD, not the "status line" defined in
 `docs/reference/domain-language.md` (the first line of an agent report).
 

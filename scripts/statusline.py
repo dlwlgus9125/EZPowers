@@ -6,7 +6,10 @@ ASCII line for the CLI footer:
 
     14:32 | 5h:12%(2h10m) wk:26%(2d5h) | ctx:34%
 
-Segments render only when their payload fields are present (API-key sessions
+Usage segments are wrapped in ANSI colors by threshold: green below 70%,
+yellow from 70%, red from 90%. Claude Code's TUI renders the escape codes
+itself, so this works on Windows; the time and the fallback line stay
+uncolored. Segments render only when their payload fields are present (API-key sessions
 have no rate_limits, so they show time + ctx only). On any parse error the
 script prints the local time and exits 0 -- a statusline must never crash or
 write stderr. Installed by /setup as `.harness/ezpowers/statusline.py`; that
@@ -20,6 +23,22 @@ import json
 import sys
 import time
 from datetime import datetime
+
+
+_GREEN = "\x1b[32m"
+_YELLOW = "\x1b[33m"
+_RED = "\x1b[31m"
+_RESET = "\x1b[0m"
+
+
+def _colorize(text, percent):
+    if percent >= 90:
+        color = _RED
+    elif percent >= 70:
+        color = _YELLOW
+    else:
+        color = _GREEN
+    return "%s%s%s" % (color, text, _RESET)
 
 
 def _fmt_countdown(resets_at, now):
@@ -59,13 +78,16 @@ def _pct(value):
 def _limit_segment(label, bucket, now):
     if not isinstance(bucket, dict):
         return None
-    pct = _pct(bucket.get("used_percentage"))
+    value = bucket.get("used_percentage")
+    pct = _pct(value)
     if pct is None:
         return None
     countdown = _fmt_countdown(bucket.get("resets_at"), now)
     if countdown is not None:
-        return "%s:%s(%s)" % (label, pct, countdown)
-    return "%s:%s" % (label, pct)
+        text = "%s:%s(%s)" % (label, pct, countdown)
+    else:
+        text = "%s:%s" % (label, pct)
+    return _colorize(text, value)
 
 
 def _context_percent(payload):
@@ -112,7 +134,7 @@ def build_line(payload, now):
             segments.append(" ".join(parts))
     ctx = _context_percent(payload)
     if ctx is not None:
-        segments.append("ctx:%d%%" % ctx)
+        segments.append(_colorize("ctx:%d%%" % ctx, ctx))
     return " | ".join(segments)
 
 

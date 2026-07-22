@@ -21,6 +21,20 @@ _spec.loader.exec_module(statusline)
 
 FULL_LINE_RE = re.compile(r"^\d{2}:\d{2} \| 5h:\d+%\(\S+\) wk:\d+%\(\S+\) \| ctx:\d+%$")
 TIME_ONLY_RE = re.compile(r"^\d{2}:\d{2}$")
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+GREEN = "\x1b[32m"
+YELLOW = "\x1b[33m"
+RED = "\x1b[31m"
+RESET = "\x1b[0m"
+
+
+def _strip_ansi(text: str) -> str:
+    return ANSI_RE.sub("", text)
+
+
+def _green(text: str) -> str:
+    return f"{GREEN}{text}{RESET}"
 
 NOW = 1784500000.0
 HHMM = time.strftime("%H:%M", time.localtime(NOW))
@@ -48,12 +62,15 @@ def _full_payload(now: float) -> dict:
 class BuildLineTests(unittest.TestCase):
     def test_full_payload_renders_all_segments(self):
         line = statusline.build_line(_full_payload(NOW), NOW)
-        self.assertEqual(line, f"{HHMM} | 5h:12%(2h10m) wk:26%(2d5h) | ctx:34%")
+        self.assertEqual(
+            line,
+            f"{HHMM} | {_green('5h:12%(2h10m)')} {_green('wk:26%(2d5h)')} | {_green('ctx:34%')}",
+        )
 
     def test_missing_rate_limits_degrades_to_time_and_ctx(self):
         payload = _full_payload(NOW)
         del payload["rate_limits"]
-        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | ctx:34%")
+        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | {_green('ctx:34%')}")
 
     def test_empty_payload_renders_time_only(self):
         self.assertEqual(statusline.build_line({}, NOW), HHMM)
@@ -63,24 +80,32 @@ class BuildLineTests(unittest.TestCase):
 
     def test_missing_resets_at_omits_countdown(self):
         payload = {"rate_limits": {"five_hour": {"used_percentage": 7}}}
-        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | 5h:7%")
+        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | {_green('5h:7%')}")
 
     def test_iso_resets_at_is_accepted(self):
         iso = datetime.fromtimestamp(NOW + 2 * 3600 + 10 * 60 + 30).isoformat()
         payload = {"rate_limits": {"five_hour": {"used_percentage": 7, "resets_at": iso}}}
-        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | 5h:7%(2h10m)")
+        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | {_green('5h:7%(2h10m)')}")
 
     def test_past_resets_at_renders_zero_minutes(self):
         payload = {"rate_limits": {"five_hour": {"used_percentage": 99, "resets_at": NOW - 60}}}
-        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | 5h:99%(0m)")
+        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | {RED}5h:99%(0m){RESET}")
 
     def test_sub_hour_countdown(self):
         payload = {"rate_limits": {"five_hour": {"used_percentage": 1, "resets_at": NOW + 45 * 60}}}
-        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | 5h:1%(45m)")
+        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | {_green('5h:1%(45m)')}")
 
     def test_sub_minute_countdown_rounds_up(self):
         payload = {"rate_limits": {"five_hour": {"used_percentage": 1, "resets_at": NOW + 30}}}
-        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | 5h:1%(1m)")
+        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | {_green('5h:1%(1m)')}")
+
+    def test_threshold_colors(self):
+        for pct, color in ((69, GREEN), (70, YELLOW), (89, YELLOW), (90, RED)):
+            payload = {"context_window": {"used_percentage": pct}}
+            self.assertEqual(
+                statusline.build_line(payload, NOW),
+                f"{HHMM} | {color}ctx:{pct}%{RESET}",
+            )
 
     def test_ctx_computed_from_tokens_when_percentage_missing(self):
         payload = {
@@ -94,7 +119,7 @@ class BuildLineTests(unittest.TestCase):
                 },
             }
         }
-        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | ctx:7%")
+        self.assertEqual(statusline.build_line(payload, NOW), f"{HHMM} | {_green('ctx:7%')}")
 
 
 class StatuslineProcessTests(unittest.TestCase):
@@ -112,7 +137,8 @@ class StatuslineProcessTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0)
         self.assertEqual(proc.stderr, b"")
         line = proc.stdout.decode("utf-8").strip()
-        self.assertRegex(line, FULL_LINE_RE)
+        self.assertIn(GREEN, line)
+        self.assertRegex(_strip_ansi(line), FULL_LINE_RE)
 
     def test_non_ascii_payload_survives_windows_pipe_decoding(self):
         """Claude Code pipes raw UTF-8; payloads carry non-ASCII fields such as
@@ -122,13 +148,13 @@ class StatuslineProcessTests(unittest.TestCase):
         payload["session_name"] = "CLI 하단 표시줄"
         proc = self._run(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
         self.assertEqual(proc.returncode, 0)
-        self.assertRegex(proc.stdout.decode("utf-8").strip(), FULL_LINE_RE)
+        self.assertRegex(_strip_ansi(proc.stdout.decode("utf-8").strip()), FULL_LINE_RE)
 
     def test_bom_prefixed_payload_is_parsed(self):
         payload = _full_payload(time.time())
         proc = self._run(b"\xef\xbb\xbf" + json.dumps(payload).encode("utf-8"))
         self.assertEqual(proc.returncode, 0)
-        self.assertRegex(proc.stdout.decode("utf-8").strip(), FULL_LINE_RE)
+        self.assertRegex(_strip_ansi(proc.stdout.decode("utf-8").strip()), FULL_LINE_RE)
 
     def test_malformed_stdin_renders_time_only(self):
         proc = self._run(b"not json")

@@ -104,7 +104,7 @@
     {
       "source": "scripts/statusline.py",
       "target": ".harness/ezpowers/statusline.py",
-      "sha256": "6dd4bf1845d8b940c593205d0e389b7ffeee3196b4bb3d1280b96acc903e9724"
+      "sha256": "993cbaf39cc0c534915862090dfba17053934cefc61eaa2bc8c97a367c59b4c8"
     }
   ],
   "ui_verification": {
