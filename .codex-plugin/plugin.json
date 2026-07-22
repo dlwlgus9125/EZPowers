@@ -1,6 +1,6 @@
 {
   "name": "ezpowers",
-  "version": "5.0.0+codex.20260722083835",
+  "version": "5.0.1+codex.20260722183946",
   "description": "Project-local specification, planning, deterministic verification, evidence, and resume support for Claude Code and Codex.",
   "author": {
     "name": "dlwlgus9125",

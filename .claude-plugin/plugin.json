@@ -2,7 +2,7 @@
   "name": "ezpowers",
   "displayName": "EZPowers",
   "description": "Project-local specification, planning, deterministic verification, evidence, and resume support for Claude Code and Codex.",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
