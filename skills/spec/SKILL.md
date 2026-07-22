@@ -17,8 +17,9 @@ Read `.ezpowers/contracts/spec-contract.md` and
 for artifact shape, managed markers, fields, identifiers, and validation. If
 the local kit is absent, route to `setup`.
 
-Read repository instructions, `CONTEXT.md`, relevant ADRs, architecture and
-frontend-design artifacts, existing specs, public entry points, and tests. Use
+Read repository instructions, `CONTEXT.md`, relevant ADRs, decision briefs
+under `docs/interviews/`, architecture and frontend-design artifacts, existing
+specs, public entry points, and tests. Use
 `deep-interview` when a material product decision remains open. Return to
 `design-architecture` when implementation would otherwise invent a boundary,
 data flow, lifecycle, deployment, or verification decision.

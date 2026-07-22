@@ -20,15 +20,33 @@ settled decisions as an acceptance contract.
 
 ## Common rules
 
-1. Read the repository, target artifact, `CONTEXT.md`, and relevant ADRs before
-   asking anything the files can answer.
-2. Track resolved decisions and the highest-impact open decision.
-3. Ask one question at a time. Include the current understanding, the blocked
+1. Read the repository, target artifact, `CONTEXT.md`, relevant ADRs, and
+   prior artifacts (`docs/interviews/`, `docs/specs/`, `docs/plans/`, decision
+   records) before asking anything the files can answer. When a prior brief on
+   the same topic still has open decisions, resume from those decisions
+   instead of restarting.
+2. When repository evidence triggers a question, cite that evidence (file
+   path, symbol, or pattern) inside the question instead of asking the user to
+   rediscover it.
+3. Track resolved decisions and the highest-impact open decision.
+4. Ask one question at a time. Include the current understanding, the blocked
    decision, and a recommended answer with its tradeoff.
-4. Wait for the answer before advancing. Do not invent user preferences.
-5. Stop when the remaining questions cannot materially change the work.
+5. Wait for the answer before advancing. Do not invent user preferences.
+6. When answers keep renaming the core concept or describe symptoms instead of
+   outcomes, pause detail questions and ask what the thing fundamentally is;
+   capture the settled term under the durable-context rules.
+7. When the user cuts the interview short, neither refuse nor silently comply:
+   present the remaining open decisions once with the rework risk of each,
+   record them as open, then finish.
+8. Stop when the remaining questions cannot materially change the work.
 
 ## Clarify mode
+
+Before walking the dimensions, list the top-level components you read from the
+request — outcomes that can succeed or fail independently, at most six — and
+confirm additions, removals, merges, and deferrals as the first question.
+Track open decisions per component so clarity on one component cannot hide
+ambiguity in a sibling.
 
 Resolve these dimensions in dependency order:
 
@@ -38,8 +56,9 @@ Resolve these dimensions in dependency order:
 - observable completion criteria;
 - unresolved decisions that would change implementation.
 
-Finish with a compact decision brief containing those five fields. Do not
-create a spec automatically; hand the settled brief to `spec` when requested.
+Finish with a compact decision brief containing those five fields, each marked
+settled or open. Do not create a spec automatically; hand the settled brief to
+`spec` when requested.
 
 ## Stress-test mode
 
@@ -50,8 +69,12 @@ Challenge, in order:
 2. assumptions contradicted by repository evidence;
 3. omitted failure modes and boundary cases;
 4. credible alternatives and why the chosen option wins;
-5. dependency order, reversibility, and explicit exclusions;
-6. whether each success claim has an observable test or evidence source.
+5. constraints that are assumed rather than measured, and whether the design
+   would change fundamentally if one were dropped;
+6. the simplest version that would still be valuable, and which complexity
+   survives that comparison;
+7. dependency order, reversibility, and explicit exclusions;
+8. whether each success claim has an observable test or evidence source.
 
 When a branch survives, record the decision and move to the next unresolved
 branch. When it fails, revise the target decision before continuing.
@@ -71,6 +94,10 @@ language changes.
 
 ## Finish
 
+Write the decision brief to `docs/interviews/<slug>.md`. When the interview
+ended early, state the open decisions at the top of the brief.
+
 Return the selected mode, settled decisions, rejected alternatives, changed
-context or ADR paths, remaining open decisions, and the next appropriate
-workflow step. Do not claim readiness while a material decision remains open.
+context or ADR paths, the brief path, remaining open decisions, and the next
+appropriate workflow step. Do not claim readiness while a material decision
+remains open.
