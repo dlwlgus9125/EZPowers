@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Manage the EZPowers-owned Codex CLI usage HUD configuration.
+"""Manage the EZPowers-owned Codex CLI model and usage HUD configuration.
 
 Codex CLI v0.101.0 and newer provides a native TUI status line.  This helper
 only manages the smallest global ``[tui]`` fragment needed for the EZPowers
-usage HUD; it never installs a project harness and never rewrites unrelated
-Codex settings.
+model and usage HUD; it never installs a project harness and never rewrites
+unrelated Codex settings.
 
 Writes require ``--approve``.  Existing unowned status-line settings are a
 conflict unless ``--replace-existing`` is supplied alongside that approval.
@@ -27,9 +27,20 @@ from typing import Iterable
 
 START_MARKER = "# >>> ezpowers:managed-codex-hud >>>"
 END_MARKER = "# <<< ezpowers:managed-codex-hud <<<"
-STATUS_LINE = 'status_line = ["five-hour-limit", "weekly-limit", "context-used"]'
+STATUS_LINE = (
+    'status_line = ["model-with-reasoning", "five-hour-limit", '
+    '"weekly-limit", "context-used"]'
+)
 USE_COLORS = "status_line_use_colors = true"
 MANAGED_FRAGMENT = (START_MARKER, STATUS_LINE, USE_COLORS, END_MARKER)
+LEGACY_MANAGED_FRAGMENTS = (
+    (
+        START_MARKER,
+        'status_line = ["five-hour-limit", "weekly-limit", "context-used"]',
+        USE_COLORS,
+        END_MARKER,
+    ),
+)
 MANAGED_KEYS = ("status_line", "status_line_use_colors")
 
 SECTION_RE = re.compile(r"^\s*\[([^\]]+)\]\s*(?:#.*)?$")
@@ -269,12 +280,12 @@ def _analyze(lines: tuple[str, ...] | list[str]) -> Analysis:
 
     if block:
         actual = tuple(lines[block[0] : block[1] + 1])
-        if actual != MANAGED_FRAGMENT:
-            status = "customized"
-        elif assignments:
-            status = "conflict"
+        if actual == MANAGED_FRAGMENT:
+            status = "conflict" if assignments else "installed"
+        elif actual in LEGACY_MANAGED_FRAGMENTS:
+            status = "conflict" if assignments else "outdated"
         else:
-            status = "installed"
+            status = "customized"
     elif assignments:
         status = "conflict"
     else:
@@ -401,7 +412,9 @@ def _emit(payload: dict[str, object], *, as_json: bool) -> None:
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Install, inspect, or remove the global native Codex usage HUD."
+        description=(
+            "Install, inspect, or remove the global native Codex model and usage HUD."
+        )
     )
     parser.add_argument("action", choices=("status", "preview", "install", "uninstall"))
     parser.add_argument("--config", type=Path, default=_default_config_path())
@@ -441,6 +454,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.action == "status":
         message = {
             "installed": "The EZPowers-owned native status line is active in config.",
+            "outdated": (
+                "An older exact EZPowers-owned status line is active and can be upgraded."
+            ),
             "absent": "No EZPowers-owned Codex HUD is installed.",
             "conflict": "Existing unowned Codex TUI status settings were preserved.",
             "customized": "The marked HUD block was edited and is treated as user-owned.",
@@ -523,7 +539,11 @@ def main(argv: list[str] | None = None) -> int:
             before=source.raw,
             after=after,
             conflict_keys=analysis.conflict_keys,
-            message="EZPowers Codex HUD installed. Start a new Codex session to load it.",
+            message=(
+                "EZPowers Codex HUD upgraded. Start a new Codex session to load it."
+                if analysis.status == "outdated"
+                else "EZPowers Codex HUD installed. Start a new Codex session to load it."
+            ),
         )
         _emit(payload, as_json=args.json)
         return EXIT_OK

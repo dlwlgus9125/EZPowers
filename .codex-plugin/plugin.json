@@ -40,7 +40,7 @@
       "$ezpowers:setup Install the project-local EZPowers workflow and verification kit.",
       "$ezpowers:deep-interview Clarify this request before specification.",
       "$ezpowers:execute Run the prepared plan and deterministic project checks.",
-      "$ezpowers:hud Configure the native Codex usage footer."
+      "$ezpowers:hud Configure the native Codex model and usage footer."
     ],
     "brandColor": "#2563EB"
   }

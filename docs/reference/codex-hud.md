@@ -4,7 +4,7 @@ authority: canonical
 status: active
 ---
 
-# Codex Usage HUD
+# Codex Model and Usage HUD
 
 The HUD is a plugin-only, global, explicit opt-in. It is not installed by
 `setup`, copied into a target project's local kit, or used as completion
@@ -18,13 +18,16 @@ EZPowers configures Codex's native TUI footer in the user's global
 ```toml
 [tui]
 # >>> ezpowers:managed-codex-hud >>>
-status_line = ["five-hour-limit", "weekly-limit", "context-used"]
+status_line = ["model-with-reasoning", "five-hour-limit", "weekly-limit", "context-used"]
 status_line_use_colors = true
 # <<< ezpowers:managed-codex-hud <<<
 ```
 
-Codex owns rendering, wording, refresh, missing-value behavior, and theme
-colors. EZPowers does not wrap, patch, or proxy the Codex process.
+The leading `model-with-reasoning` item follows
+[OMX's native HUD example](https://github.com/Yeachan-Heo/oh-my-codex/blob/main/skills/hud/SKILL.md)
+and shows the active session model together with its reasoning effort. Codex
+owns rendering, wording, refresh, missing-value behavior, and theme colors.
+EZPowers does not wrap, patch, or proxy the Codex process.
 
 ## Read Before Write
 
@@ -50,7 +53,9 @@ receiving explicit approval to replace them.
 
 The paired markers are the ownership boundary.
 
-- An exact, unchanged managed block may be repaired or removed.
+- The current exact managed block may be repaired or removed.
+- The prior exact usage-only block is reported as `outdated` and may be
+  upgraded or removed without treating it as user-owned.
 - Unmarked `status_line` values, inline `tui` tables, incomplete markers, and
   edited managed values are user-owned or malformed and are preserved.
 - Unrelated global keys, other `[tui]` values, newline style, and UTF-8 BOM are

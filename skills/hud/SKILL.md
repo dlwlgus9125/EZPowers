@@ -1,17 +1,17 @@
 ---
 name: hud
-description: Use when the user asks to enable, configure, inspect, repair, or remove a global Codex usage HUD or statusline without installing a project harness.
+description: Use when the user asks to enable, configure, inspect, repair, or remove a global Codex model and usage HUD or statusline without installing a project harness.
 disable-model-invocation: true
 allowed-tools: [Bash, Read, AskUserQuestion]
 ---
 
-# /hud - Codex Usage HUD
+# /hud - Codex Model and Usage HUD
 
 ## Purpose
 
-Manage the EZPowers usage HUD through Codex's native TUI status line. This is a
-global Codex configuration task; do not install or refresh a project harness and
-do not use the Claude Code `statusLine` script.
+Manage the EZPowers model and usage HUD through Codex's native TUI status line.
+This is a global Codex configuration task; do not install or refresh a project harness.
+Do not use the Claude Code `statusLine` script.
 
 ## Read
 
@@ -70,6 +70,6 @@ edited is user-owned until the user explicitly approves `--replace-existing`.
 
 - Codex CLI version.
 - Config path and before/after SHA-256 values.
-- Installed, unchanged, removed, conflict, or skipped result.
+- Installed, upgraded, unchanged, removed, conflict, or skipped result.
 - Config-load smoke exit code.
 - Reminder to start a new Codex session after a change.

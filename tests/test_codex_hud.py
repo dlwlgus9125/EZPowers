@@ -14,7 +14,13 @@ HUD_CONTRACT = REPO_ROOT / "docs" / "reference" / "codex-hud.md"
 
 START_MARKER = "# >>> ezpowers:managed-codex-hud >>>"
 END_MARKER = "# <<< ezpowers:managed-codex-hud <<<"
-STATUS_LINE = 'status_line = ["five-hour-limit", "weekly-limit", "context-used"]'
+STATUS_LINE = (
+    'status_line = ["model-with-reasoning", "five-hour-limit", '
+    '"weekly-limit", "context-used"]'
+)
+LEGACY_STATUS_LINE = (
+    'status_line = ["five-hour-limit", "weekly-limit", "context-used"]'
+)
 USE_COLORS = "status_line_use_colors = true"
 
 
@@ -114,6 +120,38 @@ class CodexHudProcessTests(unittest.TestCase):
         self.assertEqual(payload["status"], "installed")
         self.assertFalse(payload["changed"])
         self.assertEqual(self.config.read_bytes(), before)
+
+    def test_install_upgrades_the_exact_legacy_usage_only_fragment(self):
+        original = "\n".join(
+            [
+                "[tui]",
+                "notifications = true",
+                START_MARKER,
+                LEGACY_STATUS_LINE,
+                USE_COLORS,
+                END_MARKER,
+                "",
+            ]
+        )
+        self._write(original)
+
+        preview, preview_payload = self._run("preview")
+
+        self.assertEqual(preview.returncode, 0, preview.stderr)
+        self.assertEqual(preview_payload["status"], "outdated")
+        self.assertTrue(preview_payload["changed"])
+        self.assertEqual(self.config.read_text(encoding="utf-8"), original)
+
+        installed, installed_payload = self._run("install", "--approve")
+
+        self.assertEqual(installed.returncode, 0, installed.stderr)
+        self.assertEqual(installed_payload["status"], "installed")
+        self.assertTrue(installed_payload["changed"])
+        self.assertIn("upgraded", installed_payload["message"])
+        updated = self.config.read_text(encoding="utf-8")
+        self.assertIn(STATUS_LINE, updated)
+        self.assertNotIn(LEGACY_STATUS_LINE, updated)
+        self.assertIn("notifications = true", updated)
 
     def test_unowned_status_line_is_a_non_destructive_conflict(self):
         original = "[tui]\nstatus_line = [\"model\", \"git-branch\"]\n"
