@@ -18,6 +18,7 @@
 - [Frontend Design Contract](reference/frontend-design-contract.md): [canonical] frontend design readiness, design-system, state, responsive, accessibility, and visual QA rules.
 - [Reviewer Dispatch Protocol](reference/dispatch-protocol.md): [canonical] reviewer placement, backend dispatch, workflow-runner, verdict, and retry protocol.
 - [Codex Plugin Discovery](reference/codex-plugin-discovery.md): [canonical] Codex skill discovery, invocation, and local install notes.
+- [Codex Usage HUD](reference/codex-hud.md): [canonical] native global Codex usage footer, ownership, install, verification, and removal contract.
 - [Model Routing Contract](reference/model-routing-contract.md): [canonical] model profile routing for reviewers, subagents, and harness execution.
 - [Setup Contract](reference/setup-contract.md): [canonical] generated harness config, steering docs, smoke settings, and phase initialization rules.
 - [Harness Kit Contract](reference/harness-kit-contract.md): [canonical] setup/reset setup local kit install, no-synthesis, and hash ledger rules.

@@ -39,6 +39,7 @@ standard). On Claude Code they invoke as `/ezpowers:<name>`; on Codex as
 | `/review` | workflow skill | Review changes (implementation completeness vs spec) |
 | `/sync-docs` | workflow skill | Sync reference docs with codebase (standalone + suggested after /choice-execute) |
 | `/reset-setup` | workflow skill | Reinstall verified local kit and migrate setup docs |
+| `/hud` | workflow skill | Manage the global native Codex usage footer without installing a harness |
 | `/maintain` | workflow skill | Route bug, refactor, and issue-response work (invokes diagnose / improve-codebase-architecture as named gates) |
 | `/deploy` | workflow skill | Prepare release and deployment verification |
 | `diagnose` | skill | 6-phase diagnosis loop (feedback-loop-first + post-mortem) |

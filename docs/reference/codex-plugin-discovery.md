@@ -53,6 +53,10 @@ After changing plugin metadata or skills:
 2. Reinstall the local plugin with `codex plugin add ezpowers@local`.
 3. Start a new Codex thread before testing discovery.
 
+The global native usage footer is independent of project harness setup. Use
+`$ezpowers:hud` and follow `docs/reference/codex-hud.md`; it manages only its
+marked `[tui]` fragment in the user Codex config.
+
 ## Verification
 
 Use `codex debug prompt-input "probe"` to confirm that the prompt contains one
