@@ -1,5 +1,5 @@
 {
-  "version": "2.0.3",
+  "version": "2.1.0",
   "install_root": ".harness/ezpowers",
   "no_synthesis": true,
   "public_commands": [
@@ -34,17 +34,17 @@
     {
       "source": "scripts/harness-common.ps1",
       "target": "scripts/harness-common.ps1",
-      "sha256": "c99c4ef985d1989a6a2abbda9d880538a4e16baa04c5415402792592cf19c4cd"
+      "sha256": "311ac2f541ee2e4d927bda732c6538023b5549644c3699bdbc7b2873b8b65509"
     },
     {
       "source": "scripts/harness-doctor.ps1",
       "target": "scripts/harness-doctor.ps1",
-      "sha256": "b3448068a62acd2caabb83789da8c39fe7adf33a73ca85df1d5647721316f30a"
+      "sha256": "8c2a6c13962ebde78e31c8a4d5090f3473c5349dea3766e9df21efb3befde731"
     },
     {
       "source": "scripts/harness-convert.ps1",
       "target": "scripts/harness-convert.ps1",
-      "sha256": "0f8654b4cded7d73613554cbbcba54e82f711e03378624f8b3d482d5547ecbda"
+      "sha256": "068e6895912becfb267e0827b94c502c44b39d8464e3176d03e4a25a7003ac7d"
     },
     {
       "source": "scripts/harness-phase.ps1",
@@ -59,7 +59,7 @@
     {
       "source": "scripts/harness-gate.ps1",
       "target": "scripts/harness-gate.ps1",
-      "sha256": "cd2ed88fc7a51666ae1e2e812a75b47dadc142710dde2c304e1f3d017f0c3bae"
+      "sha256": "c4c12ade638f16a6b6494231fef25e6fee9dc20d4cde0349f0cb2675652850df"
     },
     {
       "source": "scripts/harness-certify.ps1",
@@ -69,17 +69,17 @@
     {
       "source": "scripts/harness-resume-proof.ps1",
       "target": "scripts/harness-resume-proof.ps1",
-      "sha256": "bab19a4b733a200a0da021600e8c75789b27d2f4c37620b5b5321b63c9a51c41"
+      "sha256": "740d180ce0c76ca3ceda611a6a9d636911b41df905baf62294fbeec739413cf2"
     },
     {
       "source": "scripts/lightpath-gate.ps1",
       "target": "scripts/lightpath-gate.ps1",
-      "sha256": "0469a918c54cc78a1d53a3858af3fc619fe9e04f9f6462097710db1057e3c45f"
+      "sha256": "5ded1747abe18b6738fc3e06bca0b96de6fedb822ee2f20ac4d734c12e281381"
     },
     {
       "source": "scripts/verify-step.py",
       "target": "scripts/verify-step.py",
-      "sha256": "62b6f431f95e1ab36309bf0a46fedaa01f60c2e807738986b5d4376e49638663"
+      "sha256": "823504092a94c5f9672f6545f1cdc709697b4a7c8f2090b9e165829846799d25"
     },
     {
       "source": "scripts/frontend-visual-readiness.py",
@@ -100,6 +100,11 @@
       "source": "scripts/context-injector.py",
       "target": "scripts/context-injector.py",
       "sha256": "409d9968c76c5b760bd99ce7cdb9da45cceed11402aa6ac98eb243dbde5cc45a"
+    },
+    {
+      "source": "scripts/statusline.py",
+      "target": ".harness/ezpowers/statusline.py",
+      "sha256": "6dd4bf1845d8b940c593205d0e389b7ffeee3196b4bb3d1280b96acc903e9724"
     }
   ],
   "ui_verification": {

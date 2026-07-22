@@ -461,6 +461,8 @@ Report:
   adapter setup task if any.
 - Remaining human-authored docs.
 - Smoke command and GUI strategy.
+- Statusline HUD decision: `installed`, `declined`, or `existing statusline
+  preserved` (see § Statusline HUD).
 - Next command: `/design-architecture`.
 
 ## Gate Script Permissions
@@ -486,3 +488,50 @@ Before writing, confirm the matcher strings against how the current session
 actually invokes the scripts (a session may route through the PowerShell tool
 rather than Bash; adjust the tool prefix to match). Never write without the
 user's explicit yes; record the decision in the setup summary.
+
+## Statusline HUD
+
+The kit bundles `.harness/ezpowers/statusline.py`, a stdlib-only script that
+renders the Claude Code CLI footer: local time, 5-hour and weekly rate-limit
+usage with reset countdowns, and context usage. Example output:
+
+```text
+14:32 | 5h:12%(2h10m) wk:26%(2d5h) | ctx:34%
+```
+
+This is a terminal HUD, not the "status line" defined in
+`docs/reference/domain-language.md` (the first line of an agent report).
+
+After kit install, offer to register it in the target project's
+`.claude/settings.json` (merge into the existing file; preserve every other
+key):
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "python .harness/ezpowers/statusline.py"
+  }
+}
+```
+
+Rules:
+
+- Ownership marker: a `statusLine.command` containing the substring
+  `ezpowers/statusline.py` is EZPowers-owned. EZPowers-owned entries may be
+  repaired or rewritten inside the approval gate without a conflict prompt.
+- Conflict: a project-level `statusLine` without the marker belongs to the
+  user or another tool. Show its current command and ask replace-or-skip. A
+  user-level `statusLine` (for example a global HUD) is not modified, but tell
+  the user a project-level entry overrides it inside this project before they
+  answer.
+- Never write without the user's explicit yes; record the decision
+  (`installed`, `declined`, or `existing statusline preserved`) in the setup
+  summary.
+- Sessions authenticated with an API key receive no `rate_limits` payload; the
+  HUD then degrades to time + ctx. This is expected, not a failure.
+- Post-write smoke: from the project root, pipe `{}` into the configured
+  command and confirm a `HH:MM` line on stdout with exit code 0. The relative
+  command assumes Claude Code launches at the project root; if the project is
+  routinely opened from subdirectories, write the absolute forward-slash form
+  (`python C:/path/to/project/.harness/ezpowers/statusline.py`) instead.

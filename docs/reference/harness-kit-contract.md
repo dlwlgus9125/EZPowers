@@ -16,6 +16,7 @@ Required files:
 - `manifest.json`
 - `skills/README.md`
 - `contracts/README.md`
+- `statusline.py`
 - `ledger.json`
 
 The manifest also installs the deterministic workflow helper allowlist into the

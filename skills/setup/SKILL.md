@@ -36,6 +36,10 @@ kit. Do not write product code or synthesize skill bodies.
 - After kit install, offer (ask first) to append the gate-script allow rules
   from `docs/reference/setup-contract.md` § Gate Script Permissions to the
   target project's `.claude/settings.json`.
+- After kit install, offer (ask first) to register the statusline HUD per
+  `docs/reference/setup-contract.md` § Statusline HUD. Never replace a
+  `statusLine` without the EZPowers ownership marker unless the user approves
+  the replacement; record the decision.
 - Install the local project kit exactly as defined by
   `docs/reference/harness-kit-contract.md`: copy bundled files only, record
   hashes, and fail if the manifest cannot be verified.
@@ -76,5 +80,7 @@ kit. Do not write product code or synthesize skill bodies.
 - Frontend design readiness slot, config fields, and unresolved inputs.
 - `phases/index.json` setup status.
 - Local kit install path, manifest version, and hash ledger path.
+- Statusline HUD decision (installed, declined, or existing statusline
+  preserved).
 - Human-owned docs that still need content.
 - Next command: `/design-architecture`.

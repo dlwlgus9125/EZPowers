@@ -38,6 +38,10 @@ new agent session so the host reloads command definitions.
   append a migration note instead of replacing content.
 - Record previous and new kit versions, file hashes, and migrated fields in
   `.harness/ezpowers/ledger.json`.
+- If `.claude/settings.json` has an EZPowers-owned statusline HUD entry
+  (`statusLine.command` contains `ezpowers/statusline.py`) that is broken or
+  stale, offer to repair it per `docs/reference/setup-contract.md`
+  § Statusline HUD. Never modify a `statusLine` without that marker.
 - If a migration changes verification semantics, mark architecture and spec
   phases as needing review.
 
