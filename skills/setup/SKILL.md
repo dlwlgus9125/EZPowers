@@ -1,86 +1,78 @@
 ---
 name: setup
-description: Initialize project harness with config and steering docs
+description: Use when the user explicitly asks to initialize, install, repair, or refresh EZPowers project-local workflow configuration and verification tooling.
 disable-model-invocation: true
-allowed-tools: [Bash, Read, Write, Glob, Agent, AskUserQuestion]
 ---
 
-# /setup - Project Harness Initialization
+# Setup
 
-## Purpose
+Install a self-contained project kit and record the target project's real
+completion checks. Do not create product code, select host models, configure a
+global HUD, or add an external executor.
 
-Initialize an EZPowers harness in the target project. Create configuration,
-steering docs, phase state, reference doc slots, and a verified local EZPowers
-kit. Do not write product code or synthesize skill bodies.
+## Load the contract
 
-## Read
+Read `setup-contract.md` and `verification-contract.md` from
+`.ezpowers/contracts/` when installed. Before the first install, resolve the
+same files from the plugin distribution's `docs/reference/` directory. Those
+contracts own the config schema, allowed check kinds, migration policy,
+managed-file ownership, and hook shape; do not copy or reinterpret their rules.
 
-- `docs/reference/setup-contract.md`
-- `docs/reference/harness-kit-contract.md`
-- `docs/reference/dispatch-protocol.md`
-- `docs/reference/frontend-design-contract.md`
-- `docs/reference/domain-language.md`
-- `docs/reference/verification-contract.md`
-- `harness-kit/v2.0.0/manifest.json`
-- Target repo root listing, manifests, source directories, `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`
-- Existing `.harness/config.json`, `phases/index.json`, and `docs/` when present
+## Inspect
 
-## Rules
+Read repository instructions, manifests, scripts, CI files, tests, and any
+existing `.ezpowers/config.json`. Require the target path to equal the Git
+worktree root. Before invoking the runtime, run `python --version` and require
+Python 3.10 or newer; if it is unavailable, stop with that prerequisite instead
+of attempting installation. Infer commands only from executable repository
+evidence. Ask one question at a time for a required command or completion
+condition that cannot be established from the repository.
 
-- Read repo evidence first. Ask only for values that cannot be inferred.
-- Ask one question at a time; prefer concrete choices.
-- If `.harness/config.json` already exists, ask before overwriting.
-- If `CONTEXT.md` already exists, preserve it; offer to merge new terms only.
-- Use `docs/reference/setup-contract.md` for generated files, config schema,
-  smoke settings, gate-script permission rules, and phase-state details.
-- After kit install, offer (ask first) to append the gate-script allow rules
-  from `docs/reference/setup-contract.md` § Gate Script Permissions to the
-  target project's `.claude/settings.json`.
-- After kit install, offer (ask first) to register the statusline HUD per
-  `docs/reference/setup-contract.md` § Statusline HUD. Never replace a
-  `statusLine` without the EZPowers ownership marker unless the user approves
-  the replacement; record the decision.
-- Install the local project kit exactly as defined by
-  `docs/reference/harness-kit-contract.md`: copy bundled files only, record
-  hashes, and fail if the manifest cannot be verified.
-- Install every manifest entry, including approved `scripts/` helper targets.
-  Missing gate helpers are setup failures, not a reason to use inline
-  verification.
-- Never generate, paraphrase, or merge `SKILL.md` bodies during setup. If the
-  bundled kit is missing, stop and ask the user to update the plugin.
-- Preserve EZPowers automation: `.harness/config.json`, `phases/index.json`,
-  docs slots, smoke config, and executor settings are first-class outputs.
-- For UI projects, create the `docs/ux/frontend-design.md` readiness slot and
-  config fields from `docs/reference/frontend-design-contract.md`; do not
-  synthesize the design brief during setup.
-- Executable artifacts require runtime smoke unless the setup contract allows
-  an explicit `docs` or `library` exemption.
-- Use `docs/reference/setup-contract.md` Wiring Rules for auto-detecting and
-  configuring `wiring` based on stack and UI presence. UI projects must have
-  `wiring.enabled: true`; `docs`/`library` exemptions require `exempt_reason`.
-- Mark setup `in_progress` before writes and `complete` only after required
-  files exist.
-- Keep human-authored docs as slots unless the user provides real content.
+## Install or refresh
 
-## Stop conditions
+For a new installation, run the plugin copy:
 
-- User declines overwrite of an existing harness.
-- A required config value cannot be inferred and the user has not supplied it.
-- A write would overwrite non-harness content without explicit approval.
-- An executable artifact has no viable smoke command or GUI strategy.
-- The local kit manifest, bundled file, or installed hash ledger fails
-  verification.
-- Required directories or files cannot be created.
+```text
+python <plugin-root>/scripts/ezpowers.py install --project-root <project>
+```
 
-## Outputs
+When an installed project must be upgraded from a newer plugin distribution,
+run the plugin copy explicitly with refresh:
 
-- Created or updated file list (including `CONTEXT.md` when generated).
-- Inferred and user-confirmed project settings.
-- Smoke/runtime verification settings and any unresolved values.
-- Frontend design readiness slot, config fields, and unresolved inputs.
-- `phases/index.json` setup status.
-- Local kit install path, manifest version, and hash ledger path.
-- Statusline HUD decision (installed, declined, or existing statusline
-  preserved).
-- Human-owned docs that still need content.
-- Next command: `/design-architecture`.
+```text
+python <plugin-root>/scripts/ezpowers.py install --project-root <project> --refresh
+```
+
+For a same-version repair from the already installed local kit, run:
+
+```text
+python .ezpowers/ezpowers.py install --project-root <project> --refresh
+```
+
+Add `--enable-hooks claude`, `codex`, or `both` only after explicit user
+approval. The default is `none`.
+
+Update `.ezpowers/config.json` with only confirmed project checks, using the
+canonical exact-argv schema. Preserve unknown user fields. Keep legacy source
+files in place; report migrated commands and every ignored execution, model,
+reviewer, retry, phase, HUD, or external-path setting. Never overwrite a
+managed file after the installer reports a conflict.
+
+## Verify and report
+
+Run the installed runtime:
+
+```text
+python .ezpowers/ezpowers.py status --json
+```
+
+Validate any existing spec or plan using the exact commands in the contracts.
+Treat Git-root mismatch, missing runtime, manifest or ledger hash drift,
+host-copy drift, invalid config, unsupported Python, and managed-file conflict
+as setup failure.
+
+Report installed and preserved paths, configured/required checks, migration
+warnings, hook choice, ledger path, and unresolved completion criteria. Use
+`deep-interview` only when decisions remain ambiguous; otherwise continue to
+`frontend-design` for unresolved product-surface decisions, then
+`design-architecture` or `spec` as needed.

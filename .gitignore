@@ -1,11 +1,13 @@
-# Holdout eval cases — never commit, see blueprint Part B.2
-evals/holdout/**
-!evals/holdout/.gitkeep
-evals/results/runs/**
 scripts/__pycache__/
 tests/__pycache__/
 __pycache__/
 *.pyc
 /plugins/
-*.ezpowers-traces/
-docs/*.exe
+# Retired local evaluation output may remain in developer worktrees, but it is
+# not part of the live product surface.
+evals/
+.ezpowers/evidence/
+.ezpowers/ezpowers.py
+.ezpowers/kit/
+.ezpowers/ledger.json
+.ezpowers/runtime.lock

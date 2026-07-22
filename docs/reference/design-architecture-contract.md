@@ -1,311 +1,130 @@
 # Design Architecture Contract
 
-This reference owns the `/design-architecture` artifact shape. It separates
-project architecture and verification policy from feature-level specs. It also
-defines the architecture-readiness criteria — the spec interface, ASR, quality
-budget, and ADR rules — that decide whether a spec is ready for planning
-without forcing implementation agents to invent architecture.
+This contract defines the durable project decisions that must be settled before
+`spec` can state observable feature claims. It does not prescribe how Claude
+Code or Codex should implement the work.
 
-Source contract: the Reviewer Placement section of
-`docs/reference/dispatch-protocol.md` requires `ezpowers:architecture-reviewer`
-before architecture completion.
+## Preflight
 
-## Required Outputs
+Read repository instructions, `CONTEXT.md`, applicable ADRs, manifests, entry
+points, public interfaces, data schemas, CI and deployment files, existing
+architecture documents, and tests. When the local kit is installed, also read:
 
-Update or create these project docs:
+```text
+.ezpowers/contracts/design-architecture-contract.md
+.ezpowers/contracts/verification-contract.md
+```
+
+If `.ezpowers/ezpowers.py` is absent, use `setup`. If a material product or
+domain decision is still ambiguous, use `deep-interview` before fixing the
+architecture. Ask the user only for consequential choices repository evidence
+cannot settle.
+
+## Required Decisions
+
+Record the subset that applies to the project:
+
+- purpose, primary users, and system boundary;
+- entry points and public interfaces;
+- module boundaries, allowed dependencies, forbidden dependencies, and data
+  ownership;
+- cross-module and external-system data flow;
+- state ownership, concurrency, error and cancellation behavior;
+- startup, shutdown, health, recovery, and migration behavior;
+- packaging, deployment, compatibility, and rollback boundaries;
+- security, reliability, performance, accessibility, cost, or maintainability
+  constraints that can change the design;
+- project-local checks that can observe those constraints;
+- unresolved risks and the decision that would close each risk.
+
+Do not add model selection, context budgets, subagent placement, worktree
+policy, sandbox settings, general retries, or reviewer routing. Those are host
+execution concerns unless the target project itself has an independently
+documented product requirement for one.
+
+## Artifacts
+
+Update the project's existing canonical architecture documents. When no
+equivalent exists, use these conventional paths:
 
 - `docs/reference/architecture.md`
-- `docs/reference/testing-methodology.md`
-- `docs/reference/project-structure.md`
-- `docs/product/ROADMAP.md`
-- `docs/ux/README.md` when UI is present
-- `docs/ux/frontend-design.md` when UI is present
-- `docs/release/README.md` when packaging or deployment is in scope
+- the project's existing testing methodology, when present;
+- the project's existing structure or architecture document, when present;
+- `docs/product/ROADMAP.md` when delivery order matters
+- `docs/ux/frontend-design.md` when UI design decisions are required
+- `docs/decisions/` only for accepted ADRs
 
-## Decision Ledger
+Do not create empty slots merely to satisfy a filename. Each generated artifact
+must state its authority and link to the document that owns overlapping rules.
 
-Every user answer, delegated choice, repo-inferred default, and architecture or
-frontend design decision that affects later implementation must be recorded in
-the relevant artifact's `## Decision Ledger` table:
+## Decision Ledger And ADRs
 
-| ID | Question/Trigger | Decision | Source | Artifacts Updated | Open Follow-up |
-|----|------------------|----------|--------|-------------------|----------------|
+Consequential decisions use a compact ledger:
 
-`Source` is `user`, `repo`, `default`, or `delegated`. `/design-architecture`
-must carry ledger entries into `docs/reference/architecture.md`,
-`docs/reference/testing-methodology.md`, `docs/product/ROADMAP.md`, and
-`docs/ux/frontend-design.md` when UI is present. ADRs remain reserved for
-hard-to-reverse or surprising tradeoff decisions.
+| ID | Decision | Source | Affected artifacts | Open follow-up |
+| --- | --- | --- | --- | --- |
 
-## Architecture Baseline
+`Source` is `user`, `repo`, `default`, or `delegated`. A default must include
+the evidence that made it safe. Carry applicable IDs into the spec's readable
+Markdown so the origin of a constraint remains inspectable.
 
-Capture:
+Offer an ADR only when a decision is all three of:
 
-- Project purpose and primary users.
-- Backend, frontend, data, integration, and deployment boundaries.
-- Frontend design direction, design-system source, token policy, component
-  taxonomy, UX state coverage, responsive rules, accessibility target, and
-  visual QA strategy when UI is present.
-- Tool-conditional visual readiness lanes for mock/prototype artifacts,
-  Storybook or equivalent component states, Playwright screenshot baselines,
-  visual diff baselines, and screenshot/visual review loops when project-local
-  tooling exists or the plan will add it.
-- Module boundaries and ownership.
-- Data flow and lifecycle.
-- Quality budgets and operational constraints.
-- ADR triggers and existing decisions.
-- Known architecture risks and follow-up questions.
+- hard to reverse;
+- surprising without context;
+- the result of a real tradeoff.
 
-## Testing Methodology
+Create it only after the user accepts the offer. Do not use an ADR as a routine
+meeting note or to duplicate the architecture document.
 
-Document the test strategy by surface:
+## Verification Design
 
-- Unit, integration, API, e2e, UI, smoke, visual, accessibility, security,
-  performance, data, and release checks.
-- Required commands and where they run.
-- Required test data or environment variables.
-- UI adapter selection from the UI Adapter Evidence section of `docs/reference/verification-contract.md`.
-- Frontend design readiness and visual QA selection from
-  `docs/reference/frontend-design-contract.md`.
-- Result from `scripts/frontend-visual-readiness.py --mode detect` when the
-  repository includes that non-installing detector. Use `--frontend-root` for
-  monorepo app roots.
-- Fallback adapter and equivalence rationale when the strongest adapter cannot
-  run in the project.
-
-## Frontend Design
-
-When UI is present, `/design-architecture` invokes the `frontend-design` skill
-after repo evidence is read and before architecture completion. The skill must
-offer 2-3 design directions, record the selected option or delegated choice,
-and produce `docs/ux/frontend-design.md`. The architecture bundle is incomplete
-until this artifact exists or the UI surface has an explicit exemption.
-Full visual automation remains tool-conditional: Storybook or equivalent
-component isolation, Playwright screenshots, visual diff, and mock/prototype
-gates are mandatory only from project-local tooling evidence or explicit
-prerequisite tasks. Playwright e2e-only evidence does not trigger the
-screenshot/visual baseline lane.
-
-## Project Structure
-
-Document:
-
-- Source roots.
-- Test roots.
-- Generated artifacts.
-- Package/build/deploy outputs.
-- Files that agents may modify and no-change boundaries.
-- How new modules, routes, components, or migrations should be placed.
-
-## Roadmap
-
-Record current phase, near-term features, maintenance priorities, deployment
-milestones, and known risks. Specs and maintenance work must update the roadmap
-when scope or ordering changes.
-
-## Web Research
-
-Use web research only for current or framework-specific guidance that local
-repo evidence cannot provide. Cite URLs and the date consulted in the testing
-methodology or architecture note. Local project contracts still win over
-general best practices.
-
-## Architecture Readiness
-
-This section is the canonical contract for deciding whether a spec is ready
-for planning without forcing implementation agents to invent architecture.
-`/spec` produces the spec interface below; `/design-architecture` and pipeline
-audit D7 consume these criteria.
-
-### Required Spec Interface
-
-Every spec produced by `/spec` must contain:
-
-- Architecture Baseline
-- ASR Ledger
-- Option Matrix
-- Lifecycle And Operations
-- Quality Budgets
-- App Experience And Delivery Baseline when the project has an app, API, or
-  executable artifact
-- Decision Log
-- Extracted Requirements
-
-Every requirement section must include an `ASR:` field with existing ASR IDs or
-`none`.
-
-### Spec Architecture Baseline
-
-The Architecture Baseline states the selected approach, existing constraints,
-and boundary map. The boundary map must name modules, public interfaces,
-allowed dependencies, forbidden dependencies, and data ownership when relevant.
-
-The selected approach must be traceable to the Option Matrix.
-
-### Architecture Vocabulary
-
-Use these terms consistently during architecture review:
-
-- **Module:** any unit with an interface and an implementation.
-- **Interface:** everything a caller must know to use a module, including
-  invariants, ordering, errors, and configuration.
-- **Depth:** leverage behind the interface. A deep module hides meaningful
-  behavior behind a small interface; a shallow module mostly passes complexity
-  through to callers.
-- **Adapter:** a concrete implementation selected at a module boundary.
-- **Locality:** how much change, bug fixing, and knowledge stay concentrated in
-  one module.
-- **Deletion test:** if deleting a module only removes pass-through code, it is
-  shallow; if deleting it spreads complexity across callers, it is earning its
-  interface.
-
-### ASR Ledger
-
-Each ASR row must include:
-
-- ASR ID
-- quality attribute
-- measurable target or `none declared`
-- design impact
-- verification command or review check
-
-When a target is `none declared`, the spec must state the risk of having no
-budget. An empty target is not allowed.
-
-ASRs must affect structure, lifecycle, performance, reliability, security,
-compatibility, cost, or operations. Ordinary functional requirements should not
-be promoted to ASRs unless they shape the architecture.
-
-### Option Matrix
-
-The Option Matrix must compare at least two architecture options and mark
-exactly one selected option. Each option must include a tradeoff, not only a
-preference.
-
-Rejected options should explain the load-bearing reason they were rejected.
-
-### Lifecycle And Operations
-
-The Lifecycle And Operations section must cover:
-
-- lifecycle stage
-- startup and shutdown
-- deployment or runtime
-- migration and compatibility
-- observability
-- recovery
-- ownership
-
-Fields may say `none declared` only when the risk is stated.
-
-### Initialization Order
-
-For executable artifacts with 2+ modules that have startup dependencies, the
-spec must declare initialization order. Each entry specifies:
-
-- Module name
-- Prerequisite module (what must be ready first)
-- Readiness signal (e.g., "DB connection pool open", "config loaded")
-
-Omit for single-module projects, stateless libraries, or docs-only artifacts.
-Missing initialization order for executable artifacts with runtime dependencies
-is a FAIL in pipeline audit D7.
-
-### Quality Budgets
-
-The Quality Budgets section must cover:
-
-- performance
-- reliability
-- security
-- cost
-- maintainability
-
-Each budget must be a metric, rule, or `none declared` plus risk. Empty values
-block planning.
-
-#### Budget Verification Commands
-
-Each Quality Budget entry MAY include a `verify_command` field specifying how to
-measure the metric at execution time.
-
-Format:
-
-| Category | Metric | Rule | Verify command |
-|----------|--------|------|----------------|
-| performance | API response p95 < 200ms | hard ceiling | `ab -n 100 -c 10 http://localhost:3000/api/health \| grep 'Percentage.*95%'` |
-| reliability | zero crash in 60s stress | hard floor | `timeout 60 node dist/server.js && echo PASS` |
-| security | no Critical/High SAST | hard floor | `semgrep --config=auto src/ --severity=ERROR --json` |
-| cost | bundle < 500KB | hard ceiling | `du -sb dist/bundle.js \| awk '{print $1}'` |
-| maintainability | cyclomatic < 15 per fn | soft ceiling | `npx complexity-report --format=json src/` |
-
-Rules:
-
-- `verify_command` is optional. If omitted, the budget is documentation-only
-  (no runtime gate).
-- If present, the command must produce parseable output (exit code, numeric
-  value, or JSON).
-- `hard ceiling/floor` budgets are **blocking** (FAIL at the Quality Budget
-  Verification Gate). `soft ceiling/floor` budgets are **advisory** (WARN).
-- The harness executes `verify_command` during the Quality Budget Verification
-  Gate in `/choice-execute` Section 12a (after Final Code Review, before
-  Completion gates).
-
-### App Delivery Readiness
-
-Specs with `app_delivery.surface_kind` other than `docs` or `library` must
-include App Experience And Delivery Baseline. The baseline must identify the
-user-facing surfaces, frontend/backend contracts, package artifact, deployment
-target, QA strategy, release verification, and frontend design readiness
-expected by `docs/reference/app-delivery-contract.md` and
-`docs/reference/frontend-design-contract.md`. Missing baseline details are
-architecture gaps because implementers would have to invent product surface,
-delivery, design structure, or verification policy during coding.
-
-### Carry-Forward To Plan And Review
-
-Plans must carry referenced ASRs into task `ASR:` fields, the Coverage Matrix,
-or Structural Invariants.
-
-Plans must also carry the App Experience And Delivery Baseline into an
-Experience/Delivery Matrix when the baseline exists.
-
-Structural Invariants should be used when the ASR is best enforced as a
-verifiable architecture rule rather than a feature task.
-
-Final code review must cite code, tests, invariant results, or verification
-output that satisfies each referenced ASR. Missing ASR evidence has the same
-blocking effect as missing requirement evidence.
-
-## ADR Policy
-
-Use the ADR policy in `docs/decisions/README.md`.
-
-Write an ADR only when all three conditions are true:
-
-- hard to reverse
-- surprising without context
-- real tradeoff
-
-If the Decision Log says `ADR required: yes`, it must reference ADR files under
-`docs/decisions/`, and those files must exist.
-
-If a hard-to-reverse, surprising, or high-tradeoff decision appears in the spec
-but the Decision Log says `ADR required: no`, architecture review must fail.
-
-## Phase State
-
-`phases/index.json` should include:
+Every automated check is ultimately represented as:
 
 ```json
 {
-  "architecture": {
-    "status": "complete",
-    "artifact": "docs/reference/architecture.md",
-    "completed_at": "<ISO 8601>"
-  }
+  "argv": ["python", "-m", "unittest"],
+  "cwd": ".",
+  "timeout_seconds": 120,
+  "kind": "test"
 }
 ```
 
-If `/design-architecture` changes verification policy after specs or plans
-exist, mark affected later phases as needing review.
+Choose commands from executable repository evidence. `argv` is exact and runs
+without an implicit shell; pipelines, redirections, shell control operators,
+and placeholders are invalid. `cwd` is an existing project-relative directory,
+and the timeout is a positive integer.
+
+For executable behavior, identify a check that crosses the real entry point.
+For an integration or user-visible claim, use an `integration`, `e2e`, or
+`smoke` check with the same observable oracle. If the adapter does not yet
+exist, record adding it as a prerequisite rather than weakening the claim.
+
+## Frontend Readiness
+
+For UI work, follow `frontend-design-contract.md`. Record the chosen design
+artifact and deterministic visual, accessibility, browser, terminal, or native
+window oracle. Use the installed non-mutating detector at:
+
+```text
+python .ezpowers/tools/frontend-visual-readiness.py --mode detect
+```
+
+Tool presence is project-local evidence only; a globally installed executable
+does not silently expand project requirements.
+
+## Readiness To Specify
+
+Proceed to `spec` when:
+
+- no implementation-critical boundary or ownership choice remains open;
+- relevant failure and lifecycle behavior is explicit;
+- every completion claim can be mapped to an observable project check or to a
+  named prerequisite that will create that check;
+- UI implementation will not have to invent visual direction or accessibility
+  policy;
+- accepted decisions are reflected in their canonical artifacts.
+
+Report changed artifacts, decisions and evidence sources, exact verification
+design, and remaining risks. Artifact readiness and deterministic validation
+are the only gates owned by this contract.

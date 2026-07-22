@@ -1,7 +1,7 @@
 {
   "name": "ezpowers",
-  "version": "4.0.3+codex.20260722042521",
-  "description": "Personal Codex workflow plugin: every EZPowers workflow and utility ships as an explicit skill.",
+  "version": "5.0.0+codex.20260722083835",
+  "description": "Project-local specification, planning, deterministic verification, evidence, and resume support for Claude Code and Codex.",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
@@ -12,33 +12,35 @@
   "keywords": [
     "sdd",
     "spec-driven",
+    "deep-interview",
     "design-architecture",
     "spec",
     "prepare-execute",
-    "choice-execute",
-    "skills"
+    "execute",
+    "deterministic-verification",
+    "evidence",
+    "resume"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "EZPowers",
-    "shortDescription": "Spec-driven planning, reviews, and workflow skills for Codex.",
-    "longDescription": "EZPowers exposes all workflows as Codex skills. Workflow skills (ezpowers:setup, ezpowers:design-architecture, ezpowers:spec, ezpowers:prepare-execute, ezpowers:choice-execute, ezpowers:review, ezpowers:sync-docs, ezpowers:hud, and more) are explicit-invocation only ($ezpowers:<name>); independent skills such as ezpowers:diagnose, ezpowers:frontend-design, and ezpowers:verifyself also match implicitly.",
+    "shortDescription": "Project-local specs, plans, verification, evidence, and resume.",
+    "longDescription": "EZPowers keeps project-specific intent, plans, verification commands, completion evidence, and resume state consistent across Claude Code and Codex. Its retained skills are ezpowers:setup, ezpowers:deep-interview, ezpowers:design-architecture, ezpowers:spec, ezpowers:prepare-execute, ezpowers:execute, ezpowers:frontend-design, ezpowers:improve-codebase-architecture, and ezpowers:hud. Native host features remain responsible for coding, subagents, worktrees, sandboxing, and general retry behavior.",
     "developerName": "dlwlgus9125",
     "category": "Productivity",
     "capabilities": [
       "Planning",
-      "Code Review",
-      "Workflow Guidance",
+      "Read",
       "Write"
     ],
     "websiteURL": "https://github.com/dlwlgus9125/EZPowers",
     "privacyPolicyURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/PRIVACY.md",
     "termsOfServiceURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/TERMS.md",
     "defaultPrompt": [
-      "$ezpowers:setup Initialize the harness for this project.",
-      "$ezpowers:hud Configure the global native Codex usage footer.",
-      "$ezpowers:diagnose Investigate this failing workflow.",
-      "$ezpowers:verifyself Check this proposal."
+      "$ezpowers:setup Install the project-local EZPowers workflow and verification kit.",
+      "$ezpowers:deep-interview Clarify this request before specification.",
+      "$ezpowers:execute Run the prepared plan and deterministic project checks.",
+      "$ezpowers:hud Configure the native Codex usage footer."
     ],
     "brandColor": "#2563EB"
   }

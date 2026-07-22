@@ -1,5 +1,0 @@
-interface:
-  display_name: "Maintain"
-  short_description: "Triage and plan maintenance, refactor, or issue-response work"
-policy:
-  allow_implicit_invocation: false

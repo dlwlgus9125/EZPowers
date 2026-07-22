@@ -1,540 +1,193 @@
 # Setup Contract
 
-This reference contains the setup details that do not belong in the `/setup`
-controller prompt. `/setup` owns orchestration; this document owns generated
-artifact shape.
+This contract defines installation of the self-contained v5 project kit.
+`setup` configures deterministic project checks; it does not configure an
+external executor or choose how a host performs implementation.
 
-## Source Contracts
+## Inspect First
 
-- `docs/reference/domain-language.md`
-- `docs/reference/dispatch-protocol.md`
-- `docs/reference/verification-contract.md`
-- `docs/reference/app-delivery-contract.md`
-- `docs/reference/harness-kit-contract.md`
+Read project instructions, manifests, source roots, package scripts, CI files,
+tests, existing specs and plans, and any `.ezpowers/config.json`. Infer checks
+only from executable repository evidence. Ask one question at a time for a
+required command or completion condition that cannot be established from the
+repository.
 
-EZPowers automation owns project state. Harness prompts stay short, with
-explicit stop conditions and fast evidence loops.
+The target path must be the top level of an existing Git worktree. Installation
+checks this before writing files and fails if Git is unavailable, the path is
+not a worktree, or a worktree subdirectory was supplied. This is required
+because completion freshness binds Git HEAD, tracked changes, and untracked
+content.
 
-## Project Detection
+The runtime requires Python 3.10 or newer and only the Python standard library.
+Run `python --version` before invoking it and fail with that explicit
+prerequisite when the selected interpreter is older or unavailable. Python 3.9
+cannot parse the runtime, so this preflight cannot be deferred to the script.
 
-Read the target repo before asking the user:
+An existing `.ezpowers/config.json` is an installed project and must be
+preserved unless the user requests refresh or repair. Legacy `.harness/` and
+`phases/` files are migration inputs only; v5 does not create or use them.
 
-- Manifests: `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, or peers.
-- Source roots: `src/`, `lib/`, `app/`, or framework-specific equivalents.
-- Existing `.harness/config.json`, `phases/index.json`, `AGENTS.md`, `CLAUDE.md`.
-- Existing `CONTEXT.md` at the project root.
-- Existing docs under `docs/`.
-- Domain vocabulary: scan for model/entity names, business terms in source files.
+## Install Or Refresh
 
-Classification:
+For a new project:
 
-- Existing `.harness/config.json`: ask whether to overwrite.
-- Manifest or source root exists: existing project.
-- Neither exists: new project.
-
-Immediately create or update `phases/index.json` with setup `in_progress`
-before creating the remaining files.
-
-## Required User Inputs
-
-Infer first, then ask one question at a time for unknowns:
-
-- Project name and one-line description.
-- Tech stack.
-- Test, build, lint, and smoke commands.
-- Smoke artifact kind and GUI strategy.
-- Preferred `/choice-execute` mode.
-- Executor agent, context window, and budget ratio.
-- Canonical product doc path, if any.
-- Existing architecture docs, if any.
-- ADR usage.
-- UI presence.
-- UI verification capability, adapter, fallback adapter, and oracle when UI is
-  present.
-- Frontend design readiness artifact, token source, component inventory, and
-  visual QA strategy when UI is present.
-- App delivery profile: surface kind, frontend, backend, packaging,
-  deployment, and QA strategy.
-- Architecture profile: lifecycle stage, quality priorities, performance
-  budgets, operational constraints, compatibility policy, ADR requirement.
-- Domain vocabulary confirmation (after detection results are shown).
-
-Default executor values:
-
-```json
-{
-  "agent": "claude-sonnet-4-6",
-  "context_window": 200000,
-  "budget_ratio": 0.40
-}
+```text
+python <plugin-root>/scripts/ezpowers.py install --project-root <project>
 ```
 
-## Directories
+For an installed project upgraded from the current plugin distribution:
 
-Create these directories before writing files:
-
-- `.harness`
-- `phases`
-- `docs/product`
-- `docs/reference`
-- `docs/specs`
-- `docs/plans`
-
-Conditional:
-
-- `docs/decisions` when ADRs are enabled.
-- `docs/ux` when the project has UI.
-- `docs/release` when packaging or deployment is in scope.
-
-## Required Files
-
-Create or update (in the target project, not in the EZPowers plugin repo):
-
-- `.harness/config.json`
-- `AGENTS.md`
-- `phases/index.json`
-- `docs/INDEX.md`
-- `docs/product/PRD.md`
-- `docs/reference/architecture.md`
-- `docs/reference/protocol.md`
-- `docs/reference/schema.md`
-- `docs/reference/config.md`
-- `docs/reference/conventions.md`
-- `docs/reference/project-structure.md`
-- `docs/reference/testing-methodology.md`
-- `docs/product/ROADMAP.md`
-- `docs/specs/.gitkeep`
-- `docs/plans/.gitkeep`
-
-Conditional:
-
-- `docs/decisions/README.md`
-- `docs/ux/README.md`
-- `docs/ux/frontend-design.md`
-- `docs/release/README.md`
-- `CLAUDE.md` only if missing.
-- `CONTEXT.md` when the project has domain-specific terms beyond pure
-  infrastructure.
-
-## CONTEXT.md Shape
-
-Generated as a draft slot at the project root. If `CONTEXT.md` already exists,
-preserve it and offer to merge new terms.
-
-No frontmatter — `CONTEXT.md` is a project artifact like `CLAUDE.md`, not a
-`docs/` reference slot. It is not listed in `docs/INDEX.md`.
-
-Sections:
-
-- **Language** — bold term, one-line definition, _Avoid:_ aliases.
-- **Relationships** — how terms relate (e.g. "An Order contains one or more
-  Line Items").
-- **Flagged Ambiguities** — unresolved terms with resolution status.
-
-Only include terms meaningful to domain experts. Do not couple to
-implementation details. Create lazily — only when the first term is resolved.
-
-## Document Slot Frontmatter
-
-Every generated reference slot uses this frontmatter and a one-line SSOT note:
-
-```yaml
----
-doc_type: reference
-authority: canonical
-status: draft
----
+```text
+python <plugin-root>/scripts/ezpowers.py install --project-root <project> --refresh
 ```
 
-`authority` values are `canonical`, `supporting`, or `derived`. Reflect the
-authority marker in `docs/INDEX.md`.
+For a same-version repair from the installed kit:
 
-## AGENTS.md Shape
+```text
+python .ezpowers/ezpowers.py install --project-root <project> --refresh
+```
 
-`AGENTS.md` must include:
+Add `--enable-hooks claude`, `codex`, or `both` only after the user explicitly
+requests project completion hooks. The default is `none`. Installation never
+installs a plugin, changes a global marketplace, or configures the global HUD.
 
-- Project name and one-line description.
-- Steering paths for specs and plans.
-- Stack summary.
-- Project conventions.
-- No-change boundaries and external contracts.
-- Review skip patterns, empty when none.
+## Installed Surface
 
-## docs/INDEX.md Shape
+The manifest and ledger must make these files locally available:
 
-The index must include sections for:
+```text
+.ezpowers/
+  ezpowers.py
+  config.json
+  state.json
+  ledger.json
+  kit/manifest.json
+  kit/skills/<eight-project-skills>/...
+  contracts/...
+  tools/frontend-visual-readiness.py
+.claude/skills/<eight-project-skills>/...
+.agents/skills/<eight-project-skills>/...
+```
 
-- Product Contract.
-- System Reference.
-- Decisions when ADRs are enabled.
-- UX Spec when the project has UI.
-- Release And Deployment when packaging or deployment is in scope.
-- Specs.
-- Plans.
+The eight project skills are `setup`, `deep-interview`,
+`design-architecture`, `spec`, `prepare-execute`, `execute`,
+`frontend-design`, and `improve-codebase-architecture`. `hud` remains
+plugin-only and global.
 
-Links must be relative to `docs/`.
+Each manifest source and installed target is SHA-256 verified. Canonical skill
+files and both host copies are byte-identical. The ledger records the kit
+version, installation source, timestamp, each managed file hash, and migration
+warnings. Missing sources, unsafe paths, hash drift, or host-copy drift fail
+installation.
 
-## Architecture Reference Slot
+Every install or refresh also validates the complete config schema before
+writing managed files. Installation and other state-writing operations use a
+bounded project-local `.ezpowers/runtime.lock`; concurrent writers fail with a
+clear busy result rather than interleaving state. The lock file is runtime
+state and is excluded internally from workspace fingerprints. The installer
+does not edit the target project's `.gitignore`; a project may add the exact
+`.ezpowers/runtime.lock` path to its ignore file if it wants Git to hide it.
 
-`docs/reference/architecture.md` includes:
+## Managed File Ownership
 
-- System Context.
-- Module Boundaries.
-- Data Flow.
-- Lifecycle And Operations.
-- Quality Budgets.
-- Architecture Debt.
-- Decision Log.
+Installation may create a missing managed file or replace a file whose bytes
+still match its previous ledger hash. A user-modified managed file is a
+conflict: preserve it, report the path, and exit non-zero. Do not synthesize a
+missing skill, contract, runtime, or tool from prompt text.
 
-Use collected architecture profile values. Do not leave blanks for values that
-can be inferred or asked.
-
-`architecture.lifecycle_stage` defaults to `"undecided"`, not MVP. `/setup`
-may infer the lifecycle from repo evidence or explicit user input, but it must
-not silently shrink scope to MVP. If the value remains `"undecided"`, route to
-`/design-architecture` to confirm it before architecture completion.
+Unknown fields in user-owned configuration are preserved. Refresh is repair,
+not authority to overwrite a customized managed file.
 
 ## Config Schema
 
-`.harness/config.json` must preserve these top-level blocks:
+`.ezpowers/config.json` schema version 1 is intentionally small:
 
 ```json
 {
-  "project": "my-project",
-  "stack": ["example"],
-  "test": { "command": "", "strategy": "" },
-  "build": { "command": "", "typecheck_command": "" },
-  "lint": { "command": "" },
-  "security": { "sast_command": "", "dependency_audit_command": "" },
-  "quality": { "duplication_command": "", "mutation_command": "" },
-  "smoke": {
-    "required": true,
-    "artifact_kind": "cli",
-    "command": "",
-    "description": "",
-    "gui_strategy": "skip",
-    "startup_timeout_seconds": 15,
-    "survival_seconds": 8,
-    "stderr_fail_regex": "Unhandled exception|Fatal|Traceback|panic|XamlLoadException|segmentation fault",
-    "window_title_regex": "",
-    "expected_automation_name_regex": "",
-    "expected_text_regex": "",
-    "screenshot_path": ".harness/artifacts/gui-smoke.png",
-    "min_pixel_variance": 12.0
-  },
-  "app_delivery": {
-    "surface_kind": "web",
-    "frontend": {
-      "present": true,
-      "framework": "",
-      "routes": "",
-      "design_system": "",
-      "view_extensions": [],
-      "viewport_matrix": ["mobile", "desktop"],
-      "accessibility_baseline": "keyboard navigation and semantic labels",
-      "design_readiness_required": true,
-      "design_artifact": "docs/ux/frontend-design.md",
-      "token_source": "",
-      "component_inventory": "",
-      "visual_qa": "",
-      "mock_prototype_artifacts": "",
-      "visual_baseline": ""
-    },
-    "backend": {
-      "present": false,
-      "api_style": "",
-      "auth_session": "",
-      "persistence": "",
-      "background_jobs": "",
-      "external_services": []
-    },
-    "packaging": {
-      "artifact": "static_site",
-      "build_output": "",
-      "installer_or_image": ""
-    },
-    "deployment": {
-      "target": "local",
-      "provider": "",
-      "preview_default": true,
-      "required_env": [],
-      "rollback": "revert commit or redeploy previous artifact"
-    },
-    "qa": {
-      "browser_or_e2e": "",
-      "visual_regression": "",
-      "release_checklist": []
+  "schema_version": 1,
+  "project_name": "example",
+  "checks": {
+    "unit": {
+      "argv": ["python", "-m", "unittest"],
+      "cwd": ".",
+      "timeout_seconds": 120,
+      "kind": "test"
     }
   },
-  "ui_verification": {
-    "required": true,
-    "capability": "browser-e2e",
-    "adapter": "",
-    "command": "",
-    "oracle": "",
-    "fallback_adapter": "",
-    "evidence": []
-  },
-  "server": {
-    "start_command": "",
-    "stop_command": "",
-    "health_check_url": "",
-    "health_check_timeout": 15
-  },
-  "architecture": {
-    "lifecycle_stage": "undecided",
-    "quality_priorities": ["maintainability", "reliability", "performance"],
-    "performance_budgets": "none declared",
-    "operational_constraints": "local development only",
-    "compatibility_policy": "breaking changes allowed before production",
-    "adr_required": false
-  },
-  "executor": {
-    "agent": "claude-sonnet-4-6",
-    "context_window": 200000,
-    "budget_ratio": 0.40,
-    "backend": "claude-code",
-    "reviewer_backend": "claude-code",
-    "reviewer_model": "",
-    "codex_reviewer_model": "",
-    "model_routing": {
-      "enabled": false,
-      "default_profile": "balanced",
-      "fail_on_unresolved": false,
-      "availability_cache": ".harness/model-availability.json",
-      "profiles": {}
-    }
-  },
-  "harness": { "root": "" },
-  "defaults": {
-    "spec_location": "docs/specs/",
-    "plan_location": "docs/plans/",
-    "max_retries": 3,
-    "timeout": 1800,
-    "auto_push": false,
-    "prompt_logging": false,
-    "verifier": "off",
-    "verifier_max_rounds": 1
-  },
-  "wiring": {
-    "enabled": true,
-    "exempt_reason": "",
-    "view_extensions": [],
-    "view_test_command": "",
-    "wiring_gate_command": ""
-  }
+  "required_checks": ["unit"]
 }
 ```
 
-## App Delivery Profile
+Check IDs are 1-64 characters, start with a letter, and contain only letters,
+digits, `.`, `_`, or `-`. `argv` is a non-empty string array executed without
+an implicit shell. `cwd` is an existing project-relative directory with no
+traversal. `timeout_seconds` is an integer from 1 through 86400. `kind` is one
+of `build`, `custom`, `e2e`, `integration`, `lint`, `security`, `smoke`,
+`static`, `test`, `typecheck`, or `visual`. Placeholder/no-op commands,
+explicit shell pipelines, redirections, control operators, PowerShell encoded
+or opaque command forms, and `cmd /K` are invalid. A literal operator-looking
+argument passed to an ordinary direct executable is not treated as a shell
+pipeline.
 
-Follow `docs/reference/app-delivery-contract.md` when populating
-`app_delivery`. Infer values from manifests, source roots, framework files,
-routes, CI/deploy files, package scripts, and existing docs before asking.
-Present inferred frontend view extensions, deployment target, and packaging
-artifact to the user for confirmation when they affect verification.
+Every `required_checks` entry must name a check in `checks`. Required checks
+run in addition to every plan task check during `verify --all`.
 
-## Frontend Design Readiness
+## State Initialization
 
-Follow `docs/reference/frontend-design-contract.md` when UI is present. Setup
-creates the `docs/ux/frontend-design.md` slot and records readiness fields in
-config, but it must not synthesize the design brief. `/design-architecture`
-owns invoking `frontend-design` and filling the artifact after repo evidence
-and user direction are known.
+`.ezpowers/state.json` starts with schema version 1, no active plan, no all- or
+task-scope evidence pointers, and no certificate pointer. State is a resume
+index, not completion evidence; every pointer is revalidated against the
+evidence files, exact scope/inventory, installed kit, and current workspace.
+Malformed pointer containers fail closed. Plan validation is read-only unless
+the caller supplies `--activate`; that explicit transition changes the resume
+target and invalidates pointers only when the selected plan changes.
 
-## Smoke Rules
+## Legacy Migration
 
-Executable artifacts (`cli`, `server`, `desktop`) require `smoke.required:
-true` and a non-empty `smoke.command`.
+When no v5 config exists, setup may translate safe legacy command strings into
+argv checks. Preserve the legacy files. Ignore and report fields for external
+`harness.root`, executor/model routing, context budgets, retry/verifier policy,
+reviewers, phase state, and HUD. A legacy command requiring pipelines,
+redirection, or other shell parsing is reported and not migrated.
 
-Only `docs` and `library` may set `smoke.required: false`.
+## Optional Hook Adapters
 
-`smoke.command` must launch or probe the real artifact entry point. It must not
-be the same command as build, typecheck, lint, or test verification.
-
-GUI strategy defaults:
-
-- Avalonia, WPF, WinForms, Qt, GTK: `process_probe`.
-- Electron, Tauri: `headless`.
-- Console/server: `skip`, but still require a non-empty smoke command.
-- Docs/library: `skip` only when runtime smoke is explicitly not required.
-
-Desktop smoke output must write `desktop_evidence` to `runtime-probe.json` or
-`smoke-output.json`: window found or a nonzero window handle, screenshot path,
-pixel variance, and UI text, automation name, or API observation. Desktop
-features that use a configured server or API must include API observation.
-
-Client surfaces (`web`, `mobile`, `desktop`, or GUI) that use a configured
-server/API must write `client_server_evidence.api_observation` to
-`runtime-probe.json` or `smoke-output.json`. For desktop clients,
-`desktop_evidence.api_observation` is accepted for backward compatibility.
-
-Fail setup/doctor validation if the smoke command is the same as the build or
-test command.
-
-## Wiring Rules
-
-Projects with UI presence require `wiring.enabled: true` and a non-empty
-`wiring.view_extensions` array. Auto-detect view extensions from the tech
-stack. `wiring.view_test_command` and `wiring.wiring_gate_command` may be
-empty at setup time — per-task and per-plan commands serve as fallbacks.
-
-Validation rules for wiring config are defined in
-`docs/reference/verification-contract.md` § Wiring Config Validation.
-Auto-fill `wiring.exempt_reason` for docs/library artifacts
-(e.g., `"pure library, no UI components"`).
-
-Stack auto-detection defaults:
-
-| Stack | view_extensions |
-|-------|----------------|
-| React, Next.js | `[".tsx", ".jsx"]` |
-| Vue, Nuxt | `[".vue"]` |
-| Angular | `[".component.ts", ".component.html"]` |
-| Svelte, SvelteKit | `[".svelte"]` |
-| WPF, Avalonia | `[".xaml"]` |
-| WinForms | `[".cs"]` (form classes) |
-| Qt | `[".qml", ".ui"]` |
-| GTK | `[".glade", ".ui"]` |
-| Electron, Tauri | `[".tsx", ".jsx", ".html"]` |
-| Flutter | `[".dart"]` |
-| SwiftUI | `[".swift"]` |
-
-After auto-detection, present the inferred `view_extensions` to the user for
-confirmation. If the user declares no UI presence, require an `exempt_reason`.
-
-## Local Harness Kit
-
-Install the versioned local kit from `harness-kit/v2.0.0/manifest.json` into
-`.harness/ezpowers/`. Setup must copy bundled files only, compute SHA-256 before
-and after install, and write `.harness/ezpowers/ledger.json`. The same manifest
-must also install the approved deterministic helper scripts into the target
-project `scripts/` directory so `/choice-execute` can run mechanical gates.
-
-Do not synthesize `SKILL.md` or contract bodies during setup. Missing bundled
-files are setup failures, not prompts to improvise replacements.
-
-## UI Verification
-
-Populate `ui_verification` from the UI Adapter Evidence section of
-`docs/reference/verification-contract.md`. UI projects require a selected
-capability and an adapter plan. If no adapter can run yet, setup may
-leave `command` empty only when `/prepare-execute` will add a prerequisite
-adapter-install task before feature work.
-
-## Phase Index
-
-Final setup state:
-
-```json
-{
-  "current_phase": "setup",
-  "phases": {
-    "setup": { "status": "complete", "completed_at": "2026-05-13T00:00:00Z" },
-    "architecture": { "status": "pending", "artifact": null },
-    "spec": { "status": "pending", "artifact": null },
-    "plan": { "status": "pending", "artifact": null },
-    "build": { "status": "pending", "artifact": null }
-  }
-}
-```
-
-Status values are `pending`, `in_progress`, `complete`, and `failed`.
-Completed phases require `completed_at`. Phases that produce artifacts require
-`artifact`.
-
-On backward transition, set the target phase to `in_progress`, reset later
-phases to `pending`, and preserve existing artifacts for reference.
-
-## Completion Report
-
-Report:
-
-- Created or updated files.
-- Config values inferred from repo evidence.
-- Config values supplied by the user.
-- App delivery profile values and unresolved deployment or packaging inputs.
-- Frontend design readiness artifact path, token source, component inventory,
-  visual QA strategy, and unresolved design inputs.
-- Local kit version and hash ledger path.
-- UI verification capability, selected adapter, fallback adapter, and unresolved
-  adapter setup task if any.
-- Remaining human-authored docs.
-- Smoke command and GUI strategy.
-- Statusline HUD decision: `installed`, `declined`, or `existing statusline
-  preserved` (see § Statusline HUD).
-- Next command: `/design-architecture`.
-
-## Gate Script Permissions
-
-With user approval, `/setup` appends allow rules to the target project's
-`.claude/settings.json` `permissions.allow` so harness gates run without
-per-call prompts across turns (skill-level `allowed-tools` grants clear each
-turn, but the execution loop spans many turns):
-
-```json
-[
-  "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File scripts/lightpath-gate.ps1 *)",
-  "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-resume-proof.ps1 *)",
-  "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-certify.ps1 *)",
-  "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-gate.ps1 *)",
-  "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-run.ps1 *)",
-  "Bash(python scripts/verify-step.py *)",
-  "Bash(python scripts/context-injector.py *)"
-]
-```
-
-Before writing, confirm the matcher strings against how the current session
-actually invokes the scripts (a session may route through the PowerShell tool
-rather than Bash; adjust the tool prefix to match). Never write without the
-user's explicit yes; record the decision in the setup summary.
-
-## Statusline HUD
-
-The kit bundles `.harness/ezpowers/statusline.py`, a stdlib-only script that
-renders the Claude Code CLI footer: local time, 5-hour and weekly rate-limit
-usage with reset countdowns, and context usage. Example output:
+With explicit opt-in, merge one owned Stop command into
+`.claude/settings.json` and/or `.codex/hooks.json`. Resolve and safely quote
+the current Python executable and the installed runtime as absolute paths so a
+host session started below the project root still reaches the same runtime:
 
 ```text
-14:32 | 5h:12%(2h10m) wk:26%(2d5h) | ctx:34%
+<absolute-python> <absolute-project>/.ezpowers/ezpowers.py hook --host claude
+<absolute-python> <absolute-project>/.ezpowers/ezpowers.py hook --host codex
 ```
 
-Usage segments carry ANSI threshold colors (green below 70%, yellow from 70%,
-red from 90%); the time and the parse-failure fallback line are uncolored.
+The host configuration shapes are intentionally different. Claude stores the
+absolute Python executable in `command` and the remaining tokens in `args`, so
+no shell quoting is needed. Codex stores a POSIX-safe `command` plus a Windows
+`commandWindows` string because its hook schema does not expose a separate
+argument array. Both invoke the same installed runtime and emit the same Stop
+payload: `{}` when stopping is allowed, or
+`{"decision":"block","reason":"..."}` when it is not.
 
-This is a terminal HUD, not the "status line" defined in
-`docs/reference/domain-language.md` (the first line of an agent report).
+Preserve unrelated settings and hooks. A conflicting non-object hook structure
+is an installation conflict. Codex project hooks require a trusted project and
+review of a new or changed command hook through `/hooks`; report that required
+host step rather than claiming the hook is active immediately.
 
-After kit install, offer to register it in the target project's
-`.claude/settings.json` (merge into the existing file; preserve every other
-key):
+## Verification And Report
 
-```json
-{
-  "statusLine": {
-    "type": "command",
-    "command": "python .harness/ezpowers/statusline.py"
-  }
-}
+Run the installed runtime:
+
+```text
+python .ezpowers/ezpowers.py status --json
+python .ezpowers/ezpowers.py validate --spec <spec-path>
+python .ezpowers/ezpowers.py validate --plan <plan-path>
 ```
 
-Rules:
-
-- Ownership marker: a `statusLine.command` containing the substring
-  `ezpowers/statusline.py` is EZPowers-owned. EZPowers-owned entries may be
-  repaired or rewritten inside the approval gate without a conflict prompt.
-- Conflict: a project-level `statusLine` without the marker belongs to the
-  user or another tool. Show its current command and ask replace-or-skip. A
-  user-level `statusLine` (for example a global HUD) is not modified, but tell
-  the user a project-level entry overrides it inside this project before they
-  answer.
-- Never write without the user's explicit yes; record the decision
-  (`installed`, `declined`, or `existing statusline preserved`) in the setup
-  summary.
-- Sessions authenticated with an API key receive no `rate_limits` payload; the
-  HUD then degrades to time + ctx. This is expected, not a failure.
-- Post-write smoke: from the project root, pipe `{}` into the configured
-  command and confirm a `HH:MM` line on stdout with exit code 0. The relative
-  command assumes Claude Code launches at the project root; if the project is
-  routinely opened from subdirectories, write the absolute forward-slash form
-  (`python C:/path/to/project/.harness/ezpowers/statusline.py`) instead.
+Run only the validation commands whose artifacts already exist. Report managed
+and preserved files, configured checks and required checks, ledger path,
+migration warnings, hook choice and trust follow-up, conflicts, and unresolved
+project completion criteria. The next step is `deep-interview` only when a
+material decision remains ambiguous; otherwise use `design-architecture` or
+`spec`.

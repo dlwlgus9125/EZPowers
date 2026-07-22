@@ -1,15 +1,27 @@
 # EZPowers Roadmap
 
-## Current
+## Current: v5.0.0
 
-- v4.0.0 slim-core reorganization (in progress on `slim-core-4.0.0`): retired
-  the doc-eval and trace infrastructure and the 3-line diff rule, consolidated
-  27 contracts to 21, and replaced the never-activated commit gate with a
-  structural `scripts/check-repo.ps1` gate wired through `core.hooksPath`.
-- v2 skill chain: `/setup -> /design-architecture -> /spec -> /prepare-execute -> /choice-execute`.
-- Verified local kit installation for setup/reset.
-- Capability-based UI verification adapter policy.
+- Merge clarification and “grill me” stress-testing under `deep-interview`.
+- Keep `spec` narrow: settled decisions become acceptance criteria.
+- Replace `choice-execute` and all external/phase execution machinery with one
+  host-native `execute` flow.
+- Install complete project-local skills, contracts, runtime, and frontend tool
+  for both hosts from a hash manifest.
+- Bind verification evidence to real command output, spec/plan/config hashes,
+  installed-kit identity, and Git workspace state; certify only fresh
+  all-scope results.
+- Keep candidate validation read-only, make execution activation explicit, and
+  expose revalidated task evidence without promoting it to completion.
+- Keep Codex HUD global and opt-in, separate from project setup.
 
-## Next
+## Later, only with demonstrated demand
 
-- Expand project-local kit contents once hash-ledger installation is stable.
+- Real visual-baseline generation and visual-diff execution behind the current
+  frontend readiness detector.
+- Additional host adapters when their official APIs provide a measurable user
+  benefit that the shared verdict alone cannot deliver.
+
+Model routing, reviewer fleets, generic retries, custom task graphs, phase
+conversion, and an external executor are not roadmap items; supported hosts
+already own those execution concerns.

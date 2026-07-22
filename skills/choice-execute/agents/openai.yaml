@@ -1,5 +1,0 @@
-interface:
-  display_name: "Choice Execute"
-  short_description: "Select and run execution path for plan tasks"
-policy:
-  allow_implicit_invocation: false

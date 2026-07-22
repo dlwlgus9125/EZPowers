@@ -67,5 +67,5 @@ verification concentrate at one place rather than spreading across callers.
   **interface**.
 
 EZPowers uses the same terms in `docs/reference/design-architecture-contract.md`
-and `docs/reference/domain-language.md` for workflow-level architecture. This
+and the target project's `CONTEXT.md` for domain language. This
 reference goes deeper for codebase-level architecture review.

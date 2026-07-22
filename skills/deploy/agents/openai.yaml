@@ -1,5 +1,0 @@
-interface:
-  display_name: "Deploy"
-  short_description: "Prepare and verify package, release, and deployment work"
-policy:
-  allow_implicit_invocation: false

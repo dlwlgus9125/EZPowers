@@ -1,5 +1,6 @@
 interface:
   display_name: "Setup"
-  short_description: "Initialize project harness with config and steering docs"
+  short_description: "Install project-local workflow and verification config"
+  default_prompt: "Use $setup to install or refresh EZPowers for this project."
 policy:
   allow_implicit_invocation: false

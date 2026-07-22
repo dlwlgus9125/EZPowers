@@ -1,0 +1,6 @@
+interface:
+  display_name: "Execute"
+  short_description: "Implement a plan and produce local completion evidence"
+  default_prompt: "Use $execute to implement this validated plan and certify its result."
+policy:
+  allow_implicit_invocation: false

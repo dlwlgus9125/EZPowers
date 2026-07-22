@@ -1,6 +1,6 @@
 ---
 name: improve-codebase-architecture
-description: Find deepening opportunities in a codebase using Module/Interface/Depth/Seam vocabulary. Use when user wants to improve architecture, find refactoring opportunities, consolidate modules, make code more testable or AI-navigable, or run an architecture review. Not for workflow/harness architecture (use the internal pipeline audit).
+description: Find deepening opportunities in product code using Module/Interface/Depth/Seam vocabulary. Use when the user wants refactoring candidates, clearer module boundaries, or more testable and navigable code. Not for auditing workflow or harness product architecture.
 context: fork
 ---
 
@@ -37,8 +37,9 @@ names. Check ADRs in `docs/decisions/` to avoid re-litigating settled decisions.
 
 Read the project's domain glossary and any ADRs in the area you are touching.
 
-Then use the Agent tool with `subagent_type=Explore` to walk the codebase
-organically. Note where you experience friction:
+Then inspect the codebase with the active host's native search and, when useful,
+its native subagent support. Do not assume the two hosts expose the same agent
+interface. Note where you experience friction:
 
 - Where does understanding one concept require bouncing between many small modules?
 - Where are modules **shallow** -- interface nearly as complex as the implementation?
@@ -81,3 +82,7 @@ Side effects happen inline as decisions crystallise:
 - **Want to explore alternative interfaces?** See [references/interface-design.md](references/interface-design.md).
 
 Deeper tactics: [references/architecture-language.md](references/architecture-language.md), [references/deepening.md](references/deepening.md).
+
+Do not use this skill as an EZPowers workflow-harness audit method. A harness
+product audit must trace installed files, callers, runtime evidence, and host
+capability overlap directly.

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Deep Interview"
+  short_description: "Clarify or stress-test consequential product decisions"
+  default_prompt: "Use $deep-interview to clarify this request or stress-test the attached design."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "version": "5.0.0",
+  "no_synthesis": true,
+  "runtime": {
+    "source": "scripts/ezpowers.py",
+    "target": ".ezpowers/ezpowers.py",
+    "sha256": "ed17eeba2234225cfbe3fca13c19b654f67d625e26eccf908137ea95d8c484f4"
+  },
+  "tools": [
+    {
+      "source": "scripts/frontend-visual-readiness.py",
+      "target": ".ezpowers/tools/frontend-visual-readiness.py",
+      "sha256": "a8c65cca139d1050ac39e210103cbd79e7d6963b4a3ba52ae421456c5590cdbd"
+    }
+  ],
+  "skills": [
+    {
+      "name": "setup",
+      "files": [
+        {
+          "source": "skills/setup/SKILL.md",
+          "path": "SKILL.md",
+          "sha256": "f2a9cd57ba9fdaaa752fefae24fe96b608d3f1e24fec1565624cdff9ef18c29f"
+        },
+        {
+          "source": "skills/setup/agents/openai.yaml",
+          "path": "agents/openai.yaml",
+          "sha256": "af1ca3053ce8e636ed7b6c20ca2f95bb5e8577a72f9d87d5a01c7ae2626726e7"
+        }
+      ]
+    },
+    {
+      "name": "deep-interview",
+      "files": [
+        {
+          "source": "skills/deep-interview/SKILL.md",
+          "path": "SKILL.md",
+          "sha256": "8386b4343bd42a515c233e813a4bce90b6de48c7a7ea2bd10a63f5eabf1693a1"
+        },
+        {
+          "source": "skills/deep-interview/agents/openai.yaml",
+          "path": "agents/openai.yaml",
+          "sha256": "c6e15872db38681366cc0d8626326e9a189d259cf9d52fb4bf85cd43b5fefcd0"
+        },
+        {
+          "source": "skills/deep-interview/references/context-format.md",
+          "path": "references/context-format.md",
+          "sha256": "15e42c9e04f96373bcf698fbbc8b962d6b779567c4f6b69941ad5863c4e2533c"
+        }
+      ]
+    },
+    {
+      "name": "design-architecture",
+      "files": [
+        {
+          "source": "skills/design-architecture/SKILL.md",
+          "path": "SKILL.md",
+          "sha256": "78e5f5bc28a9badc02bce8905104a0745378eb17b69d5020a262da0726319813"
+        },
+        {
+          "source": "skills/design-architecture/agents/openai.yaml",
+          "path": "agents/openai.yaml",
+          "sha256": "1a93bce088617dd3f4a5b195b62b5b3076b13f52b0353f738244d0f7bcd7a22d"
+        }
+      ]
+    },
+    {
+      "name": "spec",
+      "files": [
+        {
+          "source": "skills/spec/SKILL.md",
+          "path": "SKILL.md",
+          "sha256": "3110ddb505e0b712baabc09fa603952665ea6bf37fa6c10e4d8da125df2710fe"
+        },
+        {
+          "source": "skills/spec/agents/openai.yaml",
+          "path": "agents/openai.yaml",
+          "sha256": "a796aa010eb7a4786cd4bc8ae4261be836ac259c7ad7c44fb0104b4ba6bb7228"
+        }
+      ]
+    },
+    {
+      "name": "prepare-execute",
+      "files": [
+        {
+          "source": "skills/prepare-execute/SKILL.md",
+          "path": "SKILL.md",
+          "sha256": "059b3ca14b4c3a85690f2cca566793dce9d87afe4e442bece0ba6b1ee095f144"
+        },
+        {
+          "source": "skills/prepare-execute/agents/openai.yaml",
+          "path": "agents/openai.yaml",
+          "sha256": "9a8187c64c1f7b4282973a6dbf52037282b691f6061efa7bb759dc973e9e7c64"
+        }
+      ]
+    },
+    {
+      "name": "execute",
+      "files": [
+        {
+          "source": "skills/execute/SKILL.md",
+          "path": "SKILL.md",
+          "sha256": "8fd985909f8296014a74655ec96709d1b1b58756355f07f6067342519ecc4e72"
+        },
+        {
+          "source": "skills/execute/agents/openai.yaml",
+          "path": "agents/openai.yaml",
+          "sha256": "bfe33f450b6330c8591b793f3ae5f19fcf904f76fc2386b2e2a61ecea1f865a4"
+        }
+      ]
+    },
+    {
+      "name": "frontend-design",
+      "files": [
+        {
+          "source": "skills/frontend-design/SKILL.md",
+          "path": "SKILL.md",
+          "sha256": "0b03dcf462c711f5eef94b5ee197d1bcbe999f1da3c5746410cb147f444b7c00"
+        },
+        {
+          "source": "skills/frontend-design/agents/openai.yaml",
+          "path": "agents/openai.yaml",
+          "sha256": "428bf31530fe23c001f05fe00301475ce89d834559b6e053e51b99e81c31b49d"
+        }
+      ]
+    },
+    {
+      "name": "improve-codebase-architecture",
+      "files": [
+        {
+          "source": "skills/improve-codebase-architecture/SKILL.md",
+          "path": "SKILL.md",
+          "sha256": "8dda6e73e80a4b9092a427a5f2f64d11bf0c781217069acd6c99ad347367d694"
+        },
+        {
+          "source": "skills/improve-codebase-architecture/agents/openai.yaml",
+          "path": "agents/openai.yaml",
+          "sha256": "a0f05d949397268b2c0afa8c7c16bc0cbf68452fb3810a578c31840f6c809f6c"
+        },
+        {
+          "source": "skills/improve-codebase-architecture/references/architecture-language.md",
+          "path": "references/architecture-language.md",
+          "sha256": "d6d6e8f397ecf5ccabd9ec2e84d0ce88ba582474dbeb9e7b9abfd004326bde6e"
+        },
+        {
+          "source": "skills/improve-codebase-architecture/references/deepening.md",
+          "path": "references/deepening.md",
+          "sha256": "ed8d2f018451af7adab32ba15d7bda7d63aa07afb6ab2caee391a2190461a848"
+        },
+        {
+          "source": "skills/improve-codebase-architecture/references/interface-design.md",
+          "path": "references/interface-design.md",
+          "sha256": "1cf3fee8ec3f4accd482e17b682db39f68c49b3ca50f20f33dbe9fbe114bc21e"
+        }
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "source": "docs/reference/setup-contract.md",
+      "target": ".ezpowers/contracts/setup-contract.md",
+      "sha256": "36729a8591aed3d2134ff11608ee8bc56e91e7a093731533c052b12f273d8f36"
+    },
+    {
+      "source": "docs/reference/design-architecture-contract.md",
+      "target": ".ezpowers/contracts/design-architecture-contract.md",
+      "sha256": "bb62e0340e5354040056db9d652f3aed26274a457e4d80872e0c7bfe03a267a9"
+    },
+    {
+      "source": "docs/reference/frontend-design-contract.md",
+      "target": ".ezpowers/contracts/frontend-design-contract.md",
+      "sha256": "8519b8be7bbfd3aea7834d11c005d0cc767873044788b6588384b0a69eb292ce"
+    },
+    {
+      "source": "docs/reference/spec-contract.md",
+      "target": ".ezpowers/contracts/spec-contract.md",
+      "sha256": "88f56b67e6bb9f1e718886e0e3f5233c825cc4ca70afabe959a063aad3018dc0"
+    },
+    {
+      "source": "docs/reference/plan-contract.md",
+      "target": ".ezpowers/contracts/plan-contract.md",
+      "sha256": "d67dad6b44e43a778c0255c41c8e70f743b1c456fb03acfbb739f403aa2e8e11"
+    },
+    {
+      "source": "docs/reference/verification-contract.md",
+      "target": ".ezpowers/contracts/verification-contract.md",
+      "sha256": "3abd9285f2e1a88e4dad1dcfd1050424e52614a1f606bdd7a1f33d57ab7be857"
+    }
+  ]
+}

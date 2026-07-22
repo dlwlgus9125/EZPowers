@@ -1,22 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
-# EZPowers structural commit gate. Fast, mechanical checks only; see
-# scripts/check-repo.ps1 for the full check list. Pass the staged file set so the
-# gate can scope its conditional kit/test checks.
-staged_files="$(git diff --cached --name-only | tr '\n' ',')"
-
-run_gate() {
-  if command -v pwsh >/dev/null 2>&1; then
-    pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1 -ChangedFiles "$staged_files"
-  elif command -v powershell.exe >/dev/null 2>&1; then
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1 -ChangedFiles "$staged_files"
-  elif command -v powershell >/dev/null 2>&1; then
-    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1 -ChangedFiles "$staged_files"
-  else
-    echo "PowerShell not found; cannot run scripts/check-repo.ps1" >&2
-    exit 1
-  fi
-}
-
-run_gate
+if [ -n "${EZP_PYTHON:-}" ]; then
+  "$EZP_PYTHON" scripts/check_repo.py
+elif command -v python >/dev/null 2>&1; then
+  python scripts/check_repo.py
+elif command -v python3 >/dev/null 2>&1; then
+  python3 scripts/check_repo.py
+else
+  echo "EZPowers gate requires Python 3 (set EZP_PYTHON to its executable)." >&2
+  exit 127
+fi

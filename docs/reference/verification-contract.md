@@ -1,717 +1,242 @@
 # Verification Contract
 
-This document is the canonical contract for EZPowers acceptance criteria,
-Verify commands, runtime probes, integration evidence, and wiring gates.
-Commands and agents may add local procedure details, but must not weaken this
-contract.
+This is the canonical completion contract for the v5 project-local runtime.
+Host instructions, reports, tests, and hooks may explain it but must not weaken
+or independently reinterpret it.
 
-## Acceptance Criteria Interface
+## Authority Boundary
 
-Every behavior-bearing requirement must expose an acceptance criterion with:
+Claude Code or Codex implements and reviews the plan with native capabilities.
+EZPowers decides only whether the declared project checks produced fresh,
+untampered evidence for the current workspace.
 
-- `Given`: observable precondition or state before the action.
-- `When`: user or system action, not an implementation call.
-- `Then`: concrete observable result.
-- `Verify`: automated command where exit 0 means pass.
-- `Verify-type`: one of `pure`, `cli`, `lib`, `api`, `e2e`, or `data`.
+The runtime is `.ezpowers/ezpowers.py`. No external execution service or second
+orchestration state machine participates in the completion path.
+Python 3.10 or newer is required; the runtime otherwise uses only the standard
+library.
 
-For `pure` criteria, `Input`, `Transform`, and `Output` may replace
-Given/When/Then when the behavior has no side effects.
+The project root must be the Git worktree root. `setup` checks this before
+installation; verification does not fall back to an unversioned filesystem
+snapshot because that would change freshness semantics across projects.
 
-Given/When/Then text must describe observable behavior and must not depend on
-function names, class names, internal variables, or private file structure.
+## Validation
 
-## Verify-Type Evidence
-
-| Verify-type | Required evidence |
-| --- | --- |
-| `pure` | Deterministic transform assertion with no external side effects. |
-| `cli` | CLI invocation or script command that checks stdout, stderr, exit code, generated file, or other observable CLI result. |
-| `lib` | Consumer-level script or test that imports the public entry point and asserts behavior. |
-| `api` | HTTP, RPC, or similar request against the configured server plus a response/status assertion. |
-| `e2e` | User-facing or entry-path probe that observes the Then clause, not only process survival. |
-| `data` | Query, migration check, schema check, or file/data assertion against the persisted result. |
-
-## UI Adapter Evidence
-
-UI-facing criteria must use the configured `ui_verification` adapter from
-`.harness/config.json` or an approved equivalent from the UI Verification
-Adapter section below. The adapter must assert
-the same user-observable Then clause: visible state, route, interaction,
-accessibility, screenshot, terminal screen, or native window behavior as
-appropriate.
-
-If Playwright cannot run in the project, `/design-architecture` chooses another
-capability-equivalent adapter. `/prepare-execute` must add an adapter-install
-or adapter-build task before feature work when no runnable adapter exists.
-
-Broad suite commands are allowed only when they include a feature-specific
-assertion or filter. A command such as `pytest`, `npm test`, or `cargo test`
-without a feature-specific oracle is weak evidence and should be reported as a
-warning by planning or audit.
-
-### SAST Evidence Layer
-
-SAST (Static Application Security Testing) runs as a **mandatory per-task gate** for executable artifacts, independent of Verify-type evidence.
-
-| Aspect | Requirement |
-|--------|------------|
-| Scope | Changed files only (not full codebase scan) |
-| Timing | After implementer completes, before AC Verification |
-| Severity handling | Critical/High = FAIL (block), Medium/Low = WARN (advisory) |
-| Config | `config.security.sast_command` — project-specific SAST tool |
-| Fallback | If no SAST command configured for executable artifact: WARN (not FAIL) |
-| Evidence | SAST tool output (JSON preferred) recorded in task status |
-
-**Relationship to Security Reviewer:** SAST gate catches pattern-based vulnerabilities (SQL injection, command injection, XSS, path traversal) that LLM review may miss. Security Reviewer catches logic-level security issues (broken auth, privilege escalation, insecure design) that SAST tools miss. Both layers complement each other.
-
-## UI Verification Adapter
-
-UI verification is capability-based. Playwright is the preferred browser e2e
-adapter when it can run, but a project may use another adapter when it preserves
-the same user-observable oracle.
-
-### Config Shape
-
-`.harness/config.json` should include:
-
-```json
-{
-  "ui_verification": {
-    "required": false,
-    "capability": "",
-    "adapter": "",
-    "command": "",
-    "oracle": "",
-    "fallback_adapter": "",
-    "evidence": []
-  }
-}
+```text
+python .ezpowers/ezpowers.py validate --spec <spec-path> --json
+python .ezpowers/ezpowers.py validate --plan <plan-path> --json
+python .ezpowers/ezpowers.py validate --plan <plan-path> --activate --json
 ```
 
-Set `required: true` for web, mobile, desktop, CLI/TUI, or any user-facing UI
-surface.
+Spec validation checks the one managed JSON block and its observable criteria.
+Plan validation additionally checks the referenced spec, exact criterion
+coverage, check references, command shape, contained paths, placeholder bans,
+and integration evidence kind.
 
-### Capability Matrix
+Spec validation and ordinary plan validation are read-only. `--activate` is
+valid only with `--plan` and explicitly selects a valid plan as the resume
+target. Switching plans invalidates all evidence and certificate pointers but
+does not delete their immutable files; activating the already-active plan does
+not rewrite state. `verify` also activates the plan it actually runs.
 
-| Capability | Valid adapters | Required oracle |
-| --- | --- | --- |
-| `browser-e2e` | Playwright, Cypress, WebDriver, framework browser runner | DOM state, route, network, accessibility, and visible result |
-| `component-dom` | Storybook interaction tests, Testing Library, Vitest browser mode | Rendered component behavior and accessibility-visible state |
-| `framework-headless` | Framework renderer or test harness | View model, bindings, events, and rendered tree |
-| `desktop-gui` | UI automation, process plus screenshot, framework headless runner | Window opens, controls render, interaction changes observable state |
-| `mobile-emulator` | Simulator/emulator integration test | Screen, navigation, gesture, and persisted state |
-| `cli-tui` | Terminal runner, stdout/screen probe, snapshot with interaction | User-visible terminal output and keyboard flow |
-| `custom` | Project-specific adapter documented in config | Same observable behavior as the acceptance criterion |
+Validation is fail-closed. Missing files, duplicate markers or IDs, malformed
+JSON, unknown references, path traversal, invalid timeouts, check collisions,
+unmapped criteria, no-op commands, shell control syntax, PowerShell encoded or
+opaque command forms, and `cmd /K` are errors. Managed `spec` and `cwd` values
+are project-relative; absolute paths are invalid even though an absolute plan
+path may be supplied as a CLI argument. A valid document is not proof that the
+implementation passes.
 
-### Selection Rules
+## Exact Command Execution
 
-`/design-architecture` selects the strongest viable adapter from repo evidence
-and user confirmation. It records the adapter, command, oracle, and evidence in
-the testing methodology.
+The runtime reads checks from the current plan and `.ezpowers/config.json` on
+every run. It passes `argv` directly to `subprocess` with `shell` disabled and
+runs it in the declared project-relative `cwd`.
 
-`/prepare-execute` must copy that adapter into relevant tasks. If no adapter is
-installed or runnable, it inserts a prerequisite task before feature work to
-install or build the adapter.
+For every check it records:
 
-`/choice-execute` treats adapter failure as a real Verify failure. A skipped UI
-adapter is valid only when the plan includes an approved non-UI replacement
-that proves the same user-observable result.
+- exact argv, cwd, kind, and timeout;
+- exit code, timeout flag, spawn error, duration, and PASS/FAIL;
+- separate stdout and stderr log paths;
+- SHA-256 for each log.
 
-`adapter_fallback_task_required`: when a UI acceptance criterion needs an
-adapter and the selected adapter cannot run in the project, the plan must add a
-prerequisite adapter task instead of downgrading the criterion.
+Exit zero, no timeout, and no spawn error are all required for a check PASS.
+The runtime kills the process tree on timeout. It never infers PASS from log
+text or an implementer report.
 
-### Equivalence Rule
+## Verification Scopes
 
-Equivalent means the replacement verifies the same observable claim, not merely
-that it runs in the same test stage. For example, a component test can replace a
-browser test only when route integration, data loading, and user interaction are
-not part of the acceptance criterion, or when those concerns are covered by
-separate automated probes.
+Task-scope feedback:
 
-### Adapter Audit Rule
+```text
+python .ezpowers/ezpowers.py verify --plan <plan-path> --task <task-id> --json
+```
 
-Internal pipeline audit fails UI work when:
+This runs that task's checks and may be used during implementation. It cannot
+be certified and is not completion evidence.
 
-- `ui_verification.required` is true and no adapter is selected.
-- A UI task lacks a task-level adapter command or approved prerequisite task.
-- The command does not assert user-visible behavior.
-- Visual or accessibility evidence is advisory-only for an acceptance criterion
-  that depends on it.
+All-scope completion candidate:
 
-## Automatable Criteria
+```text
+python .ezpowers/ezpowers.py verify --plan <plan-path> --all --json
+```
 
-Acceptance criteria default to `Automatable: true`. If a spec marks a criterion
-as `Automatable: false`, the plan must replace it with an automated probe before
-implementation.
+This runs every task check plus every check named by
+`.ezpowers/config.json` `required_checks`. Any failure, timeout, spawn error,
+unknown check, invalid plan, or required-check failure makes the result FAIL.
+Certification considers only the latest all-scope result.
 
-`Automatable: false` with `Verify-type: e2e` or `api` is not executable until a
-probe exists. The executor must treat a missing, empty, placeholder-only,
-`echo`, `true`, or `:` Verify command as a failure.
+Checks must not mutate the tracked or untracked workspace used for the
+fingerprint. Generated build or test output should be reproducibly cleaned,
+ignored by Git, or placed in already ignored paths. A workspace, plan, or
+config change during verification fails the run.
 
-## Planning Translation
+## Evidence Record
 
-Plans must copy relevant spec acceptance criteria into task completion criteria
-without changing the behavior claim. If the Verify command changes between spec
-and plan, the plan must preserve the same oracle strength and the audit should
-report the drift. Predicted execution difficulty is not a reason to weaken
-oracle strength. If a Verify command appears impractical, create infrastructure
-or escalate — do not substitute a weaker oracle.
+Each run creates an immutable candidate directory under:
 
-Behavior-bearing tasks must include a TDD Slice Contract with:
+```text
+.ezpowers/evidence/<run-id>/
+```
 
-- public interface
-- behavior under test
-- test oracle
-- setup or fixtures
-- minimal implementation boundary
-- non-goals
-- missing-info handling
+`result.json` includes schema version, run ID, scope, canonical plan and spec
+paths and SHA-256 values, config SHA-256, installed-kit identity, start and
+finish times, task and required-check results, failure reasons, and before/after
+workspace and installation snapshots. The installed identity binds the local
+manifest, ledger, runtime, and every managed target. Its adjacent
+`result.json.sha256` binds the record bytes.
 
-Plans that modify executable entry points must include runtime verification in
-addition to acceptance criteria verification.
+The workspace fingerprint covers:
 
-## Execution Verification
+- Git HEAD;
+- the binary tracked diff hash;
+- a deterministic digest and count of untracked files.
 
-The executor must run Verify commands and check exit codes. Passing unit tests
-alone is not completion.
+Runtime-owned state and evidence paths are excluded so recording a run
+does not invalidate itself. Git inspection errors fail closed. The before and
+after workspace and installation snapshots must match.
 
-The executor must extract Verify commands from the plan file at execution time,
-not from cached context, implementer reports, or dispatch prompts. On every
-verification pass the plan file is the single source of truth. If the
-executor's context contains a different command, the plan file wins.
+`.ezpowers/state.json` stores the active plan and pointers to the latest task,
+all-scope, and certificate artifacts. The pointer repeats the evidence hash;
+state never substitutes for the artifact it points to. A bounded
+`.ezpowers/runtime.lock` serializes installation, verification, certification,
+and other state-writing commands; the lock itself is excluded from the
+workspace fingerprint.
 
-Recommended command timeouts:
+## Freshness And Tamper Detection
 
-| Verify-type | Timeout |
+An all-scope result is fresh only when all of these hold:
+
+- the pointer is the canonical `.ezpowers/evidence/<run-id>/result.json`, and
+  the record's own path and run ID agree with that directory;
+- `result.json`, its sidecar, and the state pointer hashes agree;
+- schema, scope, and status are valid and PASS, and `reasons` is empty;
+- plan and spec paths and current SHA-256 values agree;
+- current config SHA-256 agrees;
+- the current installed manifest, ledger, runtime, and managed files agree with
+  the recorded installed-kit identity;
+- current Git HEAD, tracked diff, and untracked digest agree;
+- recorded before/after workspace and installation snapshots agree;
+- the result contains exactly every task and required check declared by the
+  current plan and config;
+- every recorded check has exit code zero, `timed_out: false`, an empty
+  `spawn_error`, and PASS;
+- every stdout and stderr file exists inside the evidence tree and matches its
+  recorded SHA-256, uses its canonical same-run path, and is not reused by a
+  second stream.
+
+Missing logs or sidecars, edited evidence, changed plan/config/workspace,
+non-all scope, or a failed check makes the result stale. Rerun all checks; do
+not repair evidence by hand.
+
+Task pointers are checked by the same path, hash, binding, inventory, result,
+and log rules, except that the expected scope is exactly `task:<task-id>`, the
+inventory is exactly that one current task, and `project_checks` must be empty.
+The current plan's task entries are reported as `MISSING`, `FRESH_PASS`, or
+`STALE`. State keys for tasks no longer in the plan are reported separately as
+`ORPHAN`; malformed pointers are never collapsed into `MISSING`. Status
+computes the current workspace and installed-kit binding once and applies it
+to every pointer.
+
+## Certification And Resume
+
+```text
+python .ezpowers/ezpowers.py certify --plan <plan-path> --json
+python .ezpowers/ezpowers.py status --json
+```
+
+`certify` revalidates freshness, then writes `certificate.json` next to the
+evidence and stores its pointer. The certificate binds the plan, config, spec,
+installed-kit identity, workspace, canonical evidence path, and evidence
+SHA-256. The selected plan must already be active through explicit activation
+or verification; certification never changes the resume target or clears a
+different plan's pointers. Its state pointer must resolve to the canonical `certificate.json`
+next to that exact evidence result and match the certificate hash. It never
+executes missing checks or upgrades a stale result.
+
+`status` reconstructs the verdict from the active plan and stored artifacts:
+
+- `UNCONFIGURED`: no active plan;
+- `STALE`: no fresh all-scope result or a freshness check failed;
+- `READY`: fresh all-scope evidence exists but certification is absent;
+- `CERTIFIED`: fresh evidence and its certificate agree.
+
+Its `task_evidence` object reports every current task, while
+`orphan_task_evidence` exposes stale state keys that no longer occur in the
+plan. These fields are resume diagnostics only: missing, stale, or orphan task
+evidence never changes the all-scope status, certification result, hook
+verdict, or status exit code.
+
+On resume, read status, Git state, the current spec and plan, and the referenced
+evidence. A task `FRESH_PASS` can identify a trustworthy completed slice;
+Markdown checkboxes and conversation memory are hints only. Completion still
+requires `CERTIFIED` for the current workspace.
+
+## Host Hook Adapters
+
+Project hooks are optional and disabled by default. They read status; they do
+not execute checks. With no active plan they are neutral. With an active plan,
+only a fresh certified result permits stopping.
+
+Both adapters derive the same allow/block verdict and block reason from the
+core status. They emit only the fields documented by the hosts' official Stop
+schemas. The standard Stop payload is identical on both hosts:
+
+| Core verdict | Claude and Codex Stop output |
 | --- | --- |
-| `pure` | 30 seconds |
-| `cli` | 30 seconds |
-| `lib` | 30 seconds |
-| `api` | 30 seconds after server readiness |
-| `data` | 60 seconds |
-| `e2e` | 120 seconds |
-
-For `api` and `e2e` criteria that need a server, use configured start, health
-check, and stop commands when available. If no server command exists, the audit
-should warn before execution.
-
-### Verify Command Baseline & Fidelity Check
-
-Before every implementer dispatch (initial and re-dispatch), the controller
-records a Verify Command Baseline for the current task. Extraction is
-mechanical — no interpretation or substitution:
-
-1. Read the plan file (not memory, implementer output, or cached context).
-2. From the task's `**Completion criteria (from spec):**` section, extract
-   every `Verify:` value verbatim — preserve flags, paths, and grep patterns.
-3. Extract the `**Verification method:**` line, the `**Runtime verification:**`
-   line (if present), and Verify commands from the `**View wiring
-   verification**` section (if present).
-4. Store the result as the task's Verify Command Baseline.
-
-Fidelity check, between prompt construction and dispatch: extract every Verify
-command from the constructed prompt (Acceptance Criteria, Verification method,
-Runtime verification, and View wiring verification sections) and compare each
-against the corresponding Baseline entry — exact string match with
-leading/trailing whitespace trimmed and internal whitespace preserved as-is.
-Every Baseline entry must have a matching prompt entry and vice versa: no
-additions, no omissions. Any mismatch halts the dispatch until the prompt is
-corrected. This is a hard gate, not advisory.
-
-## Runtime Probe
-
-Runtime probes prove executable artifacts start and survive long enough for
-basic readiness. They are separate from feature verification.
-
-A runtime probe passes only when:
-
-- the process starts
-- the process survives the configured interval
-- fatal stdout or stderr patterns are absent
-- GUI artifacts also satisfy configured window, screenshot, non-blank pixel
-  variance, and optional UI Automation text/name checks
-- client surfaces that depend on a server/API include an API-derived
-  observation proving the client consumed server data
-
-Client-server runtime evidence is recorded under `client_server_evidence` in
-`runtime-probe.json` or `smoke-output.json`. It is required when a web, mobile,
-desktop, or GUI client surface depends on configured server/API behavior or the
-wiring gate expects API/server behavior. Required field:
-`api_observation`, such as the endpoint/status and the client-rendered result.
-
-Desktop runtime evidence is recorded under `desktop_evidence` in
-`runtime-probe.json` or `smoke-output.json`. Required fields are a positive
-window signal (`window_found: true` or nonzero `main_window_handle`),
-`screenshot_path`, `pixel_variance`, and at least one observable oracle:
-`ui_text`, `automation_names`, or API observation. For desktop server/API
-wiring, either `client_server_evidence.api_observation` or
-`desktop_evidence.api_observation` satisfies the API observation rule.
-
-Executable artifacts (`cli`, `server`, `desktop`) require runtime smoke. A
-missing required smoke command is failure, not skip. Only `docs` and `library`
-artifacts may skip runtime smoke with `smoke.required: false`.
-Executable artifacts (cli, server, desktop) require runtime smoke.
-
-For executable artifacts, the smoke command must launch or probe the same
-artifact a human would use. A build, typecheck, lint, or isolated test command
-is not runtime smoke and must not be reused as `smoke.command`.
-
-Vision checks may be used as advisory evidence, but the v1 hard gate is
-deterministic process/window/screenshot/UI Automation evidence.
-
-GUI smoke probes report failures with this exit code convention:
-
-| Code | Meaning |
-|------|---------|
-| 0 | Pass |
-| 10 | Start failed |
-| 11 | Exited before survival window |
-| 12 | Fatal output matched |
-| 13 | No main window |
-| 14 | Invisible/zero-size window |
-| 15 | Screenshot capture failed |
-| 16 | Blank screenshot (pixel variance below threshold) |
-| 18 | Expected UI text/name missing |
-| 20 | Timeout |
-| 30 | Unsupported platform |
-
-Runtime probe success never replaces a Verify command whose Then clause
-describes feature behavior.
-
-## App Delivery Verification
-
-Use this section with `docs/reference/app-delivery-contract.md`.
-
-- Frontend/UI verification must observe rendered output through a browser,
-  mobile shell, desktop window, or framework-supported headless renderer when
-  the requirement concerns a user-facing surface.
-- Responsive UI verification must cover at least one mobile and one desktop
-  viewport unless the App Experience And Delivery Baseline declares a
-  single-viewport product.
-- Visual verification may be screenshot diff, DOM/layout assertions, or a
-  deterministic canvas/pixel check. It must include a feature-specific oracle.
-- API verification must assert status, payload shape, and error shape when the
-  feature exposes an API boundary.
-- Package verification must assert that the declared artifact exists and can be
-  launched or served through the same entry point a user or deploy target uses.
-- Deployment verification defaults to preview deployment and must assert a
-  readiness signal such as a URL, health endpoint, deployment status, or build
-  log success. Production deployment requires explicit user intent.
-
-## Light Path Gate
-
-Subagent-driven and inline execution use the same verification semantics as the
-harness path. The parent/controller owns the completion decision, but it must
-delegate evidence-heavy work to gate scripts and reviewer/arbiter agents.
-
-`scripts/lightpath-gate.ps1` is the controller interface:
-
-- `-Scope prepare` converts the plan into harness-compatible step and wiring
-  artifacts.
-- `-Scope task` runs `scripts/verify-step.py` for the task step and records
-  runtime smoke evidence when required. It must also write
-  `phases/<phase>/task-gates/task-N.json`.
-- `-Scope final` runs the Full-Feature Wiring Gate, then runs
-  `scripts/harness-certify.ps1` before any `pass` completion. Reviewer
-  verdicts map to `pass`, `test_gap`, `code_gap`, or `spec_gap`.
-
-Missing gate helpers are not skippable. If `scripts/lightpath-gate.ps1`,
-`scripts/harness-certify.ps1`, `scripts/harness-resume-proof.ps1`, or
-`scripts/verify-step.py` is absent in the target project, run `/reset-setup` to
-reinstall the manifest helpers. If the helper remains absent, report
-`TEST_GAP`; inline verification is not an acceptable replacement for a missing
-gate script.
-
-`scripts/harness-certify.ps1` is the completion source of truth. It writes
-`phases/<phase>/completion-certificate.json` and fails closed unless every
-completed step has a fresh passing task gate proof, the final wiring gate is
-`pass` when required, and required runtime evidence is present.
-
-`scripts/harness-resume-proof.ps1` is the mid-build resume source of truth. It
-writes `phases/<phase>/resume-proof.json` and validates only the checked task
-prefix requested by `/choice-execute`. It must require fresh passing
-`task-gates/task-N.json` proof for each skipped task, including matching step
-hash, nonzero-free and non-timeout Verify evidence, recorded Verify commands,
-120 second minimum e2e timeout, and required runtime evidence. It must not
-require later pending steps, final wiring gate PASS, or a completion
-certificate. Markdown checkboxes and resume hashes are continuity hints only;
-they are never PASS evidence.
-
-The controller may keep only verdict enums, artifact paths, changed-file lists,
-diff ranges, and short failure tails in context. It must not treat an
-implementer subagent's `DONE` report as completion. Completion requires the
-task gate proof and completion certificate to pass and the final wiring gate to
-reach `pass`; `review_pending` requires an independent wiring reviewer verdict
-before completion.
-
-### Incremental Runnability
-
-For executable artifacts, `config.smoke.command` runs after every task
-following a completed skeleton task. This is separate from per-task
-`Runtime verification:` which tests task-specific behavior. Incremental
-smoke verifies the app still starts — it does not replace feature-specific
-verification.
-
-### Incremental Wiring Probe
-
-Incremental Runnability proves the app starts. The Wiring Probe proves
-the task's module is reachable from the app's entry point — closing the
-gap between "app runs" and "feature is connected."
-
-Every task that creates or modifies a module in an executable artifact must
-include a `**Wiring probe:**` section in the plan with:
-
-- Entry point file path (the WM-EP that should reach this module)
-- Module file path (the file this task creates or modifies)
-- Probe type: one of `import-chain`, `runtime-load`, or `e2e-touch`
-- Verify command where exit 0 = module is reachable
-
-Probe types:
-
-| Probe type | What it proves | Example |
-| --- | --- | --- |
-| `import-chain` | Static import path exists from entry point to module. | `node -e "require('./src/main/index')"` or dependency-cruiser rule |
-| `runtime-load` | App starts and module initializes (log output, DI resolution, handler registration). | `pnpm dev & sleep 3 && curl localhost:3000/health \| grep metrics && kill %1` |
-| `e2e-touch` | User-facing action reaches the module (API call, UI interaction, CLI subcommand). | `playwright test --grep "metrics panel"` |
-
-Probe evidence:
-
-- `import-chain`: entry point → intermediate imports → target module chain
-  traced statically. Verify exits non-zero if any link is missing.
-- `runtime-load`: process starts, target module's initialization log or
-  registration signal is observed, process exits cleanly.
-- `e2e-touch`: user-facing action triggers observable behavior in the target
-  module (response content, UI element, file output).
-
-Tasks exempt from Wiring Probe:
-
-- `docs` or `library` artifact kinds
-- Tasks that only modify existing files without adding new modules
-- Tasks where `config.wiring.enabled: false` with valid `exempt_reason`
-
-A task creating a new module with no `**Wiring probe:**` section is a plan
-defect. The executor logs a WARNING; the plan reviewer should have required it.
-Execution continues, but the warning is surfaced in the completion report.
-
-Wiring probe failures are classified as:
-
-- `IMPORT_UNREACHABLE`: module not imported from the entry point chain.
-- `REGISTRATION_MISSING`: handler/service not registered in DI/IPC/router.
-- `RUNTIME_UNREACHABLE`: module imported but not initialized at runtime.
-
-Refactoring detection: a task with both `Create:` and `Delete:` entries for
-module files (rename/split pattern), or renames detected by
-`git diff --diff-filter=R`, is a wiring-affecting change and requires a Wiring
-Probe section. If the section is missing, log the same plan-defect WARNING as
-for a new module; if present, execute the probe as for a new module.
-
-## Integration And Wiring
-
-A plan needs a Full-Feature Wiring Gate when work crosses connected tasks,
-multiple layers, executable entry points, or any route, registration, binding,
-subscription, integration, milestone, or end-to-end path.
-
-The gate must define:
-
-- required status
-- Verify-type (`e2e`, `api`, or `cli`)
-- covered tasks or pipeline IDs
-- expected observable result
-- non-trivial automated Verify command
-
-The wiring Verify command must drive the user-facing path or the same entry path
-described by the gate. Single-component unit tests do not prove connected
-features.
-
-Passing a wiring command only proves the dynamic probe ran. Full-feature wiring
-is complete only after runtime evidence is present and an independent wiring
-review verdict is `PASS`; until then the gate remains `review_pending`.
-
-## Arbiter Verdicts
-
-Independent arbiters and wiring reviewers classify gaps as:
-
-- `PASS`: evidence observes the entry path and no connection gap remains.
-- `TEST_GAP`: implementation may be wired, but evidence does not prove the Then clause.
-- `CODE_GAP`: registration, route, import, binding, subscription, or call site is missing.
-- `SPEC_GAP`: the plan lacks an automatable oracle or enough path detail to judge wiring.
-
-## Wiring Config Validation (fail-closed)
-
-This is the canonical definition of wiring config validation. All commands
-and reference docs should reference this section instead of restating.
-
-### Cross-Reference Policy
-
-When a rule from this contract appears in another document:
-- **Subagent-consumed documents** (skills/, agents/): inline restatement allowed (isolation principle; SOCpilot: inline compliance 0.87 vs cross-ref 0.36). Must annotate canonical source.
-- **Reference documents** (docs/reference/): cross-reference only, no restatement.
-- Inline restatements must include a `Canonical definition:` annotation pointing here.
-
-- `wiring` block missing → FAIL: `"config.json has no wiring block. Run /setup to regenerate."`
-- `wiring.enabled: false` + `wiring.exempt_reason` empty → FAIL: `"wiring disabled without exempt_reason."`
-- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` not `docs` or `library` → FAIL: `"wiring exemption not allowed for artifact_kind: {kind}"`
-- `wiring.enabled: false` + `wiring.exempt_reason` non-empty + `artifact_kind` is `docs` or `library` → skip/exempt
-- `wiring.enabled: true` + `wiring.view_extensions` empty → skip only View Wiring Test. Full-Feature Wiring Gate still runs when required.
-
-## View Wiring Verification
-
-The rules in this English subsection are canonical. If later legacy text in
-this section conflicts or is unreadable, ignore it and follow this subsection.
-
-Apply view wiring verification to tasks that create or modify files matching
-`config.wiring.view_extensions`. Logic-only tasks with no view file are exempt.
-
-Verification layers:
-
-1. Model/ViewModel test: existing task acceptance criteria.
-2. View Wiring Test: instantiate the view, attach the real model or view model,
-   and assert binding/handler/dependency/template behavior.
-3. Integration Probe: exercise the connected feature path through the
-   Full-Feature Wiring Gate.
-4. Runtime Smoke: prove the executable starts and survives according to
-   `config.smoke`.
-
-Layer 1 alone does not prove view wiring. A task that changes a view file must
-run either its task-level `View wiring verification` command or
-`config.wiring.view_test_command`; exit 0 is PASS.
-
-Classify view wiring failures with this taxonomy:
-
-| ID | Defect | Observable symptom |
-| --- | --- | --- |
-| W1 | Binding resolution | Expected rendered value is missing or null. |
-| W2 | Handler connection | User interaction does not change model state. |
-| W3 | Dependency resolution | Real DI/startup fails, nulls, or crashes. |
-| W4 | Activation state | Enabled/disabled state is hardcoded or stale. |
-| W5 | Template resolution | Model resolves to the wrong or no view/template. |
-
-Full-Feature Wiring Gate failures must identify the failed view or pipeline,
-classify W1-W5 when applicable, map the failure back to the responsible task,
-and retry at most 3 times before user escalation.
-
-## Assertion Dimensions
-
-Step verification uses four primary assertion dimensions via
-`scripts/verify-step.py`, plus an optional static dimension.
-Each dimension produces independent pass/fail results with per-check detail.
-
-| Dimension | What it checks |
-| --- | --- |
-| `structural` | File existence and JSON parse validity, plus hashline-anchor drift and path-traversal rejection. |
-| `content` | Banned-expression scan and Verify-command presence (at least one Verify command). |
-| `relational` | Cross-file reference integrity (R-ids in spec match plan, file refs exist). |
-| `command` | Shell command execution with exit 0 semantics (backwards-compatible). |
-| `static` | Optional `Static-verify:` or `Ast-grep:` command execution. |
-
-Verify-type determines which dimensions apply:
-
-| Verify-type | structural | content | relational | command |
-| --- | --- | --- | --- | --- |
-| `pure` | yes | yes | - | yes |
-| `cli` | yes | yes | - | yes |
-| `lib` | yes | yes | yes | yes |
-| `api` | yes | yes | yes | yes |
-| `data` | yes | yes | yes | yes |
-| `e2e` | yes | yes | yes | yes |
-
-A step passes only when all enabled dimensions pass. The `command` dimension
-preserves backwards compatibility with existing shell Verify commands.
-
-If `phases/<phase>/anchors/<step>.hashline.json` exists, structural
-verification also checks that the generated step file has not drifted from its
-conversion-time anchor. If `.harness/config.json` sets
-`verification.static_required: true`, a step without static verification fails.
-
-`scripts/verify-step.py` does not mechanically enforce YAML-parse validity or
-markdown-section presence in the `structural` dimension, nor generic
-regex-pattern or count-threshold assertions in the `content` dimension.
-Reviewers should check those concerns; they are guidance, not automated gates.
-
-## Per-Task Quality Gates
-
-These gates run after each implementer completion, before AC Verification.
-`/choice-execute` references these sections by name; this file is the canonical
-procedure.
-
-### Test Baseline Protection
-
-**Purpose:** Prevent AI from silently deleting, weakening, or disabling existing tests (SWE-bench PASS_TO_PASS invariant).
-
-**Phase 1 — Baseline Snapshot (before implementer dispatch):**
-1. Record test file inventory:
-   - `git ls-files -- '**/*test*' '**/*spec*' '**/__tests__/**' '**/*.test.*' '**/*.spec.*'`
-   - Store as `test_baseline_files` list
-2. If `config.test.command` exists:
-   - Run test suite: `config.test.command` (timeout: 120s)
-   - Record pass count, fail count, skip count as `test_baseline_counts`
-   - Store individual test names if test runner supports `--list` or JSON output
-
-**Phase 2 — Protection Check (after implementer completes, before AC Verification):**
-
-1. **Deletion detection:**
-   - `git diff --name-status <task-start-hash>..HEAD -- '**/*test*' '**/*spec*' '**/__tests__/**'`
-   - If any test file has status `D` (deleted): **FAIL** (`"Test file deleted: {path}. AI must not delete existing tests."`)
-   - Re-dispatch implementer: "Restore deleted test file {path}. Fix the implementation to pass the existing test, do not delete the test."
-
-2. **Weakening detection:**
-   - For modified test files: `git diff <task-start-hash>..HEAD -- {modified_test_files}`
-   - Count assertion removals: lines matching `assert|expect|should|toBe|toEqual|assertEqual|raises|throws` removed vs added
-   - If net assertion count decreased by >20%: **WARN** (`"Test assertions reduced by {pct}% in {file}."`)
-   - If assertions reduced to 0 in any test function: **FAIL** (`"All assertions removed from test function in {file}"`)
-
-3. **PASS_TO_PASS verification:**
-   - If `config.test.command` exists and baseline was recorded:
-     - Re-run `config.test.command` (timeout: 120s)
-     - Compare: pass_count must be >= `test_baseline_counts.pass_count`
-     - If pass_count decreased: **FAIL** (`"PASS_TO_PASS violation: {n} previously passing tests now fail"`)
-     - Re-dispatch implementer: "Fix implementation so these previously-passing tests pass again: {list}"
-   - Max 3 re-dispatch attempts, then escalate to user
-
-4. **Skip/disable detection:**
-   - Check diff for newly added skip markers: `@pytest.mark.skip`, `@Ignore`, `xit(`, `xdescribe(`, `test.skip(`, `.skip()`, `#[ignore]`
-   - If found: **WARN** (`"New test skip marker added in {file}:{line}."`)
-
-Inline execution (Path 3): Same detection/execution. Re-dispatch is replaced by fix-in-place -> re-check loops (max 3).
-
-### Lint & Typecheck Gate
-
-**Purpose:** Catch hallucinated API calls, undefined references, and code quality issues per-task (Aider lint-test-fix pattern).
-
-**Trigger:** Every task (unconditional).
-
-**Execution:**
-1. Collect changed files: `git diff --name-only <task-start-hash>..HEAD` + `git ls-files --others --exclude-standard`
-2. Filter to source files (exclude config, docs, assets)
-
-3. **Typecheck gate** (if `config.build.typecheck_command` configured):
-   - Run: `config.build.typecheck_command` (timeout: 60s)
-   - Exit 0 -> PASS
-   - Non-zero -> extract errors in changed files only (ignore pre-existing errors)
-   - If new type errors in changed files: **FAIL** -- re-dispatch implementer with error output
-   - Max 2 retries, then escalate
-
-4. **Lint gate** (if `config.lint.command` configured):
-   - Run: `config.lint.command -- {changed_source_files}` (timeout: 60s)
-   - Or if lint command doesn't accept file args: run full lint, filter output to changed files
-   - Exit 0 -> PASS
-   - Non-zero -> extract lint errors in changed files
-   - **Error-level findings** -> **FAIL** -- re-dispatch with lint output
-   - **Warning-level findings** -> **WARN** -- include in task status, do not block
-   - Max 2 retries, then escalate
-
-5. **Hallucination signal detection:**
-   - Type errors containing "is not defined", "cannot find module", "has no attribute", "undefined reference" in changed files -> likely hallucinated API/import
-   - Add to re-dispatch prompt: "The following references do not exist -- verify the API/module exists before using it: {error_list}"
-
-Inline execution (Path 3): Same detection/execution. Re-dispatch is replaced by fix-in-place -> re-check loops (max 2).
-
-### Dependency Audit Gate
-
-**Trigger:** Task diff includes changes to dependency manifests (`package.json`, `requirements.txt`, `Pipfile`, `Cargo.toml`, `go.mod`, `pom.xml`, `build.gradle`, `Gemfile`, `*.csproj`).
-
-**Execution:**
-1. Check `config.security.dependency_audit_command` in `.harness/config.json`
-   - If missing: use auto-detection based on manifest type:
-     | Manifest | Auto command |
-     |----------|-------------|
-     | package.json | `npm audit --json` |
-     | requirements.txt / Pipfile | `pip-audit --format=json` |
-     | Cargo.toml | `cargo audit --json` |
-     | go.mod | `govulncheck ./...` |
-   - If auto-detection fails: **WARN** (`"No dependency audit tool detected"`)
-2. Detect newly added dependencies:
-   - `git diff <task-start-hash>..HEAD -- {manifest_files}`
-   - Extract added package names
-3. For each newly added package:
-   - **Registry existence check**: verify package exists in the canonical registry
-   - If package does NOT exist in registry: **FAIL** (`"Hallucinated dependency: {package_name} not found in {registry}"`)
-4. Run dependency audit command
-   - Critical/High CVE → **FAIL** (max 2 retries: use alternative package or pin safe version)
-   - Medium/Low CVE → **WARN** (include in final report)
-5. Record audit results in task status
-
-## Final Quality Gates
-
-These gates run once per build, around Final Code Review. `/choice-execute`
-references these sections by name; this file is the canonical procedure.
-
-### Quality Budget Gate
-
-**Purpose:** Enforce Quality Budget targets declared in the spec at execution
-time, not just as documentation.
-
-**Extraction:** Read the spec file → Architecture Baseline → Quality Budgets
-section. For each budget category (performance, reliability, security, cost,
-maintainability), extract `metric`, `rule` (hard/soft ceiling/floor), and
-`verify_command`. Skip categories with `none declared` or missing
-`verify_command`.
-
-**Execution:** For each budget with `verify_command`, run the command
-(timeout: 180s for performance/load tests, 60s for others), parse the measured
-value from output, and compare against the declared threshold. Within
-threshold → **PASS**; exceeded → **FAIL** with measured vs expected.
-
-**Verdict aggregation:** all budgets PASS or SKIP → overall **PASS**. Any
-`hard ceiling/floor` FAIL → **FAIL** (re-dispatch last relevant task, max 2
-retries). Any `soft ceiling/floor` FAIL → **WARN** (advisory). No
-`verify_command` configured anywhere → **SKIP** (log: `"No Quality Budget
-verify commands configured"`).
-
-**Report:** Include per-budget results in the final completion report:
-
-| Budget | Metric | Target | Measured | Rule | Verdict |
-|--------|--------|--------|----------|------|---------|
-| (from spec) | (from spec) | (from spec) | (from execution) | hard/soft | PASS / FAIL / WARN / SKIP |
-
-### Code Duplication Gate
-
-**Purpose:** Detect AI-generated code duplication that inflates maintenance
-cost (GitClear: 4x duplication increase with AI coding).
-
-**Execution:**
-1. If `config.quality.duplication_command` is configured, run it against
-   changed files (timeout: 60s). Common tools:
-   `jscpd --min-lines=5 --threshold=3 {changed_files}`,
-   `pylint --disable=all --enable=duplicate-code {files}`. Parse output for
-   duplication percentage or block count. Duplication >5% of changed code →
-   **WARN** (`"Code duplication detected: {pct}%. Consider extracting shared
-   function/module."`); >15% → **FAIL** (re-dispatch with: "Extract duplicated
-   logic into shared function. Duplicated blocks: {list}").
-2. If not configured, run the heuristic check: extract all function/method
-   bodies from changed files (>5 lines), compare each pair for structural
-   similarity (normalize whitespace and variable names), flag pairs with >80%
-   similarity. 3+ duplicated blocks → **WARN**.
-
-**Verdict:** WARN does not block. FAIL triggers 1 fix round (max 1 retry, then
-downgrade to WARN).
-
-### Mutation Testing Gate
-
-**Purpose:** Verify that Verify commands and tests actually detect code
-defects, not just exercise code paths. Prevents the "tests that test nothing"
-pattern common in AI-generated code.
-
-**Execution:** Run `config.quality.mutation_command` against changed source
-files (timeout: 300s). Common tools:
-
-| Stack | Command |
-|-------|---------|
-| Python | `mutmut run --paths-to-mutate={changed_files} --runner="pytest {test_files}"` |
-| JavaScript | `npx stryker run --mutate='{changed_files}'` |
-| Java | `mvn pitest:mutationCoverage -DtargetClasses={changed_classes}` |
-
-Parse the mutation score (killed mutants / total mutants x 100):
-
-- >= 70% → **PASS** (tests are meaningful)
-- 40-69% → **WARN** (`"Mutation score {score}%: tests may not catch real
-  bugs. Consider strengthening assertions."`)
-- < 40% → **WARN** (strong) (`"Mutation score {score}%: tests are weak —
-  {survived_count} mutations survived. Review test quality."`)
-- Tool not configured → **SKIP**
-
-This gate is intentionally advisory-only (never FAIL): mutation testing is
-computationally expensive and may produce false positives (equivalent
-mutants). The goal is awareness, not blocking.
+| allow | `{}` |
+| block | `{"decision":"block","reason":"<core reason>"}` |
+
+The configuration wire formats differ: Claude uses a no-shell `command` plus
+`args`, while Codex uses POSIX `command` and Windows `commandWindows` strings.
+That storage difference must not change PASS/FAIL semantics. Codex project
+hooks also require project trust and review of new or changed command hooks.
+
+## Integration And Frontend Evidence
+
+A spec criterion marked `integration: true` must map to at least one
+`integration`, `e2e`, or `smoke` check. The command must cross the real boundary
+named by the claim; a unit test or process-survival probe is not an equivalent
+oracle unless the claim is limited to that behavior.
+
+For frontend work, use the chosen project-local browser, accessibility,
+terminal, native-window, component, or visual check. The optional detector is:
+
+```text
+python .ezpowers/tools/frontend-visual-readiness.py --mode detect
+python .ezpowers/tools/frontend-visual-readiness.py --mode check
+```
+
+The detector never installs tools or creates screenshots. `check` is blocking
+only for lanes the architecture or plan has declared required. Visual or
+accessibility claims still require a feature-specific deterministic oracle.
+
+## Non-Substitution Rules
+
+- Passing repository tests does not replace plan validation or required
+  project checks.
+- Task-scope evidence does not replace all-scope evidence.
+- Fresh evidence without certification is not completed work.
+- Host review, reviewer text, or an agent's DONE report does not replace
+  machine evidence.
+- Runtime smoke does not replace a feature-specific criterion.
+- A weaker command must not replace an approved oracle merely to obtain PASS.

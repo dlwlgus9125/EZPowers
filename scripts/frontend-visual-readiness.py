@@ -497,7 +497,7 @@ def mock_prototype_state(*texts: str) -> dict[str, Any]:
 def resolve_design_artifact(config: dict[str, Any], explicit: str | None) -> str:
     if explicit:
         return explicit
-    frontend = config.get("app_delivery", {}).get("frontend", {})
+    frontend = config.get("frontend", {})
     if isinstance(frontend, dict):
         artifact = frontend.get("design_artifact")
         if isinstance(artifact, str) and artifact:
@@ -644,7 +644,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Detect frontend visual readiness lanes")
     parser.add_argument("--project-root", required=True, type=pathlib.Path)
     parser.add_argument("--frontend-root", action="append", default=None, help="Frontend root relative to project root; may be repeated")
-    parser.add_argument("--config", default=None, help="Config path, defaults to .harness/config.json")
+    parser.add_argument("--config", default=None, help="Config path, defaults to .ezpowers/config.json")
     parser.add_argument("--design-artifact", default=None, help="Frontend design artifact path")
     parser.add_argument("--plan", default=None, help="Plan artifact path")
     parser.add_argument("--mode", choices=("detect", "check"), default="check")
@@ -656,7 +656,7 @@ def main() -> int:
         print(f"project root not found: {project_root}", file=sys.stderr)
         return 2
 
-    config_path = (project_root / args.config).resolve() if args.config else project_root / ".harness" / "config.json"
+    config_path = (project_root / args.config).resolve() if args.config else project_root / ".ezpowers" / "config.json"
     config = load_json(config_path)
     design_rel = resolve_design_artifact(config, args.design_artifact)
     design_path = (project_root / design_rel).resolve()

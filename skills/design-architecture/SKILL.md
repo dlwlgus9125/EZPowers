@@ -1,82 +1,46 @@
 ---
 name: design-architecture
-description: Define project architecture, test strategy, structure, and roadmap
+description: Use when a project needs durable architecture, boundary, data-flow, deployment, or verification-design decisions before a feature spec is written. Not for implementing code or for general request clarification.
 disable-model-invocation: true
-allowed-tools: [Bash, Read, Write, Glob, WebSearch, Agent, AskUserQuestion]
-shell: powershell
 ---
 
-# /design-architecture - Architecture And Test Design
+# Design Architecture
 
-## Purpose
+Turn settled product decisions into project-specific architecture and
+verification design. `deep-interview` resolves ambiguity; this skill records
+technical decisions; `spec` owns feature acceptance.
 
-Convert the initialized harness into a project-specific operating model:
-backend/frontend direction, project structure, roadmap, lifecycle constraints,
-and verification methodology. Do not implement product code.
+## Load and inspect
 
-Harness state (injected on Claude Code; on Codex read the files directly):
+Read `.ezpowers/contracts/design-architecture-contract.md` and
+`.ezpowers/contracts/verification-contract.md`. If the local kit is absent,
+route to `setup`. Then inspect repository instructions, `CONTEXT.md`, relevant
+ADRs, manifests, entry points, public interfaces, CI/deploy files, tests, and
+existing architecture or frontend-design artifacts.
 
-```!
-if (Test-Path .harness/config.json) { "CONFIG: present" } else { "CONFIG: MISSING" }
-if (Test-Path phases/index.json) { "PHASES_INDEX:"; Get-Content phases/index.json -Raw } else { "PHASES_INDEX: MISSING" }
-"HEAD: $(git rev-parse HEAD 2>$null)"
-```
+Ask one question at a time only when repository evidence cannot settle a
+consequential choice. Use `deep-interview` when the uncertainty is a product or
+domain decision rather than an architecture detail.
 
-## Read
+## Design
 
-- `docs/reference/design-architecture-contract.md`
-- `docs/reference/dispatch-protocol.md`
-- `docs/reference/setup-contract.md`
-- `docs/reference/frontend-design-contract.md`
-- `docs/reference/verification-contract.md`
-- `.harness/config.json`, `AGENTS.md`, `CONTEXT.md`, `phases/index.json`
-- Source tree, manifests, existing architecture docs, UI routes, API surfaces,
-  CI/deploy files, tests, and recent git changes
+Apply the canonical contract to record only the boundaries, ownership, data
+flow, lifecycle, deployment, compatibility, and verification choices this
+project actually needs. Prefer existing project conventions. For UI work,
+delegate design direction to `frontend-design` and carry its
+`docs/ux/frontend-design.md` artifact path and oracle forward.
 
-## Rules
+Do not prescribe model selection, subagent placement, worktrees, sandbox
+settings, reviewer routing, or general retries; the active host owns those
+execution choices.
 
-- If setup is missing or the local kit ledger is invalid, route to `/setup`.
-- Set architecture `in_progress` in `phases/index.json` before writes.
-- Read repo evidence before asking. Ask one question at a time.
-- Use web research only for current framework, frontend, deployment, or test
-  best practices that cannot be inferred locally. Record source URLs in the
-  design artifact.
-- Select verification profiles by capability, not by one tool name. Playwright
-  is preferred for browser e2e when viable, but equivalent adapters are valid
-  only when they preserve the same user-observable oracle.
-- For UI projects, write the chosen UI verification adapter, fallback adapter,
-  oracle, command, and screenshot/accessibility expectations.
-- For UI projects, invoke `frontend-design` after reading repo evidence. Record
-  the selected design direction, design artifact path, token/component strategy,
-  state matrix, responsive rules, accessibility target, visual QA strategy, and
-  tool-conditional visual readiness lanes. Use
-  `scripts/frontend-visual-readiness.py --mode detect` when available.
-- Do not leave implementation agents to invent architecture, folder structure,
-  data flow, lifecycle, deploy target, or test methodology.
-- Dispatch `ezpowers:architecture-reviewer` for the pre-approval design review
-  (see `docs/reference/dispatch-protocol.md` § Reviewer Placement).
+## Finish
 
-## Stop conditions
+Confirm that executable behavior has a real entry-point check and that
+integration/user-visible claims have an appropriate project-local oracle. If a
+required adapter is absent, record it as a prerequisite rather than weakening
+the claim.
 
-- `.harness/config.json` or `.harness/ezpowers/ledger.json` is missing or
-  unverifiable.
-- The project type, deploy surface, or UI/API boundary cannot be inferred and
-  the user has not supplied it.
-- A UI surface exists but no automatable adapter can be selected or planned.
-- A UI surface exists but frontend design readiness cannot be produced or
-  explicitly exempted.
-- Writing would overwrite human-authored architecture docs without approval.
-
-## Outputs
-
-- Updated `docs/reference/architecture.md`.
-- Updated `docs/reference/testing-methodology.md`.
-- Updated `docs/reference/project-structure.md`.
-- Updated `docs/product/ROADMAP.md`.
-- Updated `docs/ux/README.md`, `docs/ux/frontend-design.md`, or
-  `docs/release/README.md` when applicable.
-- Updated `.harness/config.json` verification, app_delivery, and model defaults.
-- Updated `phases/index.json` architecture state.
-- Architecture reviewer verdict and frontend experience reviewer verdict when
-  UI is present.
-- Next command: `/spec`.
+Report changed artifact paths, settled decisions and evidence sources, exact
+verification design, and remaining risks. Continue to `spec` only when the
+architecture required by the feature is settled.

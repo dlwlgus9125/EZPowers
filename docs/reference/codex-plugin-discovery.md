@@ -4,60 +4,130 @@ authority: canonical
 status: active
 ---
 
-# Codex Plugin Discovery
+# Claude And Codex Discovery
 
-EZPowers is installed in Codex as a plugin bundle with skills, not as a host
-slash-command provider. The Codex manifest exposes skills through
-`.codex-plugin/plugin.json`:
+This document keeps its historical filename, but its contract covers both
+supported hosts. A feature documented for one host must not be inferred for the
+other.
 
-```json
-{
-  "skills": "./skills/"
-}
+## Retained Plugin Surface
+
+The plugin root exposes exactly these nine skills:
+
+```text
+setup
+deep-interview
+design-architecture
+spec
+prepare-execute
+execute
+frontend-design
+improve-codebase-architecture
+hud
 ```
 
-Codex currently loads these skills into the model-visible skill list with names
-such as `ezpowers:diagnose`, `ezpowers:frontend-design`, and
-`ezpowers:verifyself`. Invoke them by naming the skill explicitly, for example
-`$ezpowers:diagnose Investigate this failure`, or by asking naturally when the
-skill description clearly matches the request.
+The plugin ships no agents and no plugin-root hooks. Coding, subagents,
+worktrees, sandboxing, review, and retries remain host-native capabilities.
 
-Workflow commands ship as skills (`skills/<name>/SKILL.md`), so Codex lists
-them alongside the independent skills as `ezpowers:<name>`. Each workflow skill
-sets `policy.allow_implicit_invocation: false` in `agents/openai.yaml`: it is
-hidden from the ambient skill list and runs only on explicit
-`$ezpowers:<name>` invocation, mirroring `disable-model-invocation` on Claude.
+## Plugin Invocation
 
-## Codex Execution Notes
+| Concern | Claude Code | Codex |
+| --- | --- | --- |
+| Manifest | `.claude-plugin/plugin.json` | `.codex-plugin/plugin.json` |
+| Bundled skill root | `skills/<name>/SKILL.md` | manifest `"skills": "./skills/"` |
+| Plugin namespace | `/ezpowers:<name>` | `$ezpowers:<name>` |
+| Explicit-only policy | `disable-model-invocation: true` in `SKILL.md` | `policy.allow_implicit_invocation: false` in Codex skill metadata |
+| Local project skill root | `.claude/skills/<name>/` | `.agents/skills/<name>/` |
+| Local invocation | `/<name>` | `$<name>` |
 
-- Translate Claude-specific tool names to Codex tools only at execution time.
-- Preserve each workflow's evidence and verification gates when executing on
-  Codex; the dispatch protocol's `codex-cli` backend covers reviewer dispatch.
+The explicitly invoked workflow skills are `setup`, `design-architecture`,
+`spec`, `prepare-execute`, `execute`, and `hud`. The skills
+`deep-interview`, `frontend-design`, and `improve-codebase-architecture` may be
+matched implicitly from their descriptions. Both hosts must encode the same
+intent using their own policy field; one host's field is not evidence that the
+other host enforces it.
 
-## Local Install Notes
+## Project Installation
 
-For local development, prefer one active EZPowers install. This workspace uses
-the personal marketplace entry `ezpowers@local`, where
-`C:\Users\dlwlg\plugins\ezpowers` is a junction to `C:\Working\EZPowers`.
+`setup` copies eight project workflow skills to the canonical
+`.ezpowers/kit/skills/` tree and byte-identical host trees under
+`.claude/skills/` and `.agents/skills/`. `hud` is not copied because it manages
+global Codex UI rather than project completion.
 
-If both `ezpowers@local` and another EZPowers marketplace entry are enabled,
-Codex can inject duplicate skill entries. Disable or remove the extra install
-before checking whether discovery is fixed.
+After installation, the target project must be usable without the EZPowers
+plugin checkout. Claude and Codex discover their project-local copies through
+their native skill locations. A missing host copy, byte drift from the
+canonical kit, or missing Codex skill metadata is an installation failure.
 
-Codex activates plugin root hook files during tool use, so a Codex plugin root
-must not contain an active `hooks/hooks.json`. EZPowers ships no plugin hooks.
+## Optional Completion Hooks
 
-After changing plugin metadata or skills:
+Hooks are disabled by default and installed only with explicit
+`--enable-hooks claude|codex|both`. The installer resolves and safely quotes
+the current Python executable and the target project's runtime so the hook does
+not depend on the host session's working directory. The stored command is
+equivalent to:
 
-1. Run the plugin cachebuster update flow.
-2. Reinstall the local plugin with `codex plugin add ezpowers@local`.
-3. Start a new Codex thread before testing discovery.
+```text
+<absolute-python> <absolute-project>/.ezpowers/ezpowers.py hook --host <host>
+```
 
-The global native usage footer is independent of project harness setup. Use
-`$ezpowers:hud` and follow `docs/reference/codex-hud.md`; it manages only its
-marked `[tui]` fragment in the user Codex config.
+They derive the same allow/block verdict and block reason from the same local
+status. Their configuration wire formats differ:
+
+- Claude stores the absolute interpreter in `command` and the remaining tokens
+  in a no-shell `args` array.
+- Codex stores a POSIX-safe `command` and a Windows-safe `commandWindows`
+  string because its schema has no separate argument array.
+
+Both runtimes emit the same documented Stop response: `{}` for a fresh
+certified state, or `{"decision":"block","reason":"..."}` for a stale or
+uncertified state. In Codex, `continue: false` stops the hook run itself and is
+not the completion-continuation response.
+
+The adapter does not rerun tests or reinterpret evidence. Project hooks are
+thin lifecycle integrations, not a second completion engine.
+
+## Official Host Evidence
+
+Verified on 2026-07-22:
+
+- Claude documents project and plugin skill locations, plugin namespaces, and
+  `disable-model-invocation` in
+  [Extend Claude with skills](https://code.claude.com/docs/en/slash-commands).
+- Claude documents plugin layout and `/plugin-name:skill-name` in
+  [Create plugins](https://code.claude.com/docs/en/plugins).
+- Claude documents Stop's block-only `decision` contract in
+  [Hooks reference](https://code.claude.com/docs/en/hooks#stop).
+- Codex documents `$` invocation, `.agents/skills`, and its per-skill
+  invocation policy metadata in
+  [Build skills](https://learn.chatgpt.com/docs/build-skills).
+- Codex documents `.codex-plugin/plugin.json`, bundled skill namespaces, and
+  plugin lifecycle in
+  [Build plugins](https://learn.chatgpt.com/docs/build-plugins) and
+  [Plugins](https://learn.chatgpt.com/docs/plugins).
+- Codex documents Stop continuation with `decision: "block"` and `reason`,
+  and the separate hook-run `continue` control, in
+  [Hooks](https://learn.chatgpt.com/codex/hooks).
+- Host-native execution boundaries are supported by Codex's official
+  [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents),
+  [Worktrees](https://learn.chatgpt.com/docs/environments/git-worktrees), and
+  [agent approvals and sandboxing](https://learn.chatgpt.com/docs/agent-approvals-security),
+  and by Claude's official
+  [subagents](https://code.claude.com/docs/en/sub-agents),
+  [worktrees](https://code.claude.com/docs/en/worktrees),
+  and [permissions](https://code.claude.com/docs/en/permissions) documentation.
 
 ## Verification
 
-Use `codex debug prompt-input "probe"` to confirm that the prompt contains one
-EZPowers skill set and that entries are prefixed as `ezpowers:<skill>`.
+Repository validation is non-installing:
+
+```text
+python scripts/plugin_smoke.py --host both
+```
+
+The smoke validates both manifests, the exact retained inventory, invocation
+metadata, and absence of removed components. When the CLIs are available it
+uses Claude's non-installing plugin validator and an isolated Codex project
+created from actual installer output. Installation tests separately prove that
+the Claude and Codex local skill trees are byte-identical to the canonical kit.
+The smoke must not install, reinstall, or edit global plugin state.

@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "project_name": "EZPowers",
+  "checks": {
+    "unit": {
+      "argv": ["python", "-m", "unittest", "discover", "-s", "tests"],
+      "cwd": ".",
+      "timeout_seconds": 600,
+      "kind": "test"
+    },
+    "repo-check": {
+      "argv": ["python", "scripts/check_repo.py"],
+      "cwd": ".",
+      "timeout_seconds": 180,
+      "kind": "static"
+    },
+    "runtime-smoke": {
+      "argv": ["python", "scripts/runtime_smoke.py"],
+      "cwd": ".",
+      "timeout_seconds": 300,
+      "kind": "smoke"
+    },
+    "kit-manifest": {
+      "argv": ["python", "scripts/verify-harness-kit.py"],
+      "cwd": ".",
+      "timeout_seconds": 120,
+      "kind": "static"
+    },
+    "plugin-files": {
+      "argv": ["python", "scripts/plugin_smoke.py", "--host", "both", "--skip-host-probes"],
+      "cwd": ".",
+      "timeout_seconds": 120,
+      "kind": "smoke"
+    }
+  },
+  "required_checks": [
+    "unit",
+    "repo-check",
+    "runtime-smoke",
+    "kit-manifest",
+    "plugin-files"
+  ]
+}

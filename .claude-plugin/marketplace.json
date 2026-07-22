@@ -1,5 +1,6 @@
 {
   "name": "ezpowers-dev",
+  "description": "Local development marketplace for the EZPowers project workflow plugin.",
   "owner": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
@@ -7,8 +8,8 @@
   "plugins": [
     {
       "name": "ezpowers",
-      "description": "Personal SDD harness plugin: setup, design-architecture, spec, prepare-execute, and choice-execute workflow skills with reviewer agents and a structural commit gate",
-      "version": "4.0.3",
+      "description": "Project-local specification, planning, deterministic verification, evidence, and resume support for Claude Code and Codex.",
+      "version": "5.0.0",
       "source": "./",
       "author": {
         "name": "dlwlgus9125",

@@ -20,12 +20,10 @@ class FrontendVisualReadinessRunnerTests(unittest.TestCase):
     def make_project(self, root: pathlib.Path, design_text: str) -> None:
         self.write(
             root,
-            ".harness/config.json",
+            ".ezpowers/config.json",
             json.dumps({
-                "app_delivery": {
-                    "frontend": {
-                        "design_artifact": "docs/ux/frontend-design.md",
-                    },
+                "frontend": {
+                    "design_artifact": "docs/ux/frontend-design.md",
                 },
             }),
         )

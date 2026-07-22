@@ -1,20 +1,25 @@
 {
   "name": "ezpowers",
-  "description": "Personal SDD harness plugin: setup, design-architecture, spec, prepare-execute, and choice-execute workflow skills with reviewer agents and a structural commit gate",
-  "version": "4.0.3",
+  "displayName": "EZPowers",
+  "description": "Project-local specification, planning, deterministic verification, evidence, and resume support for Claude Code and Codex.",
+  "version": "5.0.0",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
   },
   "homepage": "https://github.com/dlwlgus9125/EZPowers",
+  "repository": "https://github.com/dlwlgus9125/EZPowers",
   "license": "MIT",
   "keywords": [
     "sdd",
     "spec-driven",
+    "deep-interview",
     "design-architecture",
     "spec",
     "prepare-execute",
-    "choice-execute",
-    "skills"
+    "execute",
+    "deterministic-verification",
+    "evidence",
+    "resume"
   ]
 }

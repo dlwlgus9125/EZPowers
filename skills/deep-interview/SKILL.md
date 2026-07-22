@@ -1,57 +1,76 @@
 ---
 name: deep-interview
-description: |
-  모호한 요청을 소크라테스식 질문으로 인터뷰해 실행 가능한 요구사항으로 정리한다.
-  사용자가 deep-interview, 심층 인터뷰, 요구사항 명확화, 생각 정리를 요청하거나 목표, 범위, 제약, 완료 기준이 흐릿할 때 사용한다.
-  요청이 이미 구체적이거나 단순 오타, 작은 설정 변경, 테스트 보강처럼 물을 가치가 낮은 작업에는 사용하지 않는다.
-argument-hint: "<rough request>"
+description: Use when a request is ambiguous, the user asks for deep-interview or requirement clarification, or says "grill me", "그릴미", "grill-with-docs", stress-test, or challenge assumptions about an existing spec, design, or plan. Not for small concrete edits whose goal, scope, constraints, and completion criteria are already settled.
 ---
 
 # Deep Interview
 
-모호한 요청을 바로 실행하지 말고, 명확한 요구사항으로 정리한다.
+Turn uncertainty into explicit decisions before implementation. Keep the
+interview separate from `spec`: this skill settles decisions; `spec` records
+settled decisions as an acceptance contract.
 
-핵심은 질문을 많이 하는 것이 아니라, 가장 큰 불확실성 하나를 골라 한 번에 하나씩 푸는 것이다.
+## Select a mode
 
-소크라테스식으로 묻는다. 답을 대신 정하기보다 사용자의 암묵적 가정, 선택지, 판단 기준이 드러나게 질문한다.
+- Use `clarify` for a rough request whose goal, scope, constraints, or success
+  criteria are unclear.
+- Use `stress-test` when the user says "grill me" or "그릴미", names that mode,
+  or supplies an existing spec, design, or plan to challenge.
+- State the selected mode. Never silently reduce a stress test to ordinary
+  requirement clarification.
 
-## 질문 축
+## Common rules
 
-아래 순서로 가장 불명확한 축 하나를 고른다:
+1. Read the repository, target artifact, `CONTEXT.md`, and relevant ADRs before
+   asking anything the files can answer.
+2. Track resolved decisions and the highest-impact open decision.
+3. Ask one question at a time. Include the current understanding, the blocked
+   decision, and a recommended answer with its tradeoff.
+4. Wait for the answer before advancing. Do not invent user preferences.
+5. Stop when the remaining questions cannot materially change the work.
 
-- 목표
-- 범위와 제외 범위
-- 제약
-- 완료 기준
-- 기존 맥락과 영향 범위
+## Clarify mode
 
-코드베이스를 보면 답할 수 있는 질문은 사용자에게 묻지 말고 직접 확인한다.
+Resolve these dimensions in dependency order:
 
-## 진행 방식
+- goal and audience;
+- included and excluded scope;
+- constraints and compatibility boundaries;
+- observable completion criteria;
+- unresolved decisions that would change implementation.
 
-질문은 한 번에 하나만 한다. 질문마다 현재 이해, 막힌 결정, 추천 답안을 짧게 제시한다.
+Finish with a compact decision brief containing those five fields. Do not
+create a spec automatically; hand the settled brief to `spec` when requested.
 
-질문 형식:
+## Stress-test mode
 
-```md
-현재 이해: {요청을 한 문장으로 요약}
-막힌 결정: {가장 중요한 불확실성}
-추천 답안: {있으면 제시}
-질문: {한 가지 질문}
-```
+Walk the target's decision branches rather than merely asking for more scope.
+Challenge, in order:
 
-답변을 받으면 결정된 내용을 짧게 갱신하고, 아직 중요한 불확실성이 남았을 때만 다음 질문을 한다.
+1. terms that conflict with `CONTEXT.md` or have multiple meanings;
+2. assumptions contradicted by repository evidence;
+3. omitted failure modes and boundary cases;
+4. credible alternatives and why the chosen option wins;
+5. dependency order, reversibility, and explicit exclusions;
+6. whether each success claim has an observable test or evidence source.
 
-선택지가 도움이 되면 2-3개만 제시하고, 항상 자유 입력을 허용한다.
+When a branch survives, record the decision and move to the next unresolved
+branch. When it fails, revise the target decision before continuing.
 
-## 종료 기준
+## Durable context
 
-다음이 정리되면 멈춘다:
+Use [references/context-format.md](references/context-format.md) when domain
+language changes.
 
-- 달성하려는 목표
-- 포함 범위와 제외 범위
-- 지켜야 할 제약
-- 완료 판단 기준
-- 아직 남은 열린 질문
+- Update `CONTEXT.md` immediately after the user resolves a project-specific
+  term. Do not record generic programming vocabulary or implementation names.
+- Offer an ADR only when the decision is hard to reverse, surprising without
+  context, and the result of a real tradeoff. All three conditions are required.
+  Create or update it only after the user accepts the offer.
+- Preserve existing human-authored content and ask before replacing a
+  conflicting definition or ADR decision.
 
-마지막에는 전체 대화록이 아니라 결정사항과 열린 질문만 요약한다.
+## Finish
+
+Return the selected mode, settled decisions, rejected alternatives, changed
+context or ADR paths, remaining open decisions, and the next appropriate
+workflow step. Do not claim readiness while a material decision remains open.

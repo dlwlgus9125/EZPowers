@@ -1,19 +1,15 @@
 # EZPowers Decision Log
 
-This file is a session-level pointer. Durable architecture decisions belong in
-`docs/decisions/` when all ADR criteria in `docs/decisions/README.md` are met.
+Durable architecture decisions live under `docs/decisions/` when all three ADR
+conditions in `docs/decisions/README.md` are met.
 
 ## Active Decisions
 
-- 2026-05-19: Treat this repository as a plugin/library artifact for root
-  harness config. Runtime smoke is disabled at the repo root; generated target
-  projects still require smoke according to `docs/reference/setup-contract.md`.
-- 2026-05-19: Keep strict `/choice_execute Path 2` disabled until a real external
-  EasyPowersHarness executor is configured. Lightpath gates remain the measured
-  local execution path.
-- 2026-05-19: Make eval runner semantics explicit: static mode is the current
-  implemented default; live slash-command execution must be opt-in and fail
-  loudly until implemented.
-- 2026-07-22: Retire the doc-eval and trace infrastructure and the 3-line diff
-  rule; consolidate 27 contracts to 21; replace the never-activated commit gate
-  with `scripts/check-repo.ps1` and enable `core.hooksPath`.
+- 2026-07-22: Adopt a host-native, project-local verification core and retire
+  the external executor and duplicated orchestration layers. See
+  `docs/decisions/0001-host-native-project-local-core.md`.
+- 2026-07-22: Merge the former `grill-with-docs` behavior into
+  `deep-interview` as an explicit `stress-test` mode. Keep `spec` separate and
+  limited to acceptance-contract generation.
+- 2026-07-22: Keep frontend readiness and the Codex HUD independent of the core;
+  the HUD remains a user-approved global change and is never project-installed.
