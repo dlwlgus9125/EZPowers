@@ -1,0 +1,6 @@
+interface:
+  display_name: "Prepare Execute"
+  short_description: "Map acceptance criteria to ordered tasks and checks"
+  default_prompt: "Use $prepare-execute to map this valid spec into an ordered, verifiable plan."
+policy:
+  allow_implicit_invocation: false

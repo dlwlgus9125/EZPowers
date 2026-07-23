@@ -9,6 +9,9 @@ artifact contract, not a UI implementation workflow.
 Create or update `docs/ux/frontend-design.md` when a new or materially changed
 web, mobile, desktop, or TUI surface needs design decisions. Reuse an existing
 canonical artifact when it already owns the same information.
+When `.ezpowers/docs.json` registers the artifact as EZPowers-owned, stage and
+apply its update under `documentation-contract.md`; do not hand-edit managed
+bytes. An external registered artifact remains user-owned.
 
 Record:
 

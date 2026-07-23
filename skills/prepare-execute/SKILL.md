@@ -15,8 +15,8 @@ edits, delegates, isolates, reviews, and retries the work.
 Read `.ezpowers/contracts/plan-contract.md` and
 `.ezpowers/contracts/verification-contract.md`; they are the source of truth
 for the managed schema and check rules. Read the selected spec, architecture
-and frontend-design artifacts, repository instructions, source, tests, CI
-commands, and `.ezpowers/config.json`.
+and frontend-design artifacts, repository instructions, the documentation
+graph when present, source, tests, CI commands, and `.ezpowers/config.json`.
 
 Validate the spec first with the exact command in the plan contract. Return to
 `spec` when a criterion is ambiguous or cannot be automated without weakening
@@ -39,4 +39,5 @@ python .ezpowers/ezpowers.py validate --plan <plan-path> --json
 
 Missing, duplicate, unknown, or weakened coverage is blocking. Report the plan
 path, task order, exact criterion coverage, configured and plan-local checks,
-and unresolved prerequisites. Continue to `execute` only with a valid plan.
+including the required `ezpowers.docs` check when documentation is ready, and
+unresolved prerequisites. Continue to `execute` only with a valid plan.

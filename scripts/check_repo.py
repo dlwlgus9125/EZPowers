@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cross-platform structural gate for the EZPowers v5 repository surface."""
+"""Cross-platform structural gate for the EZPowers v5.2 repository surface."""
 
 from __future__ import annotations
 
@@ -13,17 +13,48 @@ from collections.abc import Iterable
 from urllib.parse import unquote
 
 
-RETAINED_SKILLS = frozenset(
+PLUGIN_SKILLS = frozenset(
     {
         "deep-interview",
         "design-architecture",
         "execute",
         "frontend-design",
         "hud",
-        "improve-codebase-architecture",
         "prepare-execute",
         "setup",
         "spec",
+        "wiki",
+        "harness-chain",
+    }
+)
+PROJECT_SKILLS = PLUGIN_SKILLS - {"hud"}
+RETAINED_SKILLS = PLUGIN_SKILLS
+EXPLICIT_ONLY_SKILLS = frozenset(
+    {
+        "design-architecture",
+        "execute",
+        "harness-chain",
+        "hud",
+        "prepare-execute",
+        "setup",
+        "spec",
+    }
+)
+ALLOWED_SKILL_FRONTMATTER = frozenset(
+    {
+        "agent",
+        "allowed-tools",
+        "argument-hint",
+        "compatibility",
+        "context",
+        "description",
+        "disable-model-invocation",
+        "hooks",
+        "license",
+        "metadata",
+        "model",
+        "name",
+        "user-invocable",
     }
 )
 
@@ -35,6 +66,7 @@ REMOVED_SKILLS = frozenset(
         "diagnose",
         "grill-with-docs",
         "handoff",
+        "improve-codebase-architecture",
         "maintain",
         "reset-setup",
         "review",
@@ -90,7 +122,7 @@ OBSOLETE_REFERENCES = (
     "testing-methodology.md",
 )
 
-PROJECT_KIT_MANIFEST = pathlib.Path("project-kit/v5.0.0/manifest.json")
+PROJECT_KIT_MANIFEST = pathlib.Path("project-kit/v5.2.0/manifest.json")
 PROJECT_KIT_VERIFIER = pathlib.Path("scripts/verify-harness-kit.py")
 
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
@@ -202,12 +234,33 @@ def _validate_skill_inventory(root: pathlib.Path, errors: list[str]) -> None:
                 if front is None:
                     errors.append(f"skills/{name}/SKILL.md: missing or malformed frontmatter")
                 else:
+                    unknown = sorted(set(front) - ALLOWED_SKILL_FRONTMATTER)
+                    if unknown:
+                        errors.append(
+                            f"skills/{name}/SKILL.md: unsupported frontmatter "
+                            f"fields {unknown}"
+                        )
                     if front.get("name") != name:
                         errors.append(
                             f"skills/{name}/SKILL.md: frontmatter name must be {name!r}"
                         )
                     if not front.get("description"):
                         errors.append(f"skills/{name}/SKILL.md: missing description")
+                    disabled = front.get(
+                        "disable-model-invocation",
+                        "false",
+                    ).lower()
+                    if disabled not in {"true", "false"}:
+                        errors.append(
+                            f"skills/{name}/SKILL.md: "
+                            "disable-model-invocation must be true or false"
+                        )
+                    expected_disabled = name in EXPLICIT_ONLY_SKILLS
+                    if (disabled == "true") != expected_disabled:
+                        errors.append(
+                            f"skills/{name}/SKILL.md: Claude invocation policy "
+                            f"must be disable-model-invocation={str(expected_disabled).lower()}"
+                        )
 
         if not metadata_path.is_file():
             errors.append(f"skills/{name}/agents/openai.yaml: missing Codex metadata")
@@ -223,14 +276,65 @@ def _validate_skill_inventory(root: pathlib.Path, errors: list[str]) -> None:
             if not _yaml_value(metadata, field):
                 errors.append(f"skills/{name}/agents/openai.yaml: missing {field}")
         prompt = _yaml_value(metadata, "default_prompt") or ""
-        if prompt and ("$" not in prompt or name not in prompt):
+        plugin_invocation = f"$ezpowers:{name}"
+        if prompt and plugin_invocation not in prompt:
             errors.append(
-                f"skills/{name}/agents/openai.yaml: default_prompt must invoke {name}"
+                f"skills/{name}/agents/openai.yaml: default_prompt must invoke "
+                f"{plugin_invocation}"
             )
         implicit = _yaml_value(metadata, "allow_implicit_invocation")
         if implicit not in {"true", "false"}:
             errors.append(
                 f"skills/{name}/agents/openai.yaml: allow_implicit_invocation must be true or false"
+            )
+        expected_implicit = name not in EXPLICIT_ONLY_SKILLS
+        if implicit in {"true", "false"} and (implicit == "true") != expected_implicit:
+            errors.append(
+                f"skills/{name}/agents/openai.yaml: Codex invocation policy "
+                f"must be allow_implicit_invocation={str(expected_implicit).lower()}"
+            )
+
+        project_metadata_path = skill_dir / "agents" / "project-openai.yaml"
+        if name not in PROJECT_SKILLS:
+            if project_metadata_path.exists():
+                errors.append(
+                    f"skills/{name}/agents/project-openai.yaml: plugin-only "
+                    "skill must not have project metadata"
+                )
+            continue
+        if not project_metadata_path.is_file():
+            errors.append(
+                f"skills/{name}/agents/project-openai.yaml: missing project metadata"
+            )
+            continue
+        project_metadata = _read_text(
+            project_metadata_path,
+            errors,
+            "project Codex skill metadata",
+        )
+        if project_metadata is None:
+            continue
+        for field in ("display_name", "short_description"):
+            if _yaml_value(project_metadata, field) != _yaml_value(metadata, field):
+                errors.append(
+                    f"skills/{name}/agents/project-openai.yaml: {field} "
+                    "must match plugin metadata"
+                )
+        project_prompt = _yaml_value(project_metadata, "default_prompt") or ""
+        expected_project_prompt = prompt.replace(plugin_invocation, f"${name}")
+        if project_prompt != expected_project_prompt or plugin_invocation in project_prompt:
+            errors.append(
+                f"skills/{name}/agents/project-openai.yaml: default_prompt "
+                f"must use project-local ${name} invocation"
+            )
+        project_implicit = _yaml_value(
+            project_metadata,
+            "allow_implicit_invocation",
+        )
+        if project_implicit != implicit:
+            errors.append(
+                f"skills/{name}/agents/project-openai.yaml: invocation policy "
+                "must match plugin metadata"
             )
 
 
@@ -291,10 +395,10 @@ def _validate_plugin_manifests(root: pathlib.Path, errors: list[str]) -> None:
         interface.get("longDescription", "") if isinstance(interface, dict) else ""
     )
     mentioned = set(re.findall(r"\bezpowers:([a-z0-9-]+)\b", str(long_description)))
-    if mentioned != RETAINED_SKILLS:
+    if mentioned != PLUGIN_SKILLS:
         errors.append(
             "plugin manifest parity: Codex longDescription skill inventory "
-            f"must be {sorted(RETAINED_SKILLS)}, found {sorted(mentioned)}"
+            f"must be {sorted(PLUGIN_SKILLS)}, found {sorted(mentioned)}"
         )
 
 
@@ -433,7 +537,6 @@ def _resolve_markdown_target(
         "AGENTS.md",
         "CLAUDE.md",
         "PROGRESS.md",
-        "DECISIONS.md",
         "feature_list.json",
     }:
         candidate = root / normalized
@@ -501,11 +604,8 @@ def _live_contract_and_steering_files(root: pathlib.Path) -> list[pathlib.Path]:
     return sorted(candidates)
 
 
-def _explicit_legacy_input(lines: list[str], index: int) -> bool:
+def _explicit_retired_reference(lines: list[str], index: int) -> bool:
     window = " ".join(lines[max(0, index - 2) : min(len(lines), index + 3)])
-    migration = bool(re.search(r"\blegacy\b", window, re.IGNORECASE)) and bool(
-        re.search(r"\bmigrat(?:e|ed|es|ing|ion)\b", window, re.IGNORECASE)
-    )
     retired = bool(
         re.search(
             r"\b(?:remove(?:d|s)?|retire(?:d|s)?|replac(?:e|ed|es)|"
@@ -514,7 +614,7 @@ def _explicit_legacy_input(lines: list[str], index: int) -> bool:
             re.IGNORECASE,
         )
     )
-    return migration or retired
+    return retired
 
 
 def _validate_obsolete_references(root: pathlib.Path, errors: list[str]) -> None:
@@ -524,6 +624,16 @@ def _validate_obsolete_references(root: pathlib.Path, errors: list[str]) -> None
     ) + tuple(
         (f"obsolete reference {name}", re.compile(re.escape(name)))
         for name in OBSOLETE_REFERENCES
+    ) + tuple(
+        (
+            f"removed skill {name}",
+            re.compile(
+                rf"(?:\bskills[\\/]{re.escape(name)}\b|"
+                rf"(?<![A-Za-z0-9_-])(?:\$|/)(?:ezpowers:)?"
+                rf"{re.escape(name)}\b)"
+            ),
+        )
+        for name in REMOVED_SKILLS
     )
     patterns = LEGACY_PATTERNS + obsolete_name_patterns
     seen: set[tuple[str, str]] = set()
@@ -539,7 +649,7 @@ def _validate_obsolete_references(root: pathlib.Path, errors: list[str]) -> None
             for label, pattern in patterns:
                 if not pattern.search(line):
                     continue
-                if _explicit_legacy_input(lines, index):
+                if _explicit_retired_reference(lines, index):
                     continue
                 key = (relative_path.as_posix(), label)
                 if key in seen:

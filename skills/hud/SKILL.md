@@ -2,7 +2,6 @@
 name: hud
 description: Use when the user asks to enable, configure, inspect, repair, or remove a global Codex model and usage HUD or statusline without installing a project harness.
 disable-model-invocation: true
-allowed-tools: [Bash, Read, AskUserQuestion]
 ---
 
 # /hud - Codex Model and Usage HUD
@@ -21,7 +20,7 @@ Do not use the Claude Code `statusLine` script.
 
 1. Resolve the EZPowers plugin root that contains this skill and
    `scripts/codex-hud.py`.
-2. Run `codex --version`. Stop when the installed CLI is older than v0.101.0 or
+2. Run `codex --version`. Stop when the installed CLI is older than v0.145.0 or
    when `codex` is unavailable.
 3. Run the helper in read-only mode:
 
@@ -70,6 +69,6 @@ edited is user-owned until the user explicitly approves `--replace-existing`.
 
 - Codex CLI version.
 - Config path and before/after SHA-256 values.
-- Installed, upgraded, unchanged, removed, conflict, or skipped result.
+- Installed, unchanged, removed, conflict, or skipped result.
 - Config-load smoke exit code.
 - Reminder to start a new Codex session after a change.

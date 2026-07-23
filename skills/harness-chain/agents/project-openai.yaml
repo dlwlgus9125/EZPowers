@@ -1,0 +1,6 @@
+interface:
+  display_name: "Harness Chain"
+  short_description: "Configure and run a verified project harness chain"
+  default_prompt: "Use $harness-chain to configure or run this project's verified harness chain."
+policy:
+  allow_implicit_invocation: false

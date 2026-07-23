@@ -41,9 +41,9 @@ class PluginDiscoveryTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual("5.0.2", claude["version"])
-        self.assertEqual("5.0.2", marketplace["plugins"][0]["version"])
-        self.assertRegex(codex["version"], r"^5\.0\.2\+codex\.[0-9]{14}$")
+        self.assertEqual("5.2.0", claude["version"])
+        self.assertEqual("5.2.0", marketplace["plugins"][0]["version"])
+        self.assertRegex(codex["version"], r"^5\.2\.0\+codex\.[0-9]{14}$")
         self.assertEqual(1, codex["version"].count("+codex."))
         self.assertEqual("ezpowers-dev", codex_marketplace["name"])
         self.assertEqual("ezpowers", codex_marketplace["plugins"][0]["name"])
@@ -73,8 +73,9 @@ class PluginDiscoveryTests(unittest.TestCase):
         prompt_text = "\n".join(prompts)
         referenced = set(re.findall(r"\$ezpowers:([a-z0-9-]+)", prompt_text))
 
-        self.assertEqual({"setup", "deep-interview", "execute", "hud"}, referenced)
+        self.assertEqual({"setup", "deep-interview", "harness-chain"}, referenced)
         self.assertLessEqual(referenced, PLUGIN_SMOKE.RETAINED_SKILLS)
+        self.assertLessEqual(len(prompts), 3)
         self.assertFalse(any(prompt.strip().startswith("/") for prompt in prompts))
 
     def test_smoke_cli_validates_both_hosts_without_installing(self):
@@ -96,6 +97,16 @@ class PluginDiscoveryTests(unittest.TestCase):
 
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("[PASS] both plugin files", result.stdout)
+
+    def test_live_advisory_requires_one_real_question_without_loader_errors(self):
+        self.assertTrue(PLUGIN_SMOKE._one_question_response("Which outcome matters most?"))
+        self.assertFalse(PLUGIN_SMOKE._one_question_response("Ready."))
+        self.assertFalse(PLUGIN_SMOKE._one_question_response("Why? When?"))
+        self.assertFalse(
+            PLUGIN_SMOKE._one_question_response(
+                "Unknown skill. What should I do?"
+            )
+        )
 
 
 if __name__ == "__main__":

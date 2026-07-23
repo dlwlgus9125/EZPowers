@@ -9,6 +9,8 @@ status: active
 The HUD is a plugin-only, global, explicit opt-in. It is not installed by
 `setup`, copied into a target project's local kit, or used as completion
 evidence. Claude Code project status lines are outside this feature.
+Installing the HUD requires Codex CLI 0.145.0 or newer; status, preview, and
+uninstall remain available for diagnosis and safe removal.
 
 ## Native Mechanism
 
@@ -23,11 +25,10 @@ status_line_use_colors = true
 # <<< ezpowers:managed-codex-hud <<<
 ```
 
-The leading `model-with-reasoning` item follows
-[OMX's native HUD example](https://github.com/Yeachan-Heo/oh-my-codex/blob/main/skills/hud/SKILL.md)
-and shows the active session model together with its reasoning effort. Codex
-owns rendering, wording, refresh, missing-value behavior, and theme colors.
-EZPowers does not wrap, patch, or proxy the Codex process.
+The leading `model-with-reasoning` item shows the active session model together
+with its reasoning effort. Codex owns rendering, wording, refresh,
+missing-value behavior, and theme colors. EZPowers does not wrap, patch, or
+proxy the Codex process.
 
 ## Read Before Write
 
@@ -54,10 +55,8 @@ receiving explicit approval to replace them.
 The paired markers are the ownership boundary.
 
 - The current exact managed block may be repaired or removed.
-- The prior exact usage-only block is reported as `outdated` and may be
-  upgraded or removed without treating it as user-owned.
 - Unmarked `status_line` values, inline `tui` tables, incomplete markers, and
-  edited managed values are user-owned or malformed and are preserved.
+  any non-current marked values are user-owned or malformed and are preserved.
 - Unrelated global keys, other `[tui]` values, newline style, and UTF-8 BOM are
   preserved.
 - The helper never edits project `.ezpowers` state or Claude settings.

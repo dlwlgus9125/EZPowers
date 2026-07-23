@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate or stamp the self-contained EZPowers v5 project-kit manifest."""
+"""Validate or stamp the self-contained EZPowers v5.2 project-kit manifest."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from pathlib import Path, PurePosixPath
 import re
 
 
-VERSION = "5.0.0"
-MANIFEST = "project-kit/v5.0.0/manifest.json"
+VERSION = "5.2.0"
+MANIFEST = "project-kit/v5.2.0/manifest.json"
 PROJECT_SKILLS = {
     "setup",
     "deep-interview",
@@ -20,7 +20,8 @@ PROJECT_SKILLS = {
     "prepare-execute",
     "execute",
     "frontend-design",
-    "improve-codebase-architecture",
+    "wiki",
+    "harness-chain",
 }
 CONTRACT_TARGETS = {
     ".ezpowers/contracts/setup-contract.md",
@@ -29,6 +30,9 @@ CONTRACT_TARGETS = {
     ".ezpowers/contracts/spec-contract.md",
     ".ezpowers/contracts/plan-contract.md",
     ".ezpowers/contracts/verification-contract.md",
+    ".ezpowers/contracts/documentation-contract.md",
+    ".ezpowers/contracts/wiki-contract.md",
+    ".ezpowers/contracts/harness-chain-contract.md",
 }
 HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -121,6 +125,23 @@ def validate(repo_root: Path, manifest_path: Path) -> list[str]:
                 errors.append(f"skill {item.get('name')!r} must include SKILL.md")
             if "agents/openai.yaml" not in paths:
                 errors.append(f"skill {item.get('name')!r} must include agents/openai.yaml")
+            metadata = next(
+                (
+                    entry
+                    for entry in files
+                    if isinstance(entry, dict)
+                    and entry.get("path") == "agents/openai.yaml"
+                ),
+                None,
+            ) if isinstance(files, list) else None
+            expected_metadata = (
+                f"skills/{item.get('name')}/agents/project-openai.yaml"
+            )
+            if not isinstance(metadata, dict) or metadata.get("source") != expected_metadata:
+                errors.append(
+                    f"skill {item.get('name')!r} must install project-local "
+                    f"metadata from {expected_metadata}"
+                )
 
     contract_targets = {
         item.get("target") for item in manifest.get("contracts", []) if isinstance(item, dict)
@@ -181,7 +202,7 @@ def main() -> int:
         for error in errors:
             print(f"ERROR: {error}")
         return 1
-    print("EZPowers v5 project kit manifest valid")
+    print("EZPowers v5.2 project kit manifest valid")
     return 0
 
 

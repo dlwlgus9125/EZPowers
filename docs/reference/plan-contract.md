@@ -7,7 +7,8 @@ delegates, isolates worktrees, reviews, or retries.
 ## Preflight
 
 Read the selected valid spec, architecture and frontend-design artifacts,
-repository instructions, source and tests, CI commands, and
+repository instructions, the registered documentation graph when present,
+source and tests, CI commands, and
 `.ezpowers/config.json`. Run:
 
 ```text
@@ -76,6 +77,8 @@ Named checks in `.ezpowers/config.json` provide stable project commands.
 Plan-local checks are appropriate for feature-specific filters or oracles.
 Avoid mapping the same config check as both a task check and a required project
 check unless running it twice during `verify --all` is intentional.
+When documentation status is ready, `ezpowers.docs` is a required project
+check and must remain exact.
 
 ## Exact Check Contract
 

@@ -1,19 +1,19 @@
 # EZPowers Agent Guide
 
-EZPowers is a dual-host workflow plugin that keeps project-specific intent,
-verification commands, completion evidence, and resume state in the target
-repository. Claude Code and Codex perform implementation and orchestration;
-EZPowers supplies the same local completion verdict to both.
+EZPowers is a dual-host workflow plugin that keeps repository documentation,
+local supporting knowledge, project-specific intent, verification commands,
+completion evidence, and resume state in the target repository. Claude Code
+and Codex perform implementation and orchestration; EZPowers supplies the same
+local completion verdict to both.
 
 ## Start Here
 
 Read these files in order before changing this repository:
 
 1. `AGENTS.md`
-2. `CLAUDE.md`
-3. `PROGRESS.md`
-4. `feature_list.json`
-5. `docs/INDEX.md`
+2. `PROGRESS.md`
+3. `feature_list.json`
+4. `docs/INDEX.md`
 
 Preserve user changes shown by `git status --short --branch`. Use repository
 evidence before conversation memory.
@@ -21,9 +21,15 @@ evidence before conversation memory.
 ## Current Workflow
 
 ```text
-setup -> deep-interview (when the user's request is ambiguous)
+setup -> documentation preview/apply/lint
+      -> deep-interview (when the user's request is ambiguous)
       -> design-architecture (when technical boundaries are unsettled)
       -> spec -> prepare-execute -> execute
+
+explicit harness-chain:
+configure once -> feature preview -> independent oracle audit
+               -> one feature approval -> host-native loop
+               -> verify -> independent review/conditional QA -> certify
 ```
 
 Plugin invocation differs by host: Claude Code uses `/ezpowers:<name>` and
@@ -38,37 +44,63 @@ Roles are intentionally narrow:
 - `prepare-execute`: criterion coverage and exact project checks.
 - `execute`: host-native implementation followed by local verify/certify.
 - `setup --refresh`: installation repair; there is no separate reset skill.
+- `setup --refresh-docs`: explicit repository re-analysis and conflict-safe
+  documentation staging; it is a skill workflow flag, not an installer flag.
+- `wiki`: local knowledge query, capture, promotion, and pruning; candidates
+  never override repository evidence, and risky operations still require
+  explicit preview/approval.
+- `harness-chain`: explicit-only project questions and one-feature approval
+  for an unattended, limit-bounded run; it freezes acceptance inputs and binds
+  host-native independent review without becoming a task executor.
 
-`frontend-design` and `improve-codebase-architecture` are independent advisory
-skills. `hud` is an explicit, plugin-only global Codex utility and is never
-installed into a project kit.
+`frontend-design` is an independent advisory skill. `hud` is an explicit,
+plugin-only global Codex utility and is never installed into a project kit.
 
 ## Responsibility Boundary
 
 - Claude Code or Codex owns editing, shell execution, subagents, worktrees,
   sandboxing, general retry policy, and code review.
-- EZPowers owns managed spec/plan data, project-specific argv checks, real
-  command execution, hashed evidence, certification freshness, and resume state.
-- Do not reintroduce model routing, reviewer agents, plan-to-phase conversion,
-  numbered execution paths, or an implicit external executor.
+- EZPowers owns the registered documentation graph, managed spec/plan data,
+  project-specific argv checks, real command execution, hashed evidence,
+  certification freshness, and resume state. In an explicitly approved chain
+  it also owns frozen hashes, review challenges/receipts, hard limits, and the
+  terminal verdict.
+- `AGENTS.md` is canonical project guidance. Claude projects use an exact
+  `CLAUDE.md` import shim containing `@AGENTS.md`.
+- `.ezpowers/wiki/` is local supporting memory, excluded from completion
+  freshness, and never a canonical or completion authority.
+- Do not reintroduce model routing, shipped reviewer agents, plan-to-phase
+  conversion, numbered execution paths, or an implicit external executor.
+- A chain review uses a real host-native subagent bound at runtime; main-agent
+  prose or a bundled reviewer persona is not equivalent evidence.
+- Codex chain continuation comes only from one native goal. Claude chain
+  continuation comes only from its project Stop hook. Never run both
+  authorities for one feature.
 - Do not claim identical host capabilities. Only the core EZPowers verdict is
   host-independent; hook response schemas remain thin host adapters.
 
 ## Source of Truth
 
 - Project config: `.ezpowers/config.json`
+- Explicit chain config: `.ezpowers/chain.json`
+- Feature approvals: `.ezpowers/approvals/`
+- Documentation graph: `.ezpowers/docs.json`
+- Local supporting knowledge: `.ezpowers/wiki/`
 - Resume/evidence pointer: `.ezpowers/state.json`
 - Runtime: `scripts/ezpowers.py`
-- Distribution manifest: `project-kit/v5.0.0/manifest.json`
+- Distribution manifest: `project-kit/v5.2.0/manifest.json`
 - Specs and plans: `docs/specs/`, `docs/plans/`
 - Canonical contracts: `docs/reference/*-contract.md`
 - Product state: `PROGRESS.md`, `feature_list.json`
-- Audit record: `docs/reports/workflow-harness-audit-2026-07-22.md`
+- Audit record: `docs/reports/workflow-harness-audit-2026-07-24.md`
 
 The installed runtime, manifest, skills, references, contracts, and frontend
 readiness tool must be self-contained. Preserve exact check argv unless the
 approved spec or plan changes. Never weaken validation, evidence, or freshness
 rules merely to pass a gate.
+
+Do not install plugins, change global configuration, commit, or push without
+explicit user authorization.
 
 ## Repository Verification
 

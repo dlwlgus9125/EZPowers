@@ -1,16 +1,19 @@
 # Setup Contract
 
-This contract defines installation of the self-contained v5 project kit.
-`setup` configures deterministic project checks; it does not configure an
-external executor or choose how a host performs implementation.
+This contract defines installation of the self-contained v5.2 project kit.
+`setup` configures deterministic project checks and may stage the
+repository-aware documentation workflow defined by
+`documentation-contract.md`; it does not configure an external executor or
+choose how a host performs implementation.
 
 ## Inspect First
 
-Read project instructions, manifests, source roots, package scripts, CI files,
-tests, existing specs and plans, and any `.ezpowers/config.json`. Infer checks
-only from executable repository evidence. Ask one question at a time for a
-required command or completion condition that cannot be established from the
-repository.
+Read project instructions, existing Markdown, manifests, source roots, package
+scripts, CI files, tests, existing specs and plans, and any
+`.ezpowers/config.json` or `.ezpowers/docs.json`. Infer checks and documentation
+claims only from repository evidence. Ask one question at a time for a required
+command, authority choice, or completion condition that cannot be established
+from the repository.
 
 The target path must be the top level of an existing Git worktree. Installation
 checks this before writing files and fails if Git is unavailable, the path is
@@ -24,8 +27,9 @@ prerequisite when the selected interpreter is older or unavailable. Python 3.9
 cannot parse the runtime, so this preflight cannot be deferred to the script.
 
 An existing `.ezpowers/config.json` is an installed project and must be
-preserved unless the user requests refresh or repair. Legacy `.harness/` and
-`phases/` files are migration inputs only; v5 does not create or use them.
+preserved unless the user requests refresh or repair. Pre-v5 `.harness/` and
+`phases/` content is retired. v5 neither reads nor translates it and leaves
+those files untouched.
 
 ## Install Or Refresh
 
@@ -48,8 +52,17 @@ python .ezpowers/ezpowers.py install --project-root <project> --refresh
 ```
 
 Add `--enable-hooks claude`, `codex`, or `both` only after the user explicitly
-requests project completion hooks. The default is `none`. Installation never
-installs a plugin, changes a global marketplace, or configures the global HUD.
+requests project completion hooks. Add `--enable-wiki-hooks claude`, `codex`,
+or `both` only after separate explicit approval for the allowlisted SessionEnd
+capture described by `wiki-contract.md`. Both defaults are `none`. Configuring
+Claude-specific hooks requires Claude Code 2.1.217 or newer; configuring
+Codex-specific hooks requires Codex CLI 0.145.0 or newer. All selected hosts
+are checked before any install write.
+Installation never installs a plugin, changes a global marketplace, or
+configures the global HUD.
+It installs the explicit `harness-chain` skill and contract but does not create
+`.ezpowers/chain.json`, feature approvals, or chain hooks. Those require the
+separate questions and hash-bound approval in `harness-chain-contract.md`.
 
 ## Installed Surface
 
@@ -62,23 +75,23 @@ The manifest and ledger must make these files locally available:
   state.json
   ledger.json
   kit/manifest.json
-  kit/skills/<eight-project-skills>/...
+  kit/skills/<nine-project-skills>/...
   contracts/...
   tools/frontend-visual-readiness.py
-.claude/skills/<eight-project-skills>/...
-.agents/skills/<eight-project-skills>/...
+.claude/skills/<nine-project-skills>/...
+.agents/skills/<nine-project-skills>/...
 ```
 
-The eight project skills are `setup`, `deep-interview`,
+The nine project skills are `setup`, `deep-interview`,
 `design-architecture`, `spec`, `prepare-execute`, `execute`,
-`frontend-design`, and `improve-codebase-architecture`. `hud` remains
-plugin-only and global.
+`frontend-design`, `wiki`, and `harness-chain`. `hud` remains plugin-only and
+global. Documentation, wiki, and harness-chain contracts are installed with
+the existing workflow contracts.
 
 Each manifest source and installed target is SHA-256 verified. Canonical skill
 files and both host copies are byte-identical. The ledger records the kit
-version, installation source, timestamp, each managed file hash, and migration
-warnings. Missing sources, unsafe paths, hash drift, or host-copy drift fail
-installation.
+version, installation source, timestamp, and each managed file hash. Missing
+sources, unsafe paths, hash drift, or host-copy drift fail installation.
 
 Every install or refresh also validates the complete config schema before
 writing managed files. Installation and other state-writing operations use a
@@ -141,16 +154,53 @@ evidence files, exact scope/inventory, installed kit, and current workspace.
 Malformed pointer containers fail closed. Plan validation is read-only unless
 the caller supplies `--activate`; that explicit transition changes the resume
 target and invalidates pointers only when the selected plan changes.
+The same file initializes empty chain host handshakes, gate receipts, and run
+state. Those inert fields do not activate a chain or change ordinary
+verification.
 
-## Legacy Migration
+## Explicit Harness Chain
 
-When no v5 config exists, setup may translate safe legacy command strings into
-argv checks. Preserve the legacy files. Ignore and report fields for external
-`harness.root`, executor/model routing, context budgets, retry/verifier policy,
-reviewers, phase state, and HUD. A legacy command requiring pipelines,
-redirection, or other shell parsing is reported and not migrated.
+The installed chain skill is dormant until the user invokes it. Its
+configuration preview/apply writes `.ezpowers/chain.json` and merges
+SessionStart, Stop, PreToolUse, SubagentStart, and SubagentStop handlers for
+the explicitly selected hosts. Preview requires Claude Code 2.1.217 or newer
+for Claude and Codex CLI 0.145.0 or newer for Codex, reports each prerequisite,
+and cannot become `READY` when one is missing or outdated. This is a separate
+approval from installation and from the ordinary optional completion hook
+below.
 
-## Optional Hook Adapters
+An existing non-EZPowers Stop hook conflicts with chain configuration because
+the chain requires one continuation authority. Configuring a chain replaces
+the runtime-owned ordinary completion Stop entry for that host, preserves
+unrelated non-Stop hooks, and then requires a fresh SessionStart handshake.
+The complete approval, host asymmetry, and evidence rules are in
+`harness-chain-contract.md`.
+
+## Pre-v5 Clean Break
+
+When no v5 config exists, installation creates the small default v5 config
+from repository identity only. Retired pre-v5 files remain user-owned and
+untouched; they are not configuration inputs, warning sources, or command
+sources. A user who wants an old check retained must confirm it as a new
+exact-argv v5 check.
+
+## Documentation Bootstrap
+
+Documentation bootstrap is a separate setup lane governed by
+`documentation-contract.md`. The setup skill may interpret `--refresh-docs`,
+but that flag is not passed to the runtime installer. It analyzes the
+repository, stages a bundle under `.ezpowers/staging/`, previews its exact
+effect, and applies it only with the matching preview hash.
+
+Ordinary `install --refresh` updates or repairs only manifest-owned kit files.
+It never creates, adopts, or replaces repository documentation. A ready graph
+must include canonical `AGENTS.md`, exact `CLAUDE.md` import shim, and
+`docs/INDEX.md`; it records ownership and hashes in `.ezpowers/docs.json` and
+adds `ezpowers.docs` to required checks. Existing unmanaged documents are
+preserved unless the bundle marks explicit adoption and the user authorizes a
+force-backed apply.
+
+## Ordinary Optional Hook Adapters
 
 With explicit opt-in, merge one owned Stop command into
 `.claude/settings.json` and/or `.codex/hooks.json`. Resolve and safely quote
@@ -175,19 +225,39 @@ is an installation conflict. Codex project hooks require a trusted project and
 review of a new or changed command hook through `/hooks`; report that required
 host step rather than claiming the hook is active immediately.
 
+With separate explicit wiki approval, merge one owned SessionEnd command into
+the same host file:
+
+```text
+<absolute-python> <absolute-project>/.ezpowers/ezpowers.py wiki capture --host claude
+<absolute-python> <absolute-project>/.ezpowers/ezpowers.py wiki capture --host codex
+```
+
+Completion and wiki hooks are identified and updated independently, so
+enabling both cannot replace one with the other. Wiki handlers use a five
+second timeout, return `{}`, and never influence the completion verdict. Their
+strict capture and privacy contract is `wiki-contract.md`.
+
+These installer flags do not activate `harness-chain`. The ordinary Stop
+adapter only maps current certification status. Chain hooks are installed
+later through their own preview/apply flow and follow the asymmetric contract
+instead of pretending Claude and Codex have identical continuation behavior.
+
 ## Verification And Report
 
 Run the installed runtime:
 
 ```text
 python .ezpowers/ezpowers.py status --json
+python .ezpowers/ezpowers.py docs status --json
 python .ezpowers/ezpowers.py validate --spec <spec-path>
 python .ezpowers/ezpowers.py validate --plan <plan-path>
 ```
 
 Run only the validation commands whose artifacts already exist. Report managed
-and preserved files, configured checks and required checks, ledger path,
-migration warnings, hook choice and trust follow-up, conflicts, and unresolved
-project completion criteria. The next step is `deep-interview` only when a
-material decision remains ambiguous; otherwise use `design-architecture` or
-`spec`.
+and preserved files, configured checks and required checks, ledger path, host
+prerequisite results, hook choice and trust follow-up, conflicts, and unresolved
+project completion criteria. Report documentation status and backup paths, and
+report completion-hook and wiki-hook choices separately. The next step is
+`deep-interview` only when a material decision remains ambiguous; otherwise
+use `design-architecture` or `spec`.

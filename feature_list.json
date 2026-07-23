@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-07-22T08:33:40Z",
+  "updated_at": "2026-07-23T16:53:35Z",
   "features": [
     {
       "id": "F11",
@@ -15,12 +15,79 @@
         "State, contracts, plugin manifests, documentation, and user-flow tests describe the same v5 surface"
       ],
       "evidence": [
-        "docs/reports/workflow-harness-audit-2026-07-22.md",
+        "docs/reports/workflow-harness-audit-2026-07-24.md",
         "tests/test_ezpowers_runtime.py",
         "tests/test_v5_workflow_surface.py",
         "scripts/runtime_smoke.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.0.0/manifest.json"
+        "project-kit/v5.2.0/manifest.json"
+      ]
+    },
+    {
+      "id": "F12",
+      "title": "Repository documentation bootstrap and local session wiki",
+      "status": "complete",
+      "success_criteria": [
+        "Setup can stage an adaptive evidence-backed Markdown graph with canonical AGENTS.md, exact CLAUDE.md import, and docs/INDEX.md",
+        "Documentation preview and apply are hash-bound, preserve unmanaged changes, require explicit adoption, and back up forced replacements",
+        "A ready graph registers deterministic documentation lint as a required project check",
+        "The installed wiki skill supports local Markdown add, read, list, CJK query, lint, refresh, promotion, and backup-first prune operations",
+        "Claude and Codex SessionEnd capture is separately opt-in, allowlisted, best effort, and excluded from completion freshness",
+        "The current v5.2 project kit and both plugin manifests preserve the same nine-project-skill and ten-plugin-skill surface"
+      ],
+      "evidence": [
+        "docs/reference/documentation-contract.md",
+        "docs/reference/wiki-contract.md",
+        "tests/test_ezpowers_docs_wiki.py",
+        "scripts/ezpowers.py",
+        "project-kit/v5.2.0/manifest.json"
+      ]
+    },
+    {
+      "id": "F13",
+      "title": "Explicit project-specific verified harness chain",
+      "status": "complete",
+      "success_criteria": [
+        "The explicit harness-chain skill asks project-level questions and applies configuration and host hooks only through a hash-bound preview with one approval",
+        "Every feature preview validates staged spec and plan coverage, runs its acceptance oracle against an isolated current-workspace baseline, and requires a bound independent oracle audit",
+        "One feature approval freezes the chain, project checks, spec, plan, and oracle files by hash; any change becomes NEEDS_REAPPROVAL",
+        "Codex uses one native goal while Claude uses one Stop loop, so a feature never has duplicate EZPowers continuation authorities",
+        "Validation, review, QA, identical-error, and continuation limits become terminal on the attempt that reaches the approved limit, including a configured limit of one",
+        "A failed oracle audit consumes its exact preview, while failed verification, code review, or QA requires changed repository content and a new all-scope PASS before the chain can review again",
+        "Certification requires fresh real command evidence, a bound independent code-review receipt, and adversarial QA when approved risks or project triggers require it",
+        "The v5.2 project kit exposes nine project skills and nine contracts while the plugin exposes those skills plus the plugin-only hud utility"
+      ],
+      "evidence": [
+        "docs/reference/harness-chain-contract.md",
+        "docs/decisions/0003-explicit-asymmetric-harness-chain.md",
+        "skills/harness-chain/SKILL.md",
+        "tests/test_harness_chain.py",
+        "scripts/ezpowers.py",
+        "project-kit/v5.2.0/manifest.json"
+      ]
+    },
+    {
+      "id": "F14",
+      "title": "Workflow surface audit and host compatibility hardening",
+      "status": "complete",
+      "success_criteria": [
+        "The live catalog contains exactly ten plugin skills and nine project-installed skills, with the redundant architecture advisory removed",
+        "Plugin Codex metadata uses namespaced invocations while project-kit metadata uses local invocations, and actual Codex skills/list loads every retained skill enabled and error-free",
+        "Retired pre-v5 harness and phase files are ignored and preserved rather than migrated or interpreted",
+        "Claude 2.1.217 and Codex 0.145.0 minimums fail before host-specific hook or chain writes, and the HUD enforces the Codex minimum before installation",
+        "Historical archive output, duplicate root decisions, superseded project-kit manifests, and the prior audit are removed from the live repository surface",
+        "Repository tests, structural checks, runtime smoke, kit verification, and both host probes pass without weakening evidence or freshness rules"
+      ],
+      "evidence": [
+        "docs/reports/workflow-harness-audit-2026-07-24.md",
+        "scripts/plugin_smoke.py",
+        "scripts/ezpowers.py",
+        "scripts/codex-hud.py",
+        "tests/test_codex_plugin_discovery.py",
+        "tests/test_ezpowers_runtime.py",
+        "tests/test_harness_chain.py",
+        "tests/test_codex_hud.py",
+        "project-kit/v5.2.0/manifest.json"
       ]
     }
   ]

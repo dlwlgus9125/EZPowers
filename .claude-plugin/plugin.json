@@ -1,8 +1,8 @@
 {
   "name": "ezpowers",
   "displayName": "EZPowers",
-  "description": "Project-local specification, planning, deterministic verification, evidence, and resume support for Claude Code and Codex.",
-  "version": "5.0.2",
+  "description": "Repository documentation, local knowledge, specification, verified harness chains, evidence, and resume support for Claude Code and Codex.",
+  "version": "5.2.0",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
@@ -18,6 +18,10 @@
     "spec",
     "prepare-execute",
     "execute",
+    "documentation",
+    "wiki",
+    "harness-chain",
+    "unattended",
     "deterministic-verification",
     "evidence",
     "resume"

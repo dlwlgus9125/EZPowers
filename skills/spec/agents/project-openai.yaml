@@ -1,0 +1,6 @@
+interface:
+  display_name: "Spec"
+  short_description: "Write a verifiable feature acceptance contract"
+  default_prompt: "Use $spec to turn these settled decisions into traceable acceptance criteria."
+policy:
+  allow_implicit_invocation: false

@@ -10,6 +10,11 @@ Claude Code or Codex implements and reviews the plan with native capabilities.
 EZPowers decides only whether the declared project checks produced fresh,
 untampered evidence for the current workspace.
 
+When an explicitly approved `harness-chain` run matches the plan, EZPowers
+also decides whether frozen acceptance inputs are unchanged, approved attempt
+limits remain, and required host-native independent review receipts bind the
+exact evidence. It still does not implement or review code.
+
 The runtime is `.ezpowers/ezpowers.py`. No external execution service or second
 orchestration state machine participates in the completion path.
 Python 3.10 or newer is required; the runtime otherwise uses only the standard
@@ -105,6 +110,11 @@ workspace and installation snapshots. The installed identity binds the local
 manifest, ledger, runtime, and every managed target. Its adjacent
 `result.json.sha256` binds the record bytes.
 
+For a matching chain run, the result additionally binds the chain run ID,
+approval path and SHA-256, and chain configuration SHA-256. That binding is
+part of the immutable result bytes; ordinary non-chain evidence has no
+synthetic chain field.
+
 The workspace fingerprint covers:
 
 - Git HEAD;
@@ -112,8 +122,11 @@ The workspace fingerprint covers:
 - a deterministic digest and count of untracked files.
 
 Runtime-owned state and evidence paths are excluded so recording a run
-does not invalidate itself. Git inspection errors fail closed. The before and
-after workspace and installation snapshots must match.
+does not invalidate itself. Documentation staging and backup trees plus the
+local wiki are also excluded because they are non-authoritative worktree-local
+state. Applied documentation, `.ezpowers/docs.json`, and config remain in the
+fingerprint. Git inspection errors fail closed. The before and after workspace
+and installation snapshots must match.
 
 `.ezpowers/state.json` stores the active plan and pointers to the latest task,
 all-scope, and certificate artifacts. The pointer repeats the evidence hash;
@@ -135,6 +148,8 @@ An all-scope result is fresh only when all of these hold:
 - the current installed manifest, ledger, runtime, and managed files agree with
   the recorded installed-kit identity;
 - current Git HEAD, tracked diff, and untracked digest agree;
+- when a chain run matches the plan, its run, approval, and chain hashes agree
+  and all frozen acceptance files remain unchanged;
 - recorded before/after workspace and installation snapshots agree;
 - the result contains exactly every task and required check declared by the
   current plan and config;
@@ -173,6 +188,13 @@ different plan's pointers. Its state pointer must resolve to the canonical `cert
 next to that exact evidence result and match the certificate hash. It never
 executes missing checks or upgrades a stale result.
 
+For a matching RUNNING chain, certification additionally requires a bound
+independent `code-review` PASS receipt for the exact evidence hash and a bound
+`adversarial-qa` PASS receipt when the approved risks or triggers require it.
+Those receipt pointers and the chain binding are written into the certificate.
+Success changes chain state to `CERTIFIED`. Missing review cannot be replaced
+by implementer prose; a terminal chain cannot be certified by another attempt.
+
 `status` reconstructs the verdict from the active plan and stored artifacts:
 
 - `UNCONFIGURED`: no active plan;
@@ -193,9 +215,14 @@ requires `CERTIFIED` for the current workspace.
 
 ## Host Hook Adapters
 
+### Ordinary completion adapters
+
 Project hooks are optional and disabled by default. They read status; they do
 not execute checks. With no active plan they are neutral. With an active plan,
 only a fresh certified result permits stopping.
+
+Optional wiki SessionEnd hooks are a separate feature. They never read or
+change the completion verdict and are governed by `wiki-contract.md`.
 
 Both adapters derive the same allow/block verdict and block reason from the
 core status. They emit only the fields documented by the hosts' official Stop
@@ -210,6 +237,25 @@ The configuration wire formats differ: Claude uses a no-shell `command` plus
 `args`, while Codex uses POSIX `command` and Windows `commandWindows` strings.
 That storage difference must not change PASS/FAIL semantics. Codex project
 hooks also require project trust and review of new or changed command hooks.
+
+### Explicit harness-chain adapters
+
+Chain configuration is a separate, hash-approved operation governed by
+`harness-chain-contract.md`. It installs five project events and removes the
+runtime-owned ordinary Stop entry for that host.
+
+The shared deterministic verdict does not imply identical continuation:
+
+- Claude Stop blocks a nonterminal RUNNING stop and reports the next
+  evidence-backed action. It is that run's sole continuation authority.
+- Codex continuation belongs to one native goal. Codex Stop does not continue
+  a nonterminal run; at a terminal state it emits a hook-run terminal brake.
+- both hosts use SessionStart to bind installed hook identity and the current
+  session, PreToolUse as a frozen-path early guard, and SubagentStart/Stop to
+  bind and record independent review challenges.
+
+Runtime hash checks, evidence freshness, receipt sidecars, and hard counters
+remain authoritative. A hook response alone cannot certify completion.
 
 ## Integration And Frontend Evidence
 
@@ -238,5 +284,7 @@ accessibility claims still require a feature-specific deterministic oracle.
 - Fresh evidence without certification is not completed work.
 - Host review, reviewer text, or an agent's DONE report does not replace
   machine evidence.
+- In a chain, main-agent review prose or an unbound reviewer does not replace a
+  challenge-bound independent receipt, and a receipt does not replace checks.
 - Runtime smoke does not replace a feature-specific criterion.
 - A weaker command must not replace an approved oracle merely to obtain PASS.

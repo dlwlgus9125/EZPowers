@@ -1,6 +1,0 @@
-interface:
-  display_name: "Improve Codebase Architecture"
-  short_description: "Find deeper, clearer product-code module boundaries"
-  default_prompt: "Use $improve-codebase-architecture to inspect this product code and present evidence-backed deepening candidates."
-policy:
-  allow_implicit_invocation: true

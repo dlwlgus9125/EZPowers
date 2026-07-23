@@ -1,0 +1,6 @@
+interface:
+  display_name: "Wiki"
+  short_description: "Manage local project knowledge safely"
+  default_prompt: "Use $ezpowers:wiki to query, capture, or promote local project knowledge."
+policy:
+  allow_implicit_invocation: true

@@ -1,6 +1,6 @@
 interface:
   display_name: "Setup"
-  short_description: "Install project-local workflow and verification config"
-  default_prompt: "Use $setup to install or refresh EZPowers for this project."
+  short_description: "Install workflow, checks, and repository docs"
+  default_prompt: "Use $ezpowers:setup to install or refresh EZPowers and its repository documentation."
 policy:
   allow_implicit_invocation: false

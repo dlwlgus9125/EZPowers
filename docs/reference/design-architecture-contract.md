@@ -6,12 +6,14 @@ Code or Codex should implement the work.
 
 ## Preflight
 
-Read repository instructions, `CONTEXT.md`, applicable ADRs, manifests, entry
-points, public interfaces, data schemas, CI and deployment files, existing
-architecture documents, and tests. When the local kit is installed, also read:
+Read repository instructions, the registered documentation graph when present,
+`CONTEXT.md`, applicable ADRs, manifests, entry points, public interfaces, data
+schemas, CI and deployment files, existing architecture documents, and tests.
+When the local kit is installed, also read:
 
 ```text
 .ezpowers/contracts/design-architecture-contract.md
+.ezpowers/contracts/documentation-contract.md
 .ezpowers/contracts/verification-contract.md
 ```
 
@@ -56,6 +58,9 @@ equivalent exists, use these conventional paths:
 
 Do not create empty slots merely to satisfy a filename. Each generated artifact
 must state its authority and link to the document that owns overlapping rules.
+When `.ezpowers/docs.json` owns an artifact, update it through a staged
+documentation preview/apply transaction. Never hand-edit managed bytes or
+silently adopt an external file.
 
 ## Decision Ledger And ADRs
 

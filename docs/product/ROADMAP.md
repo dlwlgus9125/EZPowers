@@ -1,28 +1,33 @@
 # EZPowers Roadmap
 
-## Current: v5.0.0
+## Current: v5.2.0
 
-- Keep `deep-interview` session-local and focused on rewriting vague intent as
-  one clear, user-confirmed request.
-- Keep `spec` narrow: settled decisions become acceptance criteria.
-- Replace `choice-execute` and all external/phase execution machinery with one
-  host-native `execute` flow.
-- Install complete project-local skills, contracts, runtime, and frontend tool
-  for both hosts from a hash manifest.
-- Bind verification evidence to real command output, spec/plan/config hashes,
-  installed-kit identity, and Git workspace state; certify only fresh
-  all-scope results.
-- Keep candidate validation read-only, make execution activation explicit, and
-  expose revalidated task evidence without promoting it to completion.
-- Keep Codex HUD global and opt-in, separate from project setup.
+- Preserve the v5.1 documentation graph and local wiki.
+- Add an explicit project-question workflow for chain stages, QA triggers,
+  enabled hosts, and hard retry/continuation limits.
+- Require a real isolated baseline and a host-native independent oracle audit
+  before one feature approval.
+- Freeze spec, plan, oracle, config, checks, and approval by hash; require a
+  new approval after any change.
+- Use one native Codex goal or one Claude Stop loop, never a duplicated
+  cross-host executor.
+- Bind independent code-review and conditional adversarial-QA receipts to the
+  exact fresh evidence before certification.
+- Make limit exhaustion terminal on the attempt that reaches the limit.
+- Keep one exact catalog: ten plugin skills, nine project skills, and separate
+  namespaced versus project-local Codex prompt metadata.
+- Enforce Claude Code 2.1.217 and Codex CLI 0.145.0 before host-specific
+  project hook writes, and treat all pre-v5 workflow input as retired.
 
 ## Later, only with demonstrated demand
 
 - Real visual-baseline generation and visual-diff execution behind the current
   frontend readiness detector.
+- Optional richer documentation templates only where repository evidence shows
+  that the adaptive graph is insufficient.
 - Additional host adapters when their official APIs provide a measurable user
   benefit that the shared verdict alone cannot deliver.
 
-Model routing, reviewer fleets, generic retries, custom task graphs, phase
-conversion, and an external executor are not roadmap items; supported hosts
-already own those execution concerns.
+Model routing, bundled reviewer fleets, generic host-independent retries,
+custom task graphs, phase conversion, and an external executor are not roadmap
+items; supported hosts already own those execution concerns.

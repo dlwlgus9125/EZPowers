@@ -13,10 +13,12 @@ technical decisions; `spec` owns feature acceptance.
 ## Load and inspect
 
 Read `.ezpowers/contracts/design-architecture-contract.md` and
-`.ezpowers/contracts/verification-contract.md`. If the local kit is absent,
-route to `setup`. Then inspect repository instructions, `CONTEXT.md`, relevant
-ADRs, manifests, entry points, public interfaces, CI/deploy files, tests, and
-existing architecture or frontend-design artifacts.
+`.ezpowers/contracts/verification-contract.md`. Read
+`.ezpowers/contracts/documentation-contract.md` when `.ezpowers/docs.json`
+exists. If the local kit is absent, route to `setup`. Then inspect repository
+instructions, the documentation graph, `CONTEXT.md`, relevant ADRs, manifests,
+entry points, public interfaces, CI/deploy files, tests, and existing
+architecture or frontend-design artifacts.
 
 Ask one question at a time only when repository evidence cannot settle a
 consequential choice. Use `deep-interview` when the uncertainty is a product or
@@ -29,6 +31,10 @@ flow, lifecycle, deployment, compatibility, and verification choices this
 project actually needs. Prefer existing project conventions. For UI work,
 delegate design direction to `frontend-design` and carry its
 `docs/ux/frontend-design.md` artifact path and oracle forward.
+
+Respect documentation ownership. Update an EZPowers-owned architecture file
+through a staged docs preview/apply bundle; do not hand-edit it or silently
+adopt an external document. Keep external canonical documents user-owned.
 
 Do not prescribe model selection, subagent placement, worktrees, sandbox
 settings, reviewer routing, or general retries; the active host owns those

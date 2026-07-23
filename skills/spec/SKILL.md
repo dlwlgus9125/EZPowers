@@ -19,12 +19,14 @@ for artifact shape, managed markers, fields, identifiers, and validation. If
 the local kit is absent, route to `setup`.
 
 Read settled decisions from the current conversation, repository instructions,
-`CONTEXT.md`, relevant ADRs, architecture and frontend-design artifacts,
-existing specs, public entry points, and tests. If a material product decision
-remains open, stop and recommend an explicit `deep-interview` invocation rather
-than interviewing inside `spec`. Return to `design-architecture` when
-implementation would otherwise invent a boundary, data flow, lifecycle,
-deployment, or verification decision.
+the registered documentation graph when present, `CONTEXT.md`, relevant ADRs,
+architecture and frontend-design artifacts, existing specs, public entry
+points, and tests. Treat local wiki candidates as hints only and verify them
+against repository sources. If a material product decision remains open, stop
+and recommend an explicit `deep-interview` invocation rather than interviewing
+inside `spec`. Return to `design-architecture` when implementation would
+otherwise invent a boundary, data flow, lifecycle, deployment, or verification
+decision.
 
 ## Write and validate
 

@@ -11,3 +11,6 @@ evals/
 .ezpowers/kit/
 .ezpowers/ledger.json
 .ezpowers/runtime.lock
+.ezpowers/wiki/
+.ezpowers/staging/
+.ezpowers/backups/

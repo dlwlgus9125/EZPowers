@@ -12,7 +12,7 @@ Skip the ADR if any condition is missing.
 
 ## Format
 
-Filename: `NNNN-slug.md` (4-digit sequence, e.g. `0001-event-sourced-orders.md`)
+Filename: `NNNN-slug.md` (4-digit sequence, e.g., `0001-event-sourced-orders.md`)
 
 ```markdown
 # NNNN. Short title
@@ -20,27 +20,27 @@ Filename: `NNNN-slug.md` (4-digit sequence, e.g. `0001-event-sourced-orders.md`)
 [1-3 sentences: context, decision, rationale]
 ```
 
-### Optional Sections (add only when needed)
+### Optional Sections
 
 - **Status**: proposed / accepted / deprecated
-- **Considered Options**: list of alternatives reviewed
-- **Consequences**: outcomes of this decision
+- **Considered Options**: alternatives reviewed
+- **Consequences**: outcomes of the decision
 
 ## Numbering
 
-Scan for the highest existing number and add +1. Do not fill gaps.
+Scan for the highest existing number and add one. Do not fill gaps.
 
-## Examples (decisions that warrant an ADR)
+## Examples That Warrant An ADR
 
-- Architecture shape (monolith vs microservices)
-- Integration pattern (event sourcing vs CRUD)
-- Technology lock-in (specific DB or framework choice)
-- Boundary decision (module separation strategy)
-- Intentional deviation (consciously breaking a convention)
+- Architecture shape, such as monolith versus microservices
+- Integration pattern, such as event sourcing versus CRUD
+- Technology lock-in to a specific database or framework
+- Module or ownership boundary
+- Intentional deviation from an established convention
 - Rejected alternative with non-obvious rationale
 
-## Examples (decisions that do NOT need an ADR)
+## Examples That Do Not
 
-- Variable naming conventions (easy to change)
-- Library minor-version selection (not surprising)
-- Following a standard pattern (no trade-off)
+- Variable naming conventions
+- Library minor-version selection
+- Following a standard pattern with no meaningful trade-off

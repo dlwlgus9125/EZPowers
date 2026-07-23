@@ -1,0 +1,6 @@
+interface:
+  display_name: "Design Architecture"
+  short_description: "Record project boundaries and verification design"
+  default_prompt: "Use $design-architecture to define this project's architecture and verification strategy before specification."
+policy:
+  allow_implicit_invocation: false

@@ -1,6 +1,6 @@
 interface:
   display_name: "Deep Interview"
   short_description: "Turn vague intent into a clear confirmed request"
-  default_prompt: "Use $deep-interview to clarify what I am asking for, one question at a time, and finish with a confirmed rewritten request."
+  default_prompt: "Use $ezpowers:deep-interview to clarify what I am asking for, one question at a time, and finish with a confirmed rewritten request."
 policy:
   allow_implicit_invocation: true

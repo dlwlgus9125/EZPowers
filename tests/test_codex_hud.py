@@ -1,4 +1,5 @@
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -29,8 +30,28 @@ class CodexHudProcessTests(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
         self.config = pathlib.Path(self.temp_dir.name) / ".codex" / "config.toml"
+        self.bin_dir = pathlib.Path(self.temp_dir.name) / "bin"
+        self.bin_dir.mkdir()
+        self._write_codex_version("0.145.0")
+
+    def _write_codex_version(self, version: str) -> None:
+        if os.name == "nt":
+            command = self.bin_dir / "codex.cmd"
+            command.write_text(
+                f"@echo codex-cli {version}\n",
+                encoding="utf-8",
+            )
+        else:
+            command = self.bin_dir / "codex"
+            command.write_text(
+                f"#!/bin/sh\nprintf 'codex-cli {version}\\n'\n",
+                encoding="utf-8",
+            )
+            command.chmod(0o755)
 
     def _run(self, action: str, *extra: str) -> tuple[subprocess.CompletedProcess, dict]:
+        env = dict(os.environ)
+        env["PATH"] = str(self.bin_dir) + os.pathsep + env.get("PATH", "")
         proc = subprocess.run(
             [
                 sys.executable,
@@ -45,6 +66,7 @@ class CodexHudProcessTests(unittest.TestCase):
             capture_output=True,
             text=True,
             encoding="utf-8",
+            env=env,
             check=False,
         )
         payload = json.loads(proc.stdout) if proc.stdout.strip() else {}
@@ -121,7 +143,7 @@ class CodexHudProcessTests(unittest.TestCase):
         self.assertFalse(payload["changed"])
         self.assertEqual(self.config.read_bytes(), before)
 
-    def test_install_upgrades_the_exact_legacy_usage_only_fragment(self):
+    def test_old_managed_fragment_is_preserved_until_explicit_replacement(self):
         original = "\n".join(
             [
                 "[tui]",
@@ -137,21 +159,40 @@ class CodexHudProcessTests(unittest.TestCase):
 
         preview, preview_payload = self._run("preview")
 
-        self.assertEqual(preview.returncode, 0, preview.stderr)
-        self.assertEqual(preview_payload["status"], "outdated")
-        self.assertTrue(preview_payload["changed"])
+        self.assertEqual(preview.returncode, 3, preview.stderr)
+        self.assertEqual(preview_payload["status"], "customized")
+        self.assertFalse(preview_payload["changed"])
         self.assertEqual(self.config.read_text(encoding="utf-8"), original)
 
         installed, installed_payload = self._run("install", "--approve")
 
+        self.assertEqual(installed.returncode, 3, installed.stderr)
+        self.assertEqual(installed_payload["status"], "customized")
+        self.assertEqual(self.config.read_text(encoding="utf-8"), original)
+
+        installed, installed_payload = self._run(
+            "install",
+            "--approve",
+            "--replace-existing",
+        )
+
         self.assertEqual(installed.returncode, 0, installed.stderr)
         self.assertEqual(installed_payload["status"], "installed")
         self.assertTrue(installed_payload["changed"])
-        self.assertIn("upgraded", installed_payload["message"])
         updated = self.config.read_text(encoding="utf-8")
         self.assertIn(STATUS_LINE, updated)
         self.assertNotIn(LEGACY_STATUS_LINE, updated)
         self.assertIn("notifications = true", updated)
+
+    def test_install_rejects_an_outdated_codex_before_writing(self):
+        self._write_codex_version("0.144.9")
+
+        proc, payload = self._run("install", "--approve")
+
+        self.assertEqual(proc.returncode, 5)
+        self.assertEqual(payload["status"], "host_prerequisite_failed")
+        self.assertIn("0.145.0", payload["message"])
+        self.assertFalse(self.config.exists())
 
     def test_unowned_status_line_is_a_non_destructive_conflict(self):
         original = "[tui]\nstatus_line = [\"model\", \"git-branch\"]\n"
@@ -297,13 +338,14 @@ class CodexHudContractTests(unittest.TestCase):
         for line in (START_MARKER, STATUS_LINE, USE_COLORS, END_MARKER):
             self.assertIn(line, contract)
 
-    def test_codex_manifest_surfaces_the_hud_skill(self):
+    def test_codex_manifest_surfaces_hud_without_spending_a_default_prompt(self):
         manifest = json.loads(
             (REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
         )
         prompts = manifest["interface"]["defaultPrompt"]
 
-        self.assertTrue(any(prompt.startswith("$ezpowers:hud ") for prompt in prompts))
+        self.assertIn("ezpowers:hud", manifest["interface"]["longDescription"])
+        self.assertFalse(any(prompt.startswith("$ezpowers:hud ") for prompt in prompts))
 
 
 if __name__ == "__main__":

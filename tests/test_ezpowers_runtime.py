@@ -14,18 +14,47 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 EZPOWERS = REPO_ROOT / "scripts" / "ezpowers.py"
 
 
-def run_cli(script: pathlib.Path, *args: str, cwd: pathlib.Path) -> subprocess.CompletedProcess:
+def _write_fake_host_commands(
+    directory: pathlib.Path,
+    versions: dict[str, str],
+) -> None:
+    for host, version in versions.items():
+        if os.name == "nt":
+            (directory / f"{host}.cmd").write_text(
+                f"@echo {host}-cli {version}\n",
+                encoding="utf-8",
+            )
+        else:
+            command = directory / host
+            command.write_text(
+                f"#!/bin/sh\nprintf '{host}-cli {version}\\n'\n",
+                encoding="utf-8",
+            )
+            command.chmod(0o755)
+
+
+def run_cli(
+    script: pathlib.Path,
+    *args: str,
+    cwd: pathlib.Path,
+    host_versions: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess:
     env = dict(os.environ)
     env.pop("PYTHONPATH", None)
-    return subprocess.run(
-        [sys.executable, str(script), *args],
-        cwd=cwd,
-        text=True,
-        capture_output=True,
-        env=env,
-        timeout=30,
-        check=False,
-    )
+    versions = host_versions or {"claude": "2.1.217", "codex": "0.145.0"}
+    with tempfile.TemporaryDirectory(prefix="ezpowers-test-hosts-") as host_dir:
+        host_root = pathlib.Path(host_dir)
+        _write_fake_host_commands(host_root, versions)
+        env["PATH"] = str(host_root) + os.pathsep + env.get("PATH", "")
+        return subprocess.run(
+            [sys.executable, str(script), *args],
+            cwd=cwd,
+            text=True,
+            capture_output=True,
+            env=env,
+            timeout=30,
+            check=False,
+        )
 
 
 def managed_block(kind: str, payload: dict) -> str:
@@ -140,7 +169,8 @@ class EZPowersInstallTests(unittest.TestCase):
                 "prepare-execute",
                 "execute",
                 "frontend-design",
-                "improve-codebase-architecture",
+                "wiki",
+                "harness-chain",
             }
             for name in expected:
                 canonical = project.root / ".ezpowers" / "kit" / "skills" / name / "SKILL.md"
@@ -167,10 +197,10 @@ class EZPowersInstallTests(unittest.TestCase):
             distribution.mkdir()
             project_root.mkdir()
 
-            manifest_path = REPO_ROOT / "project-kit" / "v5.0.0" / "manifest.json"
+            manifest_path = REPO_ROOT / "project-kit" / "v5.2.0" / "manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             sources = {
-                "project-kit/v5.0.0/manifest.json",
+                "project-kit/v5.2.0/manifest.json",
                 manifest["runtime"]["source"],
                 *(item["source"] for item in manifest.get("tools", [])),
                 *(item["source"] for item in manifest.get("contracts", [])),
@@ -264,7 +294,7 @@ class EZPowersInstallTests(unittest.TestCase):
             refreshed = project.install("--refresh")
             self.assertEqual(refreshed.returncode, 0, refreshed.stderr + refreshed.stdout)
             repaired = json.loads(ledger_path.read_text(encoding="utf-8"))
-            self.assertEqual(repaired["version"], "5.0.0")
+            self.assertEqual(repaired["version"], "5.2.0")
 
     def test_opt_in_hooks_use_native_nested_shape_and_work_from_a_subdirectory(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -323,6 +353,26 @@ class EZPowersInstallTests(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(json.loads(result.stdout), expected)
+
+    def test_hook_install_rejects_an_outdated_host_before_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = RuntimeProject(pathlib.Path(temp_dir))
+            proc = run_cli(
+                EZPOWERS,
+                "install",
+                "--project-root",
+                str(project.root),
+                "--enable-hooks",
+                "both",
+                cwd=REPO_ROOT,
+                host_versions={"claude": "2.1.217", "codex": "0.144.9"},
+            )
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn("0.145.0", proc.stdout + proc.stderr)
+            self.assertFalse((project.root / ".ezpowers").exists())
+            self.assertFalse((project.root / ".claude").exists())
+            self.assertFalse((project.root / ".codex").exists())
 
     def test_refresh_preserves_modified_managed_file_and_reports_conflict(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -424,7 +474,7 @@ class EZPowersInstallTests(unittest.TestCase):
             self.assertNotEqual(status.returncode, 0, status.stderr + status.stdout)
             self.assertIn("managed file", " ".join(json.loads(status.stdout)["reasons"]))
 
-    def test_legacy_migration_keeps_commands_and_drops_execution_policy(self) -> None:
+    def test_pre_v5_harness_config_is_ignored_and_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             project = RuntimeProject(pathlib.Path(temp_dir))
             legacy = project.root / ".harness" / "config.json"
@@ -440,17 +490,22 @@ class EZPowersInstallTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
+            legacy_before = legacy.read_bytes()
 
             proc = project.install()
             self.assertEqual(proc.returncode, 0, proc.stderr + proc.stdout)
             config = json.loads((project.root / ".ezpowers" / "config.json").read_text(encoding="utf-8"))
-            self.assertEqual(config["project_name"], "legacy-demo")
-            self.assertIn("legacy-test", config["checks"])
-            self.assertEqual(config["checks"]["legacy-test"]["argv"][0], sys.executable)
-            serialized = json.dumps(config)
-            self.assertNotIn("harness", serialized)
-            self.assertNotIn("model", serialized)
-            self.assertIn("ignored", (proc.stdout + proc.stderr).lower())
+            self.assertEqual(config["project_name"], project.root.name)
+            self.assertEqual(config["checks"], {})
+            self.assertEqual(config["required_checks"], [])
+            self.assertEqual(legacy.read_bytes(), legacy_before)
+            ledger = json.loads(
+                (project.root / ".ezpowers" / "ledger.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertNotIn("migration_warnings", ledger)
+            self.assertNotIn("legacy", (proc.stdout + proc.stderr).lower())
 
 
 class EZPowersVerificationTests(unittest.TestCase):

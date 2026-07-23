@@ -8,8 +8,8 @@
   "plugins": [
     {
       "name": "ezpowers",
-      "description": "Project-local specification, planning, deterministic verification, evidence, and resume support for Claude Code and Codex.",
-      "version": "5.0.2",
+      "description": "Repository documentation, local knowledge, specification, verified harness chains, evidence, and resume support for Claude Code and Codex.",
+      "version": "5.2.0",
       "source": "./",
       "author": {
         "name": "dlwlgus9125",

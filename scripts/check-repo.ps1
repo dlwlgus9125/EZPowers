@@ -1,20 +1,15 @@
 <#
 .SYNOPSIS
-    Compatibility wrapper for the cross-platform EZPowers repository gate.
+    PowerShell wrapper for the cross-platform EZPowers repository gate.
 
 .DESCRIPTION
-    Delegates structural validation to scripts/check_repo.py and preserves its
-    exit code. ChangedFiles remains accepted for callers of the former staged
-    gate, but the v5 gate intentionally validates the whole repository.
-
-.PARAMETER ChangedFiles
-    Accepted for backward command-line compatibility; ignored.
+    Delegates whole-repository structural validation to scripts/check_repo.py
+    and preserves its exit code.
 
 .PARAMETER WithTests
     Also run `python -m unittest discover -s tests` through the Python gate.
 #>
 param(
-    [string[]] $ChangedFiles = @(),
     [switch] $WithTests
 )
 

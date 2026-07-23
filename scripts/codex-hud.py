@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Manage the EZPowers-owned Codex CLI model and usage HUD configuration.
 
-Codex CLI v0.101.0 and newer provides a native TUI status line.  This helper
+Codex CLI v0.145.0 and newer provides the supported native TUI status line.  This helper
 only manages the smallest global ``[tui]`` fragment needed for the EZPowers
 model and usage HUD; it never installs a project harness and never rewrites
 unrelated Codex settings.
@@ -18,6 +18,8 @@ import hashlib
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -33,15 +35,9 @@ STATUS_LINE = (
 )
 USE_COLORS = "status_line_use_colors = true"
 MANAGED_FRAGMENT = (START_MARKER, STATUS_LINE, USE_COLORS, END_MARKER)
-LEGACY_MANAGED_FRAGMENTS = (
-    (
-        START_MARKER,
-        'status_line = ["five-hour-limit", "weekly-limit", "context-used"]',
-        USE_COLORS,
-        END_MARKER,
-    ),
-)
 MANAGED_KEYS = ("status_line", "status_line_use_colors")
+CODEX_MIN_VERSION = (0, 145, 0)
+VERSION_RE = re.compile(r"(?<!\d)(\d+)\.(\d+)\.(\d+)(?!\d)")
 
 SECTION_RE = re.compile(r"^\s*\[([^\]]+)\]\s*(?:#.*)?$")
 KEY_RE = re.compile(r"^\s*(status_line|status_line_use_colors)\s*=")
@@ -282,8 +278,6 @@ def _analyze(lines: tuple[str, ...] | list[str]) -> Analysis:
         actual = tuple(lines[block[0] : block[1] + 1])
         if actual == MANAGED_FRAGMENT:
             status = "conflict" if assignments else "installed"
-        elif actual in LEGACY_MANAGED_FRAGMENTS:
-            status = "conflict" if assignments else "outdated"
         else:
             status = "customized"
     elif assignments:
@@ -373,6 +367,40 @@ def _digest(data: bytes) -> str | None:
     return hashlib.sha256(data).hexdigest() if data else None
 
 
+def _codex_prerequisite() -> tuple[bool, str]:
+    required = ".".join(str(part) for part in CODEX_MIN_VERSION)
+    executable = shutil.which("codex")
+    if executable is None:
+        return False, f"Codex CLI {required} or newer is required"
+    try:
+        result = subprocess.run(
+            [executable, "--version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=15,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return False, f"cannot inspect Codex CLI version: {exc}"
+    output = "\n".join(
+        part for part in (result.stdout, result.stderr) if part
+    ).strip()
+    match = VERSION_RE.search(output)
+    if result.returncode != 0 or match is None:
+        return False, f"cannot parse Codex CLI version from {output or 'empty output'}"
+    installed_tuple = tuple(int(part) for part in match.groups())
+    installed = ".".join(str(part) for part in installed_tuple)
+    if installed_tuple < CODEX_MIN_VERSION:
+        return (
+            False,
+            f"Codex CLI {installed} is older than required {required}",
+        )
+    return True, f"Codex CLI {installed} satisfies the minimum"
+
+
 def _result(
     *,
     action: str,
@@ -454,9 +482,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.action == "status":
         message = {
             "installed": "The EZPowers-owned native status line is active in config.",
-            "outdated": (
-                "An older exact EZPowers-owned status line is active and can be upgraded."
-            ),
             "absent": "No EZPowers-owned Codex HUD is installed.",
             "conflict": "Existing unowned Codex TUI status settings were preserved.",
             "customized": "The marked HUD block was edited and is treated as user-owned.",
@@ -528,6 +553,20 @@ def main(argv: list[str] | None = None) -> int:
             _emit(payload, as_json=args.json)
             return EXIT_APPROVAL_REQUIRED
 
+        compatible, prerequisite_message = _codex_prerequisite()
+        if not compatible:
+            payload = _result(
+                action=args.action,
+                status="host_prerequisite_failed",
+                path=path,
+                changed=False,
+                before=source.raw,
+                after=source.raw,
+                conflict_keys=analysis.conflict_keys,
+                message=prerequisite_message,
+            )
+            _emit(payload, as_json=args.json)
+            return EXIT_ERROR
         if after != source.raw:
             existing_mode = path.stat().st_mode if source.exists else None
             _atomic_write(path, after, existing_mode)
@@ -540,9 +579,8 @@ def main(argv: list[str] | None = None) -> int:
             after=after,
             conflict_keys=analysis.conflict_keys,
             message=(
-                "EZPowers Codex HUD upgraded. Start a new Codex session to load it."
-                if analysis.status == "outdated"
-                else "EZPowers Codex HUD installed. Start a new Codex session to load it."
+                "EZPowers Codex HUD installed. Start a new Codex session to load it. "
+                + prerequisite_message
             ),
         )
         _emit(payload, as_json=args.json)

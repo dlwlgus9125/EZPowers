@@ -2,66 +2,97 @@
 
 ## Current State
 
-EZPowers v5.0.0 is finalized in the working tree on `main`. The 2026-07-22 independent audit
-found that v4's external executor, plan-to-phase layer, reviewer fleet, model
-routing, retry policy, and placeholder local kit duplicated host features or
-were not self-contained. The live v5 implementation replaces them with one
-standard-library Python runtime installed inside each target project.
+EZPowers v5.2.0 is complete in the working tree on `main`. It preserves the
+host-native verification core, documentation graph, and local wiki while
+adding an explicit project-specific harness chain and a hardened dual-host
+distribution surface:
 
-The retained core is:
+- repository analysis and an adaptive Markdown graph rooted at canonical
+  `AGENTS.md`, exact `CLAUDE.md` import, and `docs/INDEX.md`;
+- a local session wiki with deterministic CJK keyword/tag search, explicit
+  promotion, backup-first pruning, and separately opt-in allowlisted
+  SessionEnd capture;
+- project questions for enabled hosts, acceptance oracles, QA triggers, and
+  exact continuation limits, followed by a hash-bound preview and one feature
+  approval;
+- an isolated current-workspace baseline and bound independent oracle audit
+  before approval;
+- one native Codex goal or one Claude Stop loop, with real project checks,
+  bound independent code review, and conditional adversarial QA before
+  certification;
+- an exact ten-skill plugin and nine-skill project catalog with distinct
+  namespaced and project-local Codex prompt metadata;
+- clean retirement of pre-v5 workflow input plus Claude 2.1.217 and Codex
+  0.145.0 minimums before host-specific writes.
 
-- optional, session-only `deep-interview` request clarification;
-- architecture, frontend design, spec, and plan artifacts;
-- project-specific argv checks and complete criterion coverage;
-- real stdout/stderr logs, hashes, Git-workspace freshness, certification, and
-  resume state, including revalidated task evidence;
-- thin, opt-in Claude Code and Codex hook adapters sharing one core verdict.
+Documentation proposals are staged, previewed with a hash that binds the
+bundle, registry, config, and current targets, then applied transactionally.
+Unmanaged documents require explicit adoption; edited/adopted targets require
+force and are backed up first. A ready graph registers `ezpowers.docs` as an
+exact required project check.
 
-Candidate plan validation is read-only. Execution explicitly activates its
-resume target, and task evidence can guide resumption without ever replacing
-fresh all-scope certification.
+The wiki remains supporting memory under `.ezpowers/wiki/`. It is excluded from
+completion fingerprints, never stores transcripts through automatic capture,
+and never becomes canonical or completion evidence without a separate
+repository workflow.
 
-`frontend-design`, its non-installing readiness detector, the Codex-native HUD,
-and product-code architecture analysis remain independent features. The HUD is
-not part of project setup.
+The existing core remains unchanged in authority: Claude Code and Codex own
+implementation and orchestration; EZPowers owns exact project checks, real
+stdout/stderr evidence, hashes, Git-workspace freshness, certification, and
+resume state. `harness-chain` is dormant until explicitly configured and run.
+It does not install a second Codex executor or ask for approval on every
+iteration. Frozen-input changes require reapproval; ordinary failed checks
+force product rework until a configured limit becomes terminal.
 
-## Completed Item
+## Completed Items
 
-`F11` in `feature_list.json`: the host-native, project-local v5 core is complete.
-Every pre-v5 live component and every retained v5 component has a disposition
-in the independent audit report.
+- `F11`: host-native, project-local verification core.
+- `F12`: repository documentation bootstrap and local session wiki.
+- `F13`: explicit project-specific verified harness chain.
+- `F14`: workflow surface audit and host compatibility hardening.
 
-## Evidence
+The v5.2 project kit installs nine project skills and nine canonical contracts.
+The plugin exposes those skills plus the plugin-only global `hud` utility.
 
-Pre-change baseline on 2026-07-22:
+## Verification Evidence
 
-- `python -m unittest discover -s tests`: 70 tests passed.
-- `scripts/check-repo.ps1`: passed.
-- `scripts/harness-runtime-smoke.ps1`: 14/14 passed, but the audit confirmed it
-  used a blank external executor and hand-authored/fake evidence.
-- `python scripts/verify-harness-kit.py`: passed, but the manifest installed
-  README placeholders rather than the promised workflow.
+Final v5.2 verification on 2026-07-24:
 
-Final v5 verification on 2026-07-22:
-
-- `python -m unittest discover -s tests`: 82 tests passed in 237.180 seconds.
+- `python -m unittest discover -s tests`: 134 tests passed.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
   PASS.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
-  PASS for real install -> validate -> unittest -> verify -> certify -> stale.
-- `python scripts/verify-harness-kit.py`: v5 manifest valid.
-- `python scripts/plugin_smoke.py --host both`: manifests accepted by Claude
-  CLI and retained Codex project skills discovered in isolation.
+  PASS for real install → validate → verify → certify → stale.
+- `python scripts/verify-harness-kit.py`: v5.2 manifest valid with nine project
+  skills and nine contracts.
+- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
+  Claude 2.1.217 accepted both manifests, and Codex 0.145.0 loaded all nine
+  project skills and all ten namespaced plugin skills enabled, error-free, and
+  with exact prompts in isolation.
+- `python scripts/plugin_smoke.py --host both --live-advisory`: Codex executed
+  the project-local `deep-interview` behavior; Claude's loader passed but its
+  model call was externally blocked by HTTP 401 authentication with zero cost.
+- `python -m unittest tests.test_harness_chain -v`: 14 chain scenarios passed,
+  including isolated destructive-oracle defense, limit-one terminal behavior,
+  forged receipt rejection, failed-audit hash consumption, mandatory product
+  rework, same-reviewer correction, reapproval, review, QA, receipt-tamper
+  detection, certification, and post-certification staleness.
+- Documentation/wiki regression coverage includes stale previews, explicit
+  adoption, force backups, required lint, Korean search, promotion binding,
+  backup-first prune, hook idempotence/privacy, and fingerprint exclusion.
 
 ## Remaining Candidates
 
-Full screenshot generation and visual-diff execution are still outside the
-core. The readiness detector continues to hard-gate those lanes only when the
-target project already has suitable tooling or its plan explicitly adds it.
-`deep-interview` question selection, one-question loop, no-write boundary, and
-confirmation contract have static skill coverage, not a deterministic
-two-host model-behavior oracle.
+Full screenshot generation and visual-diff execution remain outside the core.
+The readiness detector hard-gates those lanes only when the target project
+already has suitable tooling or its plan explicitly adds it.
+
+Documentation quality still depends on the host grounding generated prose in
+repository evidence; the runtime can enforce provenance references, structure,
+links, ownership, and hashes, but cannot prove that every natural-language
+claim is semantically complete.
+
 Cryptographic hashes detect accidental or partial tampering but are not an
 authenticity boundary against an attacker who can rewrite state, artifacts,
-sidecars, and hashes together; hostile environments need repository/CI
+sidecars, and hashes together. Hostile environments need repository/CI
 permissions or signing outside this local core.

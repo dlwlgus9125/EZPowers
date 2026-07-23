@@ -34,12 +34,14 @@ class RepositoryGateTests(unittest.TestCase):
     def make_valid_repo(self, root: pathlib.Path) -> None:
         retained = sorted(self.gate.RETAINED_SKILLS)
         for name in retained:
+            explicit = name in self.gate.EXPLICIT_ONLY_SKILLS
             write(
                 root / "skills" / name / "SKILL.md",
                 f"""
                 ---
                 name: {name}
                 description: Use when testing {name}.
+                disable-model-invocation: {str(explicit).lower()}
                 ---
 
                 # {name}
@@ -51,11 +53,27 @@ class RepositoryGateTests(unittest.TestCase):
                 interface:
                   display_name: "{name}"
                   short_description: "Test {name}"
-                  default_prompt: "Use ${name} for this request."
+                  default_prompt: "Use $ezpowers:{name} for this request."
                 policy:
-                  allow_implicit_invocation: false
+                  allow_implicit_invocation: {str(not explicit).lower()}
                 """,
             )
+            if name in self.gate.PROJECT_SKILLS:
+                write(
+                    root
+                    / "skills"
+                    / name
+                    / "agents"
+                    / "project-openai.yaml",
+                    f"""
+                    interface:
+                      display_name: "{name}"
+                      short_description: "Test {name}"
+                      default_prompt: "Use ${name} for this request."
+                    policy:
+                      allow_implicit_invocation: {str(not explicit).lower()}
+                    """,
+                )
 
         description = " ".join(f"ezpowers:{name}" for name in retained)
         plugin = {
@@ -83,7 +101,7 @@ class RepositoryGateTests(unittest.TestCase):
         write(root / ".claude-plugin" / "marketplace.json", json.dumps(marketplace))
         write(root / ".codex-plugin" / "plugin.json", json.dumps(codex))
 
-        write(root / "project-kit" / "v5.0.0" / "manifest.json", "{}")
+        write(root / "project-kit" / "v5.2.0" / "manifest.json", "{}")
         write(
             root / "scripts" / "verify-harness-kit.py",
             """
@@ -123,7 +141,7 @@ class RepositoryGateTests(unittest.TestCase):
             self.make_valid_repo(root)
             codex_path = root / ".codex-plugin" / "plugin.json"
             codex = json.loads(codex_path.read_text(encoding="utf-8"))
-            codex["version"] = "5.1.0+codex.20260722000000"
+            codex["version"] = "5.2.0+codex.20260722000000"
             write(codex_path, json.dumps(codex))
             write(root / "evals" / "README.md", "# Removed eval\n")
             write(root / "scripts" / "harness-run.ps1", "# removed\n")
@@ -153,7 +171,7 @@ class RepositoryGateTests(unittest.TestCase):
             self.assertTrue(any("dead repository path" in error for error in errors), errors)
             self.assertTrue(any("obsolete live reference" in error for error in errors), errors)
 
-    def test_explicit_legacy_migration_input_is_allowed(self) -> None:
+    def test_legacy_migration_code_is_rejected_but_retirement_prose_is_allowed(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             self.make_valid_repo(root)
@@ -165,6 +183,20 @@ class RepositoryGateTests(unittest.TestCase):
             setup.write_text(
                 setup.read_text(encoding="utf-8")
                 + "\nMigrate legacy `.harness/` and `phases/` input without deleting it.\n",
+                encoding="utf-8",
+            )
+
+            errors = self.gate.validate_repository(root)
+
+            self.assertTrue(
+                any("obsolete live reference" in error for error in errors), errors
+            )
+            (root / "scripts" / "ezpowers.py").unlink()
+            setup.write_text(
+                setup.read_text(encoding="utf-8").split(
+                    "\nMigrate legacy", 1
+                )[0]
+                + "\nPre-v5 `.harness/` and `phases/` are retired and ignored.\n",
                 encoding="utf-8",
             )
 

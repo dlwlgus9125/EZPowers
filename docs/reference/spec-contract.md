@@ -9,6 +9,9 @@ or embed commands.
 Read repository instructions, `CONTEXT.md`, applicable ADRs, architecture and
 frontend-design artifacts, existing specs, public entry points, tests, and
 `.ezpowers/config.json`.
+Read `.ezpowers/docs.json` when present. Wiki candidates are supporting hints
+only and must be confirmed against repository evidence before becoming a
+requirement.
 
 - Use `setup` when `.ezpowers/ezpowers.py` is missing.
 - When a material product decision remains ambiguous, stop and recommend an

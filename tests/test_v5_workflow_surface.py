@@ -16,14 +16,25 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             "prepare-execute",
             "execute",
             "frontend-design",
-            "improve-codebase-architecture",
             "hud",
+            "wiki",
+            "harness-chain",
         }
         actual = {path.name for path in (REPO_ROOT / "skills").iterdir() if path.is_dir()}
         self.assertEqual(actual, expected)
         for name in expected:
             self.assertTrue((REPO_ROOT / "skills" / name / "SKILL.md").is_file())
             self.assertTrue((REPO_ROOT / "skills" / name / "agents" / "openai.yaml").is_file())
+            self.assertEqual(
+                name != "hud",
+                (
+                    REPO_ROOT
+                    / "skills"
+                    / name
+                    / "agents"
+                    / "project-openai.yaml"
+                ).is_file(),
+            )
 
     def test_deep_interview_contract_is_session_only_request_clarification(self) -> None:
         skill = (REPO_ROOT / "skills" / "deep-interview" / "SKILL.md").read_text(encoding="utf-8")
@@ -67,7 +78,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertNotIn("stress-test", metadata)
 
         manifest = json.loads(
-            (REPO_ROOT / "project-kit" / "v5.0.0" / "manifest.json").read_text(
+            (REPO_ROOT / "project-kit" / "v5.2.0" / "manifest.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -84,7 +95,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertFalse((REPO_ROOT / "harness-kit").exists())
         self.assertFalse((REPO_ROOT / "phases").exists())
         self.assertFalse((REPO_ROOT / ".harness").exists())
-        self.assertTrue((REPO_ROOT / "project-kit" / "v5.0.0" / "manifest.json").is_file())
+        self.assertTrue((REPO_ROOT / "project-kit" / "v5.2.0" / "manifest.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "config.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "state.json").is_file())
 
@@ -99,16 +110,60 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertIn("validate --plan <plan-path> --json", prepare)
         self.assertNotIn("--activate", prepare)
 
+    def test_harness_chain_is_explicit_asymmetric_and_project_installed(
+        self,
+    ) -> None:
+        skill = (
+            REPO_ROOT / "skills" / "harness-chain" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        metadata = (
+            REPO_ROOT
+            / "skills"
+            / "harness-chain"
+            / "agents"
+            / "openai.yaml"
+        ).read_text(encoding="utf-8")
+        contract = (
+            REPO_ROOT / "docs" / "reference" / "harness-chain-contract.md"
+        ).read_text(encoding="utf-8")
+        manifest = json.loads(
+            (
+                REPO_ROOT
+                / "project-kit"
+                / "v5.2.0"
+                / "manifest.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertIn("disable-model-invocation: true", skill)
+        self.assertIn("allow_implicit_invocation: false", metadata)
+        self.assertIn("one native Codex goal", contract)
+        self.assertIn("sole continuation loop", contract)
+        self.assertIn("NEEDS_REAPPROVAL", contract)
+        self.assertIn("bound independent", contract)
+        self.assertEqual(9, len(manifest["skills"]))
+        self.assertEqual(9, len(manifest["contracts"]))
+        self.assertIn(
+            "harness-chain",
+            {entry["name"] for entry in manifest["skills"]},
+        )
+        self.assertIn(
+            ".ezpowers/contracts/harness-chain-contract.md",
+            {entry["target"] for entry in manifest["contracts"]},
+        )
+
     def test_plugin_manifests_expose_the_same_version_and_current_workflow(self) -> None:
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.0.2")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.0.2")
-        self.assertTrue(codex["version"].startswith("5.0.2+codex."))
+        self.assertEqual(claude["version"], "5.2.0")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.2.0")
+        self.assertTrue(codex["version"].startswith("5.2.0+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)
+        self.assertIn("wiki", combined)
+        self.assertIn("harness-chain", combined)
         self.assertNotIn("choice-execute", combined)
 
 

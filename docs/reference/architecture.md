@@ -17,17 +17,23 @@ approval policy, review, and retry decisions. EZPowers owns only the parts that
 must remain stable across hosts and sessions:
 
 - settled project intent and architecture decisions;
+- a repository-evidenced Markdown graph with explicit ownership and lint;
 - one managed JSON contract in each feature spec and plan;
 - project-specific checks represented as exact argument arrays;
 - check output, hashes, workspace freshness, certification, and resume state;
+- optional worktree-local session knowledge that has no completion authority;
+- explicit, hash-frozen feature approvals, bound independent-review receipts,
+  and hard terminal limits when a harness chain is requested;
 - thin, optional host hook adapters over the same completion verdict.
 
 There is no second executor, numbered execution path, parallel task-state
-machine, or host-independent orchestration policy in the v5 architecture.
+machine, or generic host-independent orchestration policy in the v5
+architecture. The optional chain composes the existing artifacts and verdict;
+the selected host still performs every implementation action.
 
 ## Distribution And Installation
 
-The plugin repository contains the nine retained skills and the Claude and
+The plugin repository contains the ten retained skills and the Claude and
 Codex manifests. `setup` installs the project kit into the target repository:
 
 ```text
@@ -37,6 +43,10 @@ plugin distribution
   -> .agents/skills/             Codex project skill copies
   -> .claude/settings.json       optional Claude Stop adapter
   -> .codex/hooks.json           optional Codex Stop adapter
+  -> AGENTS.md + docs/           separately previewed documentation graph
+  -> .ezpowers/wiki/             optional local session knowledge
+  -> .ezpowers/chain.json        explicitly configured chain policy
+  -> .ezpowers/approvals/        immutable feature approvals
 ```
 
 The installed `.ezpowers/ezpowers.py` is standard-library only and is the
@@ -45,13 +55,16 @@ or repairing a project must not require this checkout, another repository, or
 a hidden user-local script. The target project root is also the Git worktree
 root because Git state is part of every completion fingerprint.
 
-`hud` is intentionally excluded from the project kit. It is a plugin-only,
-global Codex opt-in described in `docs/reference/codex-hud.md`.
+Nine skills are installed in a project, including `wiki` and `harness-chain`.
+`hud` is
+intentionally excluded from the project kit. It is a plugin-only, global Codex
+opt-in described in `docs/reference/codex-hud.md`.
 
 ## Workflow And Data Flow
 
 ```text
 setup
+  -> documentation preview/apply/lint
   -> deep-interview (only while material decisions are ambiguous)
   -> design-architecture
   -> spec
@@ -59,12 +72,41 @@ setup
   -> execute with host-native facilities
   -> .ezpowers verify --all
   -> .ezpowers certify
+
+explicit harness-chain
+  -> project questions + hash-bound config apply
+  -> staged spec/plan/oracle + isolated baseline
+  -> bound independent oracle audit
+  -> one feature approval
+  -> one native Codex goal OR one Claude Stop loop
+  -> implement/rework + verify --all
+  -> bound code review + conditional adversarial QA
+  -> certify or terminal verdict
 ```
 
 `spec` records host-independent observable criteria. `prepare-execute` maps
 each criterion to exact project checks. `execute` does not create a second
 task-state machine; it implements the plan and asks the local runtime for the
 completion verdict.
+
+`harness-chain` does not replace this data flow. It freezes the chosen inputs,
+adds explicit approval and independent-evidence gates, and records bounded
+resume state. Codex Stop observes its native goal; Claude Stop supplies
+continuation. The runtime never assigns implementation tasks or chooses a
+review model.
+
+Documentation bootstrap is orthogonal to feature planning. Setup analyzes
+repository evidence, stages whole-file Markdown proposals, and presents a
+hash-bound preview. Apply preserves unmanaged or edited files unless explicit
+adoption and force-backed replacement are approved. `.ezpowers/docs.json`
+holds the graph and `ezpowers.docs` becomes a required check. `AGENTS.md` is
+canonical; `CLAUDE.md` is only `@AGENTS.md`.
+
+The optional `.ezpowers/wiki/` stores candidates, a derived index, a local
+operation log, and backups. Keyword/tag search supports CJK without an
+embedding service. Promotion binds a page to an already-authored canonical
+document; it does not write or own that document. SessionEnd capture is
+separately opt-in and retains only allowlisted repository metadata.
 
 The runtime executes checks without an implicit shell, stores logs and hashes
 under `.ezpowers/evidence/`, and binds a PASS to the current spec, plan,
@@ -84,6 +126,12 @@ for resume guidance but cannot promote the all-scope completion verdict.
 - Completion: fresh all-scope evidence and its certificate.
 - Host discovery and adapter differences:
   `docs/reference/codex-plugin-discovery.md`.
+- Documentation ownership and graph rules:
+  `docs/reference/documentation-contract.md`.
+- Local wiki, promotion, pruning, and capture privacy:
+  `docs/reference/wiki-contract.md`.
+- Explicit chain configuration, approval, independent receipts, limits, and
+  host asymmetry: `docs/reference/harness-chain-contract.md`.
 - Evidence and freshness rules: `docs/reference/verification-contract.md`.
 
 Human-readable Markdown may explain these contracts but must not duplicate or

@@ -16,8 +16,10 @@ the source of truth for the artifact, state matrix, token/component policy,
 accessibility, mock/prototype handling, and tool-conditional visual lanes.
 
 Inspect manifests, routes, views, components, styles, tests, visual tooling,
-and existing design evidence. Reuse the repository's established design system
-and conventions.
+existing design evidence, and `.ezpowers/docs.json` when present. Reuse the
+repository's established design system and conventions. If EZPowers owns the
+frontend design artifact, update it through the documentation preview/apply
+workflow rather than hand-editing the managed file.
 
 ## Decide and record
 
