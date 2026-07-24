@@ -1,0 +1,6 @@
+interface:
+  display_name: "Codebase Design"
+  short_description: "Design deep modules at testable seams"
+  default_prompt: "Use $ezpowers:codebase-design to design a deep module and testable interface for this change."
+policy:
+  allow_implicit_invocation: true

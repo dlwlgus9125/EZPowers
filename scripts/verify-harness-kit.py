@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate or stamp the self-contained EZPowers v5.2 project-kit manifest."""
+"""Validate or stamp the self-contained EZPowers v5.3 project-kit manifest."""
 
 from __future__ import annotations
 
@@ -10,18 +10,21 @@ from pathlib import Path, PurePosixPath
 import re
 
 
-VERSION = "5.2.0"
-MANIFEST = "project-kit/v5.2.0/manifest.json"
+VERSION = "5.3.0"
+MANIFEST = "project-kit/v5.3.0/manifest.json"
 PROJECT_SKILLS = {
+    "codebase-design",
     "setup",
     "deep-interview",
     "design-architecture",
+    "diagnose",
     "spec",
     "prepare-execute",
     "execute",
     "frontend-design",
     "wiki",
     "harness-chain",
+    "improve-codebase-architecture",
 }
 CONTRACT_TARGETS = {
     ".ezpowers/contracts/setup-contract.md",
@@ -33,6 +36,7 @@ CONTRACT_TARGETS = {
     ".ezpowers/contracts/documentation-contract.md",
     ".ezpowers/contracts/wiki-contract.md",
     ".ezpowers/contracts/harness-chain-contract.md",
+    ".ezpowers/contracts/engineering-practices-contract.md",
 }
 HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -153,7 +157,8 @@ def validate(repo_root: Path, manifest_path: Path) -> list[str]:
 
     tools = manifest.get("tools")
     expected_tool = {
-        ("scripts/frontend-visual-readiness.py", ".ezpowers/tools/frontend-visual-readiness.py")
+        ("scripts/frontend-visual-readiness.py", ".ezpowers/tools/frontend-visual-readiness.py"),
+        ("scripts/architecture-review-report.py", ".ezpowers/tools/architecture-review-report.py"),
     }
     actual_tools = {
         (item.get("source"), item.get("target"))
@@ -161,7 +166,10 @@ def validate(repo_root: Path, manifest_path: Path) -> list[str]:
         if isinstance(item, dict)
     } if isinstance(tools, list) else set()
     if actual_tools != expected_tool:
-        errors.append("tools must install only frontend-visual-readiness.py under .ezpowers/tools")
+        errors.append(
+            "tools must install frontend-visual-readiness.py and "
+            "architecture-review-report.py under .ezpowers/tools"
+        )
 
     seen_sources: set[str] = set()
     for item in source_entries(manifest):
@@ -202,7 +210,7 @@ def main() -> int:
         for error in errors:
             print(f"ERROR: {error}")
         return 1
-    print("EZPowers v5.2 project kit manifest valid")
+    print("EZPowers v5.3 project kit manifest valid")
     return 0
 
 

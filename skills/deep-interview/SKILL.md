@@ -1,6 +1,6 @@
 ---
 name: deep-interview
-description: Use when a user's request is vague, underspecified, solution-shaped, or explicitly asks for deep-interview, requirement clarification, "grill me", or "그릴미". Turn the request into a clear, confirmed request within the current session. Not for reviewing an existing spec, design, or plan, writing artifacts, or small concrete edits whose outcome, scope, constraints, and completion criteria are already settled.
+description: Use when a user's request is vague, underspecified, solution-shaped, or explicitly asks for deep-interview, requirement clarification, "grill me", or "그릴미". Turn the request into a clear, confirmed request within the current session; when Plan Mode is already active, resume host-native planning after confirmation. Not for reviewing an existing spec, design, or plan, writing artifacts, or small concrete edits whose outcome, scope, constraints, and completion criteria are already settled.
 ---
 
 # Deep Interview
@@ -13,8 +13,11 @@ specification workflow.
 
 The interview and its result exist only in the current conversation. Do not
 create or update `CONTEXT.md`, ADRs, interview briefs, specs, plans, or any other
-file. Do not automatically invoke or hand off to another workflow. A later
-explicitly invoked skill may use the confirmed request from this session.
+file during the interview. Do not invoke or hand off to another skill or
+workflow. Returning a confirmed request to an already active Plan Mode resumes
+the current host mode; it is not a workflow handoff. Outside Plan Mode, do not
+automatically advance to another step. A later explicitly invoked skill may use
+the confirmed request from this session.
 
 ## Ground the interview
 
@@ -79,8 +82,36 @@ Stop asking when all of the following are true:
 Present **Clarified request** in the user's language as a self-contained
 replacement for the original request. Preserve the user's intent and voice;
 use short supporting bullets only when they make the request more usable. Ask
-the user to confirm or correct it. The interview is complete only after that
-explicit confirmation.
+the user to confirm or correct it. When Plan Mode is active, say in that same
+question that confirmation will continue planning. Use the host's native
+structured question surface when callable, with context-appropriate equivalents
+of **Confirm and continue planning** (recommended) and **Correct**; do not add a
+second continuation question. The interview is complete only after explicit
+confirmation.
+
+## Resume active Plan Mode
+
+After explicit confirmation, continue only when the current host remains in
+Plan Mode:
+
+1. Treat **Clarified request** as the source of truth for clarified user intent.
+   Carry its goal, audience, scope, constraints, non-goals, and observable
+   success into the current plan.
+2. End the interview loop and immediately resume the current host's native
+   planning process. Do not require another command, skill invocation, or
+   permission question merely to continue planning.
+3. Do not repeat product-intent questions the interview already settled.
+   Inspect repository evidence for discoverable facts and ask only about
+   unresolved implementation decisions under the active Plan Mode contract.
+4. If the plan is already decision-complete, produce the host's native final
+   plan immediately. Otherwise continue planning; do not stop with a terminal
+   interview-only summary while the plan remains incomplete.
+5. Do not invoke `design-architecture`, `spec`, `prepare-execute`, `execute`, or
+   any other workflow, create a project artifact, or start implementation.
+
+If the user corrects the request, revise it and obtain confirmation again. If
+the user ends the interview early, asks to stop, or Plan Mode is no longer
+active, preserve the ordinary session-only behavior and do not auto-continue.
 
 If the user ends the interview early, provide the best current clarified
 request and mark only the material unresolved points. Do not claim that the

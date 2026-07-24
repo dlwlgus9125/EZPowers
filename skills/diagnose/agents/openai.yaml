@@ -1,0 +1,6 @@
+interface:
+  display_name: "Diagnose"
+  short_description: "Find reproducible root causes before fixes"
+  default_prompt: "Use $ezpowers:diagnose to establish a reproducible root cause for this failure before changing code."
+policy:
+  allow_implicit_invocation: true

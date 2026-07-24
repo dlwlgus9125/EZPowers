@@ -13,7 +13,9 @@ acceptance contract, executes exact checks, records independent-review
 receipts, enforces retry limits, and issues the completion verdict.
 
 Read `AGENTS.md`, current Git state, `.ezpowers/config.json`, and
-`.ezpowers/contracts/harness-chain-contract.md` first. Preserve user changes.
+`.ezpowers/contracts/harness-chain-contract.md` first. Read
+`.ezpowers/contracts/engineering-practices-contract.md` before diagnosing a
+product failure or changing a product-code boundary. Preserve user changes.
 Never install a plugin, change global host configuration, select reviewer
 models, invent an external executor, or add a second task/phase state machine.
 
@@ -228,13 +230,15 @@ Run real verification:
 python .ezpowers/ezpowers.py verify --plan <plan> --all --json
 ```
 
-On FAIL, diagnose the recorded logs and fix the product. Never weaken, skip,
-rename, or replace the oracle/check to obtain PASS. A failure that reaches any
-approved limit becomes terminal immediately; do not perform an extra attempt.
-The runtime records the failed workspace and rejects another all-scope
-verification until a real workspace content change is observed. Task-scoped
-checks may still be used for diagnosis, but cannot clear the rework
-requirement.
+On FAIL, apply the `diagnose` evidence ladder to the recorded logs, add a
+regression test before the fix when applicable, and fix the product. This does
+not create another retry authority or expand the approved acceptance contract.
+Never weaken, skip, rename, or replace the oracle/check to obtain PASS. A
+failure that reaches any approved limit becomes terminal immediately; do not
+perform an extra attempt. The runtime records the failed workspace and rejects
+another all-scope verification until a real workspace content change is
+observed. Task-scoped checks may still be used for diagnosis, but cannot clear
+the rework requirement.
 
 After a fresh PASS, run an independent code review bound to that evidence:
 

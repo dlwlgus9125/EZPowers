@@ -17,6 +17,9 @@ Read `.ezpowers/contracts/plan-contract.md` and
 for the managed schema and check rules. Read the selected spec, architecture
 and frontend-design artifacts, repository instructions, the documentation
 graph when present, source, tests, CI commands, and `.ezpowers/config.json`.
+When the plan changes product-code module boundaries, read
+`.ezpowers/contracts/engineering-practices-contract.md` and preserve the
+focused `codebase-design` seams and regression checks in the task mapping.
 
 Validate the spec first with the exact command in the plan contract. Return to
 `spec` when a criterion is ambiguous or cannot be automated without weakening

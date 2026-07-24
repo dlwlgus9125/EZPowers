@@ -162,8 +162,10 @@ class EZPowersInstallTests(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, proc.stderr + proc.stdout)
 
             expected = {
+                "codebase-design",
                 "setup",
                 "deep-interview",
+                "diagnose",
                 "design-architecture",
                 "spec",
                 "prepare-execute",
@@ -171,6 +173,7 @@ class EZPowersInstallTests(unittest.TestCase):
                 "frontend-design",
                 "wiki",
                 "harness-chain",
+                "improve-codebase-architecture",
             }
             for name in expected:
                 canonical = project.root / ".ezpowers" / "kit" / "skills" / name / "SKILL.md"
@@ -188,6 +191,26 @@ class EZPowersInstallTests(unittest.TestCase):
             isolated = run_cli(project.runtime, "--help", cwd=project.root)
             self.assertEqual(isolated.returncode, 0, isolated.stderr)
             self.assertNotIn("ModuleNotFoundError", isolated.stderr)
+            installed_report = (
+                project.root
+                / ".ezpowers"
+                / "tools"
+                / "architecture-review-report.py"
+            )
+            report_help = run_cli(installed_report, "--help", cwd=project.root)
+            self.assertEqual(
+                report_help.returncode,
+                0,
+                report_help.stderr + report_help.stdout,
+            )
+            self.assertTrue(
+                (
+                    project.root
+                    / ".ezpowers"
+                    / "contracts"
+                    / "engineering-practices-contract.md"
+                ).is_file()
+            )
 
     def test_installed_runtime_survives_removal_of_the_plugin_distribution(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -197,10 +220,10 @@ class EZPowersInstallTests(unittest.TestCase):
             distribution.mkdir()
             project_root.mkdir()
 
-            manifest_path = REPO_ROOT / "project-kit" / "v5.2.0" / "manifest.json"
+            manifest_path = REPO_ROOT / "project-kit" / "v5.3.0" / "manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             sources = {
-                "project-kit/v5.2.0/manifest.json",
+                "project-kit/v5.3.0/manifest.json",
                 manifest["runtime"]["source"],
                 *(item["source"] for item in manifest.get("tools", [])),
                 *(item["source"] for item in manifest.get("contracts", [])),
@@ -282,7 +305,7 @@ class EZPowersInstallTests(unittest.TestCase):
             self.assertEqual(project.install().returncode, 0)
             ledger_path = project.root / ".ezpowers" / "ledger.json"
             ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
-            ledger["version"] = "4.9.9"
+            ledger["version"] = "5.2.0"
             ledger_path.write_text(
                 json.dumps(ledger, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
@@ -294,7 +317,7 @@ class EZPowersInstallTests(unittest.TestCase):
             refreshed = project.install("--refresh")
             self.assertEqual(refreshed.returncode, 0, refreshed.stderr + refreshed.stdout)
             repaired = json.loads(ledger_path.read_text(encoding="utf-8"))
-            self.assertEqual(repaired["version"], "5.2.0")
+            self.assertEqual(repaired["version"], "5.3.0")
 
     def test_opt_in_hooks_use_native_nested_shape_and_work_from_a_subdirectory(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -378,6 +401,20 @@ class EZPowersInstallTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             project = RuntimeProject(pathlib.Path(temp_dir))
             self.assertEqual(project.install().returncode, 0)
+            ledger_path = project.root / ".ezpowers" / "ledger.json"
+            ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+            ledger["version"] = "5.2.0"
+            replaceable_relative = ".agents/skills/diagnose/SKILL.md"
+            replaceable = project.root / replaceable_relative
+            old_managed_bytes = b"simulated v5.2 managed copy\n"
+            replaceable.write_bytes(old_managed_bytes)
+            ledger["files"][replaceable_relative]["sha256"] = hashlib.sha256(
+                old_managed_bytes
+            ).hexdigest()
+            ledger_path.write_text(
+                json.dumps(ledger, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
             target = project.root / ".claude" / "skills" / "spec" / "SKILL.md"
             target.write_text(target.read_text(encoding="utf-8") + "\nuser-owned change\n", encoding="utf-8")
 
@@ -392,6 +429,9 @@ class EZPowersInstallTests(unittest.TestCase):
             self.assertNotEqual(proc.returncode, 0, proc.stderr + proc.stdout)
             self.assertIn("user-owned change", target.read_text(encoding="utf-8"))
             self.assertIn("conflict", (proc.stdout + proc.stderr).lower())
+            self.assertEqual(replaceable.read_bytes(), old_managed_bytes)
+            preserved_ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+            self.assertEqual(preserved_ledger["version"], "5.2.0")
 
     def test_existing_install_detects_managed_copy_drift_without_refresh(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

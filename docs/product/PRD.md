@@ -18,11 +18,19 @@ one approved, unattended feature chain without adding a second Codex loop.
 
 A user can install EZPowers into a project, bootstrap a repository-evidenced
 Markdown graph, optionally retain allowlisted local session knowledge, clarify
-vague intent, write confirmed intent as traceable acceptance criteria, map
-those criteria to real project checks, implement with either supported host,
-and receive the same pass/fail completion verdict from repository evidence. A
-new session can navigate project authority and determine what is fresh without
-trusting conversation memory.
+vague intent, continue an already active host-native Plan Mode from the
+confirmed request, write confirmed intent as traceable acceptance criteria,
+map those criteria to real project checks, implement with either supported
+host, and receive the same pass/fail completion verdict from repository
+evidence. A new session can navigate project authority and determine what is
+fresh without trusting conversation memory.
+
+For product-code work, the user can also request evidence-first diagnosis,
+focused module/interface design, or an explicit broad architecture scan. The
+broad scan produces an escaped, dependency-free HTML report outside the
+repository and returns to one user-selected candidate; none of these
+disciplines silently expands write, documentation, retry, or completion
+authority.
 
 When a project needs unattended work, the user can answer project-level chain
 questions once, inspect a real failing/passing oracle baseline and independent
@@ -46,6 +54,8 @@ EZPowers owns:
 - certification, staleness, tamper detection, and resume status;
 - explicit chain configuration, frozen feature approvals, independent-review
   challenges and hashed receipts, hard limits, and terminal states;
+- a pinned, installed engineering-practices contract and deterministic,
+  standard-library architecture-report renderer;
 - thin host adapters and optional frontend readiness detection.
 
 Claude Code and Codex own code changes, shell UX, model choice, spawning
@@ -61,6 +71,16 @@ EZPowers does not require an external shared repository or executor.
 - Host-specific hooks are configured only with Claude Code 2.1.217 or newer
   and Codex CLI 0.145.0 or newer.
 - Both hosts receive byte-identical local workflow instructions.
+- A confirmed `deep-interview` request resumes an already active Plan Mode
+  without invoking another workflow, writing an artifact, or authorizing
+  implementation.
+- Diagnosis-only work stops at a reproducible, minimized, first-divergence
+  explanation; an authorized fix begins with a real failing regression test.
+- Focused codebase design compares materially different interfaces and treats
+  one adapter as a hypothetical seam rather than proof of abstraction.
+- Broad architecture improvement is explicit-only, scans product code, writes
+  no repository files, and emits a validated offline report with at most eight
+  evidence-backed candidates.
 - `AGENTS.md` is canonical, `CLAUDE.md` imports it, and ready documentation
   graphs pass a required deterministic lint.
 - Documentation replacement is preview-bound, preserves unmanaged edits, and

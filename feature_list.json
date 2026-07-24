@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-07-23T16:53:35Z",
+  "updated_at": "2026-07-24T04:01:44Z",
   "features": [
     {
       "id": "F11",
@@ -20,7 +20,7 @@
         "tests/test_v5_workflow_surface.py",
         "scripts/runtime_smoke.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.2.0/manifest.json"
+        "project-kit/v5.3.0/manifest.json"
       ]
     },
     {
@@ -33,14 +33,14 @@
         "A ready graph registers deterministic documentation lint as a required project check",
         "The installed wiki skill supports local Markdown add, read, list, CJK query, lint, refresh, promotion, and backup-first prune operations",
         "Claude and Codex SessionEnd capture is separately opt-in, allowlisted, best effort, and excluded from completion freshness",
-        "The current v5.2 project kit and both plugin manifests preserve the same nine-project-skill and ten-plugin-skill surface"
+        "The current v5.3 project kit and both plugin manifests preserve the same twelve-project-skill and thirteen-plugin-skill surface"
       ],
       "evidence": [
         "docs/reference/documentation-contract.md",
         "docs/reference/wiki-contract.md",
         "tests/test_ezpowers_docs_wiki.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.2.0/manifest.json"
+        "project-kit/v5.3.0/manifest.json"
       ]
     },
     {
@@ -55,7 +55,7 @@
         "Validation, review, QA, identical-error, and continuation limits become terminal on the attempt that reaches the approved limit, including a configured limit of one",
         "A failed oracle audit consumes its exact preview, while failed verification, code review, or QA requires changed repository content and a new all-scope PASS before the chain can review again",
         "Certification requires fresh real command evidence, a bound independent code-review receipt, and adversarial QA when approved risks or project triggers require it",
-        "The v5.2 project kit exposes nine project skills and nine contracts while the plugin exposes those skills plus the plugin-only hud utility"
+        "The v5.3 project kit exposes twelve project skills and ten contracts while the plugin exposes those skills plus the plugin-only hud utility"
       ],
       "evidence": [
         "docs/reference/harness-chain-contract.md",
@@ -63,7 +63,7 @@
         "skills/harness-chain/SKILL.md",
         "tests/test_harness_chain.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.2.0/manifest.json"
+        "project-kit/v5.3.0/manifest.json"
       ]
     },
     {
@@ -71,7 +71,7 @@
       "title": "Workflow surface audit and host compatibility hardening",
       "status": "complete",
       "success_criteria": [
-        "The live catalog contains exactly ten plugin skills and nine project-installed skills, with the redundant architecture advisory removed",
+        "The 2026-07-24 audit recorded the then-current ten-plugin and nine-project catalog; F16 supersedes only those inventory counts while its retirement and host-hardening findings remain enforced",
         "Plugin Codex metadata uses namespaced invocations while project-kit metadata uses local invocations, and actual Codex skills/list loads every retained skill enabled and error-free",
         "Retired pre-v5 harness and phase files are ignored and preserved rather than migrated or interpreted",
         "Claude 2.1.217 and Codex 0.145.0 minimums fail before host-specific hook or chain writes, and the HUD enforces the Codex minimum before installation",
@@ -87,7 +87,53 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_harness_chain.py",
         "tests/test_codex_hud.py",
-        "project-kit/v5.2.0/manifest.json"
+        "project-kit/v5.3.0/manifest.json"
+      ]
+    },
+    {
+      "id": "F15",
+      "title": "Plan Mode-aware deep-interview continuation",
+      "status": "complete",
+      "success_criteria": [
+        "Deep-interview remains session-only, writes no project artifact, invokes no downstream workflow, and grants no implementation authority",
+        "When Plan Mode is already active, the final confirmation makes continuation explicit and resumes the same host-native planning process without another command or permission question",
+        "The confirmed request remains the source of truth for clarified user intent, so planning carries its scope and success criteria forward without repeating settled product questions",
+        "Corrections, early exits, stop requests, and confirmations outside Plan Mode preserve the ordinary non-continuing behavior",
+        "Plugin and project metadata, canonical guidance, the current v5.3.0 project-kit hashes, and the 5.3.0 dual-host plugin versions preserve the same transition contract"
+      ],
+      "evidence": [
+        "skills/deep-interview/SKILL.md",
+        "tests/test_v5_workflow_surface.py",
+        "tests/test_codex_plugin_discovery.py",
+        "scripts/plugin_smoke.py",
+        "docs/reference/codex-plugin-discovery.md",
+        "project-kit/v5.3.0/manifest.json"
+      ]
+    },
+    {
+      "id": "F16",
+      "title": "Bounded specialized engineering skills",
+      "status": "complete",
+      "success_criteria": [
+        "Diagnose is implicitly matchable, builds a reproducible evidence loop, stops before edits for diagnosis-only requests, and requires a failing seam-level regression test before an authorized fix",
+        "Codebase-design is implicitly matchable and compares at least two focused deep-module interfaces without scanning the whole repository or owning durable architecture documents",
+        "Improve-codebase-architecture is explicit-only, scans existing product code, writes no repository files, and explores one user-selected candidate without implementing it",
+        "The standard-library architecture report renderer validates strict v1 input, escapes untrusted content, has no remote or script dependency, writes atomically outside the repository without overwrite, and returns a hashed JSON receipt",
+        "The pinned upstream commit and complete MIT notice are installed in one canonical engineering-practices contract, with no runtime upstream fetch",
+        "The v5.3.0 catalog exposes exactly thirteen plugin skills and installs twelve project skills, ten contracts, and two tools with dual-host metadata parity",
+        "Existing v5.2 projects require explicit refresh, managed conflicts fail without partial replacement, and a changed kit identity stales prior completion evidence"
+      ],
+      "evidence": [
+        "docs/reference/engineering-practices-contract.md",
+        "docs/decisions/0004-specialized-engineering-skills.md",
+        "skills/diagnose/SKILL.md",
+        "skills/codebase-design/SKILL.md",
+        "skills/improve-codebase-architecture/SKILL.md",
+        "scripts/architecture-review-report.py",
+        "tests/test_architecture_review_report.py",
+        "tests/test_v5_workflow_surface.py",
+        "tests/test_ezpowers_runtime.py",
+        "project-kit/v5.3.0/manifest.json"
       ]
     }
   ]

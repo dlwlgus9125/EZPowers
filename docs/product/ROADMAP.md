@@ -1,6 +1,6 @@
 # EZPowers Roadmap
 
-## Current: v5.2.0
+## Current: v5.3.0
 
 - Preserve the v5.1 documentation graph and local wiki.
 - Add an explicit project-question workflow for chain stages, QA triggers,
@@ -14,10 +14,20 @@
 - Bind independent code-review and conditional adversarial-QA receipts to the
   exact fresh evidence before certification.
 - Make limit exhaustion terminal on the attempt that reaches the limit.
-- Keep one exact catalog: ten plugin skills, nine project skills, and separate
+- Add pinned, adapted `diagnose`, `codebase-design`, and
+  `improve-codebase-architecture` disciplines with diagnosis/write,
+  architecture-document, and completion-authority boundaries.
+- Render broad architecture reviews through a deterministic standard-library
+  tool into a unique temporary offline HTML report.
+- Keep one exact catalog: thirteen plugin skills, twelve project skills, and separate
   namespaced versus project-local Codex prompt metadata.
 - Enforce Claude Code 2.1.217 and Codex CLI 0.145.0 before host-specific
   project hook writes, and treat all pre-v5 workflow input as retired.
+- Resume an already active Plan Mode after a user confirms the
+  `deep-interview` request, while preserving its session-only, no-artifact,
+  no-implementation boundary everywhere else.
+- Upgrade existing v5.2 installations only through explicit `setup --refresh`;
+  preserve customized managed files and fail atomically on conflicts.
 
 ## Later, only with demonstrated demand
 
@@ -27,6 +37,9 @@
   that the adaptive graph is insufficient.
 - Additional host adapters when their official APIs provide a measurable user
   benefit that the shared verdict alone cannot deliver.
+- Additional third-party engineering skills only when a bounded role,
+  maintenance owner, and deterministic validation justify expanding the core
+  catalog.
 
 Model routing, bundled reviewer fleets, generic host-independent retries,
 custom task graphs, phase conversion, and an external executor are not roadmap

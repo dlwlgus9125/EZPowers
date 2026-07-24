@@ -12,11 +12,14 @@ other.
 
 ## Retained Plugin Surface
 
-The plugin root exposes exactly these ten skills:
+The plugin root exposes exactly these thirteen skills:
 
 ```text
 setup
 deep-interview
+diagnose
+codebase-design
+improve-codebase-architecture
 design-architecture
 spec
 prepare-execute
@@ -41,21 +44,27 @@ worktrees, sandboxing, review, and retries remain host-native capabilities.
 | Local project skill root | `.claude/skills/<name>/` | `.agents/skills/<name>/` |
 | Local invocation | `/<name>` | `$<name>` |
 
-The explicitly invoked workflow skills are `setup`, `design-architecture`,
-`spec`, `prepare-execute`, `execute`, `harness-chain`, and `hud`. The skills
-`deep-interview`, `frontend-design`, and `wiki` may be matched implicitly from
-their descriptions. Both hosts must
+The explicitly invoked workflow skills are `setup`,
+`improve-codebase-architecture`, `design-architecture`, `spec`,
+`prepare-execute`, `execute`, `harness-chain`, and `hud`. The skills
+`deep-interview`, `diagnose`, `codebase-design`, `frontend-design`, and `wiki`
+may be matched implicitly from their descriptions. Both hosts must
 encode the same intent using their own policy field; one host's field is not
 evidence that the other host enforces it.
 
 `deep-interview` uses a host-native structured question surface when one is
 callable and appropriate, and otherwise asks one plain-text question. The
 shared contract is one consequential question per turn and a confirmed request
-in the current conversation, not identical question UI capabilities.
+in the current conversation, not identical question UI capabilities. In an
+already active Plan Mode, its final confirmation makes continuation explicit
+and then resumes that same host-native planning process. The confirmed request
+is the source of truth for clarified user intent, so planning does not repeat
+settled product questions. This mode continuation does not invoke another
+skill, create a project artifact, or authorize implementation.
 
 ## Project Installation
 
-`setup` copies nine project workflow skills to the canonical
+`setup` copies twelve project workflow skills to the canonical
 `.ezpowers/kit/skills/` tree and byte-identical host trees under
 `.claude/skills/` and `.agents/skills/`. `hud` is not copied because it manages
 global Codex UI rather than project completion.
@@ -66,7 +75,7 @@ their native skill locations. A missing host copy, byte drift from the
 canonical kit, or missing Codex skill metadata is an installation failure.
 
 Codex plugin and project skill names are not interchangeable. Each retained
-skill's plugin metadata invokes `$ezpowers:<name>`. The nine project-installed
+skill's plugin metadata invokes `$ezpowers:<name>`. The twelve project-installed
 skills carry a distribution-only metadata variant that invokes `$<name>`; the
 manifest copies that variant to the installed metadata filename expected by
 Codex. `hud` has no project variant.
@@ -170,8 +179,8 @@ metadata variants, invocation policy, and absence of removed components. When
 the CLIs are available it uses Claude's non-installing plugin validator,
 installs the project kit into a temporary Git worktree, installs the plugin
 from a compact temporary local marketplace under an isolated `CODEX_HOME`, and
-queries actual Codex `skills/list`. It requires all nine local skills and all
-ten namespaced plugin skills to be enabled, error-free, and paired with the
+queries actual Codex `skills/list`. It requires all twelve local skills and all
+thirteen namespaced plugin skills to be enabled, error-free, and paired with the
 expected prompt. The implicit prompt-input probe remains a second discovery
 check. The smoke never installs, reinstalls, or edits global plugin state.
 

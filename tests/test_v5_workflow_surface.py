@@ -9,8 +9,10 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 class V5WorkflowSurfaceTests(unittest.TestCase):
     def test_live_skill_surface_is_small_and_host_metadata_is_complete(self) -> None:
         expected = {
+            "codebase-design",
             "setup",
             "deep-interview",
+            "diagnose",
             "design-architecture",
             "spec",
             "prepare-execute",
@@ -19,6 +21,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             "hud",
             "wiki",
             "harness-chain",
+            "improve-codebase-architecture",
         }
         actual = {path.name for path in (REPO_ROOT / "skills").iterdir() if path.is_dir()}
         self.assertEqual(actual, expected)
@@ -36,7 +39,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
                 ).is_file(),
             )
 
-    def test_deep_interview_contract_is_session_only_request_clarification(self) -> None:
+    def test_deep_interview_contract_is_session_only_and_resumes_active_plan_mode(self) -> None:
         skill = (REPO_ROOT / "skills" / "deep-interview" / "SKILL.md").read_text(encoding="utf-8")
         normalized_skill = " ".join(skill.split())
         for phrase in (
@@ -50,6 +53,13 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             "Do not create or update",
             "numerical ambiguity score",
             "a required constraint or a tentative means",
+            "Confirm and continue planning",
+            "do not add a second continuation question",
+            "source of truth for clarified user intent",
+            "resume the current host's native planning process",
+            "Do not repeat product-intent questions",
+            "host's native final plan",
+            "Plan Mode is no longer active",
         ):
             self.assertIn(phrase, normalized_skill)
         for phrase in (
@@ -70,15 +80,21 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertIn("explicit `deep-interview` invocation", spec)
         self.assertIn("settled decisions", spec)
 
-        metadata = (
-            REPO_ROOT / "skills" / "deep-interview" / "agents" / "openai.yaml"
-        ).read_text(encoding="utf-8")
-        self.assertIn("one question at a time", metadata)
-        self.assertIn("confirmed rewritten request", metadata)
-        self.assertNotIn("stress-test", metadata)
+        for metadata_name in ("openai.yaml", "project-openai.yaml"):
+            metadata = (
+                REPO_ROOT
+                / "skills"
+                / "deep-interview"
+                / "agents"
+                / metadata_name
+            ).read_text(encoding="utf-8")
+            self.assertIn("one question at a time", metadata)
+            self.assertIn("continue planning", metadata)
+            self.assertIn("Plan Mode", metadata)
+            self.assertNotIn("stress-test", metadata)
 
         manifest = json.loads(
-            (REPO_ROOT / "project-kit" / "v5.2.0" / "manifest.json").read_text(
+            (REPO_ROOT / "project-kit" / "v5.3.0" / "manifest.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -95,7 +111,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertFalse((REPO_ROOT / "harness-kit").exists())
         self.assertFalse((REPO_ROOT / "phases").exists())
         self.assertFalse((REPO_ROOT / ".harness").exists())
-        self.assertTrue((REPO_ROOT / "project-kit" / "v5.2.0" / "manifest.json").is_file())
+        self.assertTrue((REPO_ROOT / "project-kit" / "v5.3.0" / "manifest.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "config.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "state.json").is_file())
 
@@ -130,7 +146,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.2.0"
+                / "v5.3.0"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -141,8 +157,9 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertIn("sole continuation loop", contract)
         self.assertIn("NEEDS_REAPPROVAL", contract)
         self.assertIn("bound independent", contract)
-        self.assertEqual(9, len(manifest["skills"]))
-        self.assertEqual(9, len(manifest["contracts"]))
+        self.assertEqual(12, len(manifest["skills"]))
+        self.assertEqual(10, len(manifest["contracts"]))
+        self.assertEqual(2, len(manifest["tools"]))
         self.assertIn(
             "harness-chain",
             {entry["name"] for entry in manifest["skills"]},
@@ -152,18 +169,89 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             {entry["target"] for entry in manifest["contracts"]},
         )
 
+    def test_specialized_engineering_skills_preserve_authority_and_safety(self) -> None:
+        diagnose = (
+            REPO_ROOT / "skills" / "diagnose" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        design = (
+            REPO_ROOT / "skills" / "codebase-design" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        improve = (
+            REPO_ROOT / "skills" / "improve-codebase-architecture" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        contract = (
+            REPO_ROOT
+            / "docs"
+            / "reference"
+            / "engineering-practices-contract.md"
+        ).read_text(encoding="utf-8")
+        normalized_contract = " ".join(contract.split()).lower()
+
+        self.assertIn("Diagnosis only", diagnose)
+        self.assertIn("regression test", diagnose)
+        self.assertIn("first divergence", diagnose)
+        self.assertIn("at least two materially different", design)
+        self.assertIn("deletion test", design)
+        self.assertIn("one adapter as a hypothetical seam", design)
+        self.assertIn("disable-model-invocation: true", improve)
+        self.assertIn("Do not implement the refactor", improve)
+        self.assertIn("OS temporary path", improve)
+
+        for name in ("diagnose", "codebase-design"):
+            metadata = (
+                REPO_ROOT / "skills" / name / "agents" / "openai.yaml"
+            ).read_text(encoding="utf-8")
+            self.assertIn("allow_implicit_invocation: true", metadata)
+        improve_metadata = (
+            REPO_ROOT
+            / "skills"
+            / "improve-codebase-architecture"
+            / "agents"
+            / "openai.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("allow_implicit_invocation: false", improve_metadata)
+
+        self.assertIn("ed37663cc5fbef691ddfecd080dff42f7e7e350d", contract)
+        self.assertIn("never fetch upstream content", normalized_contract)
+        self.assertIn("1-8 candidates", contract)
+        self.assertIn(
+            "restrictive content security policy",
+            normalized_contract,
+        )
+
+    def test_korean_skill_guide_covers_the_v53_catalog(self) -> None:
+        guide = (
+            REPO_ROOT / "docs" / "ezpowers-skills-guide.html"
+        ).read_text(encoding="utf-8")
+        expected = {
+            path.name
+            for path in (REPO_ROOT / "skills").iterdir()
+            if path.is_dir()
+        }
+        for name in expected:
+            self.assertIn(f'id="skill-{name}"', guide)
+            self.assertIn(f"../skills/{name}/SKILL.md", guide)
+        self.assertEqual(13, guide.count('class="skill-card"'))
+        self.assertIn("13 plugin skills", guide)
+        self.assertIn("12 project skills", guide)
+        self.assertIn("../project-kit/v5.3.0/manifest.json", guide)
+        self.assertNotIn("v5.2.0/manifest.json", guide)
+
     def test_plugin_manifests_expose_the_same_version_and_current_workflow(self) -> None:
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.2.0")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.2.0")
-        self.assertTrue(codex["version"].startswith("5.2.0+codex."))
+        self.assertEqual(claude["version"], "5.3.0")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.3.0")
+        self.assertTrue(codex["version"].startswith("5.3.0+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)
         self.assertIn("wiki", combined)
         self.assertIn("harness-chain", combined)
+        self.assertIn("diagnose", combined)
+        self.assertIn("codebase-design", combined)
+        self.assertIn("improve-codebase-architecture", combined)
         self.assertNotIn("choice-execute", combined)
 
 

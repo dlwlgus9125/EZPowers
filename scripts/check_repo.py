@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cross-platform structural gate for the EZPowers v5.2 repository surface."""
+"""Cross-platform structural gate for the EZPowers v5.3 repository surface."""
 
 from __future__ import annotations
 
@@ -15,11 +15,14 @@ from urllib.parse import unquote
 
 PLUGIN_SKILLS = frozenset(
     {
+        "codebase-design",
         "deep-interview",
         "design-architecture",
+        "diagnose",
         "execute",
         "frontend-design",
         "hud",
+        "improve-codebase-architecture",
         "prepare-execute",
         "setup",
         "spec",
@@ -35,6 +38,7 @@ EXPLICIT_ONLY_SKILLS = frozenset(
         "execute",
         "harness-chain",
         "hud",
+        "improve-codebase-architecture",
         "prepare-execute",
         "setup",
         "spec",
@@ -63,10 +67,8 @@ REMOVED_SKILLS = frozenset(
         "caveman",
         "choice-execute",
         "deploy",
-        "diagnose",
         "grill-with-docs",
         "handoff",
-        "improve-codebase-architecture",
         "maintain",
         "reset-setup",
         "review",
@@ -122,7 +124,7 @@ OBSOLETE_REFERENCES = (
     "testing-methodology.md",
 )
 
-PROJECT_KIT_MANIFEST = pathlib.Path("project-kit/v5.2.0/manifest.json")
+PROJECT_KIT_MANIFEST = pathlib.Path("project-kit/v5.3.0/manifest.json")
 PROJECT_KIT_VERIFIER = pathlib.Path("scripts/verify-harness-kit.py")
 
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")

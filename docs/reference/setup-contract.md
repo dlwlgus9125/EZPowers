@@ -1,6 +1,6 @@
 # Setup Contract
 
-This contract defines installation of the self-contained v5.2 project kit.
+This contract defines installation of the self-contained v5.3 project kit.
 `setup` configures deterministic project checks and may stage the
 repository-aware documentation workflow defined by
 `documentation-contract.md`; it does not configure an external executor or
@@ -45,6 +45,11 @@ For an installed project upgraded from the current plugin distribution:
 python <plugin-root>/scripts/ezpowers.py install --project-root <project> --refresh
 ```
 
+An existing v5.2 installation does not update implicitly. The explicit refresh
+changes the installed kit identity and makes prior completion evidence stale.
+If any managed target differs from its ledger hash, refresh reports every
+conflict and writes none of the replacement set.
+
 For a same-version repair from the installed kit:
 
 ```text
@@ -75,18 +80,20 @@ The manifest and ledger must make these files locally available:
   state.json
   ledger.json
   kit/manifest.json
-  kit/skills/<nine-project-skills>/...
+  kit/skills/<twelve-project-skills>/...
   contracts/...
   tools/frontend-visual-readiness.py
-.claude/skills/<nine-project-skills>/...
-.agents/skills/<nine-project-skills>/...
+  tools/architecture-review-report.py
+.claude/skills/<twelve-project-skills>/...
+.agents/skills/<twelve-project-skills>/...
 ```
 
-The nine project skills are `setup`, `deep-interview`,
-`design-architecture`, `spec`, `prepare-execute`, `execute`,
-`frontend-design`, `wiki`, and `harness-chain`. `hud` remains plugin-only and
-global. Documentation, wiki, and harness-chain contracts are installed with
-the existing workflow contracts.
+The twelve project skills are `setup`, `deep-interview`, `diagnose`,
+`codebase-design`, `improve-codebase-architecture`, `design-architecture`,
+`spec`, `prepare-execute`, `execute`, `frontend-design`, `wiki`, and
+`harness-chain`. `hud` remains plugin-only and global. Engineering practices,
+documentation, wiki, and harness-chain contracts are installed with the
+existing workflow contracts.
 
 Each manifest source and installed target is SHA-256 verified. Canonical skill
 files and both host copies are byte-identical. The ledger records the kit

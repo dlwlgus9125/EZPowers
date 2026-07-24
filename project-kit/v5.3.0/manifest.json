@@ -1,17 +1,22 @@
 {
   "schema_version": 1,
-  "version": "5.2.0",
+  "version": "5.3.0",
   "no_synthesis": true,
   "runtime": {
     "source": "scripts/ezpowers.py",
     "target": ".ezpowers/ezpowers.py",
-    "sha256": "bc8ab5e5aa4083905ca55a3f6438c0381f1603ae49da0b619544711f46522a40"
+    "sha256": "fb620f0f50275dee801e2b7578c67051ae13bdde37d08b48d8081de38491cfc9"
   },
   "tools": [
     {
       "source": "scripts/frontend-visual-readiness.py",
       "target": ".ezpowers/tools/frontend-visual-readiness.py",
       "sha256": "a8c65cca139d1050ac39e210103cbd79e7d6963b4a3ba52ae421456c5590cdbd"
+    },
+    {
+      "source": "scripts/architecture-review-report.py",
+      "target": ".ezpowers/tools/architecture-review-report.py",
+      "sha256": "b121ac8111eafcbbe54f6265c849f23f5f1836074032ac9f6508e660ecd81ff6"
     }
   ],
   "skills": [
@@ -36,12 +41,57 @@
         {
           "source": "skills/deep-interview/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "f582f6152aafba4343408bd08059873a9e2051bb552da0a23cdf78eae60dffb7"
+          "sha256": "854234dd8ebfda55e5f544295fd7ce5f268e1438e2332500bfa0ce76c1256dd2"
         },
         {
           "source": "skills/deep-interview/agents/project-openai.yaml",
           "path": "agents/openai.yaml",
-          "sha256": "498097304171eecf2b897b2124674cdd9692180002ced8238991e788c9f91407"
+          "sha256": "d5f200453a30706cfeff49b5deface77f62af161294de1bd00190c6f5724849f"
+        }
+      ]
+    },
+    {
+      "name": "diagnose",
+      "files": [
+        {
+          "source": "skills/diagnose/SKILL.md",
+          "path": "SKILL.md",
+          "sha256": "69cd39236812225aa0d050fefd1d43fd5f747ac079af096babc93ddfce51ff13"
+        },
+        {
+          "source": "skills/diagnose/agents/project-openai.yaml",
+          "path": "agents/openai.yaml",
+          "sha256": "3a365aaeff9a500feefa109fbd27e90e5e26ab4b4b9ccee91ae23a8147563c9f"
+        }
+      ]
+    },
+    {
+      "name": "codebase-design",
+      "files": [
+        {
+          "source": "skills/codebase-design/SKILL.md",
+          "path": "SKILL.md",
+          "sha256": "36e593abc9614e1943b79fb2a45b55fbc14482b564cf40f13535bdbe972d0a07"
+        },
+        {
+          "source": "skills/codebase-design/agents/project-openai.yaml",
+          "path": "agents/openai.yaml",
+          "sha256": "db2094a0b9a9b5114ae8f6e03d8917416e9471f894de1a752ced824f912c23a6"
+        }
+      ]
+    },
+    {
+      "name": "improve-codebase-architecture",
+      "files": [
+        {
+          "source": "skills/improve-codebase-architecture/SKILL.md",
+          "path": "SKILL.md",
+          "sha256": "897c15221c6160537555b85bca29fdcd2f51fa4fd5055d10a3acbe6e66fee9e5"
+        },
+        {
+          "source": "skills/improve-codebase-architecture/agents/project-openai.yaml",
+          "path": "agents/openai.yaml",
+          "sha256": "bd4c1dd53782e26e21135cab70c13e117f6c8ff939d31883cb5901eebe5c2222"
         }
       ]
     },
@@ -51,7 +101,7 @@
         {
           "source": "skills/design-architecture/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "3e400a8f4587a0e09d6819134c85dabaf45968b67fc8cd7ffd470b48492985ce"
+          "sha256": "c88b64e5693675339a3b16d00bb3e5ca3146bc1c695e0fcd6838c84b30964ab7"
         },
         {
           "source": "skills/design-architecture/agents/project-openai.yaml",
@@ -81,7 +131,7 @@
         {
           "source": "skills/prepare-execute/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "d9d1fbeede3f5e1c9cbc09a0430a2e251a6c9569ceacae78260ad409f45bf259"
+          "sha256": "528d457d8fb18036e79a940420e42d8343c95972385efdb3ea69e31ab12cdb2f"
         },
         {
           "source": "skills/prepare-execute/agents/project-openai.yaml",
@@ -96,7 +146,7 @@
         {
           "source": "skills/execute/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "db08cc13ed093ec812b767ad4f9b4c7dc86c6a05441b9fea4ffa313da290aec4"
+          "sha256": "799da3a91e44db5ed4eecbc57e78517c702bd7c522576fdb0cbdbda0d7776eca"
         },
         {
           "source": "skills/execute/agents/project-openai.yaml",
@@ -141,7 +191,7 @@
         {
           "source": "skills/harness-chain/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "3897960a7f5acb8c4e66b59b80eca5af126544cf5f6319e1b96b8db0c5d9c57d"
+          "sha256": "d2d7fbfe0ac970e55636405bdcc0967a683d64baf9d98bf721e8248c842f4f76"
         },
         {
           "source": "skills/harness-chain/agents/project-openai.yaml",
@@ -155,7 +205,7 @@
     {
       "source": "docs/reference/setup-contract.md",
       "target": ".ezpowers/contracts/setup-contract.md",
-      "sha256": "7d6ebfb769df6618052413fa8e42710fed4c8974740cce15a84eaee60dbdbb13"
+      "sha256": "eb94a6f6c255fb5a235ce4dd4c82fbb32ebade7a5d047cac3a4595e59504fc1c"
     },
     {
       "source": "docs/reference/design-architecture-contract.md",
@@ -196,6 +246,11 @@
       "source": "docs/reference/harness-chain-contract.md",
       "target": ".ezpowers/contracts/harness-chain-contract.md",
       "sha256": "27b658e72ed51a671945214280b206964cf2783ade44e646f78c2b6b07b0a2c5"
+    },
+    {
+      "source": "docs/reference/engineering-practices-contract.md",
+      "target": ".ezpowers/contracts/engineering-practices-contract.md",
+      "sha256": "3d40a616deaf6d5267f5247b3f620414e43368d59ea489918682634b77d96309"
     }
   ]
 }

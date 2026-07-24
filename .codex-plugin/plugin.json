@@ -1,7 +1,7 @@
 {
   "name": "ezpowers",
-  "version": "5.2.0+codex.20260723171943",
-  "description": "Repository documentation, local knowledge, specification, verified harness chains, evidence, and resume support for Claude Code and Codex.",
+  "version": "5.3.0+codex.20260724032743",
+  "description": "Repository documentation, specialized diagnosis and codebase design, specification, verified harness chains, evidence, and resume support for Claude Code and Codex.",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
@@ -13,6 +13,9 @@
     "sdd",
     "spec-driven",
     "deep-interview",
+    "diagnose",
+    "codebase-design",
+    "improve-codebase-architecture",
     "design-architecture",
     "spec",
     "prepare-execute",
@@ -28,8 +31,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "EZPowers",
-    "shortDescription": "Repository docs, verified chains, evidence, and resume state.",
-    "longDescription": "EZPowers keeps repository documentation, local session knowledge, project-specific intent, plans, verification commands, approved harness chains, completion evidence, and resume state consistent across Claude Code and Codex. Its retained skills are ezpowers:setup, ezpowers:deep-interview, ezpowers:design-architecture, ezpowers:spec, ezpowers:prepare-execute, ezpowers:execute, ezpowers:frontend-design, ezpowers:wiki, ezpowers:harness-chain, and ezpowers:hud. Native host features remain responsible for coding, subagents, worktrees, sandboxing, and general retry behavior.",
+    "shortDescription": "Repository docs, engineering diagnosis, verified chains, and evidence.",
+    "longDescription": "EZPowers keeps repository documentation, local session knowledge, project-specific intent, plans, verification commands, approved harness chains, completion evidence, and resume state consistent across Claude Code and Codex. Its retained skills are ezpowers:setup, ezpowers:deep-interview, ezpowers:diagnose, ezpowers:codebase-design, ezpowers:improve-codebase-architecture, ezpowers:design-architecture, ezpowers:spec, ezpowers:prepare-execute, ezpowers:execute, ezpowers:frontend-design, ezpowers:wiki, ezpowers:harness-chain, and ezpowers:hud. Native host features remain responsible for coding, subagents, worktrees, sandboxing, and general retry behavior.",
     "developerName": "dlwlgus9125",
     "category": "Productivity",
     "capabilities": [
@@ -42,7 +45,7 @@
     "termsOfServiceURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/TERMS.md",
     "defaultPrompt": [
       "$ezpowers:setup Install the project-local EZPowers workflow and verification kit.",
-      "$ezpowers:deep-interview Turn this vague request into a clear, confirmed request.",
+      "$ezpowers:deep-interview Clarify this request and, if Plan Mode is already active, continue planning after confirmation.",
       "$ezpowers:harness-chain Configure or run this project's approved verified harness chain."
     ],
     "brandColor": "#2563EB"

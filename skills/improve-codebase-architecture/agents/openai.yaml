@@ -1,0 +1,6 @@
+interface:
+  display_name: "Improve Codebase Architecture"
+  short_description: "Scan architecture and rank deepening refactors"
+  default_prompt: "Use $ezpowers:improve-codebase-architecture to scan this codebase and produce an architecture improvement report."
+policy:
+  allow_implicit_invocation: false

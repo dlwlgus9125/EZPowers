@@ -32,7 +32,7 @@ from typing import Any, Iterable, Iterator
 
 
 SCHEMA_VERSION = 1
-KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.2.0/manifest.json")
+KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.3.0/manifest.json")
 CONFIG_RELATIVE_PATH = pathlib.Path(".ezpowers/config.json")
 STATE_RELATIVE_PATH = pathlib.Path(".ezpowers/state.json")
 LEDGER_RELATIVE_PATH = pathlib.Path(".ezpowers/ledger.json")

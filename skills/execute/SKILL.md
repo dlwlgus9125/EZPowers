@@ -16,6 +16,8 @@ subagents, worktrees, sandboxing, retries, and code review.
 Read repository instructions, the selected spec and plan, architecture and
 frontend-design artifacts, current Git state, `.ezpowers/config.json`, and
 `.ezpowers/contracts/verification-contract.md`.
+Read `.ezpowers/contracts/engineering-practices-contract.md` before diagnosing
+a nontrivial failure or implementing a planned product-code boundary change.
 When `.ezpowers/docs.json` exists, read the registered documentation graph and
 run `docs status --json`; use wiki candidates only after confirming them
 against repository evidence.
@@ -56,8 +58,11 @@ python .ezpowers/ezpowers.py status --json
 Never edit evidence, synthesize a PASS result, omit a required check, or weaken
 a command to make certification pass. A failure, timeout, stale workspace,
 changed plan/config, documentation drift, missing log, or hash mismatch is
-blocking. Fix the product or revise the approved spec/plan, then rerun the
-complete verification set.
+blocking. Apply the `diagnose` evidence ladder before fixing a nontrivial
+failure. Because this explicit skill already has implementation authority, a
+regression test may be added before the fix when the approved plan permits it;
+the diagnosis itself never expands scope. Fix the product or revise the
+approved spec/plan, then rerun the complete verification set.
 
 ## Resume and report
 

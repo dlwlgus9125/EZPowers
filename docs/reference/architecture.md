@@ -33,7 +33,7 @@ the selected host still performs every implementation action.
 
 ## Distribution And Installation
 
-The plugin repository contains the ten retained skills and the Claude and
+The plugin repository contains the thirteen retained skills and the Claude and
 Codex manifests. `setup` installs the project kit into the target repository:
 
 ```text
@@ -55,7 +55,9 @@ or repairing a project must not require this checkout, another repository, or
 a hidden user-local script. The target project root is also the Git worktree
 root because Git state is part of every completion fingerprint.
 
-Nine skills are installed in a project, including `wiki` and `harness-chain`.
+Twelve skills are installed in a project, including `diagnose`,
+`codebase-design`, `improve-codebase-architecture`, `wiki`, and
+`harness-chain`.
 `hud` is
 intentionally excluded from the project kit. It is a plugin-only, global Codex
 opt-in described in `docs/reference/codex-hud.md`.
@@ -83,6 +85,21 @@ explicit harness-chain
   -> bound code review + conditional adversarial QA
   -> certify or terminal verdict
 ```
+
+`deep-interview` remains session-only. When it is invoked inside an already
+active Plan Mode, explicit confirmation returns the clarified intent to that
+same host mode so planning can finish without a second command. It does not
+invoke `design-architecture`, `spec`, or an execution workflow, and it grants
+no implementation authority.
+
+`diagnose` and `codebase-design` are implicit disciplines inside the current
+request: the former requires a red-capable feedback loop and first-divergence
+evidence, while the latter compares focused module interfaces and honest
+seams. `improve-codebase-architecture` is explicit-only. It scans existing
+product code and invokes the installed standard-library renderer to create an
+escaped, dependency-free HTML report in an OS temporary directory. It neither
+changes repository files nor replaces `design-architecture`, which remains
+the owner of durable architecture artifacts.
 
 `spec` records host-independent observable criteria. `prepare-execute` maps
 each criterion to exact project checks. `execute` does not create a second

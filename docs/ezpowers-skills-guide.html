@@ -1,0 +1,4181 @@
+<!doctype html>
+<html lang="ko" data-theme="light" data-host="codex">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="EZPowers v5.3.0 플러그인의 13개 스킬을 언제, 어떤 순서로, Claude Code와 Codex에서 어떻게 사용하는지 설명하는 한국어 가이드">
+  <meta name="color-scheme" content="light dark">
+  <title>EZPowers Skill Atlas — 스킬 사용 가이드</title>
+  <script>
+    try {
+      const savedTheme = localStorage.getItem("ezpowers-guide-theme");
+      const savedHost = localStorage.getItem("ezpowers-guide-host");
+      if (savedTheme === "light" || savedTheme === "dark") {
+        document.documentElement.dataset.theme = savedTheme;
+      } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        document.documentElement.dataset.theme = "dark";
+      }
+      if (savedHost === "claude" || savedHost === "codex") {
+        document.documentElement.dataset.host = savedHost;
+      }
+    } catch (_) {
+      /* The guide remains fully readable when storage is unavailable. */
+    }
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #f2efe7;
+      --canvas-deep: #e7e2d6;
+      --paper: #fffdf8;
+      --paper-raised: #ffffff;
+      --ink: #172033;
+      --ink-soft: #344057;
+      --muted: #687286;
+      --faint: #8991a0;
+      --line: #d9d5ca;
+      --line-strong: #c4bfb2;
+      --primary: #315bdc;
+      --primary-deep: #2143ab;
+      --primary-soft: #e9eeff;
+      --mint: #087c70;
+      --mint-soft: #dcf5ee;
+      --amber: #a95e0a;
+      --amber-soft: #fff0d4;
+      --coral: #b84740;
+      --coral-soft: #ffe8e4;
+      --violet: #6b50bd;
+      --violet-soft: #eee9ff;
+      --code: #131c2e;
+      --code-ink: #eff4ff;
+      --focus: #0a74ff;
+      --shadow: 0 18px 50px rgba(39, 43, 53, 0.09);
+      --shadow-small: 0 8px 24px rgba(39, 43, 53, 0.08);
+      --radius-sm: 12px;
+      --radius-md: 18px;
+      --radius-lg: 28px;
+      --sans: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --serif: "Iowan Old Style", "Noto Serif KR", "Nanum Myeongjo", Georgia, ui-serif, serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --canvas: #10151f;
+      --canvas-deep: #0a0f17;
+      --paper: #171e2a;
+      --paper-raised: #1c2533;
+      --ink: #f3f5f9;
+      --ink-soft: #d7deea;
+      --muted: #a8b3c3;
+      --faint: #7f8a9b;
+      --line: #303a49;
+      --line-strong: #465164;
+      --primary: #84a1ff;
+      --primary-deep: #b1c2ff;
+      --primary-soft: #253359;
+      --mint: #68d8c8;
+      --mint-soft: #173e3a;
+      --amber: #f1b45e;
+      --amber-soft: #493518;
+      --coral: #ff938b;
+      --coral-soft: #4b2828;
+      --violet: #bda8ff;
+      --violet-soft: #342c54;
+      --code: #090e17;
+      --code-ink: #edf2ff;
+      --focus: #83b4ff;
+      --shadow: 0 20px 56px rgba(0, 0, 0, 0.28);
+      --shadow-small: 0 10px 30px rgba(0, 0, 0, 0.24);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 24px;
+      background: var(--canvas);
+    }
+
+    body {
+      margin: 0;
+      min-width: 280px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 78% 8%, color-mix(in srgb, var(--primary) 11%, transparent) 0, transparent 28rem),
+        radial-gradient(circle at 7% 52%, color-mix(in srgb, var(--mint) 8%, transparent) 0, transparent 26rem),
+        var(--canvas);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.7;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      pointer-events: none;
+      opacity: 0.28;
+      background-image:
+        linear-gradient(color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: linear-gradient(to bottom, black, transparent 70%);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    a {
+      color: var(--primary-deep);
+      text-underline-offset: 0.2em;
+      text-decoration-thickness: 1px;
+    }
+
+    a:hover {
+      text-decoration-thickness: 2px;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    ::selection {
+      color: var(--ink);
+      background: var(--amber-soft);
+    }
+
+    code,
+    kbd {
+      font-family: var(--mono);
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 1000;
+      padding: 10px 16px;
+      border-radius: 10px;
+      color: white;
+      background: var(--primary-deep);
+      transform: translateY(-160%);
+      transition: transform 150ms ease;
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+    }
+
+    .sr-only {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    .page-shell {
+      display: grid;
+      grid-template-columns: 264px minmax(0, 1fr);
+      width: min(1500px, 100%);
+      min-height: 100vh;
+      margin: 0 auto;
+    }
+
+    .rail {
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      align-self: start;
+      height: 100vh;
+      padding: 32px 24px 24px;
+      border-right: 1px solid var(--line);
+      background: color-mix(in srgb, var(--canvas) 90%, transparent);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      color: white;
+      background:
+        linear-gradient(145deg, var(--primary), #2341a8);
+      box-shadow: 0 9px 22px color-mix(in srgb, var(--primary) 28%, transparent);
+      font-weight: 850;
+      letter-spacing: -0.04em;
+      place-items: center;
+    }
+
+    .brand-copy {
+      display: grid;
+      line-height: 1.15;
+    }
+
+    .brand-copy strong {
+      font-size: 15px;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-copy span {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .rail-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 26px 0 22px;
+    }
+
+    .tiny-chip {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--paper);
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: 0.02em;
+    }
+
+    .tiny-chip::before {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      content: "";
+      background: var(--mint);
+    }
+
+    .toc-label {
+      margin: 0 0 8px 10px;
+      color: var(--faint);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .toc {
+      display: grid;
+      gap: 2px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .toc a {
+      display: flex;
+      gap: 11px;
+      align-items: center;
+      min-height: 40px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 680;
+      text-decoration: none;
+      transition: color 150ms ease, background 150ms ease, transform 150ms ease;
+    }
+
+    .toc a::before {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      content: "";
+      background: var(--line-strong);
+      transition: width 150ms ease, background 150ms ease;
+    }
+
+    .toc a:hover,
+    .toc a[aria-current="true"] {
+      color: var(--ink);
+      background: var(--paper);
+      transform: translateX(2px);
+    }
+
+    .toc a[aria-current="true"]::before {
+      width: 14px;
+      border-radius: 999px;
+      background: var(--primary);
+    }
+
+    .rail-footer {
+      display: grid;
+      gap: 10px;
+      margin-top: auto;
+    }
+
+    .rail-source {
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--faint);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .rail-source a {
+      color: var(--muted);
+    }
+
+    .main {
+      width: min(1080px, 100%);
+      margin: 0 auto;
+      padding: 36px 52px 80px;
+    }
+
+    .mobile-bar {
+      display: none;
+    }
+
+    .section {
+      margin-top: 104px;
+      scroll-margin-top: 0;
+    }
+
+    .section:first-of-type {
+      margin-top: 0;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 0.58fr);
+      gap: 38px;
+      align-items: end;
+      margin-bottom: 30px;
+    }
+
+    .section-kicker {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      margin: 0 0 10px;
+      color: var(--primary-deep);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .section-kicker::before {
+      width: 24px;
+      height: 2px;
+      content: "";
+      background: currentColor;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1,
+    h2 {
+      text-wrap: balance;
+    }
+
+    h1 {
+      max-width: 800px;
+      margin-bottom: 24px;
+      font-family: var(--serif);
+      font-size: clamp(2.7rem, 6.5vw, 5.8rem);
+      font-weight: 720;
+      letter-spacing: -0.055em;
+      line-height: 0.98;
+    }
+
+    h2 {
+      margin-bottom: 0;
+      font-family: var(--serif);
+      font-size: clamp(2rem, 4vw, 3.3rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.08;
+    }
+
+    h3 {
+      font-size: 1.16rem;
+      letter-spacing: -0.02em;
+      line-height: 1.35;
+    }
+
+    .section-summary {
+      margin-bottom: 2px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    .hero {
+      position: relative;
+      isolation: isolate;
+      min-height: 670px;
+      padding: clamp(28px, 5vw, 62px);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--paper) 96%, var(--primary)) 0%, var(--paper) 72%);
+      box-shadow: var(--shadow);
+    }
+
+    .hero::before {
+      position: absolute;
+      top: -270px;
+      right: -250px;
+      z-index: -1;
+      width: 650px;
+      height: 650px;
+      border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
+      border-radius: 50%;
+      content: "";
+      box-shadow:
+        0 0 0 56px color-mix(in srgb, var(--primary) 4%, transparent),
+        0 0 0 112px color-mix(in srgb, var(--primary) 3%, transparent);
+    }
+
+    .hero::after {
+      position: absolute;
+      right: 7%;
+      bottom: 7%;
+      z-index: -1;
+      width: 120px;
+      height: 120px;
+      border-radius: 32px;
+      content: "";
+      background:
+        radial-gradient(circle, var(--mint) 0 2px, transparent 3px) 0 0 / 18px 18px;
+      opacity: 0.25;
+      transform: rotate(10deg);
+    }
+
+    .hero-topline {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: clamp(58px, 10vw, 110px);
+    }
+
+    .hero-edition {
+      display: inline-flex;
+      gap: 9px;
+      align-items: center;
+      min-height: 34px;
+      padding: 5px 12px;
+      border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--line));
+      border-radius: 999px;
+      color: var(--primary-deep);
+      background: var(--primary-soft);
+      font-size: 12px;
+      font-weight: 820;
+    }
+
+    .hero-edition::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      content: "";
+      background: var(--primary);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 15%, transparent);
+    }
+
+    .control-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .icon-button {
+      display: inline-grid;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      color: var(--ink-soft);
+      background: var(--paper);
+      cursor: pointer;
+      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+      place-items: center;
+    }
+
+    .icon-button:hover {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      transform: translateY(-2px);
+    }
+
+    .icon-button svg {
+      width: 19px;
+      height: 19px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.8;
+    }
+
+    .theme-sun,
+    html[data-theme="dark"] .theme-moon {
+      display: none;
+    }
+
+    html[data-theme="dark"] .theme-sun {
+      display: block;
+    }
+
+    .hero-lede {
+      max-width: 670px;
+      margin-bottom: 34px;
+      color: var(--ink-soft);
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      line-height: 1.8;
+      text-wrap: pretty;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 52px;
+    }
+
+    .button {
+      display: inline-flex;
+      gap: 9px;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 10px 17px;
+      border: 1px solid var(--line-strong);
+      border-radius: 13px;
+      color: var(--ink);
+      background: var(--paper);
+      font-size: 14px;
+      font-weight: 780;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+    }
+
+    .button:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-small);
+      transform: translateY(-2px);
+    }
+
+    .button.primary {
+      color: white;
+      border-color: var(--primary);
+      background: var(--primary);
+    }
+
+    html[data-theme="dark"] .button.primary {
+      color: #0c1423;
+    }
+
+    .button .arrow {
+      font-size: 1.15em;
+      line-height: 1;
+    }
+
+    .quick-route {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--paper-raised) 86%, transparent);
+      box-shadow: var(--shadow-small);
+    }
+
+    .quick-route-item {
+      position: relative;
+      min-width: 0;
+      padding: 17px 18px 18px;
+    }
+
+    .quick-route-item + .quick-route-item {
+      border-left: 1px solid var(--line);
+    }
+
+    .quick-route-item + .quick-route-item::before {
+      position: absolute;
+      top: 50%;
+      left: -8px;
+      display: grid;
+      width: 16px;
+      height: 16px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: var(--muted);
+      background: var(--paper);
+      content: "›";
+      font-size: 13px;
+      line-height: 1;
+      transform: translateY(-50%);
+      place-items: center;
+    }
+
+    .quick-route-item small {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--faint);
+      font-size: 10px;
+      font-weight: 820;
+      letter-spacing: 0.08em;
+    }
+
+    .quick-route-item strong {
+      display: block;
+      overflow: hidden;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: clamp(0.74rem, 1.4vw, 0.88rem);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .surface-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--paper);
+      box-shadow: var(--shadow-small);
+    }
+
+    .host-panel {
+      display: grid;
+      grid-template-columns: minmax(230px, 0.72fr) minmax(0, 1.28fr);
+      gap: 0;
+      overflow: hidden;
+    }
+
+    .host-controls {
+      padding: 28px;
+      border-right: 1px solid var(--line);
+      background:
+        linear-gradient(150deg, var(--primary-soft), color-mix(in srgb, var(--paper) 88%, var(--primary)));
+    }
+
+    .host-controls h3 {
+      margin-bottom: 9px;
+    }
+
+    .host-controls p {
+      margin-bottom: 24px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--paper);
+    }
+
+    .segment {
+      min-height: 42px;
+      padding: 8px 10px;
+      border: 0;
+      border-radius: 9px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .segment[aria-pressed="true"] {
+      color: white;
+      background: var(--primary);
+      box-shadow: 0 5px 14px color-mix(in srgb, var(--primary) 22%, transparent);
+    }
+
+    html[data-theme="dark"] .segment[aria-pressed="true"] {
+      color: #0b1425;
+    }
+
+    .host-result {
+      display: grid;
+      gap: 18px;
+      padding: 28px;
+    }
+
+    .invocation-row {
+      display: grid;
+      grid-template-columns: 140px minmax(0, 1fr);
+      gap: 18px;
+      align-items: center;
+    }
+
+    .invocation-label {
+      display: grid;
+      gap: 3px;
+    }
+
+    .invocation-label strong {
+      font-size: 13px;
+    }
+
+    .invocation-label span {
+      color: var(--faint);
+      font-size: 11px;
+    }
+
+    .code-pill {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 0;
+      padding: 12px 13px 12px 16px;
+      border: 1px solid color-mix(in srgb, var(--primary) 26%, var(--line));
+      border-radius: 12px;
+      color: var(--code-ink);
+      background: var(--code);
+    }
+
+    .code-pill code {
+      min-width: 0;
+      overflow-x: auto;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      scrollbar-width: thin;
+    }
+
+    .copy-button {
+      flex: 0 0 auto;
+      min-height: 32px;
+      padding: 5px 9px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 8px;
+      color: #dbe5ff;
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 11px;
+      font-weight: 780;
+      cursor: pointer;
+    }
+
+    .copy-button:hover {
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .host-note {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .host-note::before {
+      flex: 0 0 auto;
+      display: grid;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      color: var(--primary-deep);
+      background: var(--primary-soft);
+      content: "i";
+      font-family: var(--serif);
+      font-size: 12px;
+      font-weight: 800;
+      place-items: center;
+    }
+
+    .boundary-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .boundary-mini {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: color-mix(in srgb, var(--paper) 90%, transparent);
+    }
+
+    .boundary-mini strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .boundary-mini p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .flow-figure {
+      margin: 0;
+      padding: clamp(24px, 5vw, 48px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--paper) 96%, var(--primary)) 0%, var(--paper) 36%);
+      box-shadow: var(--shadow);
+    }
+
+    .flowchart {
+      display: grid;
+      justify-items: center;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    .flow-start,
+    .flow-finish {
+      display: inline-flex;
+      gap: 9px;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .flow-start {
+      color: var(--primary-deep);
+      background: var(--primary-soft);
+    }
+
+    .flow-start::before {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      content: "";
+      background: var(--primary);
+    }
+
+    .flow-finish {
+      min-height: 50px;
+      padding-inline: 24px;
+      color: var(--mint);
+      border: 1px solid color-mix(in srgb, var(--mint) 40%, var(--line));
+      background: var(--mint-soft);
+      font-size: 12px;
+      box-shadow: 0 8px 24px color-mix(in srgb, var(--mint) 12%, transparent);
+    }
+
+    .flow-arrow {
+      position: relative;
+      width: 2px;
+      height: 38px;
+      background: var(--line-strong);
+    }
+
+    .flow-arrow::after {
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      width: 9px;
+      height: 9px;
+      border-right: 2px solid var(--line-strong);
+      border-bottom: 2px solid var(--line-strong);
+      content: "";
+      transform: translateX(-50%) rotate(45deg);
+    }
+
+    .flow-node {
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      width: min(540px, 100%);
+      padding: 16px 18px;
+      border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--line));
+      border-radius: 16px;
+      background: var(--paper-raised);
+      box-shadow: var(--shadow-small);
+    }
+
+    .node-index {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      color: white;
+      background: var(--primary);
+      font-size: 12px;
+      font-weight: 850;
+      place-items: center;
+    }
+
+    html[data-theme="dark"] .node-index {
+      color: #0d1524;
+    }
+
+    .node-copy {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .node-copy strong {
+      font-family: var(--mono);
+      font-size: 14px;
+    }
+
+    .node-copy span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .node-output {
+      padding: 5px 8px;
+      border-radius: 7px;
+      color: var(--primary-deep);
+      background: var(--primary-soft);
+      font-size: 10px;
+      font-weight: 820;
+      white-space: nowrap;
+    }
+
+    .decision {
+      display: grid;
+      grid-template-columns: minmax(180px, 0.78fr) 44px minmax(230px, 1.12fr);
+      gap: 12px;
+      align-items: center;
+      width: min(720px, 100%);
+    }
+
+    .decision-question {
+      position: relative;
+      display: flex;
+      gap: 13px;
+      align-items: center;
+      min-height: 78px;
+      padding: 15px 17px;
+      border: 1px solid color-mix(in srgb, var(--amber) 35%, var(--line));
+      border-radius: 16px;
+      background: var(--amber-soft);
+    }
+
+    .diamond {
+      flex: 0 0 auto;
+      display: grid;
+      width: 34px;
+      height: 34px;
+      color: var(--amber);
+      border: 1px solid currentColor;
+      background: color-mix(in srgb, var(--paper) 70%, transparent);
+      font-family: var(--serif);
+      font-size: 13px;
+      font-weight: 850;
+      transform: rotate(45deg);
+      place-items: center;
+    }
+
+    .diamond span {
+      transform: rotate(-45deg);
+    }
+
+    .decision-question strong {
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .decision-link {
+      position: relative;
+      height: 2px;
+      background: var(--amber);
+    }
+
+    .decision-link::before {
+      position: absolute;
+      top: -21px;
+      left: 50%;
+      color: var(--amber);
+      content: "YES";
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      transform: translateX(-50%);
+    }
+
+    .decision-link::after {
+      position: absolute;
+      top: 50%;
+      right: -1px;
+      width: 8px;
+      height: 8px;
+      border-top: 2px solid var(--amber);
+      border-right: 2px solid var(--amber);
+      content: "";
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    .branch-node {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 78px;
+      padding: 15px 17px;
+      border: 1px solid color-mix(in srgb, var(--amber) 30%, var(--line));
+      border-radius: 16px;
+      background: var(--paper-raised);
+      box-shadow: var(--shadow-small);
+    }
+
+    .branch-node strong {
+      display: block;
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .branch-node span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .branch-return {
+      color: var(--amber);
+      font-size: 17px !important;
+      font-weight: 800;
+    }
+
+    .flow-sequence {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 30px;
+      width: 100%;
+      margin: 2px 0;
+    }
+
+    .flow-sequence .flow-node {
+      position: relative;
+      grid-template-columns: 40px minmax(0, 1fr);
+      width: auto;
+      padding: 14px;
+    }
+
+    .flow-sequence .flow-node:not(:last-child)::after {
+      position: absolute;
+      top: 50%;
+      right: -22px;
+      width: 13px;
+      height: 13px;
+      border-top: 2px solid var(--line-strong);
+      border-right: 2px solid var(--line-strong);
+      content: "";
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    .flow-sequence .node-index {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+    }
+
+    .flow-legend {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 34px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+    }
+
+    .legend-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 3px;
+      background: var(--primary);
+    }
+
+    .legend-dot.optional {
+      border: 1px solid var(--amber);
+      background: var(--amber-soft);
+      transform: rotate(45deg);
+    }
+
+    .legend-dot.support {
+      border-radius: 50%;
+      background: var(--mint);
+    }
+
+    .flow-caption {
+      max-width: 760px;
+      margin: 18px auto 0;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .orbit-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .orbit-card {
+      padding: 19px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--paper);
+    }
+
+    .orbit-card .orbit-label {
+      display: inline-flex;
+      margin-bottom: 12px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .orbit-card:nth-child(1) .orbit-label {
+      color: var(--mint);
+      background: var(--mint-soft);
+    }
+
+    .orbit-card:nth-child(2) .orbit-label {
+      color: var(--violet);
+      background: var(--violet-soft);
+    }
+
+    .orbit-card:nth-child(3) .orbit-label {
+      color: var(--coral);
+      background: var(--coral-soft);
+    }
+
+    .orbit-card h3 {
+      margin-bottom: 6px;
+      font-family: var(--mono);
+      font-size: 14px;
+    }
+
+    .orbit-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .chooser-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .choice-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      min-height: 106px;
+      padding: 18px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      color: var(--ink);
+      background: var(--paper);
+      text-decoration: none;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .choice-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-small);
+      transform: translateY(-3px);
+    }
+
+    .choice-card::after {
+      align-self: center;
+      color: var(--faint);
+      content: "→";
+      font-size: 18px;
+      transition: color 150ms ease, transform 150ms ease;
+    }
+
+    .choice-card:hover::after {
+      color: var(--primary);
+      transform: translateX(3px);
+    }
+
+    .choice-icon {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      border-radius: 13px;
+      color: var(--primary-deep);
+      background: var(--primary-soft);
+      font-family: var(--serif);
+      font-size: 16px;
+      font-weight: 850;
+      place-items: center;
+    }
+
+    .choice-card:nth-child(3n + 2) .choice-icon {
+      color: var(--mint);
+      background: var(--mint-soft);
+    }
+
+    .choice-card:nth-child(3n) .choice-icon {
+      color: var(--amber);
+      background: var(--amber-soft);
+    }
+
+    .choice-copy strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 13px;
+    }
+
+    .choice-copy span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .choice-copy code {
+      color: var(--primary-deep);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .catalog-toolbar {
+      position: sticky;
+      top: 14px;
+      z-index: 30;
+      display: grid;
+      gap: 13px;
+      margin-bottom: 18px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: color-mix(in srgb, var(--paper) 92%, transparent);
+      box-shadow: var(--shadow-small);
+      backdrop-filter: blur(14px);
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .search-wrap {
+      position: relative;
+    }
+
+    .search-wrap svg {
+      position: absolute;
+      top: 50%;
+      left: 14px;
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: var(--muted);
+      stroke-linecap: round;
+      stroke-width: 1.8;
+      transform: translateY(-50%);
+    }
+
+    .skill-search {
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--ink);
+      background: var(--paper-raised);
+      font-size: 13px;
+    }
+
+    .skill-search::placeholder {
+      color: var(--faint);
+    }
+
+    .clear-search {
+      position: absolute;
+      top: 50%;
+      right: 8px;
+      display: none;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border: 0;
+      border-radius: 8px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      transform: translateY(-50%);
+    }
+
+    .clear-search.visible {
+      display: grid;
+      place-items: center;
+    }
+
+    .clear-search:hover {
+      color: var(--ink);
+      background: var(--primary-soft);
+    }
+
+    .result-count {
+      min-width: 72px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 760;
+      text-align: center;
+    }
+
+    .expand-button {
+      min-height: 42px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--ink-soft);
+      background: var(--paper-raised);
+      font-size: 11px;
+      font-weight: 780;
+      cursor: pointer;
+    }
+
+    .expand-button:hover {
+      border-color: var(--primary);
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 1px;
+      scrollbar-width: thin;
+    }
+
+    .filter-button {
+      flex: 0 0 auto;
+      min-height: 34px;
+      padding: 6px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .filter-button[aria-pressed="true"] {
+      color: white;
+      border-color: var(--primary);
+      background: var(--primary);
+    }
+
+    html[data-theme="dark"] .filter-button[aria-pressed="true"] {
+      color: #0b1423;
+    }
+
+    .skill-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .skill-card {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--paper);
+      box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 3%, transparent);
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      scroll-margin-top: 150px;
+    }
+
+    .skill-card:hover {
+      border-color: color-mix(in srgb, var(--primary) 55%, var(--line));
+      box-shadow: var(--shadow-small);
+      transform: translateY(-3px);
+    }
+
+    .skill-card[hidden] {
+      display: none;
+    }
+
+    .skill-main {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      padding: 22px;
+    }
+
+    .skill-top {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .skill-identity {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .skill-number {
+      flex: 0 0 auto;
+      display: grid;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      color: var(--primary-deep);
+      background: var(--primary-soft);
+      font-family: var(--serif);
+      font-size: 13px;
+      font-weight: 850;
+      place-items: center;
+    }
+
+    .skill-card[data-category="design"] .skill-number {
+      color: var(--amber);
+      background: var(--amber-soft);
+    }
+
+    .skill-card[data-category="delivery"] .skill-number {
+      color: var(--primary-deep);
+      background: var(--primary-soft);
+    }
+
+    .skill-card[data-category="support"] .skill-number {
+      color: var(--mint);
+      background: var(--mint-soft);
+    }
+
+    .skill-card[data-category="special"] .skill-number {
+      color: var(--violet);
+      background: var(--violet-soft);
+    }
+
+    .skill-title {
+      min-width: 0;
+    }
+
+    .skill-title h3 {
+      margin: 0 0 3px;
+      overflow: hidden;
+      font-family: var(--mono);
+      font-size: 15px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .skill-title span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .skill-link {
+      flex: 0 0 auto;
+      display: grid;
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--muted);
+      text-decoration: none;
+      place-items: center;
+    }
+
+    .skill-link:hover {
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .skill-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: color-mix(in srgb, var(--paper-raised) 80%, transparent);
+      font-size: 9px;
+      font-weight: 850;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .badge.explicit {
+      color: var(--coral);
+      border-color: color-mix(in srgb, var(--coral) 30%, var(--line));
+      background: var(--coral-soft);
+    }
+
+    .badge.auto {
+      color: var(--mint);
+      border-color: color-mix(in srgb, var(--mint) 30%, var(--line));
+      background: var(--mint-soft);
+    }
+
+    .badge.global {
+      color: var(--violet);
+      border-color: color-mix(in srgb, var(--violet) 30%, var(--line));
+      background: var(--violet-soft);
+    }
+
+    .skill-purpose {
+      min-height: 54px;
+      margin-bottom: 18px;
+      color: var(--ink-soft);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .fact-list {
+      display: grid;
+      gap: 10px;
+      margin: 0 0 19px;
+    }
+
+    .fact {
+      display: grid;
+      grid-template-columns: 62px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+
+    .fact dt {
+      color: var(--faint);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: 0.04em;
+    }
+
+    .fact dd {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .command-stack {
+      display: grid;
+      gap: 7px;
+      margin-top: auto;
+    }
+
+    .command-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--faint);
+      font-size: 9px;
+      font-weight: 850;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .command-label .scope-note {
+      font-weight: 650;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .skill-card details {
+      border-top: 1px solid var(--line);
+      background: color-mix(in srgb, var(--canvas) 40%, var(--paper));
+    }
+
+    .skill-card summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 48px;
+      padding: 11px 22px;
+      color: var(--ink-soft);
+      font-size: 11px;
+      font-weight: 800;
+      list-style: none;
+      cursor: pointer;
+    }
+
+    .skill-card summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .skill-card summary::after {
+      color: var(--primary);
+      content: "+";
+      font-size: 18px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .skill-card details[open] summary::after {
+      content: "−";
+    }
+
+    .skill-card summary:hover {
+      color: var(--primary-deep);
+    }
+
+    .detail-body {
+      padding: 2px 22px 20px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .detail-body ol,
+    .detail-body ul {
+      margin: 8px 0 0;
+      padding-left: 19px;
+    }
+
+    .detail-body li + li {
+      margin-top: 6px;
+    }
+
+    .detail-body code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      color: var(--primary-deep);
+      background: var(--primary-soft);
+      font-size: 0.96em;
+    }
+
+    .empty-results {
+      display: none;
+      padding: 42px 24px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 18px;
+      color: var(--muted);
+      background: var(--paper);
+      text-align: center;
+    }
+
+    .empty-results.visible {
+      display: block;
+    }
+
+    .empty-results strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+    }
+
+    .empty-results button {
+      margin-top: 15px;
+    }
+
+    .recipe-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .recipe-card {
+      position: relative;
+      min-height: 330px;
+      padding: 26px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 21px;
+      background: var(--paper);
+      box-shadow: var(--shadow-small);
+    }
+
+    .recipe-card::before {
+      position: absolute;
+      top: -40px;
+      right: -32px;
+      width: 126px;
+      height: 126px;
+      border: 1px solid color-mix(in srgb, var(--primary) 16%, transparent);
+      border-radius: 50%;
+      content: "";
+      box-shadow: 0 0 0 22px color-mix(in srgb, var(--primary) 3%, transparent);
+    }
+
+    .recipe-card:nth-child(2)::before {
+      border-color: color-mix(in srgb, var(--amber) 18%, transparent);
+      box-shadow: 0 0 0 22px color-mix(in srgb, var(--amber) 4%, transparent);
+    }
+
+    .recipe-card:nth-child(3)::before {
+      border-color: color-mix(in srgb, var(--mint) 18%, transparent);
+      box-shadow: 0 0 0 22px color-mix(in srgb, var(--mint) 4%, transparent);
+    }
+
+    .recipe-card:nth-child(4)::before {
+      border-color: color-mix(in srgb, var(--violet) 18%, transparent);
+      box-shadow: 0 0 0 22px color-mix(in srgb, var(--violet) 4%, transparent);
+    }
+
+    .recipe-index {
+      display: inline-grid;
+      width: 36px;
+      height: 36px;
+      margin-bottom: 22px;
+      border-radius: 11px;
+      color: var(--primary-deep);
+      background: var(--primary-soft);
+      font-family: var(--serif);
+      font-size: 12px;
+      font-weight: 850;
+      place-items: center;
+    }
+
+    .recipe-card h3 {
+      max-width: 80%;
+      margin-bottom: 7px;
+      font-family: var(--serif);
+      font-size: 1.35rem;
+    }
+
+    .recipe-intro {
+      min-height: 48px;
+      margin-bottom: 20px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .recipe-path {
+      display: grid;
+      gap: 0;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .recipe-path li {
+      position: relative;
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr);
+      gap: 10px;
+      min-height: 48px;
+      padding-bottom: 14px;
+    }
+
+    .recipe-path li:not(:last-child)::before {
+      position: absolute;
+      top: 21px;
+      bottom: -1px;
+      left: 11px;
+      width: 1px;
+      content: "";
+      background: var(--line-strong);
+    }
+
+    .recipe-dot {
+      z-index: 1;
+      display: grid;
+      width: 23px;
+      height: 23px;
+      border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--line));
+      border-radius: 50%;
+      color: var(--primary-deep);
+      background: var(--paper);
+      font-size: 9px;
+      font-weight: 850;
+      place-items: center;
+    }
+
+    .recipe-copy strong {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .recipe-copy span {
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.5;
+    }
+
+    .chain-shell {
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--violet) 24%, var(--line));
+      border-radius: var(--radius-lg);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .chain-banner {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: center;
+      padding: 28px;
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, var(--violet-soft), color-mix(in srgb, var(--paper) 82%, var(--violet)));
+      border-bottom: 1px solid color-mix(in srgb, var(--violet) 20%, var(--line));
+    }
+
+    .chain-banner h3 {
+      margin-bottom: 5px;
+      font-family: var(--serif);
+      font-size: 1.55rem;
+    }
+
+    .chain-banner p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .approval-badge {
+      display: grid;
+      gap: 2px;
+      min-width: 130px;
+      padding: 11px 14px;
+      border: 1px solid color-mix(in srgb, var(--violet) 34%, var(--line));
+      border-radius: 13px;
+      color: var(--violet);
+      background: var(--paper);
+      text-align: center;
+    }
+
+    .approval-badge strong {
+      font-family: var(--serif);
+      font-size: 1.35rem;
+      line-height: 1;
+    }
+
+    .approval-badge span {
+      font-size: 9px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+    }
+
+    .chain-body {
+      padding: clamp(22px, 4vw, 38px);
+    }
+
+    .chain-steps {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(108px, 1fr));
+      gap: 20px;
+      margin: 0;
+      padding: 0 0 12px;
+      overflow-x: auto;
+      list-style: none;
+      scrollbar-width: thin;
+    }
+
+    .chain-step {
+      position: relative;
+      min-height: 174px;
+      padding: 16px 14px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: color-mix(in srgb, var(--paper-raised) 88%, transparent);
+    }
+
+    .chain-step:not(:last-child)::after {
+      position: absolute;
+      top: 50%;
+      right: -16px;
+      width: 10px;
+      height: 10px;
+      border-top: 2px solid var(--violet);
+      border-right: 2px solid var(--violet);
+      content: "";
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    .chain-step-number {
+      display: inline-grid;
+      width: 28px;
+      height: 28px;
+      margin-bottom: 17px;
+      border-radius: 9px;
+      color: var(--violet);
+      background: var(--violet-soft);
+      font-size: 10px;
+      font-weight: 900;
+      place-items: center;
+    }
+
+    .chain-step strong {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .chain-step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.6;
+    }
+
+    .chain-hosts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .chain-host {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: color-mix(in srgb, var(--canvas) 38%, var(--paper));
+    }
+
+    .chain-host strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+
+    .chain-host p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .terminal-row {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .terminal-label {
+      margin-right: 5px;
+      color: var(--faint);
+      font-size: 9px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .verdict {
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--paper);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 750;
+    }
+
+    .verdict.pass {
+      color: var(--mint);
+      border-color: color-mix(in srgb, var(--mint) 35%, var(--line));
+      background: var(--mint-soft);
+    }
+
+    .boundary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .owner-card {
+      padding: 25px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--paper);
+    }
+
+    .owner-card h3 {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .owner-card h3::before {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      content: "";
+      background: var(--primary);
+    }
+
+    .owner-card.host h3::before {
+      border-radius: 50%;
+      background: var(--amber);
+    }
+
+    .check-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .check-list li {
+      position: relative;
+      padding-left: 25px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .check-list li::before {
+      position: absolute;
+      top: 0.14em;
+      left: 0;
+      display: grid;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      color: var(--primary-deep);
+      background: var(--primary-soft);
+      content: "✓";
+      font-size: 9px;
+      font-weight: 900;
+      place-items: center;
+    }
+
+    .owner-card.host .check-list li::before {
+      color: var(--amber);
+      background: var(--amber-soft);
+    }
+
+    .caution-box {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 14px;
+      margin-top: 16px;
+      padding: 20px;
+      border: 1px solid color-mix(in srgb, var(--coral) 30%, var(--line));
+      border-radius: 17px;
+      background: var(--coral-soft);
+    }
+
+    .caution-icon {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      border: 1px solid color-mix(in srgb, var(--coral) 45%, transparent);
+      border-radius: 11px;
+      color: var(--coral);
+      background: var(--paper);
+      font-family: var(--serif);
+      font-weight: 900;
+      place-items: center;
+    }
+
+    .caution-box strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+
+    .caution-box p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .faq {
+      display: grid;
+      gap: 8px;
+      margin-top: 28px;
+    }
+
+    .faq details {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--paper);
+    }
+
+    .faq summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 54px;
+      padding: 12px 17px;
+      font-size: 12px;
+      font-weight: 780;
+      list-style: none;
+      cursor: pointer;
+    }
+
+    .faq summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq summary::after {
+      color: var(--primary);
+      content: "+";
+      font-size: 18px;
+    }
+
+    .faq details[open] summary::after {
+      content: "−";
+    }
+
+    .faq-answer {
+      padding: 0 17px 17px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .faq-answer p:last-child {
+      margin-bottom: 0;
+    }
+
+    .footer {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 30px;
+      align-items: end;
+      margin-top: 104px;
+      padding-top: 32px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .footer strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-family: var(--serif);
+      font-size: 1.25rem;
+    }
+
+    .footer p {
+      max-width: 660px;
+      margin-bottom: 0;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 200;
+      max-width: min(340px, calc(100vw - 44px));
+      padding: 11px 15px;
+      border: 1px solid color-mix(in srgb, var(--mint) 38%, var(--line));
+      border-radius: 12px;
+      color: var(--ink);
+      background: var(--paper-raised);
+      box-shadow: var(--shadow);
+      font-size: 12px;
+      font-weight: 720;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(12px);
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .toast.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    noscript {
+      display: block;
+      margin: 16px 0;
+      padding: 12px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--muted);
+      background: var(--paper);
+      font-size: 12px;
+    }
+
+    @media (max-width: 1120px) {
+      .page-shell {
+        grid-template-columns: 220px minmax(0, 1fr);
+      }
+
+      .rail {
+        padding-inline: 18px;
+      }
+
+      .main {
+        padding-inline: 36px;
+      }
+
+      .quick-route {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .quick-route-item:nth-child(3) {
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+
+      .quick-route-item:nth-child(4) {
+        border-top: 1px solid var(--line);
+      }
+
+      .quick-route-item:nth-child(3)::before {
+        display: none;
+      }
+
+      .chain-steps {
+        grid-template-columns: repeat(7, 142px);
+      }
+    }
+
+    @media (max-width: 900px) {
+      html {
+        scroll-padding-top: 86px;
+      }
+
+      .page-shell {
+        display: block;
+      }
+
+      .rail {
+        display: none;
+      }
+
+      .main {
+        padding-top: 18px;
+      }
+
+      .mobile-bar {
+        position: sticky;
+        top: 10px;
+        z-index: 80;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        padding: 9px 10px 9px 12px;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: color-mix(in srgb, var(--paper) 92%, transparent);
+        box-shadow: var(--shadow-small);
+        backdrop-filter: blur(16px);
+      }
+
+      .mobile-brand {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 820;
+        text-decoration: none;
+      }
+
+      .mobile-brand .brand-mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        font-size: 11px;
+      }
+
+      .section-head {
+        grid-template-columns: 1fr;
+        gap: 13px;
+      }
+
+      .host-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .host-controls {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .orbit-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .catalog-toolbar {
+        top: 74px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .main {
+        padding-inline: 18px;
+        padding-bottom: 54px;
+      }
+
+      .section {
+        margin-top: 78px;
+      }
+
+      .hero {
+        min-height: 0;
+        padding: 25px 22px;
+        border-radius: 22px;
+      }
+
+      .hero-topline {
+        margin-bottom: 58px;
+      }
+
+      .hero h1 {
+        font-size: clamp(2.65rem, 13vw, 4.3rem);
+      }
+
+      .quick-route {
+        grid-template-columns: 1fr;
+      }
+
+      .quick-route-item + .quick-route-item {
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+
+      .quick-route-item + .quick-route-item::before {
+        top: -8px;
+        left: 25px;
+        transform: rotate(90deg);
+      }
+
+      .quick-route-item:nth-child(3)::before {
+        display: grid;
+      }
+
+      .boundary-strip,
+      .chooser-grid,
+      .skill-grid,
+      .recipe-grid,
+      .boundary-grid,
+      .chain-hosts {
+        grid-template-columns: 1fr;
+      }
+
+      .invocation-row {
+        grid-template-columns: 1fr;
+        gap: 7px;
+      }
+
+      .decision {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 10px;
+      }
+
+      .decision-link {
+        width: 2px;
+        height: 30px;
+      }
+
+      .decision-link::before {
+        top: 50%;
+        left: 14px;
+        transform: translateY(-50%);
+      }
+
+      .decision-link::after {
+        top: auto;
+        right: auto;
+        bottom: -1px;
+        left: 50%;
+        border-top: 0;
+        border-right: 2px solid var(--amber);
+        border-bottom: 2px solid var(--amber);
+        transform: translateX(-50%) rotate(45deg);
+      }
+
+      .decision-question,
+      .branch-node {
+        width: min(440px, 100%);
+      }
+
+      .flow-sequence {
+        grid-template-columns: 1fr;
+        width: min(440px, 100%);
+        gap: 24px;
+      }
+
+      .flow-sequence .flow-node:not(:last-child)::after {
+        top: auto;
+        right: 50%;
+        bottom: -17px;
+        transform: translateX(50%) rotate(135deg);
+      }
+
+      .search-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .result-count {
+        display: none;
+      }
+
+      .catalog-toolbar {
+        top: 70px;
+      }
+
+      .chain-banner {
+        grid-template-columns: 1fr;
+      }
+
+      .approval-badge {
+        width: 100%;
+      }
+
+      .footer {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-links {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .main {
+        padding-inline: 12px;
+      }
+
+      .mobile-bar {
+        top: 6px;
+      }
+
+      .hero {
+        padding-inline: 18px;
+      }
+
+      .hero-edition {
+        font-size: 10px;
+      }
+
+      .button {
+        width: 100%;
+      }
+
+      .flow-figure {
+        padding: 20px 13px;
+      }
+
+      .flow-node {
+        grid-template-columns: 42px minmax(0, 1fr);
+      }
+
+      .flow-node .node-output {
+        grid-column: 2;
+        justify-self: start;
+      }
+
+      .choice-card {
+        grid-template-columns: 42px minmax(0, 1fr);
+      }
+
+      .choice-card::after {
+        display: none;
+      }
+
+      .skill-main {
+        padding: 18px;
+      }
+
+      .skill-card summary {
+        padding-inline: 18px;
+      }
+
+      .detail-body {
+        padding-inline: 18px;
+      }
+
+      .search-row {
+        grid-template-columns: 1fr;
+      }
+
+      .expand-button {
+        width: 100%;
+      }
+
+      .fact {
+        grid-template-columns: 54px minmax(0, 1fr);
+      }
+
+      .code-pill {
+        align-items: flex-start;
+      }
+
+      .code-pill code {
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+
+    @media print {
+      :root,
+      html[data-theme="dark"] {
+        color-scheme: light;
+        --canvas: #fff;
+        --paper: #fff;
+        --paper-raised: #fff;
+        --ink: #111;
+        --ink-soft: #252525;
+        --muted: #555;
+        --faint: #666;
+        --line: #c9c9c9;
+        --line-strong: #aaa;
+        --primary: #234caf;
+        --primary-deep: #183b91;
+        --primary-soft: #edf1ff;
+        --mint: #176c62;
+        --mint-soft: #e7f5f1;
+        --amber: #8a4c08;
+        --amber-soft: #fff4dd;
+        --coral: #963d38;
+        --coral-soft: #ffebe8;
+        --violet: #5a42a3;
+        --violet-soft: #f0ecff;
+        --shadow: none;
+        --shadow-small: none;
+      }
+
+      body {
+        background: white;
+        font-size: 10pt;
+      }
+
+      body::before,
+      .rail,
+      .mobile-bar,
+      .hero-actions,
+      .host-controls,
+      .catalog-toolbar,
+      .copy-button,
+      .icon-button,
+      .toast {
+        display: none !important;
+      }
+
+      .page-shell {
+        display: block;
+      }
+
+      .main {
+        width: 100%;
+        max-width: none;
+        padding: 0;
+      }
+
+      .hero,
+      .flow-figure,
+      .skill-card,
+      .recipe-card,
+      .chain-shell {
+        box-shadow: none;
+        break-inside: avoid;
+      }
+
+      .section {
+        margin-top: 42px;
+      }
+
+      .skill-grid,
+      .recipe-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      details:not([open]) > *:not(summary) {
+        display: block !important;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
+
+  <div class="page-shell">
+    <aside class="rail" aria-label="문서 목차">
+      <a class="brand" href="#overview">
+        <span class="brand-mark" aria-hidden="true">EZ</span>
+        <span class="brand-copy">
+          <strong>Skill Atlas</strong>
+          <span>EZPowers v5.3</span>
+        </span>
+      </a>
+
+      <div class="rail-meta" aria-label="가이드 범위">
+        <span class="tiny-chip">13 plugin skills</span>
+        <span class="tiny-chip">12 project skills</span>
+      </div>
+
+      <p class="toc-label">Contents</p>
+      <nav>
+        <ul class="toc">
+          <li><a href="#overview" aria-current="true">한눈에 보기</a></li>
+          <li><a href="#invocation">호출 방식</a></li>
+          <li><a href="#workflow">기본 순서도</a></li>
+          <li><a href="#chooser">상황별 선택</a></li>
+          <li><a href="#skills">스킬별 설명</a></li>
+          <li><a href="#recipes">추천 사용법</a></li>
+          <li><a href="#chain">Harness Chain</a></li>
+          <li><a href="#boundaries">책임 경계와 FAQ</a></li>
+        </ul>
+      </nav>
+
+      <div class="rail-footer">
+        <p class="rail-source">
+          실제 동작 기준:
+          <a href="../AGENTS.md">AGENTS.md</a>,
+          <a href="reference/codex-plugin-discovery.md">호스트 호출 계약</a>,
+          <a href="../project-kit/v5.3.0/manifest.json">v5.3 매니페스트</a>
+        </p>
+      </div>
+    </aside>
+
+    <main class="main" id="main-content">
+      <div class="mobile-bar">
+        <a class="mobile-brand" href="#overview">
+          <span class="brand-mark" aria-hidden="true">EZ</span>
+          <span>Skill Atlas · v5.3</span>
+        </a>
+        <div class="control-group">
+          <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
+            <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.2 15.1A8.5 8.5 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15.1Z"></path>
+            </svg>
+            <svg class="theme-sun" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3.5"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <section class="section hero" id="overview" aria-labelledby="hero-title">
+        <div class="hero-topline">
+          <span class="hero-edition">Verified workflow · plugin v5.3.0</span>
+          <div class="control-group">
+            <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
+              <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20.2 15.1A8.5 8.5 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15.1Z"></path>
+              </svg>
+              <svg class="theme-sun" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="3.5"></circle>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <p class="section-kicker">EZPowers Skill Atlas</p>
+        <h1 id="hero-title">어떤 스킬을,<br>언제 써야 할까?</h1>
+        <p class="hero-lede">
+          모든 작업에 모든 스킬을 쓰는 것은 아닙니다. 요청의 모호함, UI 결정,
+          기술 경계, 검증 방식에 따라 필요한 경로만 골라 쓰고, 마지막 완료 판단은
+          실제 프로젝트 검사와 신선한 증거로 내립니다.
+        </p>
+
+        <div class="hero-actions">
+          <a class="button primary" href="#workflow">기본 흐름부터 보기 <span class="arrow" aria-hidden="true">↓</span></a>
+          <a class="button" href="#chooser">내 상황으로 찾기 <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+
+        <div class="quick-route" aria-label="가장 흔한 네 단계">
+          <div class="quick-route-item">
+            <small>SETTLE</small>
+            <strong>spec</strong>
+          </div>
+          <div class="quick-route-item">
+            <small>MAP</small>
+            <strong>prepare-execute</strong>
+          </div>
+          <div class="quick-route-item">
+            <small>BUILD</small>
+            <strong>execute</strong>
+          </div>
+          <div class="quick-route-item">
+            <small>PROVE</small>
+            <strong>verify → certify</strong>
+          </div>
+        </div>
+      </section>
+
+      <noscript>
+        JavaScript가 꺼져 있어도 전체 설명은 읽을 수 있습니다. 호스트별 명령 전환,
+        검색, 복사 버튼만 사용할 수 없습니다. 본문 기본 명령은 Codex 기준입니다.
+      </noscript>
+
+      <section class="section" id="invocation" aria-labelledby="invocation-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">01 · Invocation</p>
+            <h2 id="invocation-title">호스트와 설치 위치에 따라<br>호출문이 달라집니다</h2>
+          </div>
+          <p class="section-summary">
+            개념과 완료 판정은 같지만 Claude Code와 Codex의 네임스페이스는 다릅니다.
+            아래 호스트를 바꾸면 이 페이지의 모든 명령 예시가 함께 바뀝니다.
+          </p>
+        </div>
+
+        <div class="surface-card host-panel">
+          <div class="host-controls">
+            <h3>사용 중인 호스트</h3>
+            <p>선택은 이 브라우저에만 저장되며 프로젝트를 변경하지 않습니다.</p>
+            <div class="segmented" role="group" aria-label="명령 예시 호스트 선택">
+              <button class="segment" type="button" data-host-choice="claude" aria-pressed="false">Claude Code</button>
+              <button class="segment" type="button" data-host-choice="codex" aria-pressed="true">Codex</button>
+            </div>
+          </div>
+          <div class="host-result">
+            <div class="invocation-row">
+              <div class="invocation-label">
+                <strong>플러그인 스킬</strong>
+                <span>설치된 EZPowers 플러그인</span>
+              </div>
+              <div class="code-pill">
+                <code data-skill-command="spec" data-scope="plugin">$ezpowers:spec</code>
+                <button class="copy-button" type="button" data-copy-command>복사</button>
+              </div>
+            </div>
+            <div class="invocation-row">
+              <div class="invocation-label">
+                <strong>프로젝트 스킬</strong>
+                <span>setup 후 저장소 로컬 복사본</span>
+              </div>
+              <div class="code-pill">
+                <code data-skill-command="spec" data-scope="project">$spec</code>
+                <button class="copy-button" type="button" data-copy-command>복사</button>
+              </div>
+            </div>
+            <div class="host-note">
+              <span>
+                <strong>hud</strong>는 전역 Codex 상태 표시줄을 관리하는 플러그인 전용 스킬이라
+                프로젝트 키트에 설치되지 않습니다. 나머지 12개 스킬은 setup 후 프로젝트 로컬 호출이 가능합니다.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="boundary-strip">
+          <article class="boundary-mini">
+            <strong>플러그인: 13개</strong>
+            <p>네임스페이스를 붙여 호출합니다. setup 전에도 배포본의 스킬을 사용할 수 있습니다.</p>
+          </article>
+          <article class="boundary-mini">
+            <strong>프로젝트 키트: 12개</strong>
+            <p>저장소 안에 자체 포함되며 원본 플러그인 체크아웃 없이도 두 호스트에서 동작합니다.</p>
+          </article>
+          <article class="boundary-mini">
+            <strong>완료 판정: 동일한 코어</strong>
+            <p>호스트 어댑터는 다르지만 검증, 증거 해시, 신선도, 인증 규칙은 프로젝트 로컬 런타임이 판단합니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="workflow" aria-labelledby="workflow-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">02 · Main route</p>
+            <h2 id="workflow-title">기본 작업 흐름은<br>하나의 얇은 경로입니다</h2>
+          </div>
+          <p class="section-summary">
+            노란 마름모는 조건부 판단입니다. 해당 문제가 없으면 건너뜁니다.
+            확인·설계 단계가 끝나면 같은 주 경로로 돌아옵니다.
+          </p>
+        </div>
+
+        <figure class="flow-figure">
+          <div class="flowchart">
+            <div class="flow-start">Request</div>
+            <div class="flow-arrow" aria-hidden="true"></div>
+
+            <div class="flow-node">
+              <span class="node-index">00</span>
+              <span class="node-copy">
+                <strong>setup</strong>
+                <span>최초 설치 · 복구 · 문서 부트스트랩일 때</span>
+              </span>
+              <span class="node-output">project kit</span>
+            </div>
+            <div class="flow-arrow" aria-hidden="true"></div>
+
+            <div class="decision">
+              <div class="decision-question">
+                <span class="diamond" aria-hidden="true"><span>?</span></span>
+                <strong>요청이 모호하거나<br>성공 기준이 비어 있는가?</strong>
+              </div>
+              <div class="decision-link" aria-hidden="true"></div>
+              <div class="branch-node">
+                <span>
+                  <strong>deep-interview</strong>
+                  <span>한 번에 한 질문 → 확인된 요청</span>
+                </span>
+                <span class="branch-return" aria-label="주 경로로 복귀">↩</span>
+              </div>
+            </div>
+            <div class="flow-arrow" aria-hidden="true"></div>
+
+            <div class="decision">
+              <div class="decision-question">
+                <span class="diamond" aria-hidden="true"><span>?</span></span>
+                <strong>UI·UX·반응형·접근성<br>결정이 필요한가?</strong>
+              </div>
+              <div class="decision-link" aria-hidden="true"></div>
+              <div class="branch-node">
+                <span>
+                  <strong>frontend-design</strong>
+                  <span>방향·상태·토큰·시각 검증 설계</span>
+                </span>
+                <span class="branch-return" aria-label="주 경로로 복귀">↩</span>
+              </div>
+            </div>
+            <div class="flow-arrow" aria-hidden="true"></div>
+
+            <div class="decision">
+              <div class="decision-question">
+                <span class="diamond" aria-hidden="true"><span>?</span></span>
+                <strong>기술 경계·데이터 흐름·<br>검증 설계가 미정인가?</strong>
+              </div>
+              <div class="decision-link" aria-hidden="true"></div>
+              <div class="branch-node">
+                <span>
+                  <strong>design-architecture</strong>
+                  <span>경계·소유권·수명주기·오라클 결정</span>
+                </span>
+                <span class="branch-return" aria-label="주 경로로 복귀">↩</span>
+              </div>
+            </div>
+            <div class="flow-arrow" aria-hidden="true"></div>
+
+            <div class="flow-sequence">
+              <div class="flow-node">
+                <span class="node-index">01</span>
+                <span class="node-copy">
+                  <strong>spec</strong>
+                  <span>관찰 가능한 수락 기준</span>
+                </span>
+              </div>
+              <div class="flow-node">
+                <span class="node-index">02</span>
+                <span class="node-copy">
+                  <strong>prepare-execute</strong>
+                  <span>기준별 작업과 검사</span>
+                </span>
+              </div>
+              <div class="flow-node">
+                <span class="node-index">03</span>
+                <span class="node-copy">
+                  <strong>execute</strong>
+                  <span>구현 · 전체 검증 · 인증</span>
+                </span>
+              </div>
+            </div>
+            <div class="flow-arrow" aria-hidden="true"></div>
+            <div class="flow-finish">Fresh PASS · CERTIFIED</div>
+          </div>
+
+          <div class="flow-legend" aria-label="순서도 범례">
+            <span class="legend-item"><span class="legend-dot"></span> 주 경로</span>
+            <span class="legend-item"><span class="legend-dot optional"></span> 필요한 경우만</span>
+            <span class="legend-item"><span class="legend-dot support"></span> 전 단계 지원</span>
+          </div>
+          <figcaption class="flow-caption">
+            텍스트 요약: 최초 설치가 필요하면 setup을 실행하고, 모호함·UI 결정·기술 경계를
+            각각 필요할 때만 해소한 뒤 spec → prepare-execute → execute 순서로 진행합니다.
+          </figcaption>
+        </figure>
+
+        <div class="orbit-grid" aria-label="주 경로 바깥의 지원 스킬">
+          <article class="orbit-card">
+            <span class="orbit-label">Evidence discipline</span>
+            <h3>diagnose</h3>
+            <p>실패를 재현·최소화하고 첫 분기점을 찾습니다. 진단만 요청했다면 코드나 테스트를 수정하지 않습니다.</p>
+          </article>
+          <article class="orbit-card">
+            <span class="orbit-label">Focused design</span>
+            <h3>codebase-design</h3>
+            <p>지정된 모듈에서 최소 두 인터페이스와 실제 seam을 비교하며, 저장소 전체를 스캔하지 않습니다.</p>
+          </article>
+          <article class="orbit-card">
+            <span class="orbit-label">Explicit review</span>
+            <h3>improve-codebase-architecture</h3>
+            <p>명시 호출 시 제품 코드를 넓게 살펴 임시 오프라인 보고서를 만들고, 선택한 후보 하나만 더 탐색합니다.</p>
+          </article>
+          <article class="orbit-card">
+            <span class="orbit-label">Supporting memory</span>
+            <h3>wiki</h3>
+            <p>어느 단계에서든 로컬 지식을 찾고 보조할 수 있지만, 저장소 근거와 완료 증거를 대체하지 않습니다.</p>
+          </article>
+          <article class="orbit-card">
+            <span class="orbit-label">Explicit route</span>
+            <h3>harness-chain</h3>
+            <p>명시적으로 구성·승인했을 때만 한 기능을 제한된 무인 루프로 진행하는 별도 경로입니다.</p>
+          </article>
+          <article class="orbit-card">
+            <span class="orbit-label">Global utility</span>
+            <h3>hud</h3>
+            <p>프로젝트 흐름과 무관하게 전역 Codex 모델·사용량 상태 표시줄만 관리합니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="chooser" aria-labelledby="chooser-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">03 · Decision helper</p>
+            <h2 id="chooser-title">지금 하려는 일로<br>첫 스킬을 고르세요</h2>
+          </div>
+          <p class="section-summary">
+            카드를 선택하면 해당 스킬 설명으로 이동합니다. “첫 스킬”일 뿐,
+            뒤 단계는 작업 성격에 따라 달라질 수 있습니다.
+          </p>
+        </div>
+
+        <div class="chooser-grid">
+          <a class="choice-card" href="#skill-setup">
+            <span class="choice-icon" aria-hidden="true">01</span>
+            <span class="choice-copy"><strong>처음 설치하거나 깨진 설치를 복구하고 싶다</strong><code>setup</code></span>
+          </a>
+          <a class="choice-card" href="#skill-deep-interview">
+            <span class="choice-icon" aria-hidden="true">02</span>
+            <span class="choice-copy"><strong>아이디어는 있지만 원하는 결과가 아직 흐릿하다</strong><code>deep-interview</code></span>
+          </a>
+          <a class="choice-card" href="#skill-diagnose">
+            <span class="choice-icon" aria-hidden="true">03</span>
+            <span class="choice-copy"><strong>오류·실패·느려짐의 실제 원인을 먼저 증명하고 싶다</strong><code>diagnose</code></span>
+          </a>
+          <a class="choice-card" href="#skill-codebase-design">
+            <span class="choice-icon" aria-hidden="true">04</span>
+            <span class="choice-copy"><strong>특정 모듈의 인터페이스와 테스트 seam을 설계하고 싶다</strong><code>codebase-design</code></span>
+          </a>
+          <a class="choice-card" href="#skill-improve-codebase-architecture">
+            <span class="choice-icon" aria-hidden="true">05</span>
+            <span class="choice-copy"><strong>기존 제품 코드의 구조 개선 후보를 넓게 찾고 싶다</strong><code>improve-codebase-architecture</code></span>
+          </a>
+          <a class="choice-card" href="#skill-frontend-design">
+            <span class="choice-icon" aria-hidden="true">06</span>
+            <span class="choice-copy"><strong>화면 구조·시각 방향·상태·접근성을 정해야 한다</strong><code>frontend-design</code></span>
+          </a>
+          <a class="choice-card" href="#skill-design-architecture">
+            <span class="choice-icon" aria-hidden="true">07</span>
+            <span class="choice-copy"><strong>모듈 경계·데이터 흐름·배포·검증 방식이 미정이다</strong><code>design-architecture</code></span>
+          </a>
+          <a class="choice-card" href="#skill-spec">
+            <span class="choice-icon" aria-hidden="true">08</span>
+            <span class="choice-copy"><strong>합의된 요구를 기계 검증 가능한 수락 기준으로 남기고 싶다</strong><code>spec</code></span>
+          </a>
+          <a class="choice-card" href="#skill-prepare-execute">
+            <span class="choice-icon" aria-hidden="true">09</span>
+            <span class="choice-copy"><strong>유효한 스펙을 작업 순서와 정확한 검사로 바꾸고 싶다</strong><code>prepare-execute</code></span>
+          </a>
+          <a class="choice-card" href="#skill-execute">
+            <span class="choice-icon" aria-hidden="true">10</span>
+            <span class="choice-copy"><strong>검증된 계획을 실제로 구현하고 인증까지 받고 싶다</strong><code>execute</code></span>
+          </a>
+          <a class="choice-card" href="#skill-wiki">
+            <span class="choice-icon" aria-hidden="true">11</span>
+            <span class="choice-copy"><strong>이 저장소의 로컬 결정·관례·디버깅 메모를 찾고 싶다</strong><code>wiki</code></span>
+          </a>
+          <a class="choice-card" href="#skill-harness-chain">
+            <span class="choice-icon" aria-hidden="true">12</span>
+            <span class="choice-copy"><strong>승인한 기능을 제한·검토가 있는 무인 루프로 돌리고 싶다</strong><code>harness-chain</code></span>
+          </a>
+          <a class="choice-card" href="#skill-hud">
+            <span class="choice-icon" aria-hidden="true">13</span>
+            <span class="choice-copy"><strong>Codex 하단에 모델·사용량 상태 표시를 켜고 싶다</strong><code>hud</code></span>
+          </a>
+        </div>
+      </section>
+
+      <section class="section" id="skills" aria-labelledby="skills-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">04 · Skill catalog</p>
+            <h2 id="skills-title">13개 스킬의 역할과<br>넘지 않는 경계</h2>
+          </div>
+          <p class="section-summary">
+            “언제”, “결과”, “하지 않는 일”을 함께 보세요. 이름이 비슷해도
+            각 스킬의 책임은 의도적으로 좁습니다.
+          </p>
+        </div>
+
+        <div class="catalog-toolbar" aria-label="스킬 검색 및 필터">
+          <div class="search-row">
+            <label class="search-wrap">
+              <span class="sr-only">스킬 검색</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5"></circle>
+                <path d="m16 16 4.2 4.2"></path>
+              </svg>
+              <input class="skill-search" type="search" placeholder="예: UI, 모호한 요청, 인증, 로컬 지식…" autocomplete="off" data-skill-search>
+              <button class="clear-search" type="button" data-clear-search aria-label="검색어 지우기">×</button>
+            </label>
+            <span class="result-count" aria-live="polite" data-result-count>13개 표시</span>
+            <button class="expand-button" type="button" data-expand-all aria-pressed="false">설명 모두 펼치기</button>
+          </div>
+          <div class="filter-row" role="group" aria-label="스킬 범주 필터">
+            <button class="filter-button" type="button" data-filter="all" aria-pressed="true">전체 13</button>
+            <button class="filter-button" type="button" data-filter="foundation" aria-pressed="false">설치 1</button>
+            <button class="filter-button" type="button" data-filter="design" aria-pressed="false">명확화·설계 5</button>
+            <button class="filter-button" type="button" data-filter="delivery" aria-pressed="false">명세·실행 3</button>
+            <button class="filter-button" type="button" data-filter="support" aria-pressed="false">진단·지식 2</button>
+            <button class="filter-button" type="button" data-filter="special" aria-pressed="false">특수 경로 2</button>
+          </div>
+        </div>
+
+        <div class="skill-grid" data-skill-grid>
+          <article class="skill-card" id="skill-setup" data-category="foundation" data-search="setup 설치 초기화 복구 갱신 refresh 문서 bootstrap hooks 프로젝트 키트">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">01</span>
+                  <span class="skill-title"><h3>setup</h3><span>설치 · 복구 · 문서 기반</span></span>
+                </div>
+                <a class="skill-link" href="../skills/setup/SKILL.md" aria-label="setup 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge explicit">명시 호출</span>
+                <span class="badge">plugin + project</span>
+              </div>
+              <p class="skill-purpose">
+                저장소에 자체 포함형 EZPowers 키트를 설치·갱신·복구하고,
+                실제 프로젝트 검사와 선택적 문서 그래프를 구성합니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>최초 설치, 버전 갱신, 설치 손상 복구, 문서 부트스트랩/재분석</dd></div>
+                <div class="fact"><dt>결과</dt><dd><code>.ezpowers/</code>, 호스트별 로컬 스킬, 검사 설정, 선택적 문서 그래프</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>제품 코드 작성, 모델 선택, 전역 HUD 구성, 외부 실행기 추가</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Plugin invocation</span><span class="scope-note">권장 첫 호출</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="setup" data-scope="plugin">$ezpowers:setup</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>실행 흐름과 주의점</summary>
+              <div class="detail-body">
+                <ol>
+                  <li>저장소 근거에서 Python 3.10+, 실제 검사 명령, 문서 권한을 확인합니다.</li>
+                  <li>새 설치 또는 <code>--refresh</code>로 키트를 복사하고 충돌을 보존합니다.</li>
+                  <li>문서는 스테이징 → 해시 미리보기 → 승인 → 적용 → lint 순서입니다.</li>
+                  <li><code>--refresh-docs</code>는 스킬 워크플로 플래그이며 런타임 installer 플래그가 아닙니다.</li>
+                  <li>완료 훅과 wiki SessionEnd 캡처는 서로 별개이며 각각 명시적 승인이 필요합니다.</li>
+                </ol>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-deep-interview" data-category="design" data-search="deep interview 인터뷰 명확화 모호 요청 그릴미 요구사항 질문 성공 기준 범위">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">02</span>
+                  <span class="skill-title"><h3>deep-interview</h3><span>모호함을 확인된 요청으로</span></span>
+                </div>
+                <a class="skill-link" href="../skills/deep-interview/SKILL.md" aria-label="deep-interview 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge auto">설명 기반 매칭 가능</span>
+                <span class="badge">session only</span>
+              </div>
+              <p class="skill-purpose">
+                가장 영향이 크고 불확실한 지점을 한 번에 하나씩 질문해,
+                사용자가 자신의 요청이라고 확인할 수 있는 문장으로 다시 씁니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>대상, 범위, 제약, 비목표, 관찰 가능한 성공이 아직 모호할 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd>현재 대화 안의 <strong>Clarified request</strong>와 사용자 확인</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>인터뷰 중 파일·스펙 작성, 기존 산출물 리뷰, 일반 모드의 자동 진행</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Plugin invocation</span><span class="scope-note">요청 문장과 함께</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="deep-interview" data-scope="plugin">$ezpowers:deep-interview</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>인터뷰가 잘 끝나는 기준</summary>
+              <div class="detail-body">
+                <ul>
+                  <li>저장소에서 찾을 수 있는 사실은 먼저 조사하고 사용자에게 되묻지 않습니다.</li>
+                  <li>매 턴 정확히 하나의 중요한 질문만 묻습니다.</li>
+                  <li>요청을 다시 쓸 때 사용자 선호를 새로 발명할 필요가 없어야 합니다.</li>
+                  <li>마지막 요청은 사용자가 명시적으로 확인하거나 수정해야 완성됩니다.</li>
+                  <li>이미 Plan Mode라면 확인 뒤 같은 계획 대화를 이어가며, 확정된 의도는 다시 묻지 않습니다.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-diagnose" data-category="support" data-search="diagnose diagnosing bugs 진단 디버그 오류 실패 failing flaky slow performance regression root cause 재현 최소화">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">03</span>
+                  <span class="skill-title"><h3>diagnose</h3><span>수정 전에 원인을 증명</span></span>
+                </div>
+                <a class="skill-link" href="../skills/diagnose/SKILL.md" aria-label="diagnose 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge auto">설명 기반 매칭 가능</span>
+                <span class="badge">evidence first</span>
+              </div>
+              <p class="skill-purpose">
+                실패를 감지하는 빠른 명령을 세우고 재현을 최소화한 뒤,
+                반증 가능한 가설을 시험해 잘못된 값이나 흐름의 첫 분기점을 찾습니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>버그, 실패한 테스트·빌드·통합, flaky 동작, 성능 회귀의 원인을 찾을 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd>실제 명령·신호, 최소 재현, 가설별 증거, 경로·심볼이 있는 root cause</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>진단만 요청했는데 코드·테스트 수정, 재현 없이 근처 예외를 원인으로 단정</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Plugin invocation</span><span class="scope-note">증상과 함께</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="diagnose" data-scope="plugin">$ezpowers:diagnose</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>진단과 수정의 경계</summary>
+              <div class="detail-body">
+                <ul>
+                  <li>진단 전용 요청은 읽기 전용 probe와 기존 테스트까지만 실행합니다.</li>
+                  <li>수정 권한이 있으면 실제 인터페이스 seam을 통과하는 회귀 테스트를 먼저 red로 만듭니다.</li>
+                  <li>세 번의 수정 시도가 실패하면 추측을 반복하지 않고 가설과 seam을 재평가합니다.</li>
+                  <li>관리 실행의 완료는 여전히 전체 verify와 certify가 판단합니다.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-codebase-design" data-category="design" data-search="codebase design module interface depth seam adapter leverage locality 모듈 인터페이스 깊이 의존성 테스트 리팩터링">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">04</span>
+                  <span class="skill-title"><h3>codebase-design</h3><span>작은 인터페이스, 깊은 모듈</span></span>
+                </div>
+                <a class="skill-link" href="../skills/codebase-design/SKILL.md" aria-label="codebase-design 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge auto">설명 기반 매칭 가능</span>
+                <span class="badge">focused advisory</span>
+              </div>
+              <p class="skill-purpose">
+                이름 붙이기 수준이 아니라 materially different한 인터페이스를 최소 두 개 비교해,
+                복잡성을 숨기고 변경·테스트를 한곳에 모으는 honest seam을 설계합니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>지정된 모듈·리팩터링의 책임, 의존성 방향, API, 테스트 표면을 정할 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd>대안 비교, 선택한 Module·Interface·Seam·Adapter·migration 경계</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>저장소 전체 스캔, 코드 구현, ADR·정식 아키텍처 문서의 자동 수정</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Project invocation</span><span class="scope-note">모듈을 지정</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="codebase-design" data-scope="project">$codebase-design</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>깊이와 seam 판단법</summary>
+              <div class="detail-body">
+                <ul>
+                  <li>모듈 삭제 시 복잡성이 호출자로 퍼지면 깊이가 있고, 사라지면 pass-through일 수 있습니다.</li>
+                  <li>어댑터 하나는 가상 seam이며, 독립적으로 필요한 둘이 실제 변형을 증명합니다.</li>
+                  <li>호출자와 테스트는 같은 인터페이스 경계를 통과해야 합니다.</li>
+                  <li>mock 편의만을 위해 추상화를 추가하지 않습니다.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-improve-codebase-architecture" data-category="design" data-search="improve codebase architecture 아키텍처 개선 전체 스캔 shallow module scattered complexity report html 후보 hotspot">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">05</span>
+                  <span class="skill-title"><h3>improve-codebase-architecture</h3><span>제품 코드 개선 후보 지도</span></span>
+                </div>
+                <a class="skill-link" href="../skills/improve-codebase-architecture/SKILL.md" aria-label="improve-codebase-architecture 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge explicit">반드시 명시 호출</span>
+                <span class="badge">offline report</span>
+              </div>
+              <p class="skill-purpose">
+                기존 제품 코드에서 얕은 모듈·새는 경계·흩어진 복잡성을 찾아
+                1–8개 후보와 before/after 도식을 안전한 임시 HTML 보고서로 렌더링합니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>특정 하위 시스템이나 최근 hotspot의 구조 개선 후보를 넓게 비교할 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd>OS 임시 경로의 오프라인 보고서, SHA-256 receipt, 선택 후보의 refactor brief</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>워크플로 하네스 감사, 저장소 파일 작성, 후보 자동 구현, CDN·원격 자산 사용</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Project invocation</span><span class="scope-note">범위를 명시</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="improve-codebase-architecture" data-scope="project">$improve-codebase-architecture</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>보고서 안전성과 다음 단계</summary>
+              <div class="detail-body">
+                <ul>
+                  <li>기존 저장소 상대 경로와 line-specific evidence가 있는 후보만 포함합니다.</li>
+                  <li>renderer는 입력을 escape하고 repository 내부·기존 출력 파일을 거부합니다.</li>
+                  <li>보고서에는 script, 원격 요청, 이미지·폰트·분석 의존성이 없습니다.</li>
+                  <li>사용자가 후보 하나를 고른 뒤에만 codebase-design 방식으로 더 깊게 탐색합니다.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-frontend-design" data-category="design" data-search="frontend design ui ux 화면 디자인 토큰 컴포넌트 반응형 접근성 visual qa mock prototype">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">06</span>
+                  <span class="skill-title"><h3>frontend-design</h3><span>UI 결정을 구현 전에</span></span>
+                </div>
+                <a class="skill-link" href="../skills/frontend-design/SKILL.md" aria-label="frontend-design 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge auto">설명 기반 매칭 가능</span>
+                <span class="badge">advisory</span>
+              </div>
+              <p class="skill-purpose">
+                화면 구조, 시각 방향, 상태, 토큰, 컴포넌트, 반응형·접근성 규칙,
+                그리고 실제로 확인할 시각 QA 오라클을 결정합니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>웹·모바일·데스크톱·TUI 표면의 외형이나 상호작용을 정해야 할 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd><code>docs/ux/frontend-design.md</code> 디자인 계약</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>UI 코드 구현, 없는 Storybook/시각 diff 도구의 강제 도입</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Plugin invocation</span><span class="scope-note">구현 전에</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="frontend-design" data-scope="plugin">$ezpowers:frontend-design</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>필수 결정 항목</summary>
+              <div class="detail-body">
+                <ul>
+                  <li>서로 다른 2–3개 방향과 구체적인 장단점, 선택 또는 위임 기록</li>
+                  <li>화면/경로 인벤토리, 로딩·빈 상태·오류·권한·성공 등의 상태 행렬</li>
+                  <li>토큰과 컴포넌트 정책, 반응형·입력 방식, 접근성 목표</li>
+                  <li>자산 출처, 시각 QA 증거, 규범적 목업이 있다면 신선도 규칙</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-design-architecture" data-category="design" data-search="design architecture 아키텍처 경계 모듈 데이터 흐름 배포 호환성 verification oracle 기술 결정">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">07</span>
+                  <span class="skill-title"><h3>design-architecture</h3><span>기술 경계와 검증 설계</span></span>
+                </div>
+                <a class="skill-link" href="../skills/design-architecture/SKILL.md" aria-label="design-architecture 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge explicit">명시 호출</span>
+                <span class="badge">before spec</span>
+              </div>
+              <p class="skill-purpose">
+                합의된 제품 결정을 프로젝트의 경계, 소유권, 데이터 흐름, 수명주기,
+                배포·호환성, 실행 가능한 검증 설계로 고정합니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>기능 스펙을 쓰기 전에 구현이 기술 결정을 발명할 위험이 있을 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd>프로젝트별 아키텍처 산출물과 실제 엔트리포인트 검증 설계</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>코드 구현, 제품 요구 인터뷰, 모델·서브에이전트·재시도 정책 지정</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Project invocation</span><span class="scope-note">setup 완료 후</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="design-architecture" data-scope="project">$design-architecture</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>판단 기준과 연결점</summary>
+              <div class="detail-body">
+                <ul>
+                  <li>제품·도메인 선택이 열려 있으면 <code>deep-interview</code>로 돌아갑니다.</li>
+                  <li>UI 방향은 <code>frontend-design</code>에 맡기고 산출물 경로와 오라클만 이어받습니다.</li>
+                  <li>사용자에게 보이는 주장은 실제 경계를 통과하는 프로젝트 로컬 검사로 증명합니다.</li>
+                  <li>필요한 어댑터가 없으면 주장을 약화하지 말고 선행 작업으로 기록합니다.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-spec" data-category="delivery" data-search="spec 스펙 요구사항 수락 기준 acceptance criteria traceable integration failure docs specs validate">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">08</span>
+                  <span class="skill-title"><h3>spec</h3><span>합의된 결정을 수락 계약으로</span></span>
+                </div>
+                <a class="skill-link" href="../skills/spec/SKILL.md" aria-label="spec 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge explicit">명시 호출</span>
+                <span class="badge">managed artifact</span>
+              </div>
+              <p class="skill-purpose">
+                이미 정해진 요구를 이진적이고 관찰 가능하며 호스트에 독립적인
+                수락 기준으로 바꾸고, 각 요구와 정확히 추적되도록 기록합니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>제품·설계 결정이 충분히 정리되어 “무엇을 증명할지” 고정할 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd><code>docs/specs/</code> 아래 읽기 쉬운 설명 + 관리 JSON 블록</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>모호한 요구 인터뷰, 기술 경계 발명, 구현 계획 또는 코드 작성</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Project invocation</span><span class="scope-note">합의 후</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="spec" data-scope="project">$spec</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>좋은 수락 기준의 조건</summary>
+              <div class="detail-body">
+                <ul>
+                  <li>각 기준은 참/거짓으로 판정할 수 있고 사용자가 관찰할 수 있어야 합니다.</li>
+                  <li>실제 경계를 넘는 동작은 integration evidence로 표시합니다.</li>
+                  <li>거부 동작도 요구라면 명시적인 실패 기준을 포함합니다.</li>
+                  <li><code>validate --spec</code> 실패나 중요한 미결정은 다음 단계의 차단 사유입니다.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-prepare-execute" data-category="delivery" data-search="prepare execute 계획 plan 작업 순서 검사 checks coverage criteria dependency validation docs plans">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">09</span>
+                  <span class="skill-title"><h3>prepare-execute</h3><span>기준을 작업과 검사로 매핑</span></span>
+                </div>
+                <a class="skill-link" href="../skills/prepare-execute/SKILL.md" aria-label="prepare-execute 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge explicit">명시 호출</span>
+                <span class="badge">plan only</span>
+              </div>
+              <p class="skill-purpose">
+                유효한 스펙의 모든 기준을 한 번씩만 다루는 작은 구현 계획으로 바꾸고,
+                순서·의존성·예상 파일·정확한 프로젝트 검사를 결합합니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>스펙이 유효하고 구현 전에 criterion coverage와 검사 명령을 확정할 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd><code>docs/plans/</code> 아래 순서화된 계획 + 관리 JSON 블록</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>계획 구현, 검사 약화, 중복/누락 기준 허용, 호스트 실행 전략 지정</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Project invocation</span><span class="scope-note">유효한 spec 필요</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="prepare-execute" data-scope="project">$prepare-execute</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>계획 검증 체크리스트</summary>
+              <div class="detail-body">
+                <ul>
+                  <li>모든 수락 기준은 정확히 한 작업에 매핑되어야 합니다.</li>
+                  <li>프런트엔드·접근성·통합·시각 오라클을 보존합니다.</li>
+                  <li>도구가 없으면 검사를 빼지 말고 명시적인 선행 작업으로 둡니다.</li>
+                  <li><code>validate --plan</code>이 PASS일 때만 <code>execute</code>로 이어집니다.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-execute" data-category="delivery" data-search="execute 구현 실행 verify certify evidence resume status 검증 인증 증거 fresh pass">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">10</span>
+                  <span class="skill-title"><h3>execute</h3><span>구현 · 전체 검증 · 인증</span></span>
+                </div>
+                <a class="skill-link" href="../skills/execute/SKILL.md" aria-label="execute 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge explicit">명시 호출</span>
+                <span class="badge">completion verdict</span>
+              </div>
+              <p class="skill-purpose">
+                검증된 계획을 호스트 네이티브 편집·오케스트레이션으로 구현하고,
+                전체 실제 검사를 실행해 신선한 증거와 인증 판정을 얻습니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>스펙과 계획이 유효하며 이제 제품을 수정하고 완료를 증명할 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd>코드 변경, 실제 로그·해시 증거, fresh certification, resume 상태</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>가짜 PASS 생성, 검사 생략·약화, 외부 실행기·두 번째 단계 상태기계 사용</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Project invocation</span><span class="scope-note">validated plan 필요</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="execute" data-scope="project">$execute</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>완료까지의 세 명령</summary>
+              <div class="detail-body">
+                <ol>
+                  <li><code>validate --plan &lt;path&gt; --activate</code>로 resume 대상을 명시합니다.</li>
+                  <li>구현·리뷰 후 <code>verify --plan &lt;path&gt; --all --json</code>으로 전체 검사를 실행합니다.</li>
+                  <li><code>certify --plan &lt;path&gt; --json</code>과 <code>status --json</code>으로 신선한 완료를 확인합니다.</li>
+                  <li>워크스페이스·계획·설정·문서가 바뀌면 이전 PASS는 완료를 대신하지 못합니다.</li>
+                </ol>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-wiki" data-category="support" data-search="wiki 로컬 지식 메모 검색 query add read list lint refresh promote prune session capture cjk">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">11</span>
+                  <span class="skill-title"><h3>wiki</h3><span>워크트리 로컬 보조 기억</span></span>
+                </div>
+                <a class="skill-link" href="../skills/wiki/SKILL.md" aria-label="wiki 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge auto">설명 기반 매칭 가능</span>
+                <span class="badge">local only</span>
+              </div>
+              <p class="skill-purpose">
+                반복해서 유용한 결정·관례·환경 사실·디버깅 메모를 워크트리 로컬로
+                검색·추가·정리하되, 항상 저장소 근거 아래의 보조 기억으로 유지합니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>이전 지식 query, 확인된 메모 add, canonical 문서로 promote, 명시된 페이지 prune</dd></div>
+                <div class="fact"><dt>결과</dt><dd><code>.ezpowers/wiki/</code> 아래 로컬 페이지·색인·백업 기록</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>정식 권위·완료 증거가 되기, 저장소 사실 덮어쓰기, 무단 세션 내용 저장</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Project invocation</span><span class="scope-note">operation 지정</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="wiki" data-scope="project">$wiki</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>권한과 개인정보 경계</summary>
+              <div class="detail-body">
+                <ul>
+                  <li>후보 지식은 힌트일 뿐이며 구현 전에 저장소 근거로 재확인합니다.</li>
+                  <li>promote는 정식 Markdown에 먼저 작성한 후 해시 미리보기·확인으로 바인딩합니다.</li>
+                  <li>prune은 명시된 미승격 페이지만 미리보기 후 로컬 백업을 만들고 제거합니다.</li>
+                  <li>SessionEnd 캡처는 별도 동의가 필요하며 transcript, prompt, output, secret을 저장하지 않습니다.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-harness-chain" data-category="special" data-search="harness chain 무인 unattended 승인 approval oracle audit reviewer qa limits codex goal claude stop certify">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">12</span>
+                  <span class="skill-title"><h3>harness-chain</h3><span>명시 승인된 제한형 무인 경로</span></span>
+                </div>
+                <a class="skill-link" href="../skills/harness-chain/SKILL.md" aria-label="harness-chain 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge explicit">반드시 명시 호출</span>
+                <span class="badge">independent gates</span>
+              </div>
+              <p class="skill-purpose">
+                프로젝트별 무인 체인을 한 번 구성하거나, 한 기능의 수락 입력을
+                해시로 동결·승인한 뒤 독립 검토와 하드 리밋 안에서 완료까지 진행합니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>사용자가 구성 또는 실행을 명시적으로 요청하고 부재 중 진행을 원할 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd>chain config, 기능 승인, 검토 receipt, 증거, terminal verdict</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>일반 execute 대체, 암묵적 오케스트레이션, 모델 선택, 무제한 재시도</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Project invocation</span><span class="scope-note">configure 또는 feature run</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="harness-chain" data-scope="project">$harness-chain</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>두 승인과 독립 검토</summary>
+              <div class="detail-body">
+                <ul>
+                  <li>프로젝트 구성 apply와 각 기능 apply가 인간 승인 경계입니다.</li>
+                  <li>기능 승인 전 acceptance oracle을 현재 워크스페이스의 격리 복사본에서 증명하고 독립 감사를 받습니다.</li>
+                  <li>승인 후 spec·plan·oracle·config 해시가 바뀌면 <code>NEEDS_REAPPROVAL</code>입니다.</li>
+                  <li>Codex는 하나의 native goal, Claude는 하나의 Stop loop만 연속 실행 권한으로 씁니다.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-hud" data-category="special" data-search="hud codex statusline 상태 표시줄 모델 usage 사용량 global install uninstall repair config">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">13</span>
+                  <span class="skill-title"><h3>hud</h3><span>전역 Codex 상태 표시줄</span></span>
+                </div>
+                <a class="skill-link" href="../skills/hud/SKILL.md" aria-label="hud 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge explicit">명시 호출</span>
+                <span class="badge global">plugin only · Codex</span>
+              </div>
+              <p class="skill-purpose">
+                Codex 네이티브 TUI 하단에 모델과 사용량 정보를 보여주는
+                EZPowers 관리 블록을 미리보기·설치·복구·제거합니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>전역 Codex HUD를 켜거나 상태 확인, 충돌 진단, 복구, 제거할 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd>승인된 Codex config 조각과 before/after SHA-256, load smoke 결과</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>프로젝트 키트 설치, Claude statusLine 수정, 승인 없는 전역 설정 변경</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Plugin invocation</span><span class="scope-note">Codex 0.145.0+</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="hud" data-scope="plugin">$ezpowers:hud</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>쓰기 전후 안전 절차</summary>
+              <div class="detail-body">
+                <ol>
+                  <li><code>status --json</code>과 <code>preview --json</code>으로 경로와 관리 조각을 확인합니다.</li>
+                  <li>충돌·사용자 수정이 보이면 replace-or-skip을 별도로 승인받습니다.</li>
+                  <li>설치/제거 후 config load smoke와 해시를 확인합니다.</li>
+                  <li>변경한 상태 표시줄은 새 Codex 세션에서 로드됩니다.</li>
+                </ol>
+              </div>
+            </details>
+          </article>
+        </div>
+
+        <div class="empty-results" data-empty-results>
+          <strong>일치하는 스킬이 없습니다.</strong>
+          <span>다른 표현을 입력하거나 범주 필터를 전체로 바꿔 보세요.</span><br>
+          <button class="button" type="button" data-reset-search>검색 초기화</button>
+        </div>
+      </section>
+
+      <section class="section" id="recipes" aria-labelledby="recipes-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">05 · Recipes</p>
+            <h2 id="recipes-title">자주 쓰는 여섯 가지<br>실전 조합</h2>
+          </div>
+          <p class="section-summary">
+            화살표는 자동 호출을 의미하지 않습니다. 현재 단계가 끝난 뒤
+            필요한 다음 스킬을 명시적으로 호출하는 사용 순서입니다.
+          </p>
+        </div>
+
+        <div class="recipe-grid">
+          <article class="recipe-card">
+            <span class="recipe-index">A</span>
+            <h3>이미 명확한 일반 기능</h3>
+            <p class="recipe-intro">요구와 기술 경계가 정해졌다면 가장 짧은 표준 경로를 씁니다.</p>
+            <ol class="recipe-path">
+              <li><span class="recipe-dot">1</span><span class="recipe-copy"><strong>spec</strong><span>요구를 이진 수락 기준으로 고정</span></span></li>
+              <li><span class="recipe-dot">2</span><span class="recipe-copy"><strong>prepare-execute</strong><span>기준마다 작업·검사 한 번씩 매핑</span></span></li>
+              <li><span class="recipe-dot">3</span><span class="recipe-copy"><strong>execute</strong><span>구현 후 전체 verify와 certify</span></span></li>
+            </ol>
+          </article>
+
+          <article class="recipe-card">
+            <span class="recipe-index">B</span>
+            <h3>아이디어만 있는 요청</h3>
+            <p class="recipe-intro">해결책보다 원하는 결과가 불분명하면 먼저 대화 안에서 요청을 확정합니다.</p>
+            <ol class="recipe-path">
+              <li><span class="recipe-dot">1</span><span class="recipe-copy"><strong>deep-interview</strong><span>한 질문씩 범위·성공·비목표 명확화</span></span></li>
+              <li><span class="recipe-dot">2</span><span class="recipe-copy"><strong>사용자 확인</strong><span>Clarified request를 확인하거나 수정</span></span></li>
+              <li><span class="recipe-dot">3</span><span class="recipe-copy"><strong>계획 또는 spec</strong><span>Plan Mode면 계획을 계속하고, 일반 모드에서는 필요할 때 spec을 별도 호출</span></span></li>
+            </ol>
+          </article>
+
+          <article class="recipe-card">
+            <span class="recipe-index">C</span>
+            <h3>새 화면 또는 UI 개편</h3>
+            <p class="recipe-intro">코딩하면서 외형·상태를 발명하지 않도록 시각 결정을 먼저 고정합니다.</p>
+            <ol class="recipe-path">
+              <li><span class="recipe-dot">1</span><span class="recipe-copy"><strong>frontend-design</strong><span>방향·IA·상태·토큰·접근성·QA</span></span></li>
+              <li><span class="recipe-dot">2</span><span class="recipe-copy"><strong>design-architecture?</strong><span>API·상태 흐름·검증 경계가 미정일 때만</span></span></li>
+              <li><span class="recipe-dot">3</span><span class="recipe-copy"><strong>spec → prepare-execute → execute</strong><span>시각 오라클을 끝까지 보존</span></span></li>
+            </ol>
+          </article>
+
+          <article class="recipe-card">
+            <span class="recipe-index">D</span>
+            <h3>원인을 모르는 실패</h3>
+            <p class="recipe-intro">고치라는 요청이 포함됐는지 먼저 구분하고, 재현 가능한 증거부터 만듭니다.</p>
+            <ol class="recipe-path">
+              <li><span class="recipe-dot">1</span><span class="recipe-copy"><strong>diagnose</strong><span>red-capable 명령·최소 재현·가설·첫 분기점</span></span></li>
+              <li><span class="recipe-dot">2</span><span class="recipe-copy"><strong>진단 전용?</strong><span>원인과 불확실성을 보고하고 수정 없이 종료</span></span></li>
+              <li><span class="recipe-dot">3</span><span class="recipe-copy"><strong>수정 권한 있음?</strong><span>seam-level 회귀 테스트를 먼저 실패시킨 뒤 최소 수정</span></span></li>
+              <li><span class="recipe-dot">4</span><span class="recipe-copy"><strong>verify → certify</strong><span>관리 실행이라면 전체 완료 증거 갱신</span></span></li>
+            </ol>
+          </article>
+
+          <article class="recipe-card">
+            <span class="recipe-index">E</span>
+            <h3>구조 개선 후보 탐색</h3>
+            <p class="recipe-intro">넓은 발견과 한 모듈의 설계를 분리해, 보고서가 자동 리팩터링 권한이 되지 않게 합니다.</p>
+            <ol class="recipe-path">
+              <li><span class="recipe-dot">1</span><span class="recipe-copy"><strong>improve-codebase-architecture</strong><span>범위·hotspot·1–8개 후보 스캔</span></span></li>
+              <li><span class="recipe-dot">2</span><span class="recipe-copy"><strong>임시 오프라인 보고서</strong><span>경로·SHA-256·top candidate 확인</span></span></li>
+              <li><span class="recipe-dot">3</span><span class="recipe-copy"><strong>사용자 후보 선택</strong><span>자동 구현 없이 하나만 선택</span></span></li>
+              <li><span class="recipe-dot">4</span><span class="recipe-copy"><strong>codebase-design</strong><span>인터페이스·seam 대안과 migration brief</span></span></li>
+            </ol>
+          </article>
+
+          <article class="recipe-card">
+            <span class="recipe-index">F</span>
+            <h3>부재 중 제한형 실행</h3>
+            <p class="recipe-intro">일반 작업이 아니라 사용자가 무인 체인을 명시적으로 원할 때만 선택합니다.</p>
+            <ol class="recipe-path">
+              <li><span class="recipe-dot">1</span><span class="recipe-copy"><strong>harness-chain · Configure</strong><span>호스트·선택 단계·QA·하드 리밋 합의</span></span></li>
+              <li><span class="recipe-dot">2</span><span class="recipe-copy"><strong>구성 미리보기 · 승인</strong><span>READY 해시 한 번 승인</span></span></li>
+              <li><span class="recipe-dot">3</span><span class="recipe-copy"><strong>Feature run · 승인</strong><span>oracle 감사 후 기능 입력 동결</span></span></li>
+              <li><span class="recipe-dot">4</span><span class="recipe-copy"><strong>Native loop</strong><span>검증·독립 리뷰·필요 QA·인증</span></span></li>
+            </ol>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="chain" aria-labelledby="chain-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">06 · Explicit harness</p>
+            <h2 id="chain-title">Harness Chain은<br>승인된 별도 경로입니다</h2>
+          </div>
+          <p class="section-summary">
+            평범한 <code>execute</code>를 더 복잡하게 만드는 옵션이 아닙니다.
+            사용자 부재 중에도 허용된 범위와 횟수 안에서 증거 기반으로 계속할 필요가 있을 때만 씁니다.
+          </p>
+        </div>
+
+        <div class="chain-shell">
+          <div class="chain-banner">
+            <div>
+              <h3>Configure once · Approve each feature once</h3>
+              <p>구성 승인과 기능 승인 사이에 oracle baseline과 독립 감사를 둡니다.</p>
+            </div>
+            <div class="approval-badge">
+              <strong>2</strong>
+              <span>HUMAN BOUNDARIES</span>
+            </div>
+          </div>
+
+          <div class="chain-body">
+            <ol class="chain-steps" aria-label="Harness Chain 순서">
+              <li class="chain-step">
+                <span class="chain-step-number">01</span>
+                <strong>프로젝트 구성 질문</strong>
+                <p>호스트, 선택 단계, QA 조건, 총 반복·실패별 하드 리밋을 정합니다.</p>
+              </li>
+              <li class="chain-step">
+                <span class="chain-step-number">02</span>
+                <strong>Config preview &amp; apply</strong>
+                <p>해시가 바인딩된 READY 미리보기를 보여주고 구성 쓰기를 한 번 승인받습니다.</p>
+              </li>
+              <li class="chain-step">
+                <span class="chain-step-number">03</span>
+                <strong>기능 계약 스테이징</strong>
+                <p>확정 요청, spec, plan, positive/negative oracle과 risk를 한 bundle에 둡니다.</p>
+              </li>
+              <li class="chain-step">
+                <span class="chain-step-number">04</span>
+                <strong>Baseline + oracle audit</strong>
+                <p>격리된 현재 워크스페이스에서 baseline을 실행하고 독립 reviewer receipt를 받습니다.</p>
+              </li>
+              <li class="chain-step">
+                <span class="chain-step-number">05</span>
+                <strong>기능 한 번 승인</strong>
+                <p>정확한 preview hash, 변경 대상, 위험, 리밋을 승인하면 입력이 동결됩니다.</p>
+              </li>
+              <li class="chain-step">
+                <span class="chain-step-number">06</span>
+                <strong>Host-native loop</strong>
+                <p>Codex goal 또는 Claude Stop 중 정확히 하나가 구현 연속성을 담당합니다.</p>
+              </li>
+              <li class="chain-step">
+                <span class="chain-step-number">07</span>
+                <strong>Verify · review · QA · certify</strong>
+                <p>실제 전체 검사와 바인딩된 독립 리뷰, 조건부 QA를 통과해야 인증됩니다.</p>
+              </li>
+            </ol>
+
+            <div class="chain-hosts">
+              <article class="chain-host">
+                <strong>Codex: one native goal</strong>
+                <p>승인된 objective로 하나의 네이티브 goal을 만들며 Stop hook은 관찰자와 terminal brake일 뿐 두 번째 루프가 아닙니다.</p>
+              </article>
+              <article class="chain-host">
+                <strong>Claude Code: one Stop loop</strong>
+                <p>프로젝트 Stop hook이 유일한 연속 실행 권한입니다. 두 호스트의 기능이 동일하다고 가장하지 않습니다.</p>
+              </article>
+            </div>
+
+            <div class="terminal-row" aria-label="Harness Chain 종료 판정">
+              <span class="terminal-label">Terminal verdicts</span>
+              <span class="verdict pass">CERTIFIED</span>
+              <span class="verdict">NEEDS_REAPPROVAL</span>
+              <span class="verdict">BLOCKED</span>
+              <span class="verdict">FAILED</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="boundaries" aria-labelledby="boundaries-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">07 · Boundaries</p>
+            <h2 id="boundaries-title">누가 무엇을 책임하는지<br>분리해서 이해하세요</h2>
+          </div>
+          <p class="section-summary">
+            EZPowers는 코딩 에이전트가 아닙니다. 호스트가 구현하고,
+            프로젝트 로컬 런타임이 정해진 검사와 증거로 완료를 판정합니다.
+          </p>
+        </div>
+
+        <div class="boundary-grid">
+          <article class="owner-card">
+            <h3>EZPowers가 소유</h3>
+            <ul class="check-list">
+              <li>등록된 문서 그래프와 관리 spec/plan 데이터</li>
+              <li>프로젝트별 exact argv 검사와 실제 stdout/stderr 증거</li>
+              <li>증거·설정·워크스페이스 해시와 certification 신선도</li>
+              <li>resume 상태와 명시 승인된 chain의 frozen input·receipt·limits</li>
+            </ul>
+          </article>
+          <article class="owner-card host">
+            <h3>Claude Code / Codex가 소유</h3>
+            <ul class="check-list">
+              <li>파일 편집과 셸 실행, 구현 순서의 실무 판단</li>
+              <li>서브에이전트, worktree, sandbox, 권한과 일반 재시도</li>
+              <li>호스트 네이티브 코드 리뷰와 실제 도구 사용</li>
+              <li>로그인·비밀·결제·외부 시스템 등 호스트 경계</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="caution-box">
+          <span class="caution-icon" aria-hidden="true">!</span>
+          <span>
+            <strong>이 네 가지는 완료 증거가 아닙니다.</strong>
+            <p>“테스트 이름이 있다”, “문자열이 존재한다”, “에이전트가 PASS라고 말했다”,
+              “예전에 검사가 통과했다”는 주장만으로는 부족합니다. 실제 명령의 fresh all-scope PASS가 필요합니다.</p>
+          </span>
+        </div>
+
+        <div class="faq" aria-label="자주 묻는 질문">
+          <details>
+            <summary>모든 기능에 deep-interview부터 execute까지 전부 써야 하나요?</summary>
+            <div class="faq-answer">
+              <p>아닙니다. 모호하지 않으면 deep-interview를, UI가 아니면 frontend-design을,
+                기술 경계가 정해졌으면 design-architecture를 건너뜁니다. 이미 합의된 작은 작업은
+                spec → prepare-execute → execute가 일반적인 최소 경로입니다.</p>
+            </div>
+          </details>
+          <details>
+            <summary>deep-interview가 끝나면 spec 파일을 자동으로 만들어 주나요?</summary>
+            <div class="faq-answer">
+              <p>아닙니다. 인터뷰는 현재 대화 안에서 확인된 요청만 만듭니다.
+                파일을 쓰거나 다음 스킬로 자동 handoff하지 않습니다. 다만 이미 Plan Mode라면
+                확인된 요청을 바탕으로 같은 호스트의 계획 수립을 계속하며, 필요하면 사용자가 spec을 별도로 호출합니다.</p>
+            </div>
+          </details>
+          <details>
+            <summary>wiki에 적힌 내용을 곧바로 프로젝트 결정으로 써도 되나요?</summary>
+            <div class="faq-answer">
+              <p>안 됩니다. wiki는 로컬 보조 기억이며 canonical authority나 completion evidence가 아닙니다.
+                구현 전에 소스·문서·설정 등 저장소 근거로 재확인해야 합니다.</p>
+            </div>
+          </details>
+          <details>
+            <summary>diagnose를 호출하면 버그도 바로 수정하나요?</summary>
+            <div class="faq-answer">
+              <p>요청 범위에 따라 다릅니다. 진단만 요청했다면 재현·가설 검증·첫 분기점 증거에서 멈춥니다.
+                수정까지 명시했다면 실제 seam의 실패 회귀 테스트를 먼저 만든 뒤 최소 원인 수정을 합니다.</p>
+            </div>
+          </details>
+          <details>
+            <summary>세 아키텍처 관련 스킬은 어떻게 다른가요?</summary>
+            <div class="faq-answer">
+              <p><code>codebase-design</code>은 지정된 모듈의 인터페이스를 비교하는 집중 자문이고,
+                <code>improve-codebase-architecture</code>는 명시적으로 기존 제품 코드를 넓게 스캔해 임시 보고서를 만듭니다.
+                <code>design-architecture</code>만 프로젝트의 지속적인 경계·데이터 흐름·검증 설계 문서를 소유합니다.</p>
+            </div>
+          </details>
+          <details>
+            <summary>harness-chain이 일반 execute보다 더 좋은 모드인가요?</summary>
+            <div class="faq-answer">
+              <p>우열 관계가 아닙니다. 일반 작업은 execute가 기본입니다. harness-chain은 사용자 부재 중에도
+                한 기능을 미리 승인한 한도까지 계속해야 하는 경우의 명시적 경로이며 구성·감사·승인 비용이 추가됩니다.</p>
+            </div>
+          </details>
+          <details>
+            <summary>Claude Code와 Codex 결과가 완전히 동일한가요?</summary>
+            <div class="faq-answer">
+              <p>핵심 EZPowers 완료 판정은 같은 프로젝트 로컬 런타임을 사용합니다. 그러나 호출문,
+                hook wire format, chain continuation 방식 같은 호스트 기능은 서로 다르며 동일하다고 가정하지 않습니다.</p>
+            </div>
+          </details>
+          <details>
+            <summary>인증을 받은 뒤 파일 하나를 바꾸면 어떻게 되나요?</summary>
+            <div class="faq-answer">
+              <p>워크스페이스나 관리 입력이 바뀌면 이전 증거가 stale이 될 수 있습니다.
+                런타임 status를 다시 확인하고 필요한 전체 검증과 인증을 재실행해야 합니다.</p>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <div>
+          <strong>EZPowers Skill Atlas</strong>
+          <p>
+            v5.3.0 프로젝트 키트와 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
+            동작이 바뀌면 <code>skills/*/SKILL.md</code>, 호출 계약, 프로젝트 매니페스트와 함께 이 문서를 갱신하세요.
+          </p>
+        </div>
+        <div class="footer-links">
+          <a href="INDEX.md">문서 인덱스</a>
+          <a href="reference/architecture.md">아키텍처</a>
+          <a href="reference/verification-contract.md">검증 계약</a>
+          <a href="#overview">맨 위로 ↑</a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <div class="toast" role="status" aria-live="polite" data-toast></div>
+
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const toast = document.querySelector("[data-toast]");
+      let toastTimer;
+
+      const showToast = (message) => {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add("visible");
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => toast.classList.remove("visible"), 1700);
+      };
+
+      const commandFor = (skill, scope, host) => {
+        if (host === "claude") {
+          return scope === "plugin" ? `/ezpowers:${skill}` : `/${skill}`;
+        }
+        return scope === "plugin" ? `$ezpowers:${skill}` : `$${skill}`;
+      };
+
+      const updateHost = (host, persist = true) => {
+        root.dataset.host = host;
+        document.querySelectorAll("[data-host-choice]").forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.hostChoice === host));
+        });
+        document.querySelectorAll("[data-skill-command]").forEach((code) => {
+          code.textContent = commandFor(code.dataset.skillCommand, code.dataset.scope, host);
+        });
+        if (persist) {
+          try {
+            localStorage.setItem("ezpowers-guide-host", host);
+          } catch (_) {}
+        }
+      };
+
+      document.querySelectorAll("[data-host-choice]").forEach((button) => {
+        button.addEventListener("click", () => {
+          updateHost(button.dataset.hostChoice);
+          showToast(`${button.textContent.trim()} 호출문으로 바꿨습니다.`);
+        });
+      });
+
+      const updateThemeLabels = () => {
+        const dark = root.dataset.theme === "dark";
+        document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+          button.setAttribute("aria-label", dark ? "밝은 테마로 전환" : "어두운 테마로 전환");
+          button.setAttribute("title", dark ? "밝은 테마" : "어두운 테마");
+        });
+      };
+
+      document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const next = root.dataset.theme === "dark" ? "light" : "dark";
+          root.dataset.theme = next;
+          try {
+            localStorage.setItem("ezpowers-guide-theme", next);
+          } catch (_) {}
+          updateThemeLabels();
+        });
+      });
+
+      const fallbackCopy = (text) => {
+        const input = document.createElement("textarea");
+        input.value = text;
+        input.setAttribute("readonly", "");
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        const copied = document.execCommand("copy");
+        input.remove();
+        return copied;
+      };
+
+      document.querySelectorAll("[data-copy-command]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const code = button.closest(".code-pill")?.querySelector("[data-skill-command]");
+          if (!code) return;
+          const text = code.textContent.trim();
+          let copied = false;
+          try {
+            await navigator.clipboard.writeText(text);
+            copied = true;
+          } catch (_) {
+            copied = fallbackCopy(text);
+          }
+          showToast(copied ? `${text} 복사 완료` : `복사하지 못했습니다. 명령을 직접 선택해 주세요.`);
+        });
+      });
+
+      const search = document.querySelector("[data-skill-search]");
+      const clearSearch = document.querySelector("[data-clear-search]");
+      const resetSearch = document.querySelector("[data-reset-search]");
+      const cards = [...document.querySelectorAll(".skill-card")];
+      const filterButtons = [...document.querySelectorAll("[data-filter]")];
+      const resultCount = document.querySelector("[data-result-count]");
+      const emptyResults = document.querySelector("[data-empty-results]");
+      let activeFilter = "all";
+
+      const normalized = (value) => value.trim().toLocaleLowerCase("ko");
+
+      const applyCatalogFilter = () => {
+        const query = normalized(search?.value || "");
+        let visible = 0;
+        cards.forEach((card) => {
+          const categoryMatch = activeFilter === "all" || card.dataset.category === activeFilter;
+          const haystack = normalized(`${card.dataset.search || ""} ${card.textContent}`);
+          const queryMatch = !query || haystack.includes(query);
+          const show = categoryMatch && queryMatch;
+          card.hidden = !show;
+          if (show) visible += 1;
+        });
+        if (resultCount) resultCount.textContent = `${visible}개 표시`;
+        if (emptyResults) emptyResults.classList.toggle("visible", visible === 0);
+        if (clearSearch) clearSearch.classList.toggle("visible", Boolean(query));
+      };
+
+      search?.addEventListener("input", applyCatalogFilter);
+      clearSearch?.addEventListener("click", () => {
+        search.value = "";
+        search.focus();
+        applyCatalogFilter();
+      });
+      resetSearch?.addEventListener("click", () => {
+        activeFilter = "all";
+        search.value = "";
+        filterButtons.forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.filter === "all"));
+        });
+        applyCatalogFilter();
+        search.focus();
+      });
+      filterButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          activeFilter = button.dataset.filter;
+          filterButtons.forEach((candidate) => {
+            candidate.setAttribute("aria-pressed", String(candidate === button));
+          });
+          applyCatalogFilter();
+        });
+      });
+
+      const expandButton = document.querySelector("[data-expand-all]");
+      expandButton?.addEventListener("click", () => {
+        const nextOpen = expandButton.getAttribute("aria-pressed") !== "true";
+        cards.forEach((card) => {
+          if (!card.hidden) {
+            const details = card.querySelector("details");
+            if (details) details.open = nextOpen;
+          }
+        });
+        expandButton.setAttribute("aria-pressed", String(nextOpen));
+        expandButton.textContent = nextOpen ? "설명 모두 접기" : "설명 모두 펼치기";
+      });
+
+      const tocLinks = [...document.querySelectorAll(".toc a")];
+      const sections = tocLinks
+        .map((link) => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+      let tocFramePending = false;
+      const updateToc = () => {
+        const readingLine = Math.min(220, window.innerHeight * 0.3);
+        let current = sections[0];
+        sections.forEach((section) => {
+          if (section.getBoundingClientRect().top <= readingLine) {
+            current = section;
+          }
+        });
+        if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+          current = sections.at(-1);
+        }
+        tocLinks.forEach((link) => {
+          link.setAttribute("aria-current", String(link.getAttribute("href") === `#${current.id}`));
+        });
+        tocFramePending = false;
+      };
+      window.addEventListener("scroll", () => {
+        if (!tocFramePending) {
+          tocFramePending = true;
+          window.requestAnimationFrame(updateToc);
+        }
+      }, { passive: true });
+      window.addEventListener("hashchange", () => window.setTimeout(updateToc, 450));
+
+      updateHost(root.dataset.host === "claude" ? "claude" : "codex", false);
+      updateThemeLabels();
+      applyCatalogFilter();
+      updateToc();
+    })();
+  </script>
+</body>
+</html>

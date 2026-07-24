@@ -39,7 +39,17 @@ skill syntax. See `docs/reference/codex-plugin-discovery.md`.
 Roles are intentionally narrow:
 
 - `deep-interview`: session-only clarification that rewrites a vague request;
-  it does not review artifacts, write files, or hand off automatically.
+  it does not review artifacts, write files, or invoke another workflow. After
+  explicit confirmation, an already active Plan Mode resumes host-native
+  planning without granting implementation authority.
+- `diagnose`: implicit evidence-first debugging discipline; diagnosis-only
+  requests stop before edits, while an authorized fix starts from a failing
+  regression test at the real seam.
+- `codebase-design`: implicit focused advisory for deep modules, small
+  interfaces, honest seams, and refactor-surviving tests.
+- `improve-codebase-architecture`: explicit-only product-code scan that
+  renders a temporary offline report and explores one selected candidate; it
+  does not audit the workflow harness or implement the refactor.
 - `spec`: settled decisions only, expressed as traceable acceptance criteria.
 - `prepare-execute`: criterion coverage and exact project checks.
 - `execute`: host-native implementation followed by local verify/certify.
@@ -88,16 +98,16 @@ plugin-only global Codex utility and is never installed into a project kit.
 - Local supporting knowledge: `.ezpowers/wiki/`
 - Resume/evidence pointer: `.ezpowers/state.json`
 - Runtime: `scripts/ezpowers.py`
-- Distribution manifest: `project-kit/v5.2.0/manifest.json`
+- Distribution manifest: `project-kit/v5.3.0/manifest.json`
 - Specs and plans: `docs/specs/`, `docs/plans/`
 - Canonical contracts: `docs/reference/*-contract.md`
 - Product state: `PROGRESS.md`, `feature_list.json`
 - Audit record: `docs/reports/workflow-harness-audit-2026-07-24.md`
 
-The installed runtime, manifest, skills, references, contracts, and frontend
-readiness tool must be self-contained. Preserve exact check argv unless the
-approved spec or plan changes. Never weaken validation, evidence, or freshness
-rules merely to pass a gate.
+The installed runtime, manifest, skills, references, contracts, frontend
+readiness tool, and architecture report renderer must be self-contained.
+Preserve exact check argv unless the approved spec or plan changes. Never
+weaken validation, evidence, or freshness rules merely to pass a gate.
 
 Do not install plugins, change global configuration, commit, or push without
 explicit user authorization.
