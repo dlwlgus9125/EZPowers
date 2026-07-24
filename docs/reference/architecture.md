@@ -93,13 +93,16 @@ invoke `design-architecture`, `spec`, or an execution workflow, and it grants
 no implementation authority.
 
 `diagnose` and `codebase-design` are implicit disciplines inside the current
-request: the former requires a red-capable feedback loop and first-divergence
-evidence, while the latter compares focused module interfaces and honest
-seams. `improve-codebase-architecture` is explicit-only. It scans existing
-product code and invokes the installed standard-library renderer to create an
-escaped, dependency-free HTML report in an OS temporary directory. It neither
-changes repository files nor replaces `design-architecture`, which remains
-the owner of durable architecture artifacts.
+request. Explicit diagnose invocation or fix/debug intent selects an
+end-to-end path: red-capable feedback loop, first-divergence evidence,
+regression signal, source-cause patch, original-symptom rerun, and affected
+checks. Only an explicit analysis-only/no-edit request stops at evidence.
+`codebase-design` compares focused module interfaces and honest seams.
+`improve-codebase-architecture` is explicit-only. It scans existing product
+code and invokes the installed standard-library renderer to create an escaped,
+dependency-free HTML report in an OS temporary directory. It neither changes
+repository files nor replaces `design-architecture`, which remains the owner
+of durable architecture artifacts.
 
 `spec` records host-independent observable criteria. `prepare-execute` maps
 each criterion to exact project checks. `execute` does not create a second

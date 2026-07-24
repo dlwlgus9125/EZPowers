@@ -25,11 +25,14 @@ host, and receive the same pass/fail completion verdict from repository
 evidence. A new session can navigate project authority and determine what is
 fresh without trusting conversation memory.
 
-For product-code work, the user can also request evidence-first diagnosis,
-focused module/interface design, or an explicit broad architecture scan. The
-broad scan produces an escaped, dependency-free HTML report outside the
-repository and returns to one user-selected candidate; none of these
-disciplines silently expands write, documentation, retry, or completion
+For product-code work, the user can also request evidence-first diagnosis and
+fix completion, focused module/interface design, or an explicit broad
+architecture scan. An explicit `diagnose` invocation or fix/debug request owns
+the path from a red reproduction through the source-cause patch and original
+symptom verification; only a stated analysis-only/no-edit request stops at
+root cause. The broad scan produces an escaped, dependency-free HTML report
+outside the repository and returns to one user-selected candidate. None of
+these disciplines silently expands documentation, retry, or certification
 authority.
 
 When a project needs unattended work, the user can answer project-level chain
@@ -74,8 +77,10 @@ EZPowers does not require an external shared repository or executor.
 - A confirmed `deep-interview` request resumes an already active Plan Mode
   without invoking another workflow, writing an artifact, or authorizing
   implementation.
-- Diagnosis-only work stops at a reproducible, minimized, first-divergence
-  explanation; an authorized fix begins with a real failing regression test.
+- Analysis-only diagnosis stops at a reproducible, minimized,
+  first-divergence explanation. Explicit diagnose and fix/debug requests
+  continue through a red regression signal, the source-cause patch, the
+  original unminimised reproduction, affected checks, and cleanup.
 - Focused codebase design compares materially different interfaces and treats
   one adapter as a hypothetical seam rather than proof of abstraction.
 - Broad architecture improvement is explicit-only, scans product code, writes

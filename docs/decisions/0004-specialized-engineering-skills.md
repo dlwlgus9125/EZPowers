@@ -22,10 +22,12 @@ project installation, discovery, and maintenance harder to verify.
 Pin upstream commit `ed37663cc5fbef691ddfecd080dff42f7e7e350d` and maintain
 three EZPowers-owned MIT adaptations in the core catalog:
 
-1. `diagnose`, implicitly matchable, establishes a reproducible feedback loop,
-   tests falsifiable hypotheses, and stops before edits for diagnosis-only
-   requests. An authorized fix begins with a failing regression test at the
-   real interface seam.
+1. `diagnose`, implicitly matchable, establishes a reproducible feedback loop
+   and tests falsifiable hypotheses. Explicit invocation or fix/debug intent
+   defaults to FIX-COMPLETE and cannot finish at root cause: it continues
+   through a red regression signal, source-cause patch, original-symptom rerun,
+   affected checks, and cleanup. Only an explicit analysis-only/no-edit request
+   stops before changes.
 2. `codebase-design`, implicitly matchable, compares at least two focused
    interfaces using Module, Interface, Depth, Seam, Adapter, Leverage, and
    Locality vocabulary. It neither scans the whole repository nor owns durable

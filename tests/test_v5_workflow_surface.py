@@ -185,11 +185,24 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             / "reference"
             / "engineering-practices-contract.md"
         ).read_text(encoding="utf-8")
+        normalized_diagnose = " ".join(diagnose.split())
         normalized_contract = " ".join(contract.split()).lower()
 
-        self.assertIn("Diagnosis only", diagnose)
-        self.assertIn("regression test", diagnose)
-        self.assertIn("first divergence", diagnose)
+        for phrase in (
+            "Root cause is a milestone, not completion",
+            "FIX-COMPLETE",
+            "ANALYSIS-ONLY",
+            "Do not ask for another authorization",
+            "Lack of a good seam does not cancel FIX-COMPLETE",
+            "the original Phase 1 loop against the unminimised scenario",
+            "Do not stop FIX-COMPLETE at reproduction",
+            "End only with the verified fix",
+        ):
+            self.assertIn(phrase, normalized_diagnose)
+        self.assertNotIn(
+            "After three failed fix attempts, stop changing code",
+            diagnose,
+        )
         self.assertIn("at least two materially different", design)
         self.assertIn("deletion test", design)
         self.assertIn("one adapter as a hypothetical seam", design)
@@ -202,6 +215,20 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
                 REPO_ROOT / "skills" / name / "agents" / "openai.yaml"
             ).read_text(encoding="utf-8")
             self.assertIn("allow_implicit_invocation: true", metadata)
+        for metadata_name, invocation in (
+            ("openai.yaml", "$ezpowers:diagnose"),
+            ("project-openai.yaml", "$diagnose"),
+        ):
+            metadata = (
+                REPO_ROOT
+                / "skills"
+                / "diagnose"
+                / "agents"
+                / metadata_name
+            ).read_text(encoding="utf-8")
+            self.assertIn(invocation, metadata)
+            self.assertIn("implement the source-cause fix", metadata)
+            self.assertIn("end to end", metadata)
         improve_metadata = (
             REPO_ROOT
             / "skills"
@@ -213,10 +240,56 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
 
         self.assertIn("ed37663cc5fbef691ddfecd080dff42f7e7e350d", contract)
         self.assertIn("never fetch upstream content", normalized_contract)
+        self.assertIn(
+            "root cause is an intermediate result",
+            normalized_contract,
+        )
+        self.assertIn(
+            "must not hand control back merely because",
+            normalized_contract,
+        )
         self.assertIn("1-8 candidates", contract)
         self.assertIn(
             "restrictive content security policy",
             normalized_contract,
+        )
+
+    def test_diagnose_fix_complete_path_cannot_stop_at_root_cause(self) -> None:
+        diagnose = (
+            REPO_ROOT / "skills" / "diagnose" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        execute = (
+            REPO_ROOT / "skills" / "execute" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        chain = (
+            REPO_ROOT / "skills" / "harness-chain" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        normalized_diagnose = " ".join(diagnose.split())
+
+        phases = [
+            "## Phase 1 — Build the red loop",
+            "## Phase 2 — Reproduce and minimise",
+            "## Phase 3 — Find the first divergence",
+            "## Phase 4 — Lock the regression",
+            "## Phase 5 — Fix and iterate",
+            "## Phase 6 — Prove completion",
+        ]
+        positions = [diagnose.index(phase) for phase in phases]
+        self.assertEqual(positions, sorted(positions))
+        for required in (
+            "explicitly invokes this skill",
+            "red regression signal",
+            "source-cause patch",
+            "original, unminimised scenario",
+            "relevant module, caller, integration, and configured project checks",
+            "intermediate findings are progress updates",
+            "Root cause is a milestone, not completion",
+        ):
+            self.assertIn(required, normalized_diagnose)
+        self.assertIn("Root cause is not a handoff point", execute)
+        self.assertIn(
+            "Reproduction and root cause are intermediate chain work",
+            chain,
         )
 
     def test_korean_skill_guide_covers_the_v53_catalog(self) -> None:
@@ -241,9 +314,9 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.3.0")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.3.0")
-        self.assertTrue(codex["version"].startswith("5.3.0+codex."))
+        self.assertEqual(claude["version"], "5.3.1")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.3.1")
+        self.assertTrue(codex["version"].startswith("5.3.1+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)

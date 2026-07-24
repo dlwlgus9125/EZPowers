@@ -42,9 +42,10 @@ Roles are intentionally narrow:
   it does not review artifacts, write files, or invoke another workflow. After
   explicit confirmation, an already active Plan Mode resumes host-native
   planning without granting implementation authority.
-- `diagnose`: implicit evidence-first debugging discipline; diagnosis-only
-  requests stop before edits, while an authorized fix starts from a failing
-  regression test at the real seam.
+- `diagnose`: evidence-first, end-to-end bug fixing by default for explicit
+  invocation or fix/debug requests; it must continue from a red loop through
+  a source-cause patch and original-symptom verification. Only an explicit
+  analysis-only/no-edit request stops before changes.
 - `codebase-design`: implicit focused advisory for deep modules, small
   interfaces, honest seams, and refactor-surviving tests.
 - `improve-codebase-architecture`: explicit-only product-code scan that

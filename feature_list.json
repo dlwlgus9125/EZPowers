@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-07-24T04:01:44Z",
+  "updated_at": "2026-07-24T06:09:12Z",
   "features": [
     {
       "id": "F11",
@@ -99,7 +99,7 @@
         "When Plan Mode is already active, the final confirmation makes continuation explicit and resumes the same host-native planning process without another command or permission question",
         "The confirmed request remains the source of truth for clarified user intent, so planning carries its scope and success criteria forward without repeating settled product questions",
         "Corrections, early exits, stop requests, and confirmations outside Plan Mode preserve the ordinary non-continuing behavior",
-        "Plugin and project metadata, canonical guidance, the current v5.3.0 project-kit hashes, and the 5.3.0 dual-host plugin versions preserve the same transition contract"
+        "Plugin and project metadata, canonical guidance, the current v5.3.0 project-kit hashes, and the 5.3.1 dual-host plugin versions preserve the same transition contract"
       ],
       "evidence": [
         "skills/deep-interview/SKILL.md",
@@ -115,7 +115,7 @@
       "title": "Bounded specialized engineering skills",
       "status": "complete",
       "success_criteria": [
-        "Diagnose is implicitly matchable, builds a reproducible evidence loop, stops before edits for diagnosis-only requests, and requires a failing seam-level regression test before an authorized fix",
+        "Diagnose is implicitly matchable, builds a reproducible evidence loop, preserves explicit analysis-only boundaries, and requires a red regression signal before an authorized source-cause fix",
         "Codebase-design is implicitly matchable and compares at least two focused deep-module interfaces without scanning the whole repository or owning durable architecture documents",
         "Improve-codebase-architecture is explicit-only, scans existing product code, writes no repository files, and explores one user-selected candidate without implementing it",
         "The standard-library architecture report renderer validates strict v1 input, escapes untrusted content, has no remote or script dependency, writes atomically outside the repository without overwrite, and returns a hashed JSON receipt",
@@ -134,6 +134,31 @@
         "tests/test_v5_workflow_surface.py",
         "tests/test_ezpowers_runtime.py",
         "project-kit/v5.3.0/manifest.json"
+      ]
+    },
+    {
+      "id": "F17",
+      "title": "Fix-complete diagnose loop",
+      "status": "complete",
+      "success_criteria": [
+        "An explicit diagnose invocation or fix/debug request defaults to FIX-COMPLETE, while only an explicit explanation-only, root-cause-only, or no-edit request selects ANALYSIS-ONLY",
+        "FIX-COMPLETE constructs and runs a tight red-capable command, minimizes the original symptom, tests ranked falsifiable hypotheses, and traces the first divergence before changing product behavior",
+        "The minimized defect becomes a failing regression test at an honest seam; when no honest seam exists, an executable red/green harness preserves the signal and the authorized fix still continues",
+        "Reproduction, root cause, a red test, a failed patch, or one targeted green check cannot terminate FIX-COMPLETE; after three failed patch experiments the loop and hypotheses are rebuilt before continuing",
+        "Completion requires the source-cause patch, green regression signal, green original unminimized scenario, affected project checks, temporary-debug cleanup, and fresh managed verification when applicable",
+        "Plugin and project metadata advertise end-to-end fixing, the v5.3.1 plugin manifests remain host-consistent, and the v5.3.0 project kit installs the new skill bytes through explicit refresh",
+        "An isolated forward-test reproduces a real failing fixture, changes product code, preserves regression coverage, and finishes with all fixture checks green"
+      ],
+      "evidence": [
+        "skills/diagnose/SKILL.md",
+        "skills/diagnose/agents/openai.yaml",
+        "skills/diagnose/agents/project-openai.yaml",
+        "docs/reference/engineering-practices-contract.md",
+        "tests/test_v5_workflow_surface.py",
+        "scripts/plugin_smoke.py",
+        "project-kit/v5.3.0/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
       ]
     }
   ]

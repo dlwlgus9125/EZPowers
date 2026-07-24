@@ -72,7 +72,11 @@ Repository evidence overrides conversation memory and wiki candidates.
 
 `diagnose` and `codebase-design` may be matched implicitly. A matched skill
 provides discipline inside the current user request; it does not expand that
-request's write authority.
+request's write authority. An explicit `diagnose` invocation, or a request to
+fix, debug, repair, resolve, or make a failure pass, selects FIX-COMPLETE
+unless the user also limits the task to analysis or no edits. A bare symptom
+matched implicitly starts read-only and asks once before editing only when the
+requested outcome is genuinely ambiguous.
 
 `improve-codebase-architecture` is explicit-only because it performs a broad
 scan and creates a temporary report. It analyzes existing product code.
@@ -84,11 +88,24 @@ deployment, data-flow, and verification-design decisions.
 A diagnosis is evidence-backed only when it names a command already run that
 can detect the exact symptom, records its real signal, minimizes the
 reproduction, tests falsifiable hypotheses, and traces the first divergence.
-Diagnosis-only requests stop before code or regression-test edits.
+ANALYSIS-ONLY requests stop before code or regression-test edits.
 
-When a fix is authorized, the regression test must cross the honest interface
-seam and fail before the fix. Targeted success is not EZPowers completion;
-fresh all-scope verify and certify remain required during managed execution.
+In FIX-COMPLETE, root cause is an intermediate result. The host must continue
+through a red regression signal, the smallest source-cause patch, the original
+unminimised reproduction, affected caller/project checks, temporary-debug
+cleanup, and final diff review. It must not hand control back merely because a
+reproduction, hypothesis, first divergence, or targeted green result exists.
+
+The regression test must cross the honest interface seam and fail before the
+fix. If no honest seam exists, preserve the minimal command or harness as the
+red/green regression signal, complete the authorized fix, and report the seam
+as a follow-up rather than substituting a shallow test or abandoning the fix.
+A failed patch becomes evidence; after three failed patch experiments, rebuild
+the loop and hypotheses before another edit instead of ending with an
+unverified explanation.
+
+Targeted success is not EZPowers completion; fresh all-scope verify and certify
+remain required during managed execution.
 
 ## Deep-module design
 

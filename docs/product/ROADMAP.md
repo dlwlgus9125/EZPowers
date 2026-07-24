@@ -1,6 +1,6 @@
 # EZPowers Roadmap
 
-## Current: v5.3.0
+## Current: v5.3.0 core / v5.3.1 plugin
 
 - Preserve the v5.1 documentation graph and local wiki.
 - Add an explicit project-question workflow for chain stages, QA triggers,
@@ -17,6 +17,9 @@
 - Add pinned, adapted `diagnose`, `codebase-design`, and
   `improve-codebase-architecture` disciplines with diagnosis/write,
   architecture-document, and completion-authority boundaries.
+- Make explicit `diagnose` and fix/debug requests fix-complete by default:
+  reproduction and root cause are progress, while the source-cause patch,
+  original-symptom rerun, affected checks, and cleanup are completion gates.
 - Render broad architecture reviews through a deterministic standard-library
   tool into a unique temporary offline HTML report.
 - Keep one exact catalog: thirteen plugin skills, twelve project skills, and separate

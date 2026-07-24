@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="EZPowers v5.3.0 플러그인의 13개 스킬을 언제, 어떤 순서로, Claude Code와 Codex에서 어떻게 사용하는지 설명하는 한국어 가이드">
+  <meta name="description" content="EZPowers v5.3.1 플러그인의 13개 스킬을 언제, 어떤 순서로, Claude Code와 Codex에서 어떻게 사용하는지 설명하는 한국어 가이드">
   <meta name="color-scheme" content="light dark">
   <title>EZPowers Skill Atlas — 스킬 사용 가이드</title>
   <script>
@@ -2752,7 +2752,7 @@
 
       <section class="section hero" id="overview" aria-labelledby="hero-title">
         <div class="hero-topline">
-          <span class="hero-edition">Verified workflow · plugin v5.3.0</span>
+          <span class="hero-edition">Verified workflow · plugin v5.3.1</span>
           <div class="control-group">
             <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
               <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true">
@@ -2988,7 +2988,7 @@
           <article class="orbit-card">
             <span class="orbit-label">Evidence discipline</span>
             <h3>diagnose</h3>
-            <p>실패를 재현·최소화하고 첫 분기점을 찾습니다. 진단만 요청했다면 코드나 테스트를 수정하지 않습니다.</p>
+            <p>명시 호출이나 fix/debug 요청이면 재현·첫 분기점에서 멈추지 않고 원인 수정과 원증상 재검증까지 완료합니다.</p>
           </article>
           <article class="orbit-card">
             <span class="orbit-label">Focused design</span>
@@ -3041,7 +3041,7 @@
           </a>
           <a class="choice-card" href="#skill-diagnose">
             <span class="choice-icon" aria-hidden="true">03</span>
-            <span class="choice-copy"><strong>오류·실패·느려짐의 실제 원인을 먼저 증명하고 싶다</strong><code>diagnose</code></span>
+            <span class="choice-copy"><strong>오류·실패·느려짐을 재현하고 실제 원인을 고쳐 검증까지 끝내고 싶다</strong><code>diagnose</code></span>
           </a>
           <a class="choice-card" href="#skill-codebase-design">
             <span class="choice-icon" aria-hidden="true">04</span>
@@ -3216,7 +3216,7 @@
               <div class="skill-top">
                 <div class="skill-identity">
                   <span class="skill-number">03</span>
-                  <span class="skill-title"><h3>diagnose</h3><span>수정 전에 원인을 증명</span></span>
+                  <span class="skill-title"><h3>diagnose</h3><span>재현부터 검증된 수정까지</span></span>
                 </div>
                 <a class="skill-link" href="../skills/diagnose/SKILL.md" aria-label="diagnose 원문 열기">↗</a>
               </div>
@@ -3225,13 +3225,13 @@
                 <span class="badge">evidence first</span>
               </div>
               <p class="skill-purpose">
-                실패를 감지하는 빠른 명령을 세우고 재현을 최소화한 뒤,
-                반증 가능한 가설을 시험해 잘못된 값이나 흐름의 첫 분기점을 찾습니다.
+                실패를 감지하는 빠른 red loop를 세우고 첫 분기점을 찾은 뒤,
+                회귀 신호·원인 수정·원래 시나리오·관련 검사를 모두 green으로 만듭니다.
               </p>
               <dl class="fact-list">
-                <div class="fact"><dt>언제</dt><dd>버그, 실패한 테스트·빌드·통합, flaky 동작, 성능 회귀의 원인을 찾을 때</dd></div>
-                <div class="fact"><dt>결과</dt><dd>실제 명령·신호, 최소 재현, 가설별 증거, 경로·심볼이 있는 root cause</dd></div>
-                <div class="fact"><dt>안 함</dt><dd>진단만 요청했는데 코드·테스트 수정, 재현 없이 근처 예외를 원인으로 단정</dd></div>
+                <div class="fact"><dt>언제</dt><dd>버그, 실패한 테스트·빌드·통합, flaky 동작, 성능 회귀를 실제로 해결할 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd>red-before/green-after 증거, source-cause patch, 원증상 재실행, 관련 검사 결과</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>root cause만 말하고 종료, assertion 약화, downstream 증상 은폐, 명시된 no-edit 경계 위반</dd></div>
               </dl>
               <div class="command-stack">
                 <div class="command-label"><span>Plugin invocation</span><span class="scope-note">증상과 함께</span></div>
@@ -3245,9 +3245,10 @@
               <summary>진단과 수정의 경계</summary>
               <div class="detail-body">
                 <ul>
-                  <li>진단 전용 요청은 읽기 전용 probe와 기존 테스트까지만 실행합니다.</li>
-                  <li>수정 권한이 있으면 실제 인터페이스 seam을 통과하는 회귀 테스트를 먼저 red로 만듭니다.</li>
-                  <li>세 번의 수정 시도가 실패하면 추측을 반복하지 않고 가설과 seam을 재평가합니다.</li>
+                  <li>명시 호출 또는 fix/debug 요청은 기본 FIX-COMPLETE이며 추가 수정 허가를 다시 묻지 않습니다.</li>
+                  <li>analysis-only/no edits가 명시된 경우에만 읽기 전용 probe와 기존 테스트에서 멈춥니다.</li>
+                  <li>실제 인터페이스 seam의 회귀 테스트나 실행 가능한 최소 loop를 먼저 red로 확인합니다.</li>
+                  <li>세 번의 patch가 실패하면 종료하지 않고 loop와 가설을 재구축한 뒤 새 예측에서 계속합니다.</li>
                   <li>관리 실행의 완료는 여전히 전체 verify와 certify가 판단합니다.</li>
                 </ul>
               </div>
@@ -3741,12 +3742,12 @@
           <article class="recipe-card">
             <span class="recipe-index">D</span>
             <h3>원인을 모르는 실패</h3>
-            <p class="recipe-intro">고치라는 요청이 포함됐는지 먼저 구분하고, 재현 가능한 증거부터 만듭니다.</p>
+            <p class="recipe-intro">명시 diagnose나 fix/debug 요청이면 재현은 시작점이고, 검증된 수정까지 같은 흐름이 소유합니다.</p>
             <ol class="recipe-path">
               <li><span class="recipe-dot">1</span><span class="recipe-copy"><strong>diagnose</strong><span>red-capable 명령·최소 재현·가설·첫 분기점</span></span></li>
-              <li><span class="recipe-dot">2</span><span class="recipe-copy"><strong>진단 전용?</strong><span>원인과 불확실성을 보고하고 수정 없이 종료</span></span></li>
-              <li><span class="recipe-dot">3</span><span class="recipe-copy"><strong>수정 권한 있음?</strong><span>seam-level 회귀 테스트를 먼저 실패시킨 뒤 최소 수정</span></span></li>
-              <li><span class="recipe-dot">4</span><span class="recipe-copy"><strong>verify → certify</strong><span>관리 실행이라면 전체 완료 증거 갱신</span></span></li>
+              <li><span class="recipe-dot">2</span><span class="recipe-copy"><strong>regression red</strong><span>honest seam 또는 최소 실행 loop에서 원증상 고정</span></span></li>
+              <li><span class="recipe-dot">3</span><span class="recipe-copy"><strong>source-cause fix</strong><span>첫 분기점을 고치고 최소·원래 시나리오 재실행</span></span></li>
+              <li><span class="recipe-dot">4</span><span class="recipe-copy"><strong>related checks → certify</strong><span>관련 경계와 관리 전체 증거까지 갱신</span></span></li>
             </ol>
           </article>
 
@@ -3930,8 +3931,9 @@
           <details>
             <summary>diagnose를 호출하면 버그도 바로 수정하나요?</summary>
             <div class="faq-answer">
-              <p>요청 범위에 따라 다릅니다. 진단만 요청했다면 재현·가설 검증·첫 분기점 증거에서 멈춥니다.
-                수정까지 명시했다면 실제 seam의 실패 회귀 테스트를 먼저 만든 뒤 최소 원인 수정을 합니다.</p>
+              <p>네. 명시적으로 diagnose를 호출하거나 fix/debug를 요청하면 기본은 FIX-COMPLETE입니다.
+                재현·가설·root cause는 중간 진행이며 회귀 신호, 원인 수정, 원래 시나리오와 관련 검사까지 끝냅니다.
+                “원인만”, “분석만”, “수정 금지”를 명시했을 때만 코드 변경 전에 멈춥니다.</p>
             </div>
           </details>
           <details>
@@ -3970,7 +3972,7 @@
         <div>
           <strong>EZPowers Skill Atlas</strong>
           <p>
-            v5.3.0 프로젝트 키트와 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
+            v5.3.0 프로젝트 키트와 v5.3.1 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
             동작이 바뀌면 <code>skills/*/SKILL.md</code>, 호출 계약, 프로젝트 매니페스트와 함께 이 문서를 갱신하세요.
           </p>
         </div>

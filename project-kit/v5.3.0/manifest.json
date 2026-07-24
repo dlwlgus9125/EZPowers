@@ -56,12 +56,12 @@
         {
           "source": "skills/diagnose/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "69cd39236812225aa0d050fefd1d43fd5f747ac079af096babc93ddfce51ff13"
+          "sha256": "baf560df7280b829619e0f4505cbe1f6003f580fbe6b5838340ba201ba38ebd1"
         },
         {
           "source": "skills/diagnose/agents/project-openai.yaml",
           "path": "agents/openai.yaml",
-          "sha256": "3a365aaeff9a500feefa109fbd27e90e5e26ab4b4b9ccee91ae23a8147563c9f"
+          "sha256": "959b3cd06ce974a98a2ba992787eec670bd3dfaa1aafa9d8c23545f9c81ed480"
         }
       ]
     },
@@ -146,7 +146,7 @@
         {
           "source": "skills/execute/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "799da3a91e44db5ed4eecbc57e78517c702bd7c522576fdb0cbdbda0d7776eca"
+          "sha256": "79936cd5dcd1abf786f14549878761ec5626608c0c9a90bc9c48ed6e08fff1d1"
         },
         {
           "source": "skills/execute/agents/project-openai.yaml",
@@ -191,7 +191,7 @@
         {
           "source": "skills/harness-chain/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "d2d7fbfe0ac970e55636405bdcc0967a683d64baf9d98bf721e8248c842f4f76"
+          "sha256": "8c3939bed8a882fa64a33fabb9f4f0c9e95022009739c22fc096e4b5f9ffe21b"
         },
         {
           "source": "skills/harness-chain/agents/project-openai.yaml",
@@ -250,7 +250,7 @@
     {
       "source": "docs/reference/engineering-practices-contract.md",
       "target": ".ezpowers/contracts/engineering-practices-contract.md",
-      "sha256": "3d40a616deaf6d5267f5247b3f620414e43368d59ea489918682634b77d96309"
+      "sha256": "1ea90059072e633e091098a564000628ef53f4339fe3a10e9aa92564816f646e"
     }
   ]
 }

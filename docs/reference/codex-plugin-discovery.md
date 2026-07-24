@@ -52,6 +52,12 @@ may be matched implicitly from their descriptions. Both hosts must
 encode the same intent using their own policy field; one host's field is not
 evidence that the other host enforces it.
 
+An explicit `/ezpowers:diagnose` or `$ezpowers:diagnose` invocation selects the
+fix-complete path unless the user says analysis-only or no edits. The
+project-local `/diagnose` and `$diagnose` variants have the same contract.
+Reproduction, hypotheses, and root cause are progress checkpoints; both hosts
+continue through the source-cause patch and original-symptom verification.
+
 `deep-interview` uses a host-native structured question surface when one is
 callable and appropriate, and otherwise asks one plain-text question. The
 shared contract is one consequential question per turn and a confirmed request

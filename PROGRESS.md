@@ -2,10 +2,10 @@
 
 ## Current State
 
-EZPowers v5.3.0 is complete in the working tree on `main`. It preserves the
-host-native verification core, documentation graph, local wiki, explicit
-harness chain, and Plan Mode-aware clarification while adding bounded
-specialized engineering disciplines:
+EZPowers v5.3.0 project kit and the v5.3.1 plugin patch are complete in the
+working tree on `main`. They preserve the host-native verification core,
+documentation graph, local wiki, explicit harness chain, and Plan Mode-aware
+clarification while adding bounded specialized engineering disciplines:
 
 - repository analysis and an adaptive Markdown graph rooted at canonical
   `AGENTS.md`, exact `CLAUDE.md` import, and `docs/INDEX.md`;
@@ -23,9 +23,12 @@ specialized engineering disciplines:
 - a session-only `deep-interview` whose explicitly confirmed request resumes an
   already active Plan Mode without another command, repeated product questions,
   artifact creation, downstream skill invocation, or implementation authority;
-- evidence-first `diagnose`, focused deep-module `codebase-design`, and an
-  explicit `improve-codebase-architecture` product-code scan whose temporary
-  offline report never becomes repository documentation or completion evidence;
+- fix-complete `diagnose`, which treats root cause as an intermediate result
+  and owns the red loop, source-cause patch, original-symptom rerun, and
+  affected checks unless analysis-only/no-edit behavior is explicit;
+- focused deep-module `codebase-design`, and an explicit
+  `improve-codebase-architecture` product-code scan whose temporary offline
+  report never becomes repository documentation or completion evidence;
 - an exact thirteen-skill plugin and twelve-skill project catalog with distinct
   namespaced and project-local Codex prompt metadata;
 - clean retirement of pre-v5 workflow input plus Claude 2.1.217 and Codex
@@ -58,12 +61,32 @@ force product rework until a configured limit becomes terminal.
 - `F14`: workflow surface audit and host compatibility hardening.
 - `F15`: Plan Mode-aware `deep-interview` continuation.
 - `F16`: bounded specialized engineering skills.
+- `F17`: fix-complete `diagnose` loop.
 
 The v5.3 project kit installs twelve project skills, ten canonical contracts,
 and two deterministic tools. The plugin exposes those skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+Final v5.3.1 plugin patch verification on 2026-07-24:
+
+- `python -m unittest discover -s tests`: 141 tests passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
+  PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
+  PASS for real install → validate → verify → certify → stale.
+- `python scripts/verify-harness-kit.py`: v5.3 manifest valid with twelve
+  project skills, ten contracts, and two tools.
+- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
+  Claude 2.1.217 accepted the plugin and marketplace manifests, and Codex
+  0.145.0 loaded all twelve project and thirteen namespaced plugin skills with
+  exact prompts in isolation.
+- An isolated `diagnose` forward-test reproduced a tenant-scoped event
+  filtering failure, preserved the existing regression test, changed only
+  product code, and finished with the minimal and full fixture commands green.
+
+### Previous v5.3.0 baseline
 
 Final v5.3.0 verification on 2026-07-24:
 

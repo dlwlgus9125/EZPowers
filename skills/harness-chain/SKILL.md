@@ -233,6 +233,9 @@ python .ezpowers/ezpowers.py verify --plan <plan> --all --json
 On FAIL, apply the `diagnose` evidence ladder to the recorded logs, add a
 regression test before the fix when applicable, and fix the product. This does
 not create another retry authority or expand the approved acceptance contract.
+Reproduction and root cause are intermediate chain work; continue through the
+source-cause patch and rerun the original failing scenario before full
+verification.
 Never weaken, skip, rename, or replace the oracle/check to obtain PASS. A
 failure that reaches any approved limit becomes terminal immediately; do not
 perform an extra attempt. The runtime records the failed workspace and rejects

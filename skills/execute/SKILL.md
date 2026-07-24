@@ -61,8 +61,10 @@ changed plan/config, documentation drift, missing log, or hash mismatch is
 blocking. Apply the `diagnose` evidence ladder before fixing a nontrivial
 failure. Because this explicit skill already has implementation authority, a
 regression test may be added before the fix when the approved plan permits it;
-the diagnosis itself never expands scope. Fix the product or revise the
-approved spec/plan, then rerun the complete verification set.
+the diagnosis itself never expands scope. Root cause is not a handoff point:
+continue through the source-cause patch, the original failure reproduction,
+affected checks, and cleanup. Fix the product or revise the approved spec/plan,
+then rerun the complete verification set.
 
 ## Resume and report
 
