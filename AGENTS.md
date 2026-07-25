@@ -22,7 +22,8 @@ evidence before conversation memory.
 
 ```text
 setup -> documentation preview/apply/lint
-      -> deep-interview (when the user's request is ambiguous)
+      -> deep-interview (when the request is ambiguous or has a plausible
+                         consequential blind spot)
       -> design-architecture (when technical boundaries are unsettled)
       -> spec -> prepare-execute -> execute
 
@@ -38,8 +39,9 @@ skill syntax. See `docs/reference/codex-plugin-discovery.md`.
 
 Roles are intentionally narrow:
 
-- `deep-interview`: session-only clarification that rewrites a vague request;
-  it does not review artifacts, write files, or invoke another workflow. After
+- `deep-interview`: session-only clarification that resolves stated ambiguity
+  and plausible consequential blind spots before rewriting the request; it
+  does not review artifacts, write files, or invoke another workflow. After
   explicit confirmation, an already active Plan Mode resumes host-native
   planning without granting implementation authority.
 - `diagnose`: evidence-first, end-to-end bug fixing by default for explicit

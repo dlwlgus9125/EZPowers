@@ -39,29 +39,49 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
                 ).is_file(),
             )
 
-    def test_deep_interview_contract_is_session_only_and_resumes_active_plan_mode(self) -> None:
+    def test_deep_interview_contract_finds_consequential_blind_spots_without_bloat(self) -> None:
         skill = (REPO_ROOT / "skills" / "deep-interview" / "SKILL.md").read_text(encoding="utf-8")
         normalized_skill = " ".join(skill.split())
         for phrase in (
             "current conversation",
-            "one question",
-            "materially change",
+            "decision-ready request",
+            "stated ambiguity",
+            "Explicit-gap pass",
+            "Blind-spot pass",
+            "Before every question and before stopping",
+            "Try to falsify",
+            "alternative frames",
+            "omitted people, systems, or dependencies",
+            "failure, misuse, or compatibility",
+            "hard-to-reverse consequences",
+            "reasoning lenses, not a questionnaire",
+            "bare possibility",
+            "internal blind-spot pass is mandatory",
+            "external blind-spot question is not",
+            "Rank explicit gaps and eligible blind spots together",
+            "exactly one question",
+            "recommended answer or alternative",
+            "numerical ambiguity or risk score",
+            "Do not expose the candidate list",
             "Clarified request",
             "explicit confirmation",
             "native structured question surface",
             "plain-text question",
             "Do not create or update",
-            "numerical ambiguity score",
-            "a required constraint or a tentative means",
             "Confirm and continue planning",
             "do not add a second continuation question",
             "source of truth for clarified user intent",
-            "resume the current host's native planning process",
-            "Do not repeat product-intent questions",
-            "host's native final plan",
+            "Immediately resume the host's native planning process",
+            "Do not repeat settled product questions",
+            "native final plan",
             "Plan Mode is no longer active",
         ):
             self.assertIn(phrase, normalized_skill)
+        self.assertLessEqual(
+            len(skill.split()),
+            1000,
+            "deep-interview should strengthen reasoning by restructuring, not prompt bloat",
+        )
         for phrase in (
             "stress-test mode",
             "docs/interviews",
@@ -89,6 +109,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
                 / metadata_name
             ).read_text(encoding="utf-8")
             self.assertIn("one question at a time", metadata)
+            self.assertIn("consequential blind spots", metadata)
             self.assertIn("continue planning", metadata)
             self.assertIn("Plan Mode", metadata)
             self.assertNotIn("stress-test", metadata)
@@ -314,9 +335,9 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.3.1")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.3.1")
-        self.assertTrue(codex["version"].startswith("5.3.1+codex."))
+        self.assertEqual(claude["version"], "5.3.2")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.3.2")
+        self.assertTrue(codex["version"].startswith("5.3.2+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)

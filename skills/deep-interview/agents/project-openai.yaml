@@ -1,6 +1,6 @@
 interface:
   display_name: "Deep Interview"
-  short_description: "Clarify intent and resume active Plan Mode"
-  default_prompt: "Use $deep-interview to clarify my request one question at a time; after confirmation, continue planning when Plan Mode is already active."
+  short_description: "Clarify intent and consequential blind spots"
+  default_prompt: "Use $deep-interview to clarify my request and surface consequential blind spots one question at a time; after confirmation, continue planning when Plan Mode is already active."
 policy:
   allow_implicit_invocation: true

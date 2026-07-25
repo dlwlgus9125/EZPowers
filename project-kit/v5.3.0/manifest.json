@@ -26,7 +26,7 @@
         {
           "source": "skills/setup/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "8dae4cde19e3d1e20e8920a95049a92571b08704371222221952634b507b17b1"
+          "sha256": "fca5d65d7f5e07aeab08c5ee9b97f1a968fb282eb2625e9ff79243ff75a3df4c"
         },
         {
           "source": "skills/setup/agents/project-openai.yaml",
@@ -41,12 +41,12 @@
         {
           "source": "skills/deep-interview/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "854234dd8ebfda55e5f544295fd7ce5f268e1438e2332500bfa0ce76c1256dd2"
+          "sha256": "3e966e1af5f1abbd8b6e4bed8ecf2c36e6c1d4582a17ec35fb50d5d0f67c9183"
         },
         {
           "source": "skills/deep-interview/agents/project-openai.yaml",
           "path": "agents/openai.yaml",
-          "sha256": "d5f200453a30706cfeff49b5deface77f62af161294de1bd00190c6f5724849f"
+          "sha256": "a1b7c84ba1e0b8935ea9105250d0c02c8d0eefc6ea353e41420a26d1bfd54bf7"
         }
       ]
     },
@@ -191,7 +191,7 @@
         {
           "source": "skills/harness-chain/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "8c3939bed8a882fa64a33fabb9f4f0c9e95022009739c22fc096e4b5f9ffe21b"
+          "sha256": "298d2495117a2159f95689c8e8f72ccb4f808e2f1cbc292a9147700f28548c72"
         },
         {
           "source": "skills/harness-chain/agents/project-openai.yaml",

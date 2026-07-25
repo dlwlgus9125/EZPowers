@@ -1,89 +1,100 @@
 ---
 name: deep-interview
-description: Use when a user's request is vague, underspecified, solution-shaped, or explicitly asks for deep-interview, requirement clarification, "grill me", or "그릴미". Turn the request into a clear, confirmed request within the current session; when Plan Mode is already active, resume host-native planning after confirmation. Not for reviewing an existing spec, design, or plan, writing artifacts, or small concrete edits whose outcome, scope, constraints, and completion criteria are already settled.
+description: Use when a user's request is vague, underspecified, solution-shaped, or explicitly asks for deep-interview, requirement clarification, "grill me", or "그릴미". Turn it into a concise, confirmed, decision-ready request by resolving stated ambiguity and plausible consequential blind spots; when Plan Mode is already active, resume host-native planning after confirmation. Not for reviewing an existing spec, design, or plan, writing artifacts, or small concrete edits whose outcome, scope, constraints, and completion criteria are already settled.
 ---
 
 # Deep Interview
 
-Turn a vague request into a clear request the user recognizes as their own.
-Clarify intent before implementation without turning the conversation into a
-specification workflow.
+Turn a request into a decision-ready request the user recognizes as their own.
+Find consequential unspoken assumptions as well as stated ambiguity, without
+turning the conversation into an exhaustive audit or specification.
 
 ## Keep it session-only
 
-The interview and its result exist only in the current conversation. Do not
-create or update `CONTEXT.md`, ADRs, interview briefs, specs, plans, or any other
-file during the interview. Do not invoke or hand off to another skill or
-workflow. Returning a confirmed request to an already active Plan Mode resumes
-the current host mode; it is not a workflow handoff. Outside Plan Mode, do not
-automatically advance to another step. A later explicitly invoked skill may use
-the confirmed request from this session.
+Keep the interview and its result in the current conversation. Do not create or
+update `CONTEXT.md`, ADRs, briefs, specs, plans, or any other file. Do not invoke
+or hand off to another skill or workflow. Outside Plan Mode, stop after
+confirmation; a later explicit request may use the result. Resuming an already
+active Plan Mode is continuation of the same host mode, not a handoff.
 
-## Ground the interview
+## Build a grounded provisional request
 
-1. When the request concerns an existing project or artifact, inspect enough
-   repository evidence to answer factual questions before asking the user.
-2. Separate discoverable facts from choices only the user can make. Never ask
-   the user to rediscover repository facts.
-3. Cite the path, symbol, behavior, or other evidence when it materially
-   motivates a question.
-4. Maintain a provisional restatement of what the user appears to want. Treat
-   it as a falsifiable hypothesis, not as a user decision.
-5. When the request prescribes a solution, determine whether that solution is
-   a required constraint or a tentative means to the desired outcome. Do not
-   discard the user's proposed solution without evidence.
+1. For an existing project or artifact, inspect enough evidence to answer
+   factual questions. Separate discoverable facts from user choices, never ask
+   the user to rediscover facts, and cite the path, symbol, or behavior when it
+   materially motivates a question.
+2. Maintain a provisional request covering the desired outcome, affected
+   people or systems, current problem, scope and non-goals, constraints, and
+   observable success only as relevant. Treat it as a falsifiable hypothesis,
+   not as a user decision.
+3. Separate the desired outcome from any proposed means. Determine whether the
+   means is a required constraint or a tentative approach. Challenge the
+   framing only when evidence or a credible consequence makes that distinction
+   material; then offer the strongest alternative or tradeoff.
 
-## Find the consequential gaps
+## Run two silent passes
 
-Silently check the request for gaps in:
+Before every question and before stopping, run both passes:
 
-- the person or system affected, the underlying problem, relevant status quo
-  or workaround, and desired outcome;
-- included scope, explicit non-goals, and independently useful outcomes;
-- constraints, compatibility boundaries, and terms with multiple meanings;
-- observable success and examples that distinguish success from failure.
+1. **Explicit-gap pass:** Find what is unclear, multiply defined, or missing
+   such that rewriting it would invent a preference. Check each independently
+   useful part of a multi-part request.
+2. **Blind-spot pass:** Try to falsify the provisional request from outside its
+   framing. Generate context-specific candidates from hidden assumptions or
+   alternative frames; omitted people, systems, or dependencies; boundaries,
+   failure, misuse, or compatibility; and downstream or hard-to-reverse
+   consequences.
 
-Use this as an internal coverage map, not a questionnaire. Do not ask about a
-dimension that is already settled or would not materially change the request.
-For multi-part requests, make sure clarity in one part does not hide an
-unresolved sibling.
+Treat these as reasoning lenses, not a questionnaire. Ask about a blind spot
+only when it is both:
+
+- **plausible:** grounded in the request, available evidence, or a credible
+  domain consequence, not a bare possibility; and
+- **consequential:** its answer could materially change the outcome, scope,
+  constraints, non-goals, success, or approach.
+
+For high-stakes or hard-to-reverse decisions, a credible severe failure can be
+consequential even when uncommon. Discard settled points, discoverable facts,
+speculative trivia, and later implementation details. The internal blind-spot
+pass is mandatory; an external blind-spot question is not.
 
 ## Interview loop
 
-1. Select the single unresolved point with the greatest combination of impact
-   and uncertainty. Do not calculate or report a numerical ambiguity score.
+1. Rank explicit gaps and eligible blind spots together. Select the single
+   unresolved point with the greatest combination of impact and uncertainty.
 2. Ask exactly one question, then wait for the answer. Never bundle questions.
-3. When useful, include the current hypothesis or a recommended answer and its
-   consequence or tradeoff. Mark it as provisional and make correction easy.
+3. When useful, state the provisional hypothesis, why the answer matters, and
+   a recommended answer or alternative with its main tradeoff.
 4. Prefer an open question when predefined choices would anchor the answer.
-   Use choices only when the alternatives are real and distinct, and let the
-   user correct or replace them in free text.
-5. Update the provisional restatement after every answer. Do not invent a
-   preference to close a gap.
-6. If an answer stays at the surface, pressure-test it with one focused probe:
-   a concrete example, counterexample, hidden assumption, boundary case,
-   tradeoff, simplest useful version, or reframing of the core problem.
-7. Keep clarifying; do not implement or write project artifacts during the
-   interview.
+   Use choices only for real, distinct alternatives and permit free-text
+   correction.
+5. After each answer, update the provisional request without inventing a
+   preference. If the answer stays superficial, use one focused probe such as
+   an example, counterexample, hidden assumption, boundary, tradeoff, simplest
+   useful version, or reframing.
 
-Use the current host's native structured question surface when it is callable
-and appropriate. Otherwise ask one plain-text question. Never require a host or
-mode change merely to present a question.
+Do not calculate or report a numerical ambiguity or risk score. Do not expose
+the candidate list or ask the user to perform the analysis. Do not implement or
+write artifacts during the interview. Use the host's native structured question
+surface when callable and appropriate; otherwise ask one plain-text question.
 
 ## Stop and confirm
 
 Stop asking when all of the following are true:
 
 - the request can be rewritten without inventing a user preference;
-- no remaining question is likely to materially change the outcome, scope,
-  constraints, non-goals, or observable success;
+- neither pass finds a material explicit gap or a plausible consequential
+  unresolved blind spot;
 - all independently useful parts of a multi-part request have been checked.
 
 Present **Clarified request** in the user's language as a self-contained
-replacement for the original request. Preserve the user's intent and voice;
-use short supporting bullets only when they make the request more usable. Ask
-the user to confirm or correct it. When Plan Mode is active, say in that same
-question that confirmation will continue planning. Use the host's native
+replacement for the original. Preserve the user's intent and voice. Include
+only the settled request and material assumptions, non-goals, constraints, or
+success signals needed to act; omit the transcript and rejected alternatives
+unless their absence would mislead.
+
+Ask the user to confirm or correct it. When Plan Mode is active, say in that
+same question that confirmation will continue planning. Use the host's native
 structured question surface when callable, with context-appropriate equivalents
 of **Confirm and continue planning** (recommended) and **Correct**; do not add a
 second continuation question. The interview is complete only after explicit
@@ -91,29 +102,23 @@ confirmation.
 
 ## Resume active Plan Mode
 
-After explicit confirmation, continue only when the current host remains in
-Plan Mode:
+After explicit confirmation, continue only if the host remains in Plan Mode:
 
 1. Treat **Clarified request** as the source of truth for clarified user intent.
-   Carry its goal, audience, scope, constraints, non-goals, and observable
-   success into the current plan.
-2. End the interview loop and immediately resume the current host's native
-   planning process. Do not require another command, skill invocation, or
-   permission question merely to continue planning.
-3. Do not repeat product-intent questions the interview already settled.
-   Inspect repository evidence for discoverable facts and ask only about
-   unresolved implementation decisions under the active Plan Mode contract.
-4. If the plan is already decision-complete, produce the host's native final
-   plan immediately. Otherwise continue planning; do not stop with a terminal
-   interview-only summary while the plan remains incomplete.
-5. Do not invoke `design-architecture`, `spec`, `prepare-execute`, `execute`, or
+   Carry its goal, audience, scope, constraints, non-goals, assumptions, and
+   observable success into the plan.
+2. Immediately resume the host's native planning process without another
+   command, skill invocation, or permission question. Do not repeat settled
+   product questions; inspect facts and ask only unresolved implementation
+   decisions.
+3. Produce the native final plan if decision-complete; otherwise keep planning
+   rather than ending with an interview-only summary.
+4. Do not invoke `design-architecture`, `spec`, `prepare-execute`, `execute`, or
    any other workflow, create a project artifact, or start implementation.
 
 If the user corrects the request, revise it and obtain confirmation again. If
-the user ends the interview early, asks to stop, or Plan Mode is no longer
-active, preserve the ordinary session-only behavior and do not auto-continue.
-
-If the user ends the interview early, provide the best current clarified
-request and mark only the material unresolved points. Do not claim that the
-request is fully clarified, create an artifact, or suggest an automatic next
-step.
+the user ends the interview early, provide the best current clarified request
+and mark only the material unresolved points. If the user asks to stop or Plan
+Mode is no longer active, preserve the ordinary session-only behavior. Never
+claim full clarification, create an artifact, or suggest an automatic next
+step in those cases.

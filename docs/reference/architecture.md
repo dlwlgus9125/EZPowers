@@ -67,7 +67,8 @@ opt-in described in `docs/reference/codex-hud.md`.
 ```text
 setup
   -> documentation preview/apply/lint
-  -> deep-interview (only while material decisions are ambiguous)
+  -> deep-interview (while material ambiguity or a plausible consequential
+                     blind spot remains)
   -> design-architecture
   -> spec
   -> prepare-execute
@@ -86,7 +87,9 @@ explicit harness-chain
   -> certify or terminal verdict
 ```
 
-`deep-interview` remains session-only. When it is invoked inside an already
+`deep-interview` remains session-only. It checks stated gaps and performs a
+context-specific internal blind-spot pass, exposing only plausible candidates
+that could materially change the request. When invoked inside an already
 active Plan Mode, explicit confirmation returns the clarified intent to that
 same host mode so planning can finish without a second command. It does not
 invoke `design-architecture`, `spec`, or an execution workflow, and it grants

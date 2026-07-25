@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="EZPowers v5.3.1 플러그인의 13개 스킬을 언제, 어떤 순서로, Claude Code와 Codex에서 어떻게 사용하는지 설명하는 한국어 가이드">
+  <meta name="description" content="EZPowers v5.3.2 플러그인의 13개 스킬을 언제, 어떤 순서로, Claude Code와 Codex에서 어떻게 사용하는지 설명하는 한국어 가이드">
   <meta name="color-scheme" content="light dark">
   <title>EZPowers Skill Atlas — 스킬 사용 가이드</title>
   <script>
@@ -2752,7 +2752,7 @@
 
       <section class="section hero" id="overview" aria-labelledby="hero-title">
         <div class="hero-topline">
-          <span class="hero-edition">Verified workflow · plugin v5.3.1</span>
+          <span class="hero-edition">Verified workflow · plugin v5.3.2</span>
           <div class="control-group">
             <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
               <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true">
@@ -3167,12 +3167,12 @@
             </details>
           </article>
 
-          <article class="skill-card" id="skill-deep-interview" data-category="design" data-search="deep interview 인터뷰 명확화 모호 요청 그릴미 요구사항 질문 성공 기준 범위">
+          <article class="skill-card" id="skill-deep-interview" data-category="design" data-search="deep interview 인터뷰 명확화 모호 요청 그릴미 요구사항 질문 성공 기준 범위 사각지대 숨은 전제">
             <div class="skill-main">
               <div class="skill-top">
                 <div class="skill-identity">
                   <span class="skill-number">02</span>
-                  <span class="skill-title"><h3>deep-interview</h3><span>모호함을 확인된 요청으로</span></span>
+                  <span class="skill-title"><h3>deep-interview</h3><span>모호함과 사각지대를 확인된 요청으로</span></span>
                 </div>
                 <a class="skill-link" href="../skills/deep-interview/SKILL.md" aria-label="deep-interview 원문 열기">↗</a>
               </div>
@@ -3181,11 +3181,11 @@
                 <span class="badge">session only</span>
               </div>
               <p class="skill-purpose">
-                가장 영향이 크고 불확실한 지점을 한 번에 하나씩 질문해,
-                사용자가 자신의 요청이라고 확인할 수 있는 문장으로 다시 씁니다.
+                명시된 모호함과 맥락상 가능한 사각지대를 함께 점검하되, 결과를
+                바꿀 중요한 지점만 한 번에 하나씩 질문해 확인된 요청으로 다시 씁니다.
               </p>
               <dl class="fact-list">
-                <div class="fact"><dt>언제</dt><dd>대상, 범위, 제약, 비목표, 관찰 가능한 성공이 아직 모호할 때</dd></div>
+                <div class="fact"><dt>언제</dt><dd>대상·범위·성공이 모호하거나 숨은 전제와 후속 영향을 점검해야 할 때</dd></div>
                 <div class="fact"><dt>결과</dt><dd>현재 대화 안의 <strong>Clarified request</strong>와 사용자 확인</dd></div>
                 <div class="fact"><dt>안 함</dt><dd>인터뷰 중 파일·스펙 작성, 기존 산출물 리뷰, 일반 모드의 자동 진행</dd></div>
               </dl>
@@ -3202,7 +3202,9 @@
               <div class="detail-body">
                 <ul>
                   <li>저장소에서 찾을 수 있는 사실은 먼저 조사하고 사용자에게 되묻지 않습니다.</li>
+                  <li>매 질문과 종료 판단 전에 사각지대를 내부 점검하고, 가능성과 영향이 모두 큰 후보만 꺼냅니다.</li>
                   <li>매 턴 정확히 하나의 중요한 질문만 묻습니다.</li>
+                  <li>이미 충분히 결정된 요청에는 의례적인 사각지대 질문을 만들지 않습니다.</li>
                   <li>요청을 다시 쓸 때 사용자 선호를 새로 발명할 필요가 없어야 합니다.</li>
                   <li>마지막 요청은 사용자가 명시적으로 확인하거나 수정해야 완성됩니다.</li>
                   <li>이미 Plan Mode라면 확인 뒤 같은 계획 대화를 이어가며, 확정된 의도는 다시 묻지 않습니다.</li>
@@ -3972,7 +3974,7 @@
         <div>
           <strong>EZPowers Skill Atlas</strong>
           <p>
-            v5.3.0 프로젝트 키트와 v5.3.1 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
+            v5.3.0 프로젝트 키트와 v5.3.2 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
             동작이 바뀌면 <code>skills/*/SKILL.md</code>, 호출 계약, 프로젝트 매니페스트와 함께 이 문서를 갱신하세요.
           </p>
         </div>

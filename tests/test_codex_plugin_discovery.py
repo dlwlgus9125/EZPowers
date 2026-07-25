@@ -41,9 +41,9 @@ class PluginDiscoveryTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual("5.3.1", claude["version"])
-        self.assertEqual("5.3.1", marketplace["plugins"][0]["version"])
-        self.assertRegex(codex["version"], r"^5\.3\.1\+codex\.[0-9]{14}$")
+        self.assertEqual("5.3.2", claude["version"])
+        self.assertEqual("5.3.2", marketplace["plugins"][0]["version"])
+        self.assertRegex(codex["version"], r"^5\.3\.2\+codex\.[0-9]{14}$")
         self.assertEqual(1, codex["version"].count("+codex."))
         self.assertEqual("ezpowers-dev", codex_marketplace["name"])
         self.assertEqual("ezpowers", codex_marketplace["plugins"][0]["name"])
@@ -82,6 +82,7 @@ class PluginDiscoveryTests(unittest.TestCase):
         )
         self.assertIn("Plan Mode", deep_interview_prompt)
         self.assertIn("continue planning after confirmation", deep_interview_prompt)
+        self.assertIn("consequential blind spots", deep_interview_prompt)
 
     def test_smoke_cli_validates_both_hosts_without_installing(self):
         result = subprocess.run(
@@ -103,13 +104,28 @@ class PluginDiscoveryTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("[PASS] both plugin files", result.stdout)
 
-    def test_live_advisory_requires_one_real_question_without_loader_errors(self):
+    def test_live_advisory_requires_one_consequential_blind_spot_question(self):
         self.assertTrue(PLUGIN_SMOKE._one_question_response("Which outcome matters most?"))
         self.assertFalse(PLUGIN_SMOKE._one_question_response("Ready."))
         self.assertFalse(PLUGIN_SMOKE._one_question_response("Why? When?"))
         self.assertFalse(
             PLUGIN_SMOKE._one_question_response(
                 "Unknown skill. What should I do?"
+            )
+        )
+        self.assertTrue(
+            PLUGIN_SMOKE._consequential_blind_spot_response(
+                "Which legal retention obligations must survive permanent deletion?"
+            )
+        )
+        self.assertFalse(
+            PLUGIN_SMOKE._consequential_blind_spot_response(
+                "What exact time should the nightly job start?"
+            )
+        )
+        self.assertFalse(
+            PLUGIN_SMOKE._consequential_blind_spot_response(
+                "Which legal rules apply? Which backups remain?"
             )
         )
 

@@ -74,9 +74,10 @@ EZPowers does not require an external shared repository or executor.
 - Host-specific hooks are configured only with Claude Code 2.1.217 or newer
   and Codex CLI 0.145.0 or newer.
 - Both hosts receive byte-identical local workflow instructions.
-- A confirmed `deep-interview` request resumes an already active Plan Mode
-  without invoking another workflow, writing an artifact, or authorizing
-  implementation.
+- `deep-interview` always performs an internal, context-specific blind-spot
+  pass but asks only about plausible consequential candidates, then a
+  confirmed request resumes an already active Plan Mode without invoking
+  another workflow, writing an artifact, or authorizing implementation.
 - Analysis-only diagnosis stops at a reproducible, minimized,
   first-divergence explanation. Explicit diagnose and fix/debug requests
   continue through a red regression signal, the source-cause patch, the

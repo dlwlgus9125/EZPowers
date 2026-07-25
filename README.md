@@ -3,7 +3,7 @@
 > Claude Code와 Codex가 같은 저장소 증거로 작업의 **완료 여부**를
 > 판단하도록 만드는 프로젝트 로컬 워크플로 플러그인입니다.
 
-**Plugin v5.3.1 · Project kit v5.3.0 · Python 3.10+ · MIT**
+**Plugin v5.3.2 · Project kit v5.3.0 · Python 3.10+ · MIT**
 
 [빠른 시작](#빠른-시작) · [워크플로](#기본-워크플로) ·
 [스킬 목록](#스킬-목록) · [업데이트](#업데이트) ·
@@ -120,7 +120,7 @@ preview/apply/lint 순서로 진행되며, 관리되지 않은 기존 문서는 
 
 ```text
 setup -> documentation preview/apply/lint
-      -> deep-interview       (요청이 모호할 때)
+      -> deep-interview       (요청이 모호하거나 중요한 사각지대가 의심될 때)
       -> design-architecture  (기술 경계가 미정일 때)
       -> spec -> prepare-execute -> execute
 ```
@@ -164,7 +164,7 @@ harness-chain configure
 | 스킬 | 언제 사용하는가 | 결과와 경계 |
 | --- | --- | --- |
 | `setup` | 설치, 복구, refresh, 문서 bootstrap | 프로젝트 키트를 설치하고 실제 검증 명령을 등록 |
-| `deep-interview` | 요청이 모호하거나 “그릴미”가 필요할 때 | 세션 안에서 명확한 요청으로 확정; 파일이나 구현 권한은 만들지 않음 |
+| `deep-interview` | 요청이 모호하거나 숨은 전제까지 점검해야 할 때 | 중요한 사각지대만 한 질문씩 확인해 세션 안에서 요청을 확정; 파일이나 구현 권한은 만들지 않음 |
 | `diagnose` | 버그, 실패한 테스트·빌드, flaky·성능 문제 | 기본적으로 재현 → first divergence → source-cause fix → 원증상 검증까지 완료 |
 | `codebase-design` | 한 모듈의 interface·seam·테스트 구조를 설계할 때 | 집중 설계 조언; 전체 코드베이스 스캔이나 구현은 하지 않음 |
 | `improve-codebase-architecture` | 기존 제품 코드의 구조 개선 후보를 넓게 찾을 때 | 임시 offline HTML 보고서와 한 후보 탐색; refactor를 직접 구현하지 않음 |

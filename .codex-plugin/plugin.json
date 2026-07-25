@@ -1,6 +1,6 @@
 {
   "name": "ezpowers",
-  "version": "5.3.1+codex.20260724055017",
+  "version": "5.3.2+codex.20260725170436",
   "description": "Repository documentation, specialized diagnosis and codebase design, specification, verified harness chains, evidence, and resume support for Claude Code and Codex.",
   "author": {
     "name": "dlwlgus9125",
@@ -45,7 +45,7 @@
     "termsOfServiceURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/TERMS.md",
     "defaultPrompt": [
       "$ezpowers:setup Install the project-local EZPowers workflow and verification kit.",
-      "$ezpowers:deep-interview Clarify this request and, if Plan Mode is already active, continue planning after confirmation.",
+      "$ezpowers:deep-interview Clarify this request, surface consequential blind spots, and, if Plan Mode is already active, continue planning after confirmation.",
       "$ezpowers:harness-chain Configure or run this project's approved verified harness chain."
     ],
     "brandColor": "#2563EB"

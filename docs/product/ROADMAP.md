@@ -1,6 +1,6 @@
 # EZPowers Roadmap
 
-## Current: v5.3.0 core / v5.3.1 plugin
+## Current: v5.3.0 core / v5.3.2 plugin
 
 - Preserve the v5.1 documentation graph and local wiki.
 - Add an explicit project-question workflow for chain stages, QA triggers,
@@ -29,6 +29,9 @@
 - Resume an already active Plan Mode after a user confirms the
   `deep-interview` request, while preserving its session-only, no-artifact,
   no-implementation boundary everywhere else.
+- Make `deep-interview` distinguish stated ambiguity from plausible
+  consequential blind spots, challenge framing only when material, and avoid
+  ritual questions for requests that are already settled.
 - Upgrade existing v5.2 installations only through explicit `setup --refresh`;
   preserve customized managed files and fail atomically on conflicts.
 

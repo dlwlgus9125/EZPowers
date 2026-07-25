@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-07-24T06:09:12Z",
+  "updated_at": "2026-07-25T15:53:42Z",
   "features": [
     {
       "id": "F11",
@@ -156,6 +156,30 @@
         "docs/reference/engineering-practices-contract.md",
         "tests/test_v5_workflow_surface.py",
         "scripts/plugin_smoke.py",
+        "project-kit/v5.3.0/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
+      ]
+    },
+    {
+      "id": "F18",
+      "title": "Decision-ready deep-interview blind-spot pass",
+      "status": "complete",
+      "success_criteria": [
+        "Deep-interview checks stated gaps and always performs a separate internal blind-spot pass before each question and before stopping",
+        "Blind-spot candidates come from context-specific reasoning lenses and become questions only when grounded enough to be plausible and consequential enough to change the request",
+        "Evidence-backed framing challenges can recommend an alternative or tradeoff, while settled requests receive no ritual blind-spot question and the final clarified request stays concise",
+        "The session-only, one-question, no-artifact, no-workflow, and active Plan Mode continuation boundaries remain intact",
+        "Plugin and project metadata, canonical guidance, v5.3.0 project-kit hashes, and v5.3.2 dual-host plugin versions expose the same behavior",
+        "Contract tests enforce the two-pass and prompt-size boundaries, live advisory validation requires a consequential blind-spot question, and independent forward tests cover irreversible, general-purpose, and already-settled requests"
+      ],
+      "evidence": [
+        "skills/deep-interview/SKILL.md",
+        "skills/deep-interview/agents/openai.yaml",
+        "tests/test_v5_workflow_surface.py",
+        "tests/test_codex_plugin_discovery.py",
+        "scripts/plugin_smoke.py",
+        "docs/reference/codex-plugin-discovery.md",
         "project-kit/v5.3.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"

@@ -73,13 +73,38 @@ REMOVED_COMPONENTS = frozenset(
     }
 )
 
-CODEX_VERSION_RE = re.compile(r"^5\.3\.1\+codex\.[0-9]{14}$")
+CODEX_VERSION_RE = re.compile(r"^5\.3\.2\+codex\.[0-9]{14}$")
 SKILL_REFERENCE_RE = re.compile(r"\$ezpowers:([a-z0-9-]+)")
 HOST_MIN_VERSIONS = {
     "claude": (2, 1, 217),
     "codex": (0, 145, 0),
 }
 VERSION_NUMBER_RE = re.compile(r"(?<!\d)(\d+)\.(\d+)\.(\d+)(?!\d)")
+DEEP_INTERVIEW_BLIND_SPOT_TERMS = (
+    "audit",
+    "backup",
+    "compliance",
+    "consent",
+    "contract",
+    "dependent",
+    "exception",
+    "integration",
+    "legal",
+    "notify",
+    "paid",
+    "recover",
+    "regulat",
+    "retain",
+    "retention",
+    "restore",
+    "subscription",
+)
+DEEP_INTERVIEW_LIVE_REQUEST = (
+    "I have decided to permanently delete every production customer account "
+    "and all related records exactly 30 days after its last successful login. "
+    "Run it nightly; no recovery is needed. The goal is lower storage cost, "
+    "and success means no qualifying account remains."
+)
 
 
 def _check(condition: bool, message: str, errors: list[str]) -> None:
@@ -248,6 +273,14 @@ def _validate_skill_inventory(repo_root: Path, hosts: set[str], errors: list[str
                 f"skills/{name}/agents/openai.yaml",
                 errors,
             )
+            if name == "deep-interview":
+                _check(
+                    isinstance(plugin_prompt, str)
+                    and "consequential blind spots" in plugin_prompt,
+                    "deep-interview metadata must advertise consequential "
+                    "blind-spot clarification",
+                    errors,
+                )
 
             project_policy_path = skill_root / "agents" / "project-openai.yaml"
             if name in PROJECT_SKILLS:
@@ -335,7 +368,7 @@ def _validate_claude_manifest(repo_root: Path, errors: list[str]) -> None:
         return
 
     _check(manifest.get("name") == "ezpowers", "Claude plugin name must be ezpowers", errors)
-    _check(manifest.get("version") == "5.3.1", "Claude plugin version must be 5.3.1", errors)
+    _check(manifest.get("version") == "5.3.2", "Claude plugin version must be 5.3.2", errors)
     _check(bool(manifest.get("description")), "Claude plugin description is required", errors)
     _check(isinstance(manifest.get("author"), dict), "Claude plugin author must be an object", errors)
     for forbidden in ("agents", "commands", "hooks"):
@@ -367,7 +400,7 @@ def _validate_codex_manifest(repo_root: Path, errors: list[str]) -> None:
     version = manifest.get("version")
     _check(
         isinstance(version, str) and CODEX_VERSION_RE.fullmatch(version) is not None,
-        "Codex version must be 5.3.1 with exactly one timestamped +codex suffix",
+        "Codex version must be 5.3.2 with exactly one timestamped +codex suffix",
         errors,
     )
     _check(manifest.get("skills") == "./skills/", "Codex skills root must be ./skills/", errors)
@@ -407,6 +440,11 @@ def _validate_codex_manifest(repo_root: Path, errors: list[str]) -> None:
                 "Plan Mode" in deep_interview_prompt
                 and "continue planning after confirmation" in deep_interview_prompt,
                 "Codex deep-interview prompt must advertise Plan Mode continuation",
+                errors,
+            )
+            _check(
+                "consequential blind spots" in deep_interview_prompt,
+                "Codex deep-interview prompt must advertise blind-spot clarification",
                 errors,
             )
 
@@ -954,6 +992,13 @@ def _one_question_response(text: str) -> bool:
     )
 
 
+def _consequential_blind_spot_response(text: str) -> bool:
+    lowered = text.lower()
+    return _one_question_response(text) and any(
+        term in lowered for term in DEEP_INTERVIEW_BLIND_SPOT_TERMS
+    )
+
+
 def _probe_live_claude(repo_root: Path) -> tuple[str, str]:
     executable = shutil.which("claude")
     if executable is None:
@@ -970,9 +1015,9 @@ def _probe_live_claude(repo_root: Path) -> tuple[str, str]:
         if initialized.returncode != 0:
             return "fail", f"cannot initialize Claude live fixture: {initialized.stderr}"
         prompt = (
-            "/ezpowers:deep-interview I want to improve this empty project. "
-            "Follow the loaded skill and ask exactly one concise material "
-            "clarification question now. Do not use tools or write files."
+            f"/ezpowers:deep-interview {DEEP_INTERVIEW_LIVE_REQUEST} "
+            "Follow the loaded skill and respond with exactly one concise "
+            "material question now. Do not use tools or write files."
         )
         try:
             result = _run_command(
@@ -1020,9 +1065,13 @@ def _probe_live_claude(repo_root: Path) -> tuple[str, str]:
         except json.JSONDecodeError as exc:
             return "fail", f"Claude live advisory returned invalid JSON: {exc}"
         response = payload.get("result") if isinstance(payload, dict) else None
-        if not isinstance(response, str) or not _one_question_response(response):
-            return "fail", f"Claude live advisory did not return one question: {response!r}"
-    return "pass", f"Claude {detail} executed the namespaced deep-interview skill"
+        if not isinstance(response, str) or not _consequential_blind_spot_response(response):
+            return (
+                "fail",
+                "Claude live advisory did not surface one consequential "
+                f"blind spot: {response!r}",
+            )
+    return "pass", f"Claude {detail} surfaced a consequential deep-interview blind spot"
 
 
 def _probe_live_codex(repo_root: Path) -> tuple[str, str]:
@@ -1056,9 +1105,9 @@ def _probe_live_codex(repo_root: Path) -> tuple[str, str]:
             ).strip()
             return "fail", f"cannot install Codex live fixture: {output}"
         prompt = (
-            "$deep-interview I want to improve this empty project. Follow the "
-            "loaded skill and ask exactly one concise material clarification "
-            "question now. Do not use tools or write files."
+            f"$deep-interview {DEEP_INTERVIEW_LIVE_REQUEST} Follow the loaded "
+            "skill and respond with exactly one concise material question now. "
+            "Do not use tools or write files."
         )
         try:
             result = _run_command(
@@ -1095,9 +1144,13 @@ def _probe_live_codex(repo_root: Path) -> tuple[str, str]:
                 if isinstance(text_value, str):
                     responses.append(text_value)
         response = responses[-1] if responses else ""
-        if not _one_question_response(response):
-            return "fail", f"Codex live advisory did not return one question: {response!r}"
-    return "pass", f"Codex {detail} executed the project-local deep-interview skill"
+        if not _consequential_blind_spot_response(response):
+            return (
+                "fail",
+                "Codex live advisory did not surface one consequential "
+                f"blind spot: {response!r}",
+            )
+    return "pass", f"Codex {detail} surfaced a consequential deep-interview blind spot"
 
 
 def run_live_advisories(repo_root: Path, hosts: Iterable[str]) -> list[str]:

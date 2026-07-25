@@ -103,7 +103,8 @@ unattended readiness while status is `PENDING_HOST_TRUST`.
 Classify each optional stage with a concrete reason. An `always` project stage
 must run. For an `auto` stage, run it only when its own trigger applies:
 
-- use `deep-interview` for a genuinely ambiguous request;
+- use `deep-interview` for stated ambiguity or a plausible consequential blind
+  spot;
 - use `frontend-design` when UI/UX decisions are unsettled;
 - use `design-architecture` when technical boundaries are unsettled.
 

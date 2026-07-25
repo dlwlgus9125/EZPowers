@@ -2,7 +2,7 @@
 
 ## Current State
 
-EZPowers v5.3.0 project kit and the v5.3.1 plugin patch are complete in the
+EZPowers v5.3.0 project kit and the v5.3.2 plugin patch are complete in the
 working tree on `main`. They preserve the host-native verification core,
 documentation graph, local wiki, explicit harness chain, and Plan Mode-aware
 clarification while adding bounded specialized engineering disciplines:
@@ -20,9 +20,10 @@ clarification while adding bounded specialized engineering disciplines:
 - one native Codex goal or one Claude Stop loop, with real project checks,
   bound independent code review, and conditional adversarial QA before
   certification;
-- a session-only `deep-interview` whose explicitly confirmed request resumes an
-  already active Plan Mode without another command, repeated product questions,
-  artifact creation, downstream skill invocation, or implementation authority;
+- a session-only `deep-interview` that separates stated gaps from an always-run
+  internal blind-spot pass, exposes only plausible consequential candidates,
+  challenges framing when material, avoids ritual questions, and resumes an
+  already active Plan Mode without artifacts or implementation authority;
 - fix-complete `diagnose`, which treats root cause as an intermediate result
   and owns the red loop, source-cause patch, original-symptom rerun, and
   affected checks unless analysis-only/no-edit behavior is explicit;
@@ -62,12 +63,35 @@ force product rework until a configured limit becomes terminal.
 - `F15`: Plan Mode-aware `deep-interview` continuation.
 - `F16`: bounded specialized engineering skills.
 - `F17`: fix-complete `diagnose` loop.
+- `F18`: decision-ready `deep-interview` blind-spot pass.
 
 The v5.3 project kit installs twelve project skills, ten canonical contracts,
 and two deterministic tools. The plugin exposes those skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+Final v5.3.2 plugin patch verification on 2026-07-26:
+
+- `python -m unittest discover -s tests`: 141 tests passed in 601.146 seconds.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
+  PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
+  PASS for real install → validate → verify → certify → stale.
+- `python scripts/verify-harness-kit.py`: v5.3 manifest valid with refreshed
+  skill and metadata hashes.
+- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
+  Claude 2.1.220 accepted the plugin and marketplace manifests, and Codex
+  0.145.0 loaded all project and namespaced skills with matching prompts.
+- Independent forward-tests made an irreversible deletion request expose paid,
+  contractual, and legal-retention exceptions; challenged public customer
+  details in a general team policy; and returned a concise confirmation without
+  inventing a blind spot for an already-settled retrospective request.
+- The revised skill is 974 words versus the prior 964, while adding the
+  explicit-gap/blind-spot split, plausibility/consequence filter, and
+  no-ritual-question rule.
+
+### Previous v5.3.1 baseline
 
 Final v5.3.1 plugin patch verification on 2026-07-24:
 

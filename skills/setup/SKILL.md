@@ -109,6 +109,7 @@ Python, and managed-file conflict as setup failure.
 Report installed and preserved paths, configured/required checks, host
 prerequisite results, documentation graph status and backups, completion-hook
 choice, wiki-capture choice, ledger path, and unresolved completion criteria. Use
-`deep-interview` only when decisions remain ambiguous; otherwise continue to
-`frontend-design` for unresolved product-surface decisions, then
+`deep-interview` only when material ambiguity or a plausible consequential
+blind spot remains. Otherwise continue to `frontend-design` for unresolved
+product-surface decisions, then
 `design-architecture` or `spec` as needed.
