@@ -55,8 +55,12 @@ evidence that the other host enforces it.
 An explicit `/ezpowers:diagnose` or `$ezpowers:diagnose` invocation selects the
 fix-complete path unless the user says analysis-only or no edits. The
 project-local `/diagnose` and `$diagnose` variants have the same contract.
-Reproduction, hypotheses, and root cause are progress checkpoints; both hosts
-continue through the source-cause patch and original-symptom verification.
+Both hosts must run a command that shows the user's exact symptom red and
+minimise it before stating hypotheses or editing product behavior. If that
+gate cannot be opened, they request the missing access, captured artifact, or
+instrumentation and stop without guessing. After the gate, hypotheses and root
+cause remain progress checkpoints; both hosts continue through the
+source-cause patch and original-symptom verification.
 
 `deep-interview` uses a host-native structured question surface when one is
 callable and appropriate, and otherwise asks one plain-text question. Before
@@ -203,3 +207,16 @@ Claude loads the namespaced plugin for that process only; Codex uses a
 temporary project-kit install and an ephemeral read-only session. Both must
 execute `deep-interview` and return exactly one clarification question without
 writing the fixture.
+
+The exact-red ordering contract has a separate, explicit release probe:
+
+```text
+python scripts/plugin_smoke.py --host both --live-diagnose
+```
+
+This makes two real model calls per selected host. Each read-only reproduction
+prints a source-bound evidence token that the host transcript must retain. The
+fixable fixture requires baseline red before patched green. The blocked fixture
+withholds a production capture and requires the product and reproduction to
+remain unchanged while the host requests that specific evidence. Normal
+repository and host smoke commands make no model calls.

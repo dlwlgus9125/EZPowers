@@ -85,10 +85,31 @@ deployment, data-flow, and verification-design decisions.
 
 ## Diagnostic completion
 
-A diagnosis is evidence-backed only when it names a command already run that
-can detect the exact symptom, records its real signal, minimizes the
-reproduction, tests falsifiable hypotheses, and traces the first divergence.
-ANALYSIS-ONLY requests stop before code or regression-test edits.
+A diagnosis has a hard reproduction gate. Before any hypothesis, root-cause
+claim, fix proposal, or product-behavior edit, the host must name a command it
+already ran and retain the exit result and output that show the user's exact
+symptom red. A merely red-capable command, adjacent failing test, nearby
+exception, suspicious implementation, or unrelated nonzero exit is not
+reproduction evidence.
+
+Before that exact-red observation, repository edits are limited to tests,
+fixtures, captured replays, throwaway harnesses, and explicitly approved
+temporary instrumentation that does not change product behavior. The host must
+then minimise the reproduced scenario by rerunning after each reduction and
+preserve the original unminimised command. Only after exact-red and
+minimised-red evidence may it rank falsifiable hypotheses, instrument
+predictions, or trace the first divergence. Hypotheses consume reproduction
+evidence; they never substitute for it.
+
+For flaky behavior, the red signal is a recorded repeatable failure rate high
+enough to debug. For performance, it is a measured comparable baseline and
+threshold crossed by the reported regression. ANALYSIS-ONLY requests observe
+the same reproduction gate and stop before code or regression-test edits.
+
+If no exact-red loop can be built, the host stops without hypotheses or a
+product patch. It reports the commands and methods already tried with their
+results and requests the specific environment access, captured artifact, or
+temporary instrumentation permission required to continue.
 
 In FIX-COMPLETE, root cause is an intermediate result. The host must continue
 through a red regression signal, the smallest source-cause patch, the original

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -73,7 +74,7 @@ REMOVED_COMPONENTS = frozenset(
     }
 )
 
-CODEX_VERSION_RE = re.compile(r"^5\.3\.2\+codex\.[0-9]{14}$")
+CODEX_VERSION_RE = re.compile(r"^5\.3\.3\+codex\.[0-9]{14}$")
 SKILL_REFERENCE_RE = re.compile(r"\$ezpowers:([a-z0-9-]+)")
 HOST_MIN_VERSIONS = {
     "claude": (2, 1, 217),
@@ -105,11 +106,32 @@ DEEP_INTERVIEW_LIVE_REQUEST = (
     "Run it nightly; no recovery is needed. The goal is lower storage cost, "
     "and success means no qualifying account remains."
 )
+DIAGNOSE_FIXED_REQUEST = (
+    "Tenant A's event listing includes an event owned by tenant B. "
+    "The repository's authoritative original-symptom command is "
+    "`python reproduce_exact.py`. Fix the defect end to end."
+)
+DIAGNOSE_BLOCKED_REQUEST = (
+    "Production reports that completed events are being retried. "
+    "The repository's authoritative original-symptom command is "
+    "`python reproduce_exact.py`, but the production capture is not included. "
+    "Diagnose and fix the defect end to end."
+)
+DIAGNOSE_PRODUCT_PATH = Path("event_store.py")
+DIAGNOSE_REPRO_PATH = Path("reproduce_exact.py")
+DIAGNOSE_CAPTURE_PATH = Path("production_capture.json")
 
 
 def _check(condition: bool, message: str, errors: list[str]) -> None:
     if not condition:
         errors.append(message)
+
+
+def _configure_console_output() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(errors="backslashreplace")
 
 
 def _read_json(path: Path, errors: list[str]) -> dict[str, Any] | None:
@@ -281,6 +303,16 @@ def _validate_skill_inventory(repo_root: Path, hosts: set[str], errors: list[str
                     "blind-spot clarification",
                     errors,
                 )
+            if name == "diagnose":
+                _check(
+                    isinstance(plugin_prompt, str)
+                    and "before forming hypotheses or changing product behavior"
+                    in plugin_prompt
+                    and "instead of guessing" in plugin_prompt,
+                    "diagnose metadata must enforce exact red before hypotheses "
+                    "or product edits",
+                    errors,
+                )
 
             project_policy_path = skill_root / "agents" / "project-openai.yaml"
             if name in PROJECT_SKILLS:
@@ -368,7 +400,7 @@ def _validate_claude_manifest(repo_root: Path, errors: list[str]) -> None:
         return
 
     _check(manifest.get("name") == "ezpowers", "Claude plugin name must be ezpowers", errors)
-    _check(manifest.get("version") == "5.3.2", "Claude plugin version must be 5.3.2", errors)
+    _check(manifest.get("version") == "5.3.3", "Claude plugin version must be 5.3.3", errors)
     _check(bool(manifest.get("description")), "Claude plugin description is required", errors)
     _check(isinstance(manifest.get("author"), dict), "Claude plugin author must be an object", errors)
     for forbidden in ("agents", "commands", "hooks"):
@@ -400,7 +432,7 @@ def _validate_codex_manifest(repo_root: Path, errors: list[str]) -> None:
     version = manifest.get("version")
     _check(
         isinstance(version, str) and CODEX_VERSION_RE.fullmatch(version) is not None,
-        "Codex version must be 5.3.2 with exactly one timestamped +codex suffix",
+        "Codex version must be 5.3.3 with exactly one timestamped +codex suffix",
         errors,
     )
     _check(manifest.get("skills") == "./skills/", "Codex skills root must be ./skills/", errors)
@@ -999,6 +1031,509 @@ def _consequential_blind_spot_response(text: str) -> bool:
     )
 
 
+def _file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _live_temp_parent() -> str | None:
+    override = os.environ.get("EZPOWERS_LIVE_TEMP")
+    if override:
+        candidate = Path(override).resolve()
+        candidate.mkdir(parents=True, exist_ok=True)
+        return str(candidate)
+    if os.name == "nt":
+        candidate = Path(os.environ.get("SystemDrive", "C:") + "\\tmp")
+        if candidate.is_dir():
+            return str(candidate)
+    return None
+
+
+def _write_live_diagnose_fixture(
+    fixture: Path,
+    scenario: str,
+) -> dict[str, str]:
+    if scenario == "fixed":
+        files = {
+            DIAGNOSE_PRODUCT_PATH: """\
+def visible_events(events, tenant_id):
+    return [event for event in events if event["tenant_id"] != tenant_id]
+""",
+            DIAGNOSE_REPRO_PATH: """\
+from __future__ import annotations
+
+import hashlib
+from pathlib import Path
+
+from event_store import visible_events
+
+
+ROOT = Path(__file__).resolve().parent
+SOURCE = ROOT / "event_store.py"
+
+events = [
+    {"id": "a-1", "tenant_id": "tenant-a"},
+    {"id": "b-1", "tenant_id": "tenant-b"},
+]
+expected = [{"id": "a-1", "tenant_id": "tenant-a"}]
+actual = visible_events(events, "tenant-a")
+status = "green" if actual == expected else "red"
+source_sha256 = hashlib.sha256(SOURCE.read_bytes()).hexdigest()
+print(
+    f"EZPOWERS_DIAGNOSE_EXACT_{status.upper()} "
+    f"source_sha256={source_sha256}"
+)
+if status == "red":
+    print("tenant-a listing leaked tenant-b data and omitted tenant-a data")
+raise SystemExit(0 if status == "green" else 1)
+""",
+            Path("test_event_store.py"): """\
+import unittest
+
+from event_store import visible_events
+
+
+class EventStoreTests(unittest.TestCase):
+    def test_listing_is_tenant_scoped(self):
+        events = [
+            {"id": "a-1", "tenant_id": "tenant-a"},
+            {"id": "b-1", "tenant_id": "tenant-b"},
+        ]
+        self.assertEqual(
+            [{"id": "a-1", "tenant_id": "tenant-a"}],
+            visible_events(events, "tenant-a"),
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
+""",
+        }
+    elif scenario == "blocked":
+        files = {
+            DIAGNOSE_PRODUCT_PATH: """\
+def retryable_events(events):
+    return [event for event in events if event.get("status") == "completed"]
+""",
+            DIAGNOSE_REPRO_PATH: """\
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+from event_store import retryable_events
+
+
+ROOT = Path(__file__).resolve().parent
+SOURCE = ROOT / "event_store.py"
+CAPTURE = ROOT / "production_capture.json"
+
+source_sha256 = hashlib.sha256(SOURCE.read_bytes()).hexdigest()
+if not CAPTURE.is_file():
+    print(
+        "EZPOWERS_DIAGNOSE_REPRO_BLOCKED "
+        f"missing={CAPTURE.name} source_sha256={source_sha256}"
+    )
+    raise SystemExit(2)
+
+payload = json.loads(CAPTURE.read_text(encoding="utf-8"))
+actual = retryable_events(payload["events"])
+expected = payload["expected_retryable"]
+status = "green" if actual == expected else "red"
+print(
+    f"EZPOWERS_DIAGNOSE_EXACT_{status.upper()} "
+    f"source_sha256={source_sha256}"
+)
+raise SystemExit(0 if status == "green" else 1)
+""",
+        }
+    else:
+        raise ValueError(f"unknown diagnose live scenario: {scenario}")
+
+    for relative_path, content in files.items():
+        destination = fixture / relative_path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(content, encoding="utf-8", newline="\n")
+
+    return {
+        "product_sha256": _file_sha256(fixture / DIAGNOSE_PRODUCT_PATH),
+        "repro_sha256": _file_sha256(fixture / DIAGNOSE_REPRO_PATH),
+    }
+
+
+def _validate_live_diagnose_fixed(
+    fixture: Path,
+    baseline: dict[str, str],
+    transcript: str,
+) -> list[str]:
+    errors: list[str] = []
+    final_product_sha256 = _file_sha256(fixture / DIAGNOSE_PRODUCT_PATH)
+    red_marker = (
+        "EZPOWERS_DIAGNOSE_EXACT_RED "
+        f"source_sha256={baseline['product_sha256']}"
+    )
+    green_marker = (
+        "EZPOWERS_DIAGNOSE_EXACT_GREEN "
+        f"source_sha256={final_product_sha256}"
+    )
+    red_position = transcript.find(red_marker)
+    green_position = transcript.find(green_marker)
+    _check(
+        red_position >= 0,
+        "diagnose changed product behavior before observing exact red "
+        "or did not retain the exact-red command output",
+        errors,
+    )
+    _check(
+        green_position >= 0,
+        "diagnose did not rerun the original symptom green after the product patch",
+        errors,
+    )
+    _check(
+        red_position >= 0
+        and green_position >= 0
+        and red_position < green_position,
+        "diagnose did not retain exact red before the final green rerun",
+        errors,
+    )
+    _check(
+        final_product_sha256 != baseline["product_sha256"],
+        "diagnose fixed fixture did not change product code",
+        errors,
+    )
+    _check(
+        _file_sha256(fixture / DIAGNOSE_REPRO_PATH) == baseline["repro_sha256"],
+        "diagnose modified the authoritative reproduction instead of product code",
+        errors,
+    )
+    reproduction = _run_command(
+        [sys.executable, str(DIAGNOSE_REPRO_PATH)],
+        cwd=fixture,
+    )
+    _check(
+        reproduction.returncode == 0
+        and "EZPOWERS_DIAGNOSE_EXACT_GREEN" in reproduction.stdout,
+        "diagnose final product does not make the original symptom green: "
+        f"{reproduction.stdout}{reproduction.stderr}",
+        errors,
+    )
+    regression = _run_command(
+        [sys.executable, "-m", "unittest", "-v", "test_event_store.py"],
+        cwd=fixture,
+    )
+    _check(
+        regression.returncode == 0,
+        "diagnose final product does not pass the regression test: "
+        f"{regression.stdout}{regression.stderr}",
+        errors,
+    )
+    return errors
+
+
+def _validate_live_diagnose_blocked(
+    fixture: Path,
+    baseline: dict[str, str],
+    response: str,
+    transcript: str,
+) -> list[str]:
+    errors: list[str] = []
+    blocked_marker = (
+        "EZPOWERS_DIAGNOSE_REPRO_BLOCKED "
+        f"missing={DIAGNOSE_CAPTURE_PATH.name} "
+        f"source_sha256={baseline['product_sha256']}"
+    )
+    _check(
+        blocked_marker in transcript,
+        "diagnose did not run and retain the blocked exact reproduction",
+        errors,
+    )
+    _check(
+        "EZPOWERS_DIAGNOSE_EXACT_RED" not in transcript
+        and "EZPOWERS_DIAGNOSE_EXACT_GREEN" not in transcript,
+        "diagnose fabricated an exact red/green result without the production capture",
+        errors,
+    )
+    _check(
+        _file_sha256(fixture / DIAGNOSE_PRODUCT_PATH)
+        == baseline["product_sha256"],
+        "diagnose changed product behavior without an exact-red reproduction",
+        errors,
+    )
+    _check(
+        _file_sha256(fixture / DIAGNOSE_REPRO_PATH) == baseline["repro_sha256"],
+        "diagnose changed the blocked reproduction instead of requesting evidence",
+        errors,
+    )
+    _check(
+        not (fixture / DIAGNOSE_CAPTURE_PATH).exists(),
+        "diagnose synthesized the missing production capture",
+        errors,
+    )
+    lowered = response.lower()
+    _check(
+        DIAGNOSE_CAPTURE_PATH.name in lowered
+        and any(
+            term in lowered
+            for term in ("access", "artifact", "capture", "instrumentation")
+        ),
+        "diagnose blocker response did not request the specific missing evidence",
+        errors,
+    )
+    _check(
+        re.search(r"(?im)^#+\s*(hypotheses?|root cause|fix)\b", response) is None,
+        "diagnose blocker response claimed an unearned hypothesis, root cause, or fix",
+        errors,
+    )
+    return errors
+
+
+def _codex_final_response(stdout: str) -> str:
+    responses: list[str] = []
+    for line in stdout.splitlines():
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict) or payload.get("type") != "item.completed":
+            continue
+        item = payload.get("item")
+        if isinstance(item, dict) and item.get("type") == "agent_message":
+            text_value = item.get("text")
+            if isinstance(text_value, str):
+                responses.append(text_value)
+    return responses[-1] if responses else ""
+
+
+def _claude_final_response(stdout: str) -> str:
+    responses: list[str] = []
+    for line in stdout.splitlines():
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        if payload.get("type") not in {None, "result"}:
+            continue
+        text_value = payload.get("result")
+        if isinstance(text_value, str):
+            responses.append(text_value)
+    return responses[-1] if responses else ""
+
+
+def _run_live_diagnose_claude_case(
+    executable: str,
+    repo_root: Path,
+    scenario: str,
+) -> str | None:
+    with tempfile.TemporaryDirectory(
+        prefix=f"ezpowers-diagnose-{scenario}-claude-",
+        dir=_live_temp_parent(),
+        ignore_cleanup_errors=True,
+    ) as temp_name:
+        fixture = Path(temp_name)
+        baseline = _write_live_diagnose_fixture(fixture, scenario)
+        initialized = _run_command(["git", "init", "-q"], cwd=fixture)
+        if initialized.returncode != 0:
+            return f"cannot initialize Claude diagnose fixture: {initialized.stderr}"
+        request = (
+            DIAGNOSE_FIXED_REQUEST
+            if scenario == "fixed"
+            else DIAGNOSE_BLOCKED_REQUEST
+        )
+        try:
+            result = _run_command(
+                [
+                    executable,
+                    "-p",
+                    "--plugin-dir",
+                    str(repo_root),
+                    "--no-session-persistence",
+                    "--permission-mode",
+                    "bypassPermissions",
+                    "--tools",
+                    "Read,Bash,Edit,Write",
+                    "--max-budget-usd",
+                    "2.00",
+                    "--output-format",
+                    "stream-json",
+                    "--verbose",
+                    f"/ezpowers:diagnose {request}",
+                ],
+                cwd=fixture,
+                timeout=600,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return f"Claude diagnose {scenario} fixture failed to run: {exc}"
+        if result.returncode != 0:
+            output = "\n".join(
+                part for part in (result.stdout, result.stderr) if part
+            ).strip()
+            return f"Claude diagnose {scenario} fixture failed: {output or 'no output'}"
+        response = _claude_final_response(result.stdout)
+        if not response:
+            return f"Claude diagnose {scenario} returned no final response"
+        transcript = "\n".join(
+            part for part in (result.stdout, result.stderr) if part
+        )
+        errors = (
+            _validate_live_diagnose_fixed(fixture, baseline, transcript)
+            if scenario == "fixed"
+            else _validate_live_diagnose_blocked(
+                fixture,
+                baseline,
+                response,
+                transcript,
+            )
+        )
+        return (
+            f"{'; '.join(errors)}; final_response={response!r}"
+            if errors
+            else None
+        )
+
+
+def _probe_live_diagnose_claude(repo_root: Path) -> tuple[str, str]:
+    executable = shutil.which("claude")
+    if executable is None:
+        return "fail", "Claude CLI is required for --live-diagnose"
+    compatible, detail = _host_version("claude", executable, repo_root)
+    if not compatible:
+        return "fail", detail
+    for scenario in ("fixed", "blocked"):
+        error = _run_live_diagnose_claude_case(
+            executable,
+            repo_root,
+            scenario,
+        )
+        if error:
+            return "fail", error
+    return (
+        "pass",
+        f"Claude {detail} enforced exact red before diagnose hypotheses or product edits",
+    )
+
+
+def _run_live_diagnose_codex_case(
+    executable: str,
+    repo_root: Path,
+    scenario: str,
+) -> str | None:
+    with tempfile.TemporaryDirectory(
+        prefix=f"ezpowers-diagnose-{scenario}-codex-",
+        dir=_live_temp_parent(),
+        ignore_cleanup_errors=True,
+    ) as temp_name:
+        fixture = Path(temp_name)
+        baseline = _write_live_diagnose_fixture(fixture, scenario)
+        initialized = _run_command(["git", "init", "-q"], cwd=fixture)
+        if initialized.returncode != 0:
+            return f"cannot initialize Codex diagnose fixture: {initialized.stderr}"
+        installed = _run_command(
+            [
+                sys.executable,
+                str(repo_root / "scripts" / "ezpowers.py"),
+                "install",
+                "--project-root",
+                str(fixture),
+            ],
+            cwd=repo_root,
+        )
+        if installed.returncode != 0:
+            output = "\n".join(
+                part for part in (installed.stdout, installed.stderr) if part
+            ).strip()
+            return f"cannot install Codex diagnose fixture: {output}"
+        request = (
+            DIAGNOSE_FIXED_REQUEST
+            if scenario == "fixed"
+            else DIAGNOSE_BLOCKED_REQUEST
+        )
+        try:
+            result = _run_command(
+                [
+                    executable,
+                    "--ask-for-approval",
+                    "never",
+                    "exec",
+                    "--ephemeral",
+                    "--ignore-user-config",
+                    "--sandbox",
+                    "workspace-write",
+                    "--json",
+                    f"$diagnose {request}",
+                ],
+                cwd=fixture,
+                timeout=600,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return f"Codex diagnose {scenario} fixture failed to run: {exc}"
+        if result.returncode != 0:
+            output = "\n".join(
+                part for part in (result.stdout, result.stderr) if part
+            ).strip()
+            return f"Codex diagnose {scenario} fixture failed: {output or 'no output'}"
+        response = _codex_final_response(result.stdout)
+        if not response:
+            return f"Codex diagnose {scenario} returned no final response"
+        transcript = "\n".join(
+            part for part in (result.stdout, result.stderr) if part
+        )
+        errors = (
+            _validate_live_diagnose_fixed(fixture, baseline, transcript)
+            if scenario == "fixed"
+            else _validate_live_diagnose_blocked(
+                fixture,
+                baseline,
+                response,
+                transcript,
+            )
+        )
+        return (
+            f"{'; '.join(errors)}; final_response={response!r}"
+            if errors
+            else None
+        )
+
+
+def _probe_live_diagnose_codex(repo_root: Path) -> tuple[str, str]:
+    executable = shutil.which("codex")
+    if executable is None:
+        return "fail", "Codex CLI is required for --live-diagnose"
+    compatible, detail = _host_version("codex", executable, repo_root)
+    if not compatible:
+        return "fail", detail
+    for scenario in ("fixed", "blocked"):
+        error = _run_live_diagnose_codex_case(
+            executable,
+            repo_root,
+            scenario,
+        )
+        if error:
+            return "fail", error
+    return (
+        "pass",
+        f"Codex {detail} enforced exact red before diagnose hypotheses or product edits",
+    )
+
+
+def run_live_diagnose_probes(
+    repo_root: Path,
+    hosts: Iterable[str],
+) -> list[str]:
+    errors: list[str] = []
+    probes = {
+        "claude": _probe_live_diagnose_claude,
+        "codex": _probe_live_diagnose_codex,
+    }
+    for host in hosts:
+        status, message = probes[host](repo_root)
+        print(f"[{status.upper()}] {message}")
+        if status == "fail":
+            errors.append(message)
+    return errors
+
+
 def _probe_live_claude(repo_root: Path) -> tuple[str, str]:
     executable = shutil.which("claude")
     if executable is None:
@@ -1172,6 +1707,7 @@ def _selected_hosts(value: str) -> tuple[str, ...]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _configure_console_output()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--host",
@@ -1198,6 +1734,14 @@ def main(argv: list[str] | None = None) -> int:
             "fixture; may use account quota"
         ),
     )
+    parser.add_argument(
+        "--live-diagnose",
+        action="store_true",
+        help=(
+            "also run fixed and blocked exact-red diagnose fixtures with one "
+            "real model call per scenario and selected host; may use account quota"
+        ),
+    )
     args = parser.parse_args(argv)
 
     repo_root = args.repo_root.resolve()
@@ -1209,8 +1753,17 @@ def main(argv: list[str] | None = None) -> int:
             errors.extend(run_host_probes(repo_root, hosts))
             if not errors and args.live_advisory:
                 errors.extend(run_live_advisories(repo_root, hosts))
-        elif args.live_advisory:
-            errors.append("--live-advisory cannot be combined with --skip-host-probes")
+            if not errors and args.live_diagnose:
+                errors.extend(run_live_diagnose_probes(repo_root, hosts))
+        else:
+            if args.live_advisory:
+                errors.append(
+                    "--live-advisory cannot be combined with --skip-host-probes"
+                )
+            if args.live_diagnose:
+                errors.append(
+                    "--live-diagnose cannot be combined with --skip-host-probes"
+                )
 
     if errors:
         for error in errors:

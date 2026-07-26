@@ -97,9 +97,14 @@ no implementation authority.
 
 `diagnose` and `codebase-design` are implicit disciplines inside the current
 request. Explicit diagnose invocation or fix/debug intent selects an
-end-to-end path: red-capable feedback loop, first-divergence evidence,
-regression signal, source-cause patch, original-symptom rerun, and affected
-checks. Only an explicit analysis-only/no-edit request stops at evidence.
+end-to-end path, but exact-red reproduction and minimisation are hard gates
+before hypotheses or product-behavior edits. An adjacent failure or merely
+red-capable command is not enough. If exact red cannot be produced, the host
+requests the missing access, capture, or instrumentation and does not guess.
+After the gate it continues through first-divergence evidence, a regression
+signal, source-cause patch, original-symptom rerun, and affected checks. Only
+an explicit analysis-only/no-edit request stops a reproducible path at
+evidence.
 `codebase-design` compares focused module interfaces and honest seams.
 `improve-codebase-architecture` is explicit-only. It scans existing product
 code and invokes the installed standard-library renderer to create an escaped,

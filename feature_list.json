@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-07-25T15:53:42Z",
+  "updated_at": "2026-07-26T04:59:49Z",
   "features": [
     {
       "id": "F11",
@@ -180,6 +180,31 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
+        "project-kit/v5.3.0/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
+      ]
+    },
+    {
+      "id": "F19",
+      "title": "Exact-reproduction-gated diagnose",
+      "status": "in_progress",
+      "success_criteria": [
+        "Diagnose runs a command that observes the user's exact symptom red and minimizes that reproduction before hypotheses, root-cause claims, fix proposals, or product-behavior edits",
+        "Adjacent failures and merely red-capable commands do not open the gate; pre-gate edits are limited to reproduction artifacts and approved non-behavioral instrumentation",
+        "When exact red cannot be produced, diagnose reports real attempts and requests the specific missing access, capture, or instrumentation without hypotheses or a speculative product patch",
+        "After the gate, falsifiable hypotheses remain evidence probes and FIX-COMPLETE still owns the regression red/green signal, source-cause patch, original-symptom rerun, affected checks, and cleanup",
+        "Deterministic tests validate the contract and fixture receipts, while an opt-in dual-host probe verifies baseline-red-before-patch and no-edit blocker behavior with real Claude and Codex calls",
+        "The v5.3.3 plugin metadata, canonical guidance, and v5.3.0 project-kit hashes expose the same gate without changing skill counts or completion authority"
+      ],
+      "evidence": [
+        "skills/diagnose/SKILL.md",
+        "skills/diagnose/agents/openai.yaml",
+        "skills/diagnose/agents/project-openai.yaml",
+        "docs/reference/engineering-practices-contract.md",
+        "tests/test_v5_workflow_surface.py",
+        "tests/test_codex_plugin_discovery.py",
+        "scripts/plugin_smoke.py",
         "project-kit/v5.3.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"

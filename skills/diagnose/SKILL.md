@@ -1,12 +1,13 @@
 ---
 name: diagnose
-description: Reproduce, root-cause, fix, and verify bugs, failing tests or builds, integration failures, flaky behavior, performance regressions, and unexpected results. Use when the user invokes diagnose or says debug, fix, broken, failing, throwing, flaky, slow, repair, resolve, or make it pass. An explicit diagnose invocation or fix/debug request defaults to end-to-end fix completion; stop at analysis only when the user explicitly asks for explanation/root cause only or no changes.
+description: Reproduce the user's exact symptom with a command observed red before hypothesizing or changing product behavior, then root-cause, fix, and verify bugs, failing tests or builds, integration failures, flaky behavior, performance regressions, and unexpected results. Use when the user invokes diagnose or says debug, fix, broken, failing, throwing, flaky, slow, repair, resolve, or make it pass. If no exact-red loop can be built, stop and request the missing access, artifact, or instrumentation instead of guessing.
 ---
 
 # Diagnose
 
-Drive a reported defect from an exact red signal to a verified source-cause
-fix. Root cause is a milestone, not completion.
+Drive a reported defect from an observed exact-red signal to a verified
+source-cause fix. The reproduction gate is the skill; hypotheses only consume
+evidence produced after that gate. Root cause is a milestone, not completion.
 
 ## Load and ground
 
@@ -15,6 +16,10 @@ the same contract under the EZPowers plugin's `docs/reference/` directory.
 Read repository instructions, current Git state, relevant project
 documentation, `CONTEXT.md` when present, applicable ADRs, and the code and
 tests on the failing path.
+
+Before the reproduction gate, inspect implementation only as needed to locate
+or construct the feedback loop. If code reading starts producing a theory
+before an exact-red command exists, stop and return to building the loop.
 
 Choose one mode once:
 
@@ -32,7 +37,36 @@ Ask once before the first edit only when intent remains genuinely ambiguous.
 After FIX-COMPLETE begins, intermediate findings are progress updates, not a
 reason to hand the task back.
 
-## Phase 1 — Build the red loop
+## Hard gate — exact red before theory or product edits
+
+Do not state or rank hypotheses, claim a root cause, propose a fix, or change
+product behavior until both checkpoints are complete:
+
+1. **EXACT-RED:** name one command already run and retain its invocation, exit
+   result, and output showing the user's exact symptom red.
+2. **MINIMISED-RED:** rerun while minimising the scenario until every remaining
+   input, caller, configuration item, datum, and step is load-bearing.
+
+An adjacent failing test, nearby exception, suspicious code, static type
+warning, or command that merely exits nonzero does not open the gate. The
+signal must drive the real defect path and distinguish the reported broken
+behavior from the fixed behavior.
+
+Before EXACT-RED, edits are limited to reproduction artifacts: tests, fixtures,
+captured replays, throwaway harnesses, and explicitly approved temporary
+instrumentation that does not change product behavior. Preserve user changes.
+Do not make a speculative product patch and then try to prove it afterwards.
+
+For flaky defects, EXACT-RED is a recorded high-enough repeated failure rate.
+For performance, it is a comparable measured baseline and threshold that the
+reported regression crosses.
+
+If the gate cannot be opened after safe in-scope attempts, stop. List the
+commands and methods tried plus their real results, then request the exact
+environment access, captured artifact, or instrumentation permission needed.
+Do not continue to hypotheses or a product edit, even in FIX-COMPLETE.
+
+## Phase 1 — Build and run the exact-red loop
 
 Spend disproportionate effort on one fast, deterministic, agent-runnable
 command that drives the real defect path and asserts the user's exact symptom.
@@ -46,24 +80,29 @@ broken behavior from the fixed behavior. For flaky defects, raise and record a
 repeatable failure rate. For performance, record a comparable baseline and
 threshold before changing code.
 
-If no red-capable loop can be built, stop and list what was tried. Request the
-specific access, captured artifact, or temporary instrumentation permission
-needed to continue; do not guess.
+The phase is incomplete until the command has actually produced the qualifying
+red result. A proposed command or a command believed capable of failing is not
+evidence.
 
 ## Phase 2 — Reproduce and minimise
 
 Run the loop enough times to confirm it catches the reported defect rather than
-a nearby failure. Remove inputs, callers, configuration, data, and steps one
-at a time, rerunning after every cut. Keep only elements whose removal makes
-the loop green. Preserve the original, unminimised scenario for final proof.
+a nearby failure. Wrong bug means wrong fix. Remove inputs, callers,
+configuration, data, and steps one at a time, rerunning after every cut. Keep
+only elements whose removal makes the loop green. Preserve the original,
+unminimised scenario and its exact command for final proof.
 
-## Phase 3 — Find the first divergence
+Do not proceed to hypotheses until both EXACT-RED and MINIMISED-RED are backed
+by output from commands already run.
 
-State 3-5 ranked, falsifiable hypotheses and the observation that separates
-each one. Share the ranking as a non-blocking checkpoint and continue unless
-the user pauses the work. Test one prediction at a time. Prefer debugger or
-REPL inspection, then narrowly placed logs tagged with one unique
-`[DEBUG-<token>]` prefix. Never log everything and grep.
+## Phase 3 — Use hypotheses to find the first divergence
+
+Only now, state 3-5 ranked, falsifiable hypotheses and the observation that
+separates each one. Hypotheses are probes against the reproduced evidence, not
+a substitute for it. Share the ranking as a non-blocking checkpoint and
+continue unless the user pauses the work. Test one prediction at a time.
+Prefer debugger or REPL inspection, then narrowly placed logs tagged with one
+unique `[DEBUG-<token>]` prefix. Never log everything and grep.
 
 Trace bad values and control flow backwards from the symptom to the earliest
 point where actual state diverges from expected state. A nearby exception or
@@ -92,8 +131,9 @@ masking its downstream symptom. Then run, in order:
 If any signal remains red, treat the output as new evidence. Re-rank the
 hypotheses, change one variable, and continue. Do not end the task after a
 failed patch or a plausible explanation. After three failed patch experiments,
-make no fourth speculative edit: rebuild the loop and hypothesis set first,
-then continue only from a new falsifiable prediction.
+make no fourth edit: rerun and, if needed, rebuild the exact-red loop before
+revising the hypothesis set. Continue only from a new falsifiable prediction
+grounded in the current red output.
 
 ## Phase 6 — Prove completion
 
@@ -119,19 +159,23 @@ exhausted. Name the exact missing access or state change when blocked.
 
 ## Report
 
-Report these sections with repository evidence:
+Report only sections earned by commands actually run. Never fill a missing
+reproduction with a theory:
 
-- **Symptom**
-- **Feedback loop** — exact command, exit result, and observed signal
-- **Minimal reproduction**
-- **Hypotheses and evidence**
-- **Root cause** — path, symbol, and first divergence
 - **Mode** — FIX-COMPLETE or ANALYSIS-ONLY
+- **Exact-red gate** — exact command, exit result, and observed user symptom
+- **Minimal reproduction**
+- **Post-reproduction hypotheses and evidence**
+- **Root cause** — path, symbol, and first divergence
 - **Fix** — changed paths/symbols and why the change corrects the first
   divergence
 - **Regression and verification** — red-before and green-after commands,
   original-symptom rerun, project checks, and certification when applicable
 - **Remaining uncertainty**
+
+When blocked before EXACT-RED, report the mode, attempted loops and results,
+the unproven symptom, and the specific missing access, artifact, or permission.
+Do not include hypotheses, root cause, or fix sections.
 
 Do not automatically invoke another workflow, create a canonical document, or
 change harness-chain limits, receipts, or completion state.

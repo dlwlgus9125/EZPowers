@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="EZPowers v5.3.2 플러그인의 13개 스킬을 언제, 어떤 순서로, Claude Code와 Codex에서 어떻게 사용하는지 설명하는 한국어 가이드">
+  <meta name="description" content="EZPowers v5.3.3 플러그인의 13개 스킬을 언제, 어떤 순서로, Claude Code와 Codex에서 어떻게 사용하는지 설명하는 한국어 가이드">
   <meta name="color-scheme" content="light dark">
   <title>EZPowers Skill Atlas — 스킬 사용 가이드</title>
   <script>
@@ -2752,7 +2752,7 @@
 
       <section class="section hero" id="overview" aria-labelledby="hero-title">
         <div class="hero-topline">
-          <span class="hero-edition">Verified workflow · plugin v5.3.2</span>
+          <span class="hero-edition">Verified workflow · plugin v5.3.3</span>
           <div class="control-group">
             <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
               <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true">
@@ -2988,7 +2988,7 @@
           <article class="orbit-card">
             <span class="orbit-label">Evidence discipline</span>
             <h3>diagnose</h3>
-            <p>명시 호출이나 fix/debug 요청이면 재현·첫 분기점에서 멈추지 않고 원인 수정과 원증상 재검증까지 완료합니다.</p>
+            <p>exact-red와 최소화를 먼저 증명한 뒤에만 가설을 쓰며, 재현할 수 없으면 추측 수정 없이 필요한 증거를 요청합니다.</p>
           </article>
           <article class="orbit-card">
             <span class="orbit-label">Focused design</span>
@@ -3227,13 +3227,14 @@
                 <span class="badge">evidence first</span>
               </div>
               <p class="skill-purpose">
-                실패를 감지하는 빠른 red loop를 세우고 첫 분기점을 찾은 뒤,
-                회귀 신호·원인 수정·원래 시나리오·관련 검사를 모두 green으로 만듭니다.
+                사용자의 정확한 증상을 명령으로 red 확인하고 최소화한 뒤에만
+                가설과 계측으로 첫 분기점을 찾습니다. 이후 회귀 신호·원인 수정·
+                원래 시나리오·관련 검사를 모두 green으로 만듭니다.
               </p>
               <dl class="fact-list">
                 <div class="fact"><dt>언제</dt><dd>버그, 실패한 테스트·빌드·통합, flaky 동작, 성능 회귀를 실제로 해결할 때</dd></div>
-                <div class="fact"><dt>결과</dt><dd>red-before/green-after 증거, source-cause patch, 원증상 재실행, 관련 검사 결과</dd></div>
-                <div class="fact"><dt>안 함</dt><dd>root cause만 말하고 종료, assertion 약화, downstream 증상 은폐, 명시된 no-edit 경계 위반</dd></div>
+                <div class="fact"><dt>결과</dt><dd>baseline exact-red 영수증, red-before/green-after 증거, source-cause patch, 원증상 재실행</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>재현 전 가설·제품 수정, 인접 실패를 원증상으로 오인, assertion 약화, downstream 증상 은폐</dd></div>
               </dl>
               <div class="command-stack">
                 <div class="command-label"><span>Plugin invocation</span><span class="scope-note">증상과 함께</span></div>
@@ -3249,8 +3250,10 @@
                 <ul>
                   <li>명시 호출 또는 fix/debug 요청은 기본 FIX-COMPLETE이며 추가 수정 허가를 다시 묻지 않습니다.</li>
                   <li>analysis-only/no edits가 명시된 경우에만 읽기 전용 probe와 기존 테스트에서 멈춥니다.</li>
-                  <li>실제 인터페이스 seam의 회귀 테스트나 실행 가능한 최소 loop를 먼저 red로 확인합니다.</li>
-                  <li>세 번의 patch가 실패하면 종료하지 않고 loop와 가설을 재구축한 뒤 새 예측에서 계속합니다.</li>
+                  <li>exact-red 명령을 실제 실행하고 최소화하기 전에는 가설·root cause·제품 동작 변경이 금지됩니다.</li>
+                  <li>재현할 수 없으면 시도 결과와 필요한 access·capture·instrumentation을 요청하고 멈춥니다.</li>
+                  <li>gate 이후 실제 인터페이스 seam의 회귀 테스트나 실행 가능한 최소 loop를 red로 고정합니다.</li>
+                  <li>세 번의 patch가 실패하면 종료하지 않고 exact-red loop를 다시 실행한 뒤 가설을 재구축합니다.</li>
                   <li>관리 실행의 완료는 여전히 전체 verify와 certify가 판단합니다.</li>
                 </ul>
               </div>
@@ -3744,10 +3747,10 @@
           <article class="recipe-card">
             <span class="recipe-index">D</span>
             <h3>원인을 모르는 실패</h3>
-            <p class="recipe-intro">명시 diagnose나 fix/debug 요청이면 재현은 시작점이고, 검증된 수정까지 같은 흐름이 소유합니다.</p>
+            <p class="recipe-intro">재현은 추측을 보조하는 단계가 아니라 가설과 제품 수정을 여는 hard gate이며, 열린 뒤에는 검증된 수정까지 같은 흐름이 소유합니다.</p>
             <ol class="recipe-path">
-              <li><span class="recipe-dot">1</span><span class="recipe-copy"><strong>diagnose</strong><span>red-capable 명령·최소 재현·가설·첫 분기점</span></span></li>
-              <li><span class="recipe-dot">2</span><span class="recipe-copy"><strong>regression red</strong><span>honest seam 또는 최소 실행 loop에서 원증상 고정</span></span></li>
+              <li><span class="recipe-dot">1</span><span class="recipe-copy"><strong>exact-red gate</strong><span>원증상 명령을 실제 red로 실행하고 최소화</span></span></li>
+              <li><span class="recipe-dot">2</span><span class="recipe-copy"><strong>diagnose</strong><span>재현 증거 뒤에만 가설·계측·첫 분기점 추적</span></span></li>
               <li><span class="recipe-dot">3</span><span class="recipe-copy"><strong>source-cause fix</strong><span>첫 분기점을 고치고 최소·원래 시나리오 재실행</span></span></li>
               <li><span class="recipe-dot">4</span><span class="recipe-copy"><strong>related checks → certify</strong><span>관련 경계와 관리 전체 증거까지 갱신</span></span></li>
             </ol>
@@ -3934,8 +3937,10 @@
             <summary>diagnose를 호출하면 버그도 바로 수정하나요?</summary>
             <div class="faq-answer">
               <p>네. 명시적으로 diagnose를 호출하거나 fix/debug를 요청하면 기본은 FIX-COMPLETE입니다.
-                재현·가설·root cause는 중간 진행이며 회귀 신호, 원인 수정, 원래 시나리오와 관련 검사까지 끝냅니다.
-                “원인만”, “분석만”, “수정 금지”를 명시했을 때만 코드 변경 전에 멈춥니다.</p>
+                단, exact-red와 최소화 전에는 가설이나 제품 수정을 하지 않습니다. 재현할 수 없으면 필요한
+                증거를 요청하고 멈춥니다. gate가 열리면 가설·root cause는 중간 진행이며 회귀 신호,
+                원인 수정, 원래 시나리오와 관련 검사까지 끝냅니다. “원인만”, “분석만”, “수정 금지”를
+                명시했을 때만 재현 가능한 경로에서도 코드 변경 전에 멈춥니다.</p>
             </div>
           </details>
           <details>
@@ -3974,7 +3979,7 @@
         <div>
           <strong>EZPowers Skill Atlas</strong>
           <p>
-            v5.3.0 프로젝트 키트와 v5.3.2 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
+            v5.3.0 프로젝트 키트와 v5.3.3 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
             동작이 바뀌면 <code>skills/*/SKILL.md</code>, 호출 계약, 프로젝트 매니페스트와 함께 이 문서를 갱신하세요.
           </p>
         </div>

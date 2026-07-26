@@ -28,9 +28,11 @@ fresh without trusting conversation memory.
 For product-code work, the user can also request evidence-first diagnosis and
 fix completion, focused module/interface design, or an explicit broad
 architecture scan. An explicit `diagnose` invocation or fix/debug request owns
-the path from a red reproduction through the source-cause patch and original
-symptom verification; only a stated analysis-only/no-edit request stops at
-root cause. The broad scan produces an escaped, dependency-free HTML report
+the path from an observed exact-red reproduction through the source-cause
+patch and original symptom verification. It does not hypothesise or edit
+product behavior before that gate and requests missing evidence when the gate
+cannot open; only a stated analysis-only/no-edit request stops a reproducible
+path at root cause. The broad scan produces an escaped, dependency-free report
 outside the repository and returns to one user-selected candidate. None of
 these disciplines silently expands documentation, retry, or certification
 authority.
@@ -78,8 +80,11 @@ EZPowers does not require an external shared repository or executor.
   pass but asks only about plausible consequential candidates, then a
   confirmed request resumes an already active Plan Mode without invoking
   another workflow, writing an artifact, or authorizing implementation.
-- Analysis-only diagnosis stops at a reproducible, minimized,
-  first-divergence explanation. Explicit diagnose and fix/debug requests
+- Every diagnosis observes the user's exact symptom red and minimises it
+  before hypotheses, root-cause claims, or product-behavior edits. If exact
+  red is unavailable, the host requests the specific missing access, capture,
+  or instrumentation and does not guess. Analysis-only then stops at a
+  first-divergence explanation; explicit diagnose and fix/debug requests
   continue through a red regression signal, the source-cause patch, the
   original unminimised reproduction, affected checks, and cleanup.
 - Focused codebase design compares materially different interfaces and treats

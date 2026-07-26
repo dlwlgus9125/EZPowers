@@ -1,9 +1,11 @@
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 
 
@@ -41,9 +43,9 @@ class PluginDiscoveryTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual("5.3.2", claude["version"])
-        self.assertEqual("5.3.2", marketplace["plugins"][0]["version"])
-        self.assertRegex(codex["version"], r"^5\.3\.2\+codex\.[0-9]{14}$")
+        self.assertEqual("5.3.3", claude["version"])
+        self.assertEqual("5.3.3", marketplace["plugins"][0]["version"])
+        self.assertRegex(codex["version"], r"^5\.3\.3\+codex\.[0-9]{14}$")
         self.assertEqual(1, codex["version"].count("+codex."))
         self.assertEqual("ezpowers-dev", codex_marketplace["name"])
         self.assertEqual("ezpowers", codex_marketplace["plugins"][0]["name"])
@@ -128,6 +130,130 @@ class PluginDiscoveryTests(unittest.TestCase):
                 "Which legal rules apply? Which backups remain?"
             )
         )
+
+    def test_live_diagnose_fixed_fixture_proves_red_before_product_patch(self):
+        with tempfile.TemporaryDirectory() as temp_name:
+            fixture = Path(temp_name)
+            baseline = PLUGIN_SMOKE._write_live_diagnose_fixture(fixture, "fixed")
+            red = PLUGIN_SMOKE._run_command(
+                [sys.executable, "reproduce_exact.py"],
+                cwd=fixture,
+            )
+            self.assertEqual(1, red.returncode)
+            self.assertIn("EZPOWERS_DIAGNOSE_EXACT_RED", red.stdout)
+            (fixture / "event_store.py").write_text(
+                "def visible_events(events, tenant_id):\n"
+                "    return [event for event in events "
+                'if event["tenant_id"] == tenant_id]\n',
+                encoding="utf-8",
+            )
+            green = PLUGIN_SMOKE._run_command(
+                [sys.executable, "reproduce_exact.py"],
+                cwd=fixture,
+            )
+            self.assertEqual(0, green.returncode)
+            self.assertEqual(
+                [],
+                PLUGIN_SMOKE._validate_live_diagnose_fixed(
+                    fixture,
+                    baseline,
+                    red.stdout + green.stdout,
+                ),
+            )
+
+    def test_live_diagnose_fixed_fixture_rejects_product_edit_before_red(self):
+        with tempfile.TemporaryDirectory() as temp_name:
+            fixture = Path(temp_name)
+            baseline = PLUGIN_SMOKE._write_live_diagnose_fixture(fixture, "fixed")
+            (fixture / "event_store.py").write_text(
+                "def visible_events(events, tenant_id):\n"
+                "    return []\n",
+                encoding="utf-8",
+            )
+            red_after_edit = PLUGIN_SMOKE._run_command(
+                [sys.executable, "reproduce_exact.py"],
+                cwd=fixture,
+            )
+            errors = PLUGIN_SMOKE._validate_live_diagnose_fixed(
+                fixture,
+                baseline,
+                red_after_edit.stdout,
+            )
+            self.assertTrue(
+                any("before observing exact red" in error for error in errors),
+                errors,
+            )
+
+    def test_live_diagnose_blocked_fixture_requires_specific_evidence(self):
+        with tempfile.TemporaryDirectory() as temp_name:
+            fixture = Path(temp_name)
+            baseline = PLUGIN_SMOKE._write_live_diagnose_fixture(
+                fixture,
+                "blocked",
+            )
+            blocked = PLUGIN_SMOKE._run_command(
+                [sys.executable, "reproduce_exact.py"],
+                cwd=fixture,
+            )
+            self.assertEqual(2, blocked.returncode)
+            self.assertIn("EZPOWERS_DIAGNOSE_REPRO_BLOCKED", blocked.stdout)
+            response = (
+                "The exact reproduction is blocked because "
+                "production_capture.json is missing. Please provide that "
+                "captured artifact or grant access for temporary instrumentation."
+            )
+            self.assertEqual(
+                [],
+                PLUGIN_SMOKE._validate_live_diagnose_blocked(
+                    fixture,
+                    baseline,
+                    response,
+                    blocked.stdout,
+                ),
+            )
+
+    def test_claude_stream_json_retains_final_diagnose_response(self):
+        transcript = "\n".join(
+            (
+                json.dumps(
+                    {
+                        "type": "user",
+                        "message": {
+                            "content": "EZPOWERS_DIAGNOSE_EXACT_RED source_sha256=abc"
+                        },
+                    }
+                ),
+                json.dumps({"type": "result", "result": "Verified fix complete."}),
+            )
+        )
+        self.assertEqual(
+            "Verified fix complete.",
+            PLUGIN_SMOKE._claude_final_response(transcript),
+        )
+
+    def test_plugin_smoke_console_handles_unicode_model_output_under_cp949(self):
+        probe = (
+            "import importlib.util\n"
+            f"path = {str(SMOKE_PATH)!r}\n"
+            "spec = importlib.util.spec_from_file_location('plugin_smoke_probe', path)\n"
+            "module = importlib.util.module_from_spec(spec)\n"
+            "spec.loader.exec_module(module)\n"
+            "module._configure_console_output()\n"
+            "print('model response \\u2014 retained')\n"
+        )
+        environment = os.environ.copy()
+        environment["PYTHONIOENCODING"] = "cp949"
+        result = subprocess.run(
+            [sys.executable, "-c", probe],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="cp949",
+            env=environment,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(r"\u2014", result.stdout)
 
 
 if __name__ == "__main__":

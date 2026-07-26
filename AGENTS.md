@@ -44,10 +44,13 @@ Roles are intentionally narrow:
   does not review artifacts, write files, or invoke another workflow. After
   explicit confirmation, an already active Plan Mode resumes host-native
   planning without granting implementation authority.
-- `diagnose`: evidence-first, end-to-end bug fixing by default for explicit
-  invocation or fix/debug requests; it must continue from a red loop through
-  a source-cause patch and original-symptom verification. Only an explicit
-  analysis-only/no-edit request stops before changes.
+- `diagnose`: exact-reproduction-gated, end-to-end bug fixing by default for
+  explicit invocation or fix/debug requests. It forbids hypotheses and product
+  edits until the user's symptom has run red and been minimised, then continues
+  through a source-cause patch and original-symptom verification. If exact red
+  cannot be produced it requests the missing evidence and does not guess; only
+  an explicit analysis-only/no-edit request stops an otherwise reproducible
+  path before changes.
 - `codebase-design`: implicit focused advisory for deep modules, small
   interfaces, honest seams, and refactor-surviving tests.
 - `improve-codebase-architecture`: explicit-only product-code scan that

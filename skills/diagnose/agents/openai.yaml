@@ -1,6 +1,6 @@
 interface:
   display_name: "Diagnose"
-  short_description: "Reproduce, fix, and verify bugs end to end"
-  default_prompt: "Use $ezpowers:diagnose to reproduce this bug, find the first divergence, implement the source-cause fix, and verify the original symptom and regression checks end to end."
+  short_description: "Observe exact red before hypotheses or product edits"
+  default_prompt: "Use $ezpowers:diagnose to run and capture an exact-symptom red reproduction before forming hypotheses or changing product behavior. If exact red cannot be produced, stop with the precise missing access, artifact, or instrumentation instead of guessing. After exact red and minimization, find the first divergence, implement the source-cause fix, and verify the original symptom and regression checks end to end."
 policy:
   allow_implicit_invocation: true

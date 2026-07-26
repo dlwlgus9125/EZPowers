@@ -2,10 +2,11 @@
 
 ## Current State
 
-EZPowers v5.3.0 project kit and the v5.3.2 plugin patch are complete in the
-working tree on `main`. They preserve the host-native verification core,
-documentation graph, local wiki, explicit harness chain, and Plan Mode-aware
-clarification while adding bounded specialized engineering disciplines:
+EZPowers v5.3.0 project kit and the v5.3.2 plugin patch remain complete in the
+working tree on `main`. A v5.3.3 plugin candidate is in progress. It preserves
+the host-native verification core, documentation graph, local wiki, explicit
+harness chain, and Plan Mode-aware clarification while tightening diagnosis
+around an exact-reproduction gate:
 
 - repository analysis and an adaptive Markdown graph rooted at canonical
   `AGENTS.md`, exact `CLAUDE.md` import, and `docs/INDEX.md`;
@@ -24,9 +25,12 @@ clarification while adding bounded specialized engineering disciplines:
   internal blind-spot pass, exposes only plausible consequential candidates,
   challenges framing when material, avoids ritual questions, and resumes an
   already active Plan Mode without artifacts or implementation authority;
-- fix-complete `diagnose`, which treats root cause as an intermediate result
-  and owns the red loop, source-cause patch, original-symptom rerun, and
-  affected checks unless analysis-only/no-edit behavior is explicit;
+- fix-complete `diagnose`, which forbids hypotheses and product edits until a
+  command has shown the user's exact symptom red and the scenario has been
+  minimised; if that gate cannot open it requests the missing evidence without
+  guessing, while a reproducible path still owns the source-cause patch,
+  original-symptom rerun, and affected checks unless analysis-only/no-edit
+  behavior is explicit;
 - focused deep-module `codebase-design`, and an explicit
   `improve-codebase-architecture` product-code scan whose temporary offline
   report never becomes repository documentation or completion evidence;
@@ -65,11 +69,46 @@ force product rework until a configured limit becomes terminal.
 - `F17`: fix-complete `diagnose` loop.
 - `F18`: decision-ready `deep-interview` blind-spot pass.
 
+## In-Progress Item
+
+- `F19`: exact-reproduction-gated `diagnose`. The skill, contract, metadata,
+  deterministic receipts, and opt-in dual-host probe are implemented. Release
+  completion is waiting on an authenticated Claude call and a Codex host where
+  the isolated fixture can execute its authoritative Python command inside the
+  configured workspace sandbox.
+
 The v5.3 project kit installs twelve project skills, ten canonical contracts,
 and two deterministic tools. The plugin exposes those skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+v5.3.3 candidate verification on 2026-07-26:
+
+- `python -m unittest discover -s tests`: 146 tests passed in 593.061 seconds.
+- `python -m unittest tests.test_codex_plugin_discovery tests.test_v5_workflow_surface`:
+  19 focused tests passed on the final candidate.
+- `quick_validate.py skills/diagnose` with UTF-8 mode: skill structure valid.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
+  PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
+  PASS for real install -> validate -> verify -> certify -> stale.
+- `python scripts/verify-harness-kit.py`: v5.3 manifest valid with refreshed
+  diagnose skill, project metadata, and engineering-contract hashes.
+- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
+  Claude 2.1.220 accepted the manifests, and Codex 0.145.0 loaded all project
+  and namespaced skills with matching prompts in isolation.
+- The real Codex diagnose call attempted `python reproduce_exact.py`, received
+  an execution-policy rejection before launch, made no product edit or
+  hypothesis, and requested the missing command/write access. This confirms
+  the no-reproduction blocker discipline but does not earn fixed-path
+  red-to-green evidence.
+- `claude auth status` reported `loggedIn: false` and `authMethod: none`, so no
+  authenticated Claude diagnose model call could run.
+
+The candidate is not release-complete until both live hosts pass the fixable
+baseline-red-before-patch case and the missing-capture no-edit case. No v5.3.3
+completion event has been appended to `harness_versions/changelog.jsonl`.
 
 Final v5.3.2 plugin patch verification on 2026-07-26:
 

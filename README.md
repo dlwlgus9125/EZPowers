@@ -3,7 +3,7 @@
 > Claude Code와 Codex가 같은 저장소 증거로 작업의 **완료 여부**를
 > 판단하도록 만드는 프로젝트 로컬 워크플로 플러그인입니다.
 
-**Plugin v5.3.2 · Project kit v5.3.0 · Python 3.10+ · MIT**
+**Plugin v5.3.3 · Project kit v5.3.0 · Python 3.10+ · MIT**
 
 [빠른 시작](#빠른-시작) · [워크플로](#기본-워크플로) ·
 [스킬 목록](#스킬-목록) · [업데이트](#업데이트) ·
@@ -23,7 +23,7 @@ EZPowers는 저장소 안에 문서, 명세, 계획, 실제 검증 명령, 해�
 | 요구사항과 구현 계획의 연결이 끊김 | acceptance criterion → task → check 추적 |
 | Claude Code와 Codex의 완료 기준이 달라짐 | 동일한 프로젝트 키트와 host-independent PASS/FAIL 판정 |
 | 자동 실행이 검증이나 리뷰를 건너뜀 | 명시적 승인과 한도가 있는 `harness-chain` |
-| 버그 분석이 root cause에서 끝남 | 재현부터 원인 수정과 원래 증상 재검증까지 책임지는 `diagnose` |
+| 가설로 먼저 패치해 실제 버그를 놓침 | exact-red 재현 전에는 가설·제품 수정을 금지하는 `diagnose` |
 
 ```mermaid
 flowchart LR
@@ -165,7 +165,7 @@ harness-chain configure
 | --- | --- | --- |
 | `setup` | 설치, 복구, refresh, 문서 bootstrap | 프로젝트 키트를 설치하고 실제 검증 명령을 등록 |
 | `deep-interview` | 요청이 모호하거나 숨은 전제까지 점검해야 할 때 | 중요한 사각지대만 한 질문씩 확인해 세션 안에서 요청을 확정; 파일이나 구현 권한은 만들지 않음 |
-| `diagnose` | 버그, 실패한 테스트·빌드, flaky·성능 문제 | 기본적으로 재현 → first divergence → source-cause fix → 원증상 검증까지 완료 |
+| `diagnose` | 버그, 실패한 테스트·빌드, flaky·성능 문제 | exact-red → 최소화 뒤에만 가설을 쓰고 source-cause fix와 원증상 검증까지 완료 |
 | `codebase-design` | 한 모듈의 interface·seam·테스트 구조를 설계할 때 | 집중 설계 조언; 전체 코드베이스 스캔이나 구현은 하지 않음 |
 | `improve-codebase-architecture` | 기존 제품 코드의 구조 개선 후보를 넓게 찾을 때 | 임시 offline HTML 보고서와 한 후보 탐색; refactor를 직접 구현하지 않음 |
 | `design-architecture` | 영속적인 경계·data flow·deployment 결정이 필요할 때 | spec 전에 추적 가능한 architecture 결정을 기록 |
@@ -181,11 +181,15 @@ harness-chain configure
 
 명시적인 `diagnose`, fix, debug 요청은 `FIX-COMPLETE`로 동작합니다.
 root cause, failing regression test, 첫 targeted green은 중간 진행 상황일 뿐입니다.
+다만 사용자의 정확한 증상을 검출하는 명령을 실제로 red로 실행하기 전에는
+가설, root-cause 주장, fix 제안, 제품 동작 변경을 할 수 없습니다. 재현할 수
+없으면 필요한 접근권한·capture·instrumentation을 구체적으로 요청하고
+추측 수정 없이 멈춥니다.
 
 완료하려면 다음 조건을 충족해야 합니다.
 
-1. 사용자의 원래 증상을 red로 재현하고 최소화합니다.
-2. falsifiable hypothesis를 시험해 first divergence를 찾습니다.
+1. 사용자의 정확한 원래 증상을 명령으로 실행해 red를 관찰합니다.
+2. 매 단계 다시 실행하며 최소화한 뒤에만 falsifiable hypothesis를 시험합니다.
 3. honest seam의 regression test 또는 실행 가능한 red/green loop를 보존합니다.
 4. downstream 증상이 아니라 source cause를 수정합니다.
 5. 최소 재현과 원래 시나리오, 관련 project check를 다시 실행합니다.
@@ -277,6 +281,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1
 python scripts/verify-harness-kit.py
 python scripts/plugin_smoke.py --host both
+```
+
+실제 모델의 `diagnose` 순서를 release 시점에 opt-in으로 검사하려면 다음을
+추가 실행합니다. 선택한 각 호스트에서 fix 가능한 exact-red와 재현 불가
+blocker fixture를 실행하므로 계정 사용량을 소비합니다.
+
+```bash
+python scripts/plugin_smoke.py --host both --live-diagnose
 ```
 
 현재 릴리스의 검증 결과와 변경 상태는 [PROGRESS.md](PROGRESS.md),

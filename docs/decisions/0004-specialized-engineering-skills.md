@@ -22,12 +22,15 @@ project installation, discovery, and maintenance harder to verify.
 Pin upstream commit `ed37663cc5fbef691ddfecd080dff42f7e7e350d` and maintain
 three EZPowers-owned MIT adaptations in the core catalog:
 
-1. `diagnose`, implicitly matchable, establishes a reproducible feedback loop
-   and tests falsifiable hypotheses. Explicit invocation or fix/debug intent
-   defaults to FIX-COMPLETE and cannot finish at root cause: it continues
-   through a red regression signal, source-cause patch, original-symptom rerun,
-   affected checks, and cleanup. Only an explicit analysis-only/no-edit request
-   stops before changes.
+1. `diagnose`, implicitly matchable, requires a command already observed red
+   on the user's exact symptom and a minimised reproduction before hypotheses,
+   root-cause claims, or product-behavior edits. If that gate cannot be opened,
+   it requests the missing access, captured artifact, or instrumentation and
+   does not guess. After the gate, falsifiable hypotheses guide one-variable
+   probes. Explicit invocation or fix/debug intent defaults to FIX-COMPLETE and
+   cannot finish at root cause: it continues through a red regression signal,
+   source-cause patch, original-symptom rerun, affected checks, and cleanup.
+   Only an explicit analysis-only/no-edit request stops before changes.
 2. `codebase-design`, implicitly matchable, compares at least two focused
    interfaces using Module, Interface, Depth, Seam, Adapter, Leverage, and
    Locality vocabulary. It neither scans the whole repository nor owns durable
@@ -53,6 +56,9 @@ when kit identity changes.
 
 - Diagnosis and refactor advice become consistent across Claude Code and Codex
   without gaining implementation or certification authority.
+- Opt-in dual-host live fixtures verify that the first exact-red receipt
+  predates a product patch and that missing production evidence blocks edits;
+  deterministic repository tests remain free of model calls and account cost.
 - `design-architecture` remains the durable architecture owner, and
   `harness-chain` limits, receipts, frozen inputs, and terminal verdicts remain
   unchanged.

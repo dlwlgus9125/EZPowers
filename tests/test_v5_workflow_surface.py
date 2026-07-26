@@ -211,6 +211,11 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
 
         for phrase in (
             "Root cause is a milestone, not completion",
+            "Hard gate — exact red before theory or product edits",
+            "Do not state or rank hypotheses",
+            "A proposed command or a command believed capable of failing is not evidence",
+            "Do not proceed to hypotheses until both EXACT-RED and MINIMISED-RED",
+            "Do not include hypotheses, root cause, or fix sections",
             "FIX-COMPLETE",
             "ANALYSIS-ONLY",
             "Do not ask for another authorization",
@@ -248,6 +253,11 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
                 / metadata_name
             ).read_text(encoding="utf-8")
             self.assertIn(invocation, metadata)
+            self.assertIn(
+                "before forming hypotheses or changing product behavior",
+                metadata,
+            )
+            self.assertIn("instead of guessing", metadata)
             self.assertIn("implement the source-cause fix", metadata)
             self.assertIn("end to end", metadata)
         improve_metadata = (
@@ -269,6 +279,15 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             "must not hand control back merely because",
             normalized_contract,
         )
+        self.assertIn("hard reproduction gate", normalized_contract)
+        self.assertIn(
+            "hypotheses consume reproduction evidence; they never substitute for it",
+            normalized_contract,
+        )
+        self.assertIn(
+            "stops without hypotheses or a product patch",
+            normalized_contract,
+        )
         self.assertIn("1-8 candidates", contract)
         self.assertIn(
             "restrictive content security policy",
@@ -288,9 +307,10 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         normalized_diagnose = " ".join(diagnose.split())
 
         phases = [
-            "## Phase 1 — Build the red loop",
+            "## Hard gate — exact red before theory or product edits",
+            "## Phase 1 — Build and run the exact-red loop",
             "## Phase 2 — Reproduce and minimise",
-            "## Phase 3 — Find the first divergence",
+            "## Phase 3 — Use hypotheses to find the first divergence",
             "## Phase 4 — Lock the regression",
             "## Phase 5 — Fix and iterate",
             "## Phase 6 — Prove completion",
@@ -305,6 +325,8 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             "relevant module, caller, integration, and configured project checks",
             "intermediate findings are progress updates",
             "Root cause is a milestone, not completion",
+            "Wrong bug means wrong fix",
+            "before EXACT-RED",
         ):
             self.assertIn(required, normalized_diagnose)
         self.assertIn("Root cause is not a handoff point", execute)
@@ -335,9 +357,9 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.3.2")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.3.2")
-        self.assertTrue(codex["version"].startswith("5.3.2+codex."))
+        self.assertEqual(claude["version"], "5.3.3")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.3.3")
+        self.assertTrue(codex["version"].startswith("5.3.3+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)
