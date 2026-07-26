@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import os
 import pathlib
@@ -313,6 +314,25 @@ class ChainProject:
         if result.returncode != 0:
             raise AssertionError(result.stdout + result.stderr)
 
+    def stop_event(self, host: str = "claude") -> subprocess.CompletedProcess[str]:
+        return self.command(
+            "chain",
+            "hook",
+            "--host",
+            host,
+            input_value={
+                "hook_event_name": "Stop",
+                "session_id": f"{host}-session",
+                "cwd": str(self.root),
+                "stop_hook_active": False,
+            },
+        )
+
+    def state_value(self) -> dict:
+        return json.loads(
+            (self.root / ".ezpowers" / "state.json").read_text(encoding="utf-8")
+        )
+
     def complete_gate(
         self,
         kind: str,
@@ -373,7 +393,7 @@ class ChainProject:
         )
         self.assert_success(stop)
 
-    def approve_and_activate(
+    def approve(
         self,
         bundle: pathlib.Path,
     ) -> dict:
@@ -413,7 +433,13 @@ class ChainProject:
             "--json",
         )
         self.assert_success(applied)
-        value = json.loads(applied.stdout)
+        return json.loads(applied.stdout)
+
+    def approve_and_activate(
+        self,
+        bundle: pathlib.Path,
+    ) -> dict:
+        value = self.approve(bundle)
         activated = self.command(
             "chain",
             "activate",
@@ -1386,6 +1412,184 @@ class HarnessChainTests(unittest.TestCase):
                 claude_hooks,
                 re.compile(r"chain.*hook.*--host.*claude"),
             )
+
+    def test_stop_hook_counts_iterations_and_blocks_with_next_action(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle()
+            project.approve_and_activate(bundle)
+            stop = project.stop_event()
+            project.assert_success(stop)
+            response = json.loads(stop.stdout)
+            self.assertEqual("block", response.get("decision"))
+            self.assertTrue(response.get("reason"))
+            run = project.state_value()["chain_run"]
+            self.assertEqual("RUNNING", run["status"])
+            self.assertEqual(1, run["counters"]["iterations"])
+
+    def test_stop_hook_total_iteration_limit_is_terminal(self) -> None:
+        limits = {
+            "total_iterations": 2,
+            "qa_cycles": 5,
+            "validation_retries": 3,
+            "review_retries": 3,
+            "identical_error_repeats": 3,
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure(limits=limits)
+            bundle = project.write_run_bundle()
+            project.approve_and_activate(bundle)
+            first = project.stop_event()
+            project.assert_success(first)
+            self.assertEqual("block", json.loads(first.stdout).get("decision"))
+            second = project.stop_event()
+            project.assert_success(second)
+            self.assertEqual({}, json.loads(second.stdout))
+            run = project.state_value()["chain_run"]
+            self.assertEqual("FAILED", run["status"])
+            self.assertIn("total iteration limit", str(run["terminal_reason"]))
+            self.assertEqual(2, run["counters"]["iterations"])
+
+    def test_stop_hook_bounds_the_pending_loop_activation_block(self) -> None:
+        limits = {
+            "total_iterations": 2,
+            "qa_cycles": 5,
+            "validation_retries": 3,
+            "review_retries": 3,
+            "identical_error_repeats": 3,
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure(limits=limits)
+            bundle = project.write_run_bundle()
+            project.approve(bundle)
+            first = project.stop_event()
+            project.assert_success(first)
+            first_value = json.loads(first.stdout)
+            self.assertEqual("block", first_value.get("decision"))
+            self.assertIn("Activate", str(first_value.get("reason")))
+            second = project.stop_event()
+            project.assert_success(second)
+            self.assertEqual({}, json.loads(second.stdout))
+            run = project.state_value()["chain_run"]
+            self.assertEqual("FAILED", run["status"])
+            self.assertIn("total iteration limit", str(run["terminal_reason"]))
+
+    def test_chain_hook_is_fail_safe_on_corrupt_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            state_path = project.root / ".ezpowers" / "state.json"
+            state_path.write_text(
+                json.dumps({"schema_version": 999}) + "\n",
+                encoding="utf-8",
+            )
+            events = (
+                {
+                    "hook_event_name": "Stop",
+                    "session_id": "claude-session",
+                    "cwd": str(project.root),
+                    "stop_hook_active": False,
+                },
+                {
+                    "hook_event_name": "PreToolUse",
+                    "session_id": "claude-session",
+                    "cwd": str(project.root),
+                    "tool_name": "Write",
+                    "tool_input": {"file_path": "app.py", "content": "x"},
+                },
+            )
+            for event in events:
+                result = project.command(
+                    "chain",
+                    "hook",
+                    "--host",
+                    "claude",
+                    input_value=event,
+                )
+                self.assertEqual(
+                    0,
+                    result.returncode,
+                    result.stdout + result.stderr,
+                )
+                self.assertEqual({}, json.loads(result.stdout))
+                self.assertIn("fail-safe", result.stderr)
+
+    def test_pretool_hook_denies_frozen_paths_and_allows_product_edits(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle()
+            project.approve_and_activate(bundle)
+            frozen = project.command(
+                "chain",
+                "hook",
+                "--host",
+                "claude",
+                input_value={
+                    "hook_event_name": "PreToolUse",
+                    "session_id": "claude-session",
+                    "cwd": str(project.root),
+                    "tool_name": "Write",
+                    "tool_input": {
+                        "file_path": "docs/specs/demo-run.md",
+                        "content": "tamper",
+                    },
+                },
+            )
+            project.assert_success(frozen)
+            frozen_value = json.loads(frozen.stdout)
+            self.assertEqual(
+                "deny",
+                frozen_value["hookSpecificOutput"]["permissionDecision"],
+            )
+            allowed = project.command(
+                "chain",
+                "hook",
+                "--host",
+                "claude",
+                input_value={
+                    "hook_event_name": "PreToolUse",
+                    "session_id": "claude-session",
+                    "cwd": str(project.root),
+                    "tool_name": "Write",
+                    "tool_input": {"file_path": "app.py", "content": "ok"},
+                },
+            )
+            project.assert_success(allowed)
+            self.assertEqual({}, json.loads(allowed.stdout))
+
+    def test_gate_rubric_template_passes_the_receipt_parser(self) -> None:
+        spec = importlib.util.spec_from_file_location(
+            "ezpowers_rubric_check",
+            EZPOWERS,
+        )
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        self.addCleanup(sys.modules.pop, spec.name, None)
+        spec.loader.exec_module(module)
+        for kind in (
+            "oracle-audit",
+            "code-review",
+            "adversarial-qa",
+            "blocker-review",
+        ):
+            rubric = module._chain_gate_rubric(
+                {"kind": kind, "challenge_id": "challenge-123"}
+            )
+            receipt = module._chain_gate_marker(rubric)
+            self.assertEqual("FAIL", receipt["verdict"], kind)
+            self.assertEqual("challenge-123", receipt["challenge_id"], kind)
+            self.assertTrue(receipt["blocking_findings"], kind)
+            self.assertTrue(receipt["observations"], kind)
 
 
 if __name__ == "__main__":

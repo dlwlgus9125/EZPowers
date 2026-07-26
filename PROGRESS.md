@@ -3,10 +3,14 @@
 ## Current State
 
 EZPowers v5.3.0 project kit and the v5.3.2 plugin patch remain complete in the
-working tree on `main`. A v5.3.3 plugin candidate is in progress. It preserves
+working tree on `main`. A v5.3.4 plugin candidate is in progress. It preserves
 the host-native verification core, documentation graph, local wiki, explicit
 harness chain, and Plan Mode-aware clarification while tightening diagnosis
-around an exact-reproduction gate:
+around an exact-reproduction gate and hardening the harness-chain loop half
+(a reviewer rubric whose embedded template matches the receipt parser exactly
+and stays FAIL when copied unedited, chain hooks that degrade to a fail-safe
+no-op instead of exit 2 on unreadable runtime state, and `PENDING_LOOP`
+activation blocks counted against `total_iterations`):
 
 - repository analysis and an adaptive Markdown graph rooted at canonical
   `AGENTS.md`, exact `CLAUDE.md` import, and `docs/INDEX.md`;
@@ -82,6 +86,26 @@ and two deterministic tools. The plugin exposes those skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+v5.3.4 candidate harness-chain loop hardening verification on 2026-07-26:
+
+- `python -m unittest discover -s tests` (UTF-8 mode): 152 tests passed in
+  619.895 seconds, including six new chain Stop/PreToolUse/rubric-roundtrip
+  cases that pin iteration counting, the terminal iteration limit, the bounded
+  `PENDING_LOOP` block, corrupt-state fail-safe hook responses, frozen-path
+  denial, and that the injected rubric template parses as a valid receipt.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
+  PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
+  PASS for real install -> validate -> verify -> certify -> stale.
+- `python scripts/verify-harness-kit.py`: v5.3 manifest valid with refreshed
+  runtime, harness-chain skill, and harness-chain contract hashes.
+- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
+  Claude 2.1.220 accepted the manifests, and Codex 0.145.0 loaded all project
+  and namespaced skills with matching prompts in isolation.
+- Deferred by user decision (Codex does not run the harness chain): the Codex
+  chain Stop terminal response still emits `continue`/`stopReason` and chain
+  unattended detection still reads Claude permission-mode names.
 
 v5.3.3 candidate verification on 2026-07-26:
 

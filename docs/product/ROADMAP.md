@@ -1,6 +1,6 @@
 # EZPowers Roadmap
 
-## Current: v5.3.0 core / v5.3.3 plugin
+## Current: v5.3.0 core / v5.3.4 plugin
 
 - Preserve the v5.1 documentation graph and local wiki.
 - Add an explicit project-question workflow for chain stages, QA triggers,

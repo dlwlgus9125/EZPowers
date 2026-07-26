@@ -94,14 +94,20 @@ python .ezpowers/ezpowers.py chain config status --json
 Configuration writes project-local files and host hooks, so this one apply
 approval is mandatory. It is not approval for global configuration. A new or
 changed hook must complete a real `SessionStart` handshake; do not claim
-unattended readiness while status is `PENDING_HOST_TRUST`.
+unattended readiness while status is `PENDING_HOST_TRUST`. Apply resets every
+prior handshake, and the hook fires only on session startup, resume, clear,
+or compact: after apply, ask the human to restart the host session or run
+`/clear`, then confirm `chain config status` reports `READY`.
 
 ## Feature run
 
 ### 1. Settle and stage the acceptance contract
 
 Classify each optional stage with a concrete reason. An `always` project stage
-must run. For an `auto` stage, run it only when its own trigger applies:
+must be selected and actually run before staging; the runtime validates only
+the recorded selection and reason, so the approval summary is where a false
+stage claim gets caught. For an `auto` stage, run it only when its own trigger
+applies:
 
 - use `deep-interview` for stated ambiguity or a plausible consequential blind
   spot;
@@ -173,8 +179,12 @@ python .ezpowers/ezpowers.py chain gate begin --kind oracle-audit --subject-sha2
 ```
 
 Spawn one host-native, read-only independent reviewer. The SubagentStart hook
-binds that agent to the challenge and injects the rubric. Do not write the
-review receipt yourself, relay a main-agent verdict, or accept unbound output.
+binds that agent to the challenge and injects the rubric. Binding is silent:
+an agent from another session, or a second subagent after one is bound, is
+ignored without an error and its receipt never registers. To confirm the
+binding, rerun the same `chain gate begin` command and check the reported
+`bound_agent_id`. Do not write the review receipt yourself, relay a
+main-agent verdict, or accept unbound output.
 After its SubagentStop receipt, rerun the same preview. Any staged or target
 change produces a different hash and requires a new audit.
 A bound audit `FAIL` consumes that exact preview hash: revise the staged
@@ -232,7 +242,10 @@ python .ezpowers/ezpowers.py verify --plan <plan> --all --json
 ```
 
 On FAIL, apply the `diagnose` evidence ladder to the recorded logs, add a
-regression test before the fix when applicable, and fix the product. This does
+regression test before the fix when applicable, and fix the product. Put a new
+regression test in a new non-frozen file: editing an approved oracle, spec, or
+plan file (even to add a test) changes a frozen hash and ends the run at
+`NEEDS_REAPPROVAL`. This does
 not create another retry authority or expand the approved acceptance contract.
 Reproduction and root cause are intermediate chain work; continue through the
 source-cause patch and rerun the original failing scenario before full
@@ -242,7 +255,9 @@ failure that reaches any approved limit becomes terminal immediately; do not
 perform an extra attempt. The runtime records the failed workspace and rejects
 another all-scope verification until a real workspace content change is
 observed. Task-scoped checks may still be used for diagnosis, but cannot clear
-the rework requirement.
+the rework requirement, and a failing task-scoped run still spends the same
+validation and identical-failure budget as an all-scope failure; read the
+recorded logs before replaying a failing check.
 
 After a fresh PASS, run an independent code review bound to that evidence:
 
@@ -272,6 +287,21 @@ python .ezpowers/ezpowers.py chain run status --json
 Stop only at a runtime terminal verdict. `CERTIFIED` is success. Report the
 approval, evidence, review receipt, QA receipt when required, certificate
 hashes, command exits, changes, and remaining limitations.
+
+## Emergency stop
+
+A stuck loop must be escapable without the loop's cooperation. Out-of-band
+options, in order of preference:
+
+- delete or rename `.ezpowers/chain.json` or the active approval file: the
+  next Stop contract check marks the run `NEEDS_REAPPROVAL`, a terminal
+  state, and the hook permits stopping;
+- remove the EZPowers chain hook entries from `.claude/settings.json`.
+
+If runtime state is unreadable, the chain hook itself degrades to a fail-safe
+no-op (exit 0, empty response) instead of blocking, so a corrupt loop dies
+rather than wedging the session. After any emergency stop, repair state with a
+new preview/audit/approval; never hand-edit hashes to resurrect the old run.
 
 ## Approval and absence rules
 

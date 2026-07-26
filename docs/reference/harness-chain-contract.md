@@ -121,8 +121,11 @@ session, agent type, kind, and subject. Only that bound agent's SubagentStop
 message can create a receipt.
 
 The terminal marker contains schema version, challenge ID, `PASS`, `FAIL`, or
-allowed `BLOCKED` verdict, blocking findings, and non-empty observations.
-PASS cannot contain blocking findings. Main-agent prose, an unbound agent,
+allowed `BLOCKED` verdict, blocking findings, and non-empty observations. The
+marker is a single fenced `json` code block between the gate start and end
+comment lines with exactly those five keys, and the injected rubric carries a
+matching template. PASS cannot contain blocking findings; FAIL or BLOCKED
+requires at least one. Main-agent prose, an unbound agent,
 malformed JSON, reused challenges, manually edited files, or receipts whose
 hash sidecar/pointer differs are not valid review evidence.
 
@@ -200,7 +203,11 @@ though `.ezpowers/evidence/` is excluded from the product workspace hash.
 
 Claude Stop blocks while RUNNING and returns the next evidence-backed action.
 Codex Stop does not continue work because the native goal is authoritative.
-Both permit the host to stop at terminal state. Resume uses repository state
+Both permit the host to stop at terminal state. A chain hook that cannot read
+runtime state degrades to a fail-safe no-op response with exit 0 instead of
+blocking: a corrupt loop dies rather than wedging the session, and the
+authoritative contract checks still gate verification, review, and
+certification. Resume uses repository state
 and hashed artifacts, never conversation memory.
 
 Terminal states do not grant authority to weaken checks, repair evidence,

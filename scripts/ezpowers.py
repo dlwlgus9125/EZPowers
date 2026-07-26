@@ -5167,14 +5167,38 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
 
 def _chain_gate_rubric(pending: dict[str, Any]) -> str:
     kind = pending.get("kind")
+    challenge_id = str(pending.get("challenge_id") or "")
     common = (
         "You are the bound independent reviewer. Inspect the real subject and "
         "repository evidence read-only; do not edit files. Do not accept "
         "test-name, string-presence, mocked-self-confirmation, or prose-only "
-        "claims as proof. Return exactly one marker containing JSON fields "
-        "schema_version=1, challenge_id, verdict, blocking_findings, and "
-        "observations between <!-- ezpowers:gate:start --> and "
-        "<!-- ezpowers:gate:end -->."
+        "claims as proof. Do not leave new files or edits in the project "
+        "worktree (logs, screenshots, scratch output); any workspace change "
+        "invalidates your receipt at certification."
+    )
+    receipt = (
+        "Your terminal message must contain exactly one gate marker: the "
+        "line <!-- ezpowers:gate:start -->, then one ```json fenced code "
+        "block, then the line <!-- ezpowers:gate:end -->. The fenced JSON "
+        "object must contain exactly the keys schema_version (always 1), "
+        "challenge_id, verdict (PASS, FAIL, or BLOCKED), blocking_findings, "
+        "and observations - no extra keys. Both arrays hold non-empty "
+        "strings and observations must contain at least one entry. A PASS "
+        "receipt must have an empty blocking_findings array; a FAIL or "
+        "BLOCKED receipt must name at least one blocking finding. Edit the "
+        "template below into your real result; an unedited copy stays "
+        "FAIL:\n"
+        "<!-- ezpowers:gate:start -->\n"
+        "```json\n"
+        "{\n"
+        '  "schema_version": 1,\n'
+        f'  "challenge_id": "{challenge_id}",\n'
+        '  "verdict": "FAIL",\n'
+        '  "blocking_findings": ["<the exact blocking defect>"],\n'
+        '  "observations": ["<one concrete observation>"]\n'
+        "}\n"
+        "```\n"
+        "<!-- ezpowers:gate:end -->"
     )
     rubrics = {
         "oracle-audit": (
@@ -5198,7 +5222,10 @@ def _chain_gate_rubric(pending: dict[str, Any]) -> str:
             "prevents progress after safe in-scope alternatives are exhausted."
         ),
     }
-    return f"{common}\n\n{rubrics[str(kind)]}\nChallenge: {pending.get('challenge_id')}"
+    return (
+        f"{common}\n\n{receipt}\n\n{rubrics[str(kind)]}\n"
+        f"Challenge: {challenge_id}"
+    )
 
 
 def _chain_bound_subagent_start(
@@ -5576,7 +5603,7 @@ def _chain_stop_response(
         return {}
     _chain_refresh_run_status(root, state)
     status = run.get("status")
-    if status == "RUNNING":
+    if status in {"RUNNING", "PENDING_LOOP"}:
         counters = run.get("counters", {})
         limits = run.get("limits", {})
         counters["iterations"] = int(counters.get("iterations", 0)) + 1
@@ -5616,53 +5643,62 @@ def _chain_hook_command(args: argparse.Namespace) -> int:
         event = {}
     if not isinstance(event, dict):
         event = {}
-    root = _runtime_project_root()
-    with _runtime_lock(root):
-        state = _load_state(root)
-        event_name = event.get("hook_event_name")
-        response: dict[str, Any] = {}
-        if event_name == "SessionStart":
-            try:
-                chain, chain_sha256 = _load_chain_value(root)
-            except EZPowersError:
-                chain = {}
-                chain_sha256 = ""
-            if (
-                args.host in chain.get("hosts", [])
-                and _chain_host_hook_present(root, args.host)
-                and isinstance(event.get("session_id"), str)
-                and bool(event["session_id"])
-            ):
-                state["chain_hosts"][args.host] = {
-                    "session_id": event["session_id"],
-                    "hook_identity": _chain_hook_identity(
-                        root,
-                        args.host,
-                        chain_sha256,
-                    ),
-                    "permission_mode": event.get("permission_mode"),
-                    "source": event.get("source"),
-                    "handshake_at": _utc_now(),
-                }
-                _save_state(root, state)
-        elif event_name == "PreToolUse":
-            response = _chain_pretool_response(root, state, event)
-        elif event_name == "SubagentStart":
-            response = _chain_bound_subagent_start(
-                root,
-                state,
-                event,
-                args.host,
-            )
-        elif event_name == "SubagentStop":
-            response = _chain_bound_subagent_stop(
-                root,
-                state,
-                event,
-                args.host,
-            )
-        elif event_name == "Stop":
-            response = _chain_stop_response(root, state, args.host)
+    response: dict[str, Any] = {}
+    try:
+        root = _runtime_project_root()
+        with _runtime_lock(root):
+            state = _load_state(root)
+            event_name = event.get("hook_event_name")
+            if event_name == "SessionStart":
+                try:
+                    chain, chain_sha256 = _load_chain_value(root)
+                except EZPowersError:
+                    chain = {}
+                    chain_sha256 = ""
+                if (
+                    args.host in chain.get("hosts", [])
+                    and _chain_host_hook_present(root, args.host)
+                    and isinstance(event.get("session_id"), str)
+                    and bool(event["session_id"])
+                ):
+                    state["chain_hosts"][args.host] = {
+                        "session_id": event["session_id"],
+                        "hook_identity": _chain_hook_identity(
+                            root,
+                            args.host,
+                            chain_sha256,
+                        ),
+                        "permission_mode": event.get("permission_mode"),
+                        "source": event.get("source"),
+                        "handshake_at": _utc_now(),
+                    }
+                    _save_state(root, state)
+            elif event_name == "PreToolUse":
+                response = _chain_pretool_response(root, state, event)
+            elif event_name == "SubagentStart":
+                response = _chain_bound_subagent_start(
+                    root,
+                    state,
+                    event,
+                    args.host,
+                )
+            elif event_name == "SubagentStop":
+                response = _chain_bound_subagent_stop(
+                    root,
+                    state,
+                    event,
+                    args.host,
+                )
+            elif event_name == "Stop":
+                response = _chain_stop_response(root, state, args.host)
+    except EZPowersError as exc:
+        # A chain hook must never exit 2: on Stop that blocks stopping
+        # forever, and on PreToolUse it denies every matched tool call.
+        # Degrade to an allow/no-op response so a broken loop dies instead
+        # of wedging the session; authoritative contract checks still gate
+        # verify, gates, and certification.
+        response = {}
+        print(f"EZPowers chain hook fail-safe no-op: {exc}", file=sys.stderr)
     print(json.dumps(response, ensure_ascii=False))
     return 0
 

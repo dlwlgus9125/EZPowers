@@ -5,7 +5,7 @@
   "runtime": {
     "source": "scripts/ezpowers.py",
     "target": ".ezpowers/ezpowers.py",
-    "sha256": "fb620f0f50275dee801e2b7578c67051ae13bdde37d08b48d8081de38491cfc9"
+    "sha256": "81c799b46673574945d39768566907fc50dd4cb56dc83bab82c78fd56e236695"
   },
   "tools": [
     {
@@ -191,7 +191,7 @@
         {
           "source": "skills/harness-chain/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "298d2495117a2159f95689c8e8f72ccb4f808e2f1cbc292a9147700f28548c72"
+          "sha256": "8e3315a4481a7fc816b0f76d3f6d21bad96dd40cb76b85f2696e81247fdcbf94"
         },
         {
           "source": "skills/harness-chain/agents/project-openai.yaml",
@@ -245,7 +245,7 @@
     {
       "source": "docs/reference/harness-chain-contract.md",
       "target": ".ezpowers/contracts/harness-chain-contract.md",
-      "sha256": "27b658e72ed51a671945214280b206964cf2783ade44e646f78c2b6b07b0a2c5"
+      "sha256": "64327414528aa94245ab98686fbbc2be522709c5a8f351d020d69e516da62f23"
     },
     {
       "source": "docs/reference/engineering-practices-contract.md",

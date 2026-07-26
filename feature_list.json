@@ -195,7 +195,7 @@
         "When exact red cannot be produced, diagnose reports real attempts and requests the specific missing access, capture, or instrumentation without hypotheses or a speculative product patch",
         "After the gate, falsifiable hypotheses remain evidence probes and FIX-COMPLETE still owns the regression red/green signal, source-cause patch, original-symptom rerun, affected checks, and cleanup",
         "Deterministic tests validate the contract and fixture receipts, while an opt-in dual-host probe verifies baseline-red-before-patch and no-edit blocker behavior with real Claude and Codex calls",
-        "The v5.3.3 plugin metadata, canonical guidance, and v5.3.0 project-kit hashes expose the same gate without changing skill counts or completion authority"
+        "The v5.3.4 plugin metadata, canonical guidance, and v5.3.0 project-kit hashes expose the same gate without changing skill counts or completion authority"
       ],
       "evidence": [
         "skills/diagnose/SKILL.md",
