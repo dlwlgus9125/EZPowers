@@ -5,12 +5,12 @@
 - [PRD](product/PRD.md): canonical product intent and responsibility boundary.
 - [Roadmap](product/ROADMAP.md): current release and deliberately deferred work.
 - [Visual skill guide](ezpowers-skills-guide.html): Korean workflow atlas with
-  host-aware invocation examples, decision paths, and all thirteen plugin
+  host-aware invocation examples, decision paths, and all fourteen plugin
   skill roles.
 
 ## Live Reference
 
-- [Architecture](reference/architecture.md): v5.3 repository and installed-kit map.
+- [Architecture](reference/architecture.md): v5.4 repository and installed-kit map.
 - [Host Plugin Discovery](reference/codex-plugin-discovery.md): Claude Code and Codex discovery, invocation, hook, worktree, and sandbox differences.
 - [Setup Contract](reference/setup-contract.md): self-contained install, refresh, clean-break legacy boundary, conflicts, and optional hooks.
 - [Documentation Contract](reference/documentation-contract.md): repository analysis, adaptive Markdown graph, ownership, preview/apply, and lint.
@@ -31,6 +31,7 @@
 - [Managed documentation and local wiki ADR](decisions/0002-managed-documentation-and-local-wiki.md)
 - [Explicit asymmetric harness chain ADR](decisions/0003-explicit-asymmetric-harness-chain.md)
 - [Specialized engineering skills ADR](decisions/0004-specialized-engineering-skills.md)
+- [Context-efficient evidence explanations ADR](decisions/0005-context-efficient-evidence-explanations.md)
 - [2026-07-24 workflow harness audit](reports/workflow-harness-audit-2026-07-24.md)
 
 ## Generated Project Artifacts

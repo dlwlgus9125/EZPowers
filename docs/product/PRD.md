@@ -23,7 +23,10 @@ confirmed request, write confirmed intent as traceable acceptance criteria,
 map those criteria to real project checks, implement with either supported
 host, and receive the same pass/fail completion verdict from repository
 evidence. A new session can navigate project authority and determine what is
-fresh without trusting conversation memory.
+fresh without trusting conversation memory. User-facing explanations and
+result reports follow the user's active conversational language and ground
+their narrative in evidence actually inspected without changing fixed
+artifacts or machine verdicts.
 
 For product-code work, the user can also request evidence-first diagnosis and
 fix completion, focused module/interface design, or an explicit broad
@@ -61,7 +64,8 @@ EZPowers owns:
   challenges and hashed receipts, hard limits, and terminal states;
 - a pinned, installed engineering-practices contract and deterministic,
   standard-library architecture-report renderer;
-- thin host adapters and optional frontend readiness detection.
+- thin host adapters and optional frontend readiness detection;
+- compact cross-host presentation guidance for evidence-grounded explanations.
 
 Claude Code and Codex own code changes, shell UX, model choice, spawning
 subagents, worktrees, sandboxing, and implementation decisions. Ordinary
@@ -76,6 +80,9 @@ EZPowers does not require an external shared repository or executor.
 - Host-specific hooks are configured only with Claude Code 2.1.217 or newer
   and Codex CLI 0.145.0 or newer.
 - Both hosts receive byte-identical local workflow instructions.
+- Both hosts apply the same compact explanation contract: infer language from
+  the latest substantive user message, omit unsupported narrative stages, and
+  preserve fixed schemas and exact completion states.
 - `deep-interview` always performs an internal, context-specific blind-spot
   pass but asks only about plausible consequential candidates, then a
   confirmed request resumes an already active Plan Mode without invoking

@@ -27,6 +27,7 @@ PLUGIN_SKILLS = frozenset(
         "deep-interview",
         "design-architecture",
         "diagnose",
+        "explain-with-evidence",
         "spec",
         "prepare-execute",
         "execute",
@@ -74,7 +75,7 @@ REMOVED_COMPONENTS = frozenset(
     }
 )
 
-CODEX_VERSION_RE = re.compile(r"^5\.3\.4\+codex\.[0-9]{14}$")
+CODEX_VERSION_RE = re.compile(r"^5\.4\.0\+codex\.[0-9]{14}$")
 SKILL_REFERENCE_RE = re.compile(r"\$ezpowers:([a-z0-9-]+)")
 HOST_MIN_VERSIONS = {
     "claude": (2, 1, 217),
@@ -400,7 +401,7 @@ def _validate_claude_manifest(repo_root: Path, errors: list[str]) -> None:
         return
 
     _check(manifest.get("name") == "ezpowers", "Claude plugin name must be ezpowers", errors)
-    _check(manifest.get("version") == "5.3.4", "Claude plugin version must be 5.3.4", errors)
+    _check(manifest.get("version") == "5.4.0", "Claude plugin version must be 5.4.0", errors)
     _check(bool(manifest.get("description")), "Claude plugin description is required", errors)
     _check(isinstance(manifest.get("author"), dict), "Claude plugin author must be an object", errors)
     for forbidden in ("agents", "commands", "hooks"):
@@ -432,7 +433,7 @@ def _validate_codex_manifest(repo_root: Path, errors: list[str]) -> None:
     version = manifest.get("version")
     _check(
         isinstance(version, str) and CODEX_VERSION_RE.fullmatch(version) is not None,
-        "Codex version must be 5.3.4 with exactly one timestamped +codex suffix",
+        "Codex version must be 5.4.0 with exactly one timestamped +codex suffix",
         errors,
     )
     _check(manifest.get("skills") == "./skills/", "Codex skills root must be ./skills/", errors)
@@ -484,7 +485,7 @@ def _validate_codex_manifest(repo_root: Path, errors: list[str]) -> None:
         described = set(re.findall(r"ezpowers:([a-z0-9-]+)", str(long_description)))
         _check(
             described == PLUGIN_SKILLS,
-            "Codex longDescription must enumerate exactly the retained thirteen skills",
+            "Codex longDescription must enumerate exactly the retained fourteen skills",
             errors,
         )
 
@@ -880,6 +881,50 @@ def _probe_codex(repo_root: Path) -> tuple[str, str]:
         ignore_cleanup_errors=True,
     ) as temp_name:
         temp_root = Path(temp_name)
+
+        standalone_root = temp_root / "standalone-project"
+        standalone_root.mkdir()
+        initialized = _run_command(["git", "init", "-q"], cwd=standalone_root)
+        if initialized.returncode != 0:
+            return "fail", (
+                "cannot initialize standalone deep-interview fixture: "
+                f"{initialized.stderr.strip()}"
+            )
+        standalone_skill = (
+            standalone_root / ".agents" / "skills" / "deep-interview"
+        )
+        (standalone_skill / "agents").mkdir(parents=True)
+        deep_interview_source = repo_root / "skills" / "deep-interview"
+        shutil.copy2(
+            deep_interview_source / "SKILL.md",
+            standalone_skill / "SKILL.md",
+        )
+        shutil.copy2(
+            deep_interview_source / "agents" / "project-openai.yaml",
+            standalone_skill / "agents" / "openai.yaml",
+        )
+        standalone_home = temp_root / "standalone-codex-home"
+        standalone_home.mkdir()
+        standalone_env = os.environ.copy()
+        standalone_env["CODEX_HOME"] = str(standalone_home)
+        standalone_data, error = _codex_skills_list(
+            executable,
+            cwd=standalone_root,
+            env=standalone_env,
+        )
+        if error:
+            return "fail", error
+        assert standalone_data is not None
+        error = _validate_codex_skills_result(
+            standalone_data,
+            expected_names={"deep-interview"},
+            owned_root=standalone_root / ".agents" / "skills",
+            metadata_root=repo_root / "skills",
+            namespaced=False,
+        )
+        if error:
+            return "fail", f"standalone deep-interview: {error}"
+
         project_root = temp_root / "project"
         project_root.mkdir()
         initialized = _run_command(["git", "init", "-q"], cwd=project_root)
@@ -995,8 +1040,8 @@ def _probe_codex(repo_root: Path) -> tuple[str, str]:
             return "fail", error
     return (
         "pass",
-        f"Codex {version} loaded all project and namespaced plugin skills "
-        "with matching default prompts in isolation",
+        f"Codex {version} loaded standalone deep-interview plus all project "
+        "and namespaced plugin skills with matching default prompts in isolation",
     )
 
 

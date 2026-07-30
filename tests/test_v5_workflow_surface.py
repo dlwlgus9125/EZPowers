@@ -13,6 +13,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             "setup",
             "deep-interview",
             "diagnose",
+            "explain-with-evidence",
             "design-architecture",
             "spec",
             "prepare-execute",
@@ -77,6 +78,18 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             "Plan Mode is no longer active",
         ):
             self.assertIn(phrase, normalized_skill)
+        self.assertIn(
+            "Do not assume that any companion skill, workflow, runtime, "
+            "contract, or project artifact exists",
+            normalized_skill,
+        )
+        for plugin_specific_handoff in (
+            "`design-architecture`",
+            "`spec`",
+            "`prepare-execute`",
+            "`execute`",
+        ):
+            self.assertNotIn(plugin_specific_handoff, skill)
         self.assertLessEqual(
             len(skill.split()),
             1000,
@@ -115,7 +128,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             self.assertNotIn("stress-test", metadata)
 
         manifest = json.loads(
-            (REPO_ROOT / "project-kit" / "v5.3.0" / "manifest.json").read_text(
+            (REPO_ROOT / "project-kit" / "v5.4.0" / "manifest.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -126,13 +139,20 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             {entry["path"] for entry in deep_interview["files"]},
             {"SKILL.md", "agents/openai.yaml"},
         )
+        self.assertEqual(
+            {entry["source"] for entry in deep_interview["files"]},
+            {
+                "skills/deep-interview/SKILL.md",
+                "skills/deep-interview/agents/project-openai.yaml",
+            },
+        )
 
     def test_removed_execution_and_reviewer_layers_are_absent(self) -> None:
         self.assertFalse((REPO_ROOT / "agents").exists())
         self.assertFalse((REPO_ROOT / "harness-kit").exists())
         self.assertFalse((REPO_ROOT / "phases").exists())
         self.assertFalse((REPO_ROOT / ".harness").exists())
-        self.assertTrue((REPO_ROOT / "project-kit" / "v5.3.0" / "manifest.json").is_file())
+        self.assertTrue((REPO_ROOT / "project-kit" / "v5.4.0" / "manifest.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "config.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "state.json").is_file())
 
@@ -167,7 +187,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.3.0"
+                / "v5.4.0"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -178,7 +198,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertIn("sole continuation loop", contract)
         self.assertIn("NEEDS_REAPPROVAL", contract)
         self.assertIn("bound independent", contract)
-        self.assertEqual(12, len(manifest["skills"]))
+        self.assertEqual(13, len(manifest["skills"]))
         self.assertEqual(10, len(manifest["contracts"]))
         self.assertEqual(2, len(manifest["tools"]))
         self.assertIn(
@@ -335,7 +355,85 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             chain,
         )
 
-    def test_korean_skill_guide_covers_the_v53_catalog(self) -> None:
+    def test_explain_with_evidence_is_compact_grounded_and_non_authoritative(
+        self,
+    ) -> None:
+        skill_root = REPO_ROOT / "skills" / "explain-with-evidence"
+        skill = (skill_root / "SKILL.md").read_text(encoding="utf-8")
+        normalized = " ".join(skill.split())
+
+        language = skill.index("## Match the user's language")
+        shape = skill.index("## Choose the smallest useful shape")
+        grounding = skill.index("## Ground every stage")
+        boundaries = skill.index("## Preserve fixed contracts")
+        self.assertEqual(
+            [language, shape, grounding, boundaries],
+            sorted((language, shape, grounding, boundaries)),
+        )
+        for phrase in (
+            "latest substantive natural-language user message",
+            "explicit language instruction overrides inference",
+            "too short or genuinely mixed",
+            "Ignore code, commands, paths, identifiers",
+            "Result report",
+            "Deep explanation",
+            "actually considered or observed",
+            "Never invent a measurement",
+            "Do not reshape code, commands, specs, plans, JSON",
+            "Never soften or narratively reinterpret exact states",
+            "adds no tools, workflow transition, write authority",
+        ):
+            self.assertIn(phrase, normalized)
+        self.assertLessEqual(
+            len(skill.split()),
+            450,
+            "explanation guidance should stay cheaper than the upstream skill "
+            "and mandatory sample context",
+        )
+        self.assertFalse((skill_root / "references").exists())
+        self.assertNotIn("read the sample", skill.lower())
+
+        plugin_metadata = (
+            skill_root / "agents" / "openai.yaml"
+        ).read_text(encoding="utf-8")
+        project_metadata = (
+            skill_root / "agents" / "project-openai.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("allow_implicit_invocation: true", plugin_metadata)
+        self.assertIn("$ezpowers:explain-with-evidence", plugin_metadata)
+        self.assertEqual(
+            plugin_metadata.replace(
+                "$ezpowers:explain-with-evidence",
+                "$explain-with-evidence",
+            ),
+            project_metadata,
+        )
+
+        license_text = (skill_root / "LICENSE").read_text(encoding="utf-8")
+        self.assertIn("08c368e4e0a63b3c4c40abbb3fab22913d1518f6", license_text)
+        self.assertIn("substantially modified", license_text)
+        self.assertIn("upstream examples are not distributed", license_text)
+        self.assertIn("Apache License", license_text)
+
+        manifest = json.loads(
+            (
+                REPO_ROOT
+                / "project-kit"
+                / "v5.4.0"
+                / "manifest.json"
+            ).read_text(encoding="utf-8")
+        )
+        entry = next(
+            item
+            for item in manifest["skills"]
+            if item["name"] == "explain-with-evidence"
+        )
+        self.assertEqual(
+            {"SKILL.md", "LICENSE", "agents/openai.yaml"},
+            {item["path"] for item in entry["files"]},
+        )
+
+    def test_korean_skill_guide_covers_the_v54_catalog(self) -> None:
         guide = (
             REPO_ROOT / "docs" / "ezpowers-skills-guide.html"
         ).read_text(encoding="utf-8")
@@ -347,25 +445,26 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         for name in expected:
             self.assertIn(f'id="skill-{name}"', guide)
             self.assertIn(f"../skills/{name}/SKILL.md", guide)
-        self.assertEqual(13, guide.count('class="skill-card"'))
-        self.assertIn("13 plugin skills", guide)
-        self.assertIn("12 project skills", guide)
-        self.assertIn("../project-kit/v5.3.0/manifest.json", guide)
+        self.assertEqual(14, guide.count('class="skill-card"'))
+        self.assertIn("14 plugin skills", guide)
+        self.assertIn("13 project skills", guide)
+        self.assertIn("../project-kit/v5.4.0/manifest.json", guide)
         self.assertNotIn("v5.2.0/manifest.json", guide)
 
     def test_plugin_manifests_expose_the_same_version_and_current_workflow(self) -> None:
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.3.4")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.3.4")
-        self.assertTrue(codex["version"].startswith("5.3.4+codex."))
+        self.assertEqual(claude["version"], "5.4.0")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.4.0")
+        self.assertTrue(codex["version"].startswith("5.4.0+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)
         self.assertIn("wiki", combined)
         self.assertIn("harness-chain", combined)
         self.assertIn("diagnose", combined)
+        self.assertIn("explain-with-evidence", combined)
         self.assertIn("codebase-design", combined)
         self.assertIn("improve-codebase-architecture", combined)
         self.assertNotIn("choice-execute", combined)

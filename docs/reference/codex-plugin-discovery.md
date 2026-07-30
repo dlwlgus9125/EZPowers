@@ -12,11 +12,12 @@ other.
 
 ## Retained Plugin Surface
 
-The plugin root exposes exactly these thirteen skills:
+The plugin root exposes exactly these fourteen skills:
 
 ```text
 setup
 deep-interview
+explain-with-evidence
 diagnose
 codebase-design
 improve-codebase-architecture
@@ -47,10 +48,18 @@ worktrees, sandboxing, review, and retries remain host-native capabilities.
 The explicitly invoked workflow skills are `setup`,
 `improve-codebase-architecture`, `design-architecture`, `spec`,
 `prepare-execute`, `execute`, `harness-chain`, and `hud`. The skills
-`deep-interview`, `diagnose`, `codebase-design`, `frontend-design`, and `wiki`
-may be matched implicitly from their descriptions. Both hosts must
+`deep-interview`, `explain-with-evidence`, `diagnose`, `codebase-design`,
+`frontend-design`, and `wiki` may be matched implicitly from their
+descriptions. Both hosts must
 encode the same intent using their own policy field; one host's field is not
 evidence that the other host enforces it.
+
+`explain-with-evidence` changes presentation only. It matches the user's active
+conversational language, uses a compact result or deep-explanation shape, and
+omits alternatives, reversals, measurements, or chronology that were not
+actually observed. Fixed-schema artifacts and exact states such as `BLOCKED`
+or `CERTIFIED` remain byte- and meaning-preserving inputs rather than narrative
+material.
 
 An explicit `/ezpowers:diagnose` or `$ezpowers:diagnose` invocation selects the
 fix-complete path unless the user says analysis-only or no edits. The
@@ -76,7 +85,7 @@ creates no project artifact, and authorizes no implementation.
 
 ## Project Installation
 
-`setup` copies twelve project workflow skills to the canonical
+`setup` copies thirteen project workflow skills to the canonical
 `.ezpowers/kit/skills/` tree and byte-identical host trees under
 `.claude/skills/` and `.agents/skills/`. `hud` is not copied because it manages
 global Codex UI rather than project completion.
@@ -87,7 +96,7 @@ their native skill locations. A missing host copy, byte drift from the
 canonical kit, or missing Codex skill metadata is an installation failure.
 
 Codex plugin and project skill names are not interchangeable. Each retained
-skill's plugin metadata invokes `$ezpowers:<name>`. The twelve project-installed
+skill's plugin metadata invokes `$ezpowers:<name>`. The thirteen project-installed
 skills carry a distribution-only metadata variant that invokes `$<name>`; the
 manifest copies that variant to the installed metadata filename expected by
 Codex. `hud` has no project variant.
@@ -191,8 +200,8 @@ metadata variants, invocation policy, and absence of removed components. When
 the CLIs are available it uses Claude's non-installing plugin validator,
 installs the project kit into a temporary Git worktree, installs the plugin
 from a compact temporary local marketplace under an isolated `CODEX_HOME`, and
-queries actual Codex `skills/list`. It requires all twelve local skills and all
-thirteen namespaced plugin skills to be enabled, error-free, and paired with the
+queries actual Codex `skills/list`. It requires all thirteen local skills and
+all fourteen namespaced plugin skills to be enabled, error-free, and paired with the
 expected prompt. The implicit prompt-input probe remains a second discovery
 check. The smoke never installs, reinstalls, or edits global plugin state.
 

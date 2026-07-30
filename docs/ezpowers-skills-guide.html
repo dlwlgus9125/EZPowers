@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="EZPowers v5.3.4 플러그인의 13개 스킬을 언제, 어떤 순서로, Claude Code와 Codex에서 어떻게 사용하는지 설명하는 한국어 가이드">
+  <meta name="description" content="EZPowers v5.4.0 플러그인의 14개 스킬을 언제, 어떤 순서로, Claude Code와 Codex에서 어떻게 사용하는지 설명하는 한국어 가이드">
   <meta name="color-scheme" content="light dark">
   <title>EZPowers Skill Atlas — 스킬 사용 가이드</title>
   <script>
@@ -2698,13 +2698,13 @@
         <span class="brand-mark" aria-hidden="true">EZ</span>
         <span class="brand-copy">
           <strong>Skill Atlas</strong>
-          <span>EZPowers v5.3</span>
+          <span>EZPowers v5.4</span>
         </span>
       </a>
 
       <div class="rail-meta" aria-label="가이드 범위">
-        <span class="tiny-chip">13 plugin skills</span>
-        <span class="tiny-chip">12 project skills</span>
+        <span class="tiny-chip">14 plugin skills</span>
+        <span class="tiny-chip">13 project skills</span>
       </div>
 
       <p class="toc-label">Contents</p>
@@ -2726,7 +2726,7 @@
           실제 동작 기준:
           <a href="../AGENTS.md">AGENTS.md</a>,
           <a href="reference/codex-plugin-discovery.md">호스트 호출 계약</a>,
-          <a href="../project-kit/v5.3.0/manifest.json">v5.3 매니페스트</a>
+          <a href="../project-kit/v5.4.0/manifest.json">v5.4 매니페스트</a>
         </p>
       </div>
     </aside>
@@ -2735,7 +2735,7 @@
       <div class="mobile-bar">
         <a class="mobile-brand" href="#overview">
           <span class="brand-mark" aria-hidden="true">EZ</span>
-          <span>Skill Atlas · v5.3</span>
+          <span>Skill Atlas · v5.4</span>
         </a>
         <div class="control-group">
           <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
@@ -2752,7 +2752,7 @@
 
       <section class="section hero" id="overview" aria-labelledby="hero-title">
         <div class="hero-topline">
-          <span class="hero-edition">Verified workflow · plugin v5.3.4</span>
+          <span class="hero-edition">Verified workflow · plugin v5.4.0</span>
           <div class="control-group">
             <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
               <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true">
@@ -2849,7 +2849,7 @@
             <div class="host-note">
               <span>
                 <strong>hud</strong>는 전역 Codex 상태 표시줄을 관리하는 플러그인 전용 스킬이라
-                프로젝트 키트에 설치되지 않습니다. 나머지 12개 스킬은 setup 후 프로젝트 로컬 호출이 가능합니다.
+                프로젝트 키트에 설치되지 않습니다. 나머지 13개 스킬은 setup 후 프로젝트 로컬 호출이 가능합니다.
               </span>
             </div>
           </div>
@@ -2857,11 +2857,11 @@
 
         <div class="boundary-strip">
           <article class="boundary-mini">
-            <strong>플러그인: 13개</strong>
+            <strong>플러그인: 14개</strong>
             <p>네임스페이스를 붙여 호출합니다. setup 전에도 배포본의 스킬을 사용할 수 있습니다.</p>
           </article>
           <article class="boundary-mini">
-            <strong>프로젝트 키트: 12개</strong>
+            <strong>프로젝트 키트: 13개</strong>
             <p>저장소 안에 자체 포함되며 원본 플러그인 체크아웃 없이도 두 호스트에서 동작합니다.</p>
           </article>
           <article class="boundary-mini">
@@ -2991,6 +2991,11 @@
             <p>exact-red와 최소화를 먼저 증명한 뒤에만 가설을 쓰며, 재현할 수 없으면 추측 수정 없이 필요한 증거를 요청합니다.</p>
           </article>
           <article class="orbit-card">
+            <span class="orbit-label">Evidence communication</span>
+            <h3>explain-with-evidence</h3>
+            <p>사용자의 대화 언어를 따르고, 실제로 관찰한 선택지·수치·검증만으로 결과와 설명을 구성합니다.</p>
+          </article>
+          <article class="orbit-card">
             <span class="orbit-label">Focused design</span>
             <h3>codebase-design</h3>
             <p>지정된 모듈에서 최소 두 인터페이스와 실제 seam을 비교하며, 저장소 전체를 스캔하지 않습니다.</p>
@@ -3039,48 +3044,52 @@
             <span class="choice-icon" aria-hidden="true">02</span>
             <span class="choice-copy"><strong>아이디어는 있지만 원하는 결과가 아직 흐릿하다</strong><code>deep-interview</code></span>
           </a>
-          <a class="choice-card" href="#skill-diagnose">
+          <a class="choice-card" href="#skill-explain-with-evidence">
             <span class="choice-icon" aria-hidden="true">03</span>
+            <span class="choice-copy"><strong>결과나 기술 판단을 대화 언어와 실제 근거로 설명하고 싶다</strong><code>explain-with-evidence</code></span>
+          </a>
+          <a class="choice-card" href="#skill-diagnose">
+            <span class="choice-icon" aria-hidden="true">04</span>
             <span class="choice-copy"><strong>오류·실패·느려짐을 재현하고 실제 원인을 고쳐 검증까지 끝내고 싶다</strong><code>diagnose</code></span>
           </a>
           <a class="choice-card" href="#skill-codebase-design">
-            <span class="choice-icon" aria-hidden="true">04</span>
+            <span class="choice-icon" aria-hidden="true">05</span>
             <span class="choice-copy"><strong>특정 모듈의 인터페이스와 테스트 seam을 설계하고 싶다</strong><code>codebase-design</code></span>
           </a>
           <a class="choice-card" href="#skill-improve-codebase-architecture">
-            <span class="choice-icon" aria-hidden="true">05</span>
+            <span class="choice-icon" aria-hidden="true">06</span>
             <span class="choice-copy"><strong>기존 제품 코드의 구조 개선 후보를 넓게 찾고 싶다</strong><code>improve-codebase-architecture</code></span>
           </a>
           <a class="choice-card" href="#skill-frontend-design">
-            <span class="choice-icon" aria-hidden="true">06</span>
+            <span class="choice-icon" aria-hidden="true">07</span>
             <span class="choice-copy"><strong>화면 구조·시각 방향·상태·접근성을 정해야 한다</strong><code>frontend-design</code></span>
           </a>
           <a class="choice-card" href="#skill-design-architecture">
-            <span class="choice-icon" aria-hidden="true">07</span>
+            <span class="choice-icon" aria-hidden="true">08</span>
             <span class="choice-copy"><strong>모듈 경계·데이터 흐름·배포·검증 방식이 미정이다</strong><code>design-architecture</code></span>
           </a>
           <a class="choice-card" href="#skill-spec">
-            <span class="choice-icon" aria-hidden="true">08</span>
+            <span class="choice-icon" aria-hidden="true">09</span>
             <span class="choice-copy"><strong>합의된 요구를 기계 검증 가능한 수락 기준으로 남기고 싶다</strong><code>spec</code></span>
           </a>
           <a class="choice-card" href="#skill-prepare-execute">
-            <span class="choice-icon" aria-hidden="true">09</span>
+            <span class="choice-icon" aria-hidden="true">10</span>
             <span class="choice-copy"><strong>유효한 스펙을 작업 순서와 정확한 검사로 바꾸고 싶다</strong><code>prepare-execute</code></span>
           </a>
           <a class="choice-card" href="#skill-execute">
-            <span class="choice-icon" aria-hidden="true">10</span>
+            <span class="choice-icon" aria-hidden="true">11</span>
             <span class="choice-copy"><strong>검증된 계획을 실제로 구현하고 인증까지 받고 싶다</strong><code>execute</code></span>
           </a>
           <a class="choice-card" href="#skill-wiki">
-            <span class="choice-icon" aria-hidden="true">11</span>
+            <span class="choice-icon" aria-hidden="true">12</span>
             <span class="choice-copy"><strong>이 저장소의 로컬 결정·관례·디버깅 메모를 찾고 싶다</strong><code>wiki</code></span>
           </a>
           <a class="choice-card" href="#skill-harness-chain">
-            <span class="choice-icon" aria-hidden="true">12</span>
+            <span class="choice-icon" aria-hidden="true">13</span>
             <span class="choice-copy"><strong>승인한 기능을 제한·검토가 있는 무인 루프로 돌리고 싶다</strong><code>harness-chain</code></span>
           </a>
           <a class="choice-card" href="#skill-hud">
-            <span class="choice-icon" aria-hidden="true">13</span>
+            <span class="choice-icon" aria-hidden="true">14</span>
             <span class="choice-copy"><strong>Codex 하단에 모델·사용량 상태 표시를 켜고 싶다</strong><code>hud</code></span>
           </a>
         </div>
@@ -3090,7 +3099,7 @@
         <div class="section-head">
           <div>
             <p class="section-kicker">04 · Skill catalog</p>
-            <h2 id="skills-title">13개 스킬의 역할과<br>넘지 않는 경계</h2>
+            <h2 id="skills-title">14개 스킬의 역할과<br>넘지 않는 경계</h2>
           </div>
           <p class="section-summary">
             “언제”, “결과”, “하지 않는 일”을 함께 보세요. 이름이 비슷해도
@@ -3109,15 +3118,15 @@
               <input class="skill-search" type="search" placeholder="예: UI, 모호한 요청, 인증, 로컬 지식…" autocomplete="off" data-skill-search>
               <button class="clear-search" type="button" data-clear-search aria-label="검색어 지우기">×</button>
             </label>
-            <span class="result-count" aria-live="polite" data-result-count>13개 표시</span>
+            <span class="result-count" aria-live="polite" data-result-count>14개 표시</span>
             <button class="expand-button" type="button" data-expand-all aria-pressed="false">설명 모두 펼치기</button>
           </div>
           <div class="filter-row" role="group" aria-label="스킬 범주 필터">
-            <button class="filter-button" type="button" data-filter="all" aria-pressed="true">전체 13</button>
+            <button class="filter-button" type="button" data-filter="all" aria-pressed="true">전체 14</button>
             <button class="filter-button" type="button" data-filter="foundation" aria-pressed="false">설치 1</button>
             <button class="filter-button" type="button" data-filter="design" aria-pressed="false">명확화·설계 5</button>
             <button class="filter-button" type="button" data-filter="delivery" aria-pressed="false">명세·실행 3</button>
-            <button class="filter-button" type="button" data-filter="support" aria-pressed="false">진단·지식 2</button>
+            <button class="filter-button" type="button" data-filter="support" aria-pressed="false">진단·지식 3</button>
             <button class="filter-button" type="button" data-filter="special" aria-pressed="false">특수 경로 2</button>
           </div>
         </div>
@@ -3213,11 +3222,55 @@
             </details>
           </article>
 
-          <article class="skill-card" id="skill-diagnose" data-category="support" data-search="diagnose diagnosing bugs 진단 디버그 오류 실패 failing flaky slow performance regression root cause 재현 최소화">
+          <article class="skill-card" id="skill-explain-with-evidence" data-category="support" data-search="explain with evidence 설명 결과 보고 언어 매칭 근거 실측 수치 불확실성 completion report rationale">
             <div class="skill-main">
               <div class="skill-top">
                 <div class="skill-identity">
                   <span class="skill-number">03</span>
+                  <span class="skill-title"><h3>explain-with-evidence</h3><span>대화 언어와 관찰 근거로 설명</span></span>
+                </div>
+                <a class="skill-link" href="../skills/explain-with-evidence/SKILL.md" aria-label="explain-with-evidence 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge auto">설명 기반 매칭 가능</span>
+                <span class="badge">presentation only</span>
+              </div>
+              <p class="skill-purpose">
+                사용자의 최근 자연어 요청에서 응답 언어를 정하고, 일반 결과는
+                짧게, 요청된 심층 설명은 실제 선택지·관찰 순서·실측 근거로 구성합니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>작업 결과, 기술 판단, 개념, 수치, 근거를 한 줄보다 자세히 설명할 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd>현재 대화 언어의 간결한 결과 보고 또는 근거 기반 심층 설명</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>없는 기각안·반전·수치 생성, spec·JSON·영수증 재구성, 완료 판정 완화</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Plugin invocation</span><span class="scope-note">설명할 대상과 함께</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="explain-with-evidence" data-scope="plugin">$ezpowers:explain-with-evidence</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>언어·형식·근거 선택</summary>
+              <div class="detail-body">
+                <ul>
+                  <li>최신의 충분한 자연어 요청을 우선하고, 짧거나 혼합되면 최근 대화의 주 언어를 사용합니다.</li>
+                  <li>코드·경로·식별자·인용문은 언어 추론에서 제외하고 필요한 원문을 유지합니다.</li>
+                  <li>일반 완료 보고는 결과 → 필요한 이유 → 변경 → 실측 검증 → 남은 범위의 최소 형태를 씁니다.</li>
+                  <li>기각안·반박·순위 뒤집기·발견 순서는 실제로 있었고 설명에 도움이 될 때만 포함합니다.</li>
+                  <li><code>PASS</code>, <code>BLOCKED</code>, <code>CERTIFIED</code> 같은 상태와 고정 형식은 그대로 보존합니다.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="skill-card" id="skill-diagnose" data-category="support" data-search="diagnose diagnosing bugs 진단 디버그 오류 실패 failing flaky slow performance regression root cause 재현 최소화">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">04</span>
                   <span class="skill-title"><h3>diagnose</h3><span>재현부터 검증된 수정까지</span></span>
                 </div>
                 <a class="skill-link" href="../skills/diagnose/SKILL.md" aria-label="diagnose 원문 열기">↗</a>
@@ -3264,7 +3317,7 @@
             <div class="skill-main">
               <div class="skill-top">
                 <div class="skill-identity">
-                  <span class="skill-number">04</span>
+                  <span class="skill-number">05</span>
                   <span class="skill-title"><h3>codebase-design</h3><span>작은 인터페이스, 깊은 모듈</span></span>
                 </div>
                 <a class="skill-link" href="../skills/codebase-design/SKILL.md" aria-label="codebase-design 원문 열기">↗</a>
@@ -3307,7 +3360,7 @@
             <div class="skill-main">
               <div class="skill-top">
                 <div class="skill-identity">
-                  <span class="skill-number">05</span>
+                  <span class="skill-number">06</span>
                   <span class="skill-title"><h3>improve-codebase-architecture</h3><span>제품 코드 개선 후보 지도</span></span>
                 </div>
                 <a class="skill-link" href="../skills/improve-codebase-architecture/SKILL.md" aria-label="improve-codebase-architecture 원문 열기">↗</a>
@@ -3350,7 +3403,7 @@
             <div class="skill-main">
               <div class="skill-top">
                 <div class="skill-identity">
-                  <span class="skill-number">06</span>
+                  <span class="skill-number">07</span>
                   <span class="skill-title"><h3>frontend-design</h3><span>UI 결정을 구현 전에</span></span>
                 </div>
                 <a class="skill-link" href="../skills/frontend-design/SKILL.md" aria-label="frontend-design 원문 열기">↗</a>
@@ -3393,7 +3446,7 @@
             <div class="skill-main">
               <div class="skill-top">
                 <div class="skill-identity">
-                  <span class="skill-number">07</span>
+                  <span class="skill-number">08</span>
                   <span class="skill-title"><h3>design-architecture</h3><span>기술 경계와 검증 설계</span></span>
                 </div>
                 <a class="skill-link" href="../skills/design-architecture/SKILL.md" aria-label="design-architecture 원문 열기">↗</a>
@@ -3436,7 +3489,7 @@
             <div class="skill-main">
               <div class="skill-top">
                 <div class="skill-identity">
-                  <span class="skill-number">08</span>
+                  <span class="skill-number">09</span>
                   <span class="skill-title"><h3>spec</h3><span>합의된 결정을 수락 계약으로</span></span>
                 </div>
                 <a class="skill-link" href="../skills/spec/SKILL.md" aria-label="spec 원문 열기">↗</a>
@@ -3479,7 +3532,7 @@
             <div class="skill-main">
               <div class="skill-top">
                 <div class="skill-identity">
-                  <span class="skill-number">09</span>
+                  <span class="skill-number">10</span>
                   <span class="skill-title"><h3>prepare-execute</h3><span>기준을 작업과 검사로 매핑</span></span>
                 </div>
                 <a class="skill-link" href="../skills/prepare-execute/SKILL.md" aria-label="prepare-execute 원문 열기">↗</a>
@@ -3522,7 +3575,7 @@
             <div class="skill-main">
               <div class="skill-top">
                 <div class="skill-identity">
-                  <span class="skill-number">10</span>
+                  <span class="skill-number">11</span>
                   <span class="skill-title"><h3>execute</h3><span>구현 · 전체 검증 · 인증</span></span>
                 </div>
                 <a class="skill-link" href="../skills/execute/SKILL.md" aria-label="execute 원문 열기">↗</a>
@@ -3565,7 +3618,7 @@
             <div class="skill-main">
               <div class="skill-top">
                 <div class="skill-identity">
-                  <span class="skill-number">11</span>
+                  <span class="skill-number">12</span>
                   <span class="skill-title"><h3>wiki</h3><span>워크트리 로컬 보조 기억</span></span>
                 </div>
                 <a class="skill-link" href="../skills/wiki/SKILL.md" aria-label="wiki 원문 열기">↗</a>
@@ -3608,7 +3661,7 @@
             <div class="skill-main">
               <div class="skill-top">
                 <div class="skill-identity">
-                  <span class="skill-number">12</span>
+                  <span class="skill-number">13</span>
                   <span class="skill-title"><h3>harness-chain</h3><span>명시 승인된 제한형 무인 경로</span></span>
                 </div>
                 <a class="skill-link" href="../skills/harness-chain/SKILL.md" aria-label="harness-chain 원문 열기">↗</a>
@@ -3651,7 +3704,7 @@
             <div class="skill-main">
               <div class="skill-top">
                 <div class="skill-identity">
-                  <span class="skill-number">13</span>
+                  <span class="skill-number">14</span>
                   <span class="skill-title"><h3>hud</h3><span>전역 Codex 상태 표시줄</span></span>
                 </div>
                 <a class="skill-link" href="../skills/hud/SKILL.md" aria-label="hud 원문 열기">↗</a>
@@ -3979,7 +4032,7 @@
         <div>
           <strong>EZPowers Skill Atlas</strong>
           <p>
-            v5.3.0 프로젝트 키트와 v5.3.4 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
+            v5.4.0 프로젝트 키트와 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
             동작이 바뀌면 <code>skills/*/SKILL.md</code>, 호출 계약, 프로젝트 매니페스트와 함께 이 문서를 갱신하세요.
           </p>
         </div>

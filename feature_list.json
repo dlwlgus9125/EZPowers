@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-07-26T04:59:49Z",
+  "updated_at": "2026-07-27T01:37:33Z",
   "features": [
     {
       "id": "F11",
@@ -20,7 +20,7 @@
         "tests/test_v5_workflow_surface.py",
         "scripts/runtime_smoke.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.3.0/manifest.json"
+        "project-kit/v5.4.0/manifest.json"
       ]
     },
     {
@@ -33,14 +33,14 @@
         "A ready graph registers deterministic documentation lint as a required project check",
         "The installed wiki skill supports local Markdown add, read, list, CJK query, lint, refresh, promotion, and backup-first prune operations",
         "Claude and Codex SessionEnd capture is separately opt-in, allowlisted, best effort, and excluded from completion freshness",
-        "The current v5.3 project kit and both plugin manifests preserve the same twelve-project-skill and thirteen-plugin-skill surface"
+        "The current v5.4 project kit and both plugin manifests preserve the same thirteen-project-skill and fourteen-plugin-skill surface"
       ],
       "evidence": [
         "docs/reference/documentation-contract.md",
         "docs/reference/wiki-contract.md",
         "tests/test_ezpowers_docs_wiki.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.3.0/manifest.json"
+        "project-kit/v5.4.0/manifest.json"
       ]
     },
     {
@@ -55,7 +55,7 @@
         "Validation, review, QA, identical-error, and continuation limits become terminal on the attempt that reaches the approved limit, including a configured limit of one",
         "A failed oracle audit consumes its exact preview, while failed verification, code review, or QA requires changed repository content and a new all-scope PASS before the chain can review again",
         "Certification requires fresh real command evidence, a bound independent code-review receipt, and adversarial QA when approved risks or project triggers require it",
-        "The v5.3 project kit exposes twelve project skills and ten contracts while the plugin exposes those skills plus the plugin-only hud utility"
+        "The v5.4 project kit exposes thirteen project skills and ten contracts while the plugin exposes those skills plus the plugin-only hud utility"
       ],
       "evidence": [
         "docs/reference/harness-chain-contract.md",
@@ -63,7 +63,7 @@
         "skills/harness-chain/SKILL.md",
         "tests/test_harness_chain.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.3.0/manifest.json"
+        "project-kit/v5.4.0/manifest.json"
       ]
     },
     {
@@ -87,7 +87,7 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_harness_chain.py",
         "tests/test_codex_hud.py",
-        "project-kit/v5.3.0/manifest.json"
+        "project-kit/v5.4.0/manifest.json"
       ]
     },
     {
@@ -99,7 +99,7 @@
         "When Plan Mode is already active, the final confirmation makes continuation explicit and resumes the same host-native planning process without another command or permission question",
         "The confirmed request remains the source of truth for clarified user intent, so planning carries its scope and success criteria forward without repeating settled product questions",
         "Corrections, early exits, stop requests, and confirmations outside Plan Mode preserve the ordinary non-continuing behavior",
-        "Plugin and project metadata, canonical guidance, the current v5.3.0 project-kit hashes, and the 5.3.1 dual-host plugin versions preserve the same transition contract"
+        "Plugin and project metadata, canonical guidance, current project-kit hashes, and dual-host plugin manifests preserve the same transition contract"
       ],
       "evidence": [
         "skills/deep-interview/SKILL.md",
@@ -107,7 +107,7 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.3.0/manifest.json"
+        "project-kit/v5.4.0/manifest.json"
       ]
     },
     {
@@ -120,7 +120,7 @@
         "Improve-codebase-architecture is explicit-only, scans existing product code, writes no repository files, and explores one user-selected candidate without implementing it",
         "The standard-library architecture report renderer validates strict v1 input, escapes untrusted content, has no remote or script dependency, writes atomically outside the repository without overwrite, and returns a hashed JSON receipt",
         "The pinned upstream commit and complete MIT notice are installed in one canonical engineering-practices contract, with no runtime upstream fetch",
-        "The v5.3.0 catalog exposes exactly thirteen plugin skills and installs twelve project skills, ten contracts, and two tools with dual-host metadata parity",
+        "F20 supersedes only the catalog counts: the v5.4.0 catalog exposes fourteen plugin skills and installs thirteen project skills, ten contracts, and two tools with dual-host metadata parity",
         "Existing v5.2 projects require explicit refresh, managed conflicts fail without partial replacement, and a changed kit identity stales prior completion evidence"
       ],
       "evidence": [
@@ -133,7 +133,7 @@
         "tests/test_architecture_review_report.py",
         "tests/test_v5_workflow_surface.py",
         "tests/test_ezpowers_runtime.py",
-        "project-kit/v5.3.0/manifest.json"
+        "project-kit/v5.4.0/manifest.json"
       ]
     },
     {
@@ -146,7 +146,7 @@
         "The minimized defect becomes a failing regression test at an honest seam; when no honest seam exists, an executable red/green harness preserves the signal and the authorized fix still continues",
         "Reproduction, root cause, a red test, a failed patch, or one targeted green check cannot terminate FIX-COMPLETE; after three failed patch experiments the loop and hypotheses are rebuilt before continuing",
         "Completion requires the source-cause patch, green regression signal, green original unminimized scenario, affected project checks, temporary-debug cleanup, and fresh managed verification when applicable",
-        "Plugin and project metadata advertise end-to-end fixing, the v5.3.1 plugin manifests remain host-consistent, and the v5.3.0 project kit installs the new skill bytes through explicit refresh",
+        "Plugin and project metadata advertise end-to-end fixing, current plugin manifests remain host-consistent, and the current project kit installs the skill bytes through explicit refresh",
         "An isolated forward-test reproduces a real failing fixture, changes product code, preserves regression coverage, and finishes with all fixture checks green"
       ],
       "evidence": [
@@ -156,7 +156,7 @@
         "docs/reference/engineering-practices-contract.md",
         "tests/test_v5_workflow_surface.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.3.0/manifest.json",
+        "project-kit/v5.4.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -170,7 +170,7 @@
         "Blind-spot candidates come from context-specific reasoning lenses and become questions only when grounded enough to be plausible and consequential enough to change the request",
         "Evidence-backed framing challenges can recommend an alternative or tradeoff, while settled requests receive no ritual blind-spot question and the final clarified request stays concise",
         "The session-only, one-question, no-artifact, no-workflow, and active Plan Mode continuation boundaries remain intact",
-        "Plugin and project metadata, canonical guidance, v5.3.0 project-kit hashes, and v5.3.2 dual-host plugin versions expose the same behavior",
+        "Plugin and project metadata, canonical guidance, current project-kit hashes, and dual-host plugin manifests expose the same behavior",
         "Contract tests enforce the two-pass and prompt-size boundaries, live advisory validation requires a consequential blind-spot question, and independent forward tests cover irreversible, general-purpose, and already-settled requests"
       ],
       "evidence": [
@@ -180,7 +180,7 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.3.0/manifest.json",
+        "project-kit/v5.4.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -195,7 +195,7 @@
         "When exact red cannot be produced, diagnose reports real attempts and requests the specific missing access, capture, or instrumentation without hypotheses or a speculative product patch",
         "After the gate, falsifiable hypotheses remain evidence probes and FIX-COMPLETE still owns the regression red/green signal, source-cause patch, original-symptom rerun, affected checks, and cleanup",
         "Deterministic tests validate the contract and fixture receipts, while an opt-in dual-host probe verifies baseline-red-before-patch and no-edit blocker behavior with real Claude and Codex calls",
-        "The v5.3.4 plugin metadata, canonical guidance, and v5.3.0 project-kit hashes expose the same gate without changing skill counts or completion authority"
+        "The v5.4.0 plugin metadata, canonical guidance, and project-kit hashes expose the same gate; the diagnosis change itself adds no skill or completion authority"
       ],
       "evidence": [
         "skills/diagnose/SKILL.md",
@@ -205,7 +205,35 @@
         "tests/test_v5_workflow_surface.py",
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.3.0/manifest.json",
+        "project-kit/v5.4.0/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
+      ]
+    },
+    {
+      "id": "F20",
+      "title": "Context-efficient evidence explanations",
+      "status": "complete",
+      "success_criteria": [
+        "Explanations infer language from the latest substantive natural-language user message, honor explicit language instructions, fall back to recent context for short or mixed messages, and ignore code, paths, identifiers, names, and quotations during inference",
+        "Ordinary result reports use the smallest useful outcome/reason/change/evidence/limits shape, while the deeper context/alternatives/discovery/decisive-finding/evidence/uncertainty shape is used only when the user requests depth",
+        "Alternatives, objections, reversals, chronology, measurements, and PASS/FAIL claims appear only when actually considered or observed, with observation separated from inference and unverified possibility",
+        "Fixed-schema specs, plans, JSON, tool output, receipts, certificates, and exact states remain unchanged, and the presentation skill adds no tools, workflow transition, write authority, retry policy, or completion authority",
+        "The SKILL.md body stays at or below 450 words with no mandatory reference or sample load; a pinned Apache-2.0 license and modification notice are installed byte-identically beside all project skill copies",
+        "Claude and Codex expose the same implicit skill contract with namespaced and project-local prompt metadata in the fourteen-plugin-skill and thirteen-project-skill v5.4.0 catalog",
+        "Deterministic tests validate rule order, prompt size, provenance, installed license parity, manifest inventory, Korean guide coverage, and isolated host discovery"
+      ],
+      "evidence": [
+        "skills/explain-with-evidence/SKILL.md",
+        "skills/explain-with-evidence/LICENSE",
+        "skills/explain-with-evidence/agents/openai.yaml",
+        "skills/explain-with-evidence/agents/project-openai.yaml",
+        "docs/decisions/0005-context-efficient-evidence-explanations.md",
+        "tests/test_v5_workflow_surface.py",
+        "tests/test_ezpowers_runtime.py",
+        "tests/test_codex_plugin_discovery.py",
+        "scripts/plugin_smoke.py",
+        "project-kit/v5.4.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]

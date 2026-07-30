@@ -2,15 +2,17 @@
 
 ## Current State
 
-EZPowers v5.3.0 project kit and the v5.3.2 plugin patch remain complete in the
-working tree on `main`. A v5.3.4 plugin candidate is in progress. It preserves
-the host-native verification core, documentation graph, local wiki, explicit
-harness chain, and Plan Mode-aware clarification while tightening diagnosis
-around an exact-reproduction gate and hardening the harness-chain loop half
-(a reviewer rubric whose embedded template matches the receipt parser exactly
-and stays FAIL when copied unedited, chain hooks that degrade to a fail-safe
-no-op instead of exit 2 on unreadable runtime state, and `PENDING_LOOP`
-activation blocks counted against `total_iterations`):
+EZPowers v5.4.0 project kit and plugin candidate are present in the working tree
+on `main`. F20 is complete; F19 remains the release blocker because its live
+dual-host diagnosis probe still needs external host access. The candidate
+preserves the host-native verification core, documentation graph, local wiki,
+explicit harness chain, and Plan Mode-aware clarification while adding a
+context-efficient evidence explanation skill, tightening diagnosis around an
+exact-reproduction gate, and retaining the harness-chain loop hardening (a
+reviewer rubric whose embedded template matches the receipt parser exactly and
+stays FAIL when copied unedited, chain hooks that degrade to a fail-safe no-op
+instead of exit 2 on unreadable runtime state, and `PENDING_LOOP` activation
+blocks counted against `total_iterations`):
 
 - repository analysis and an adaptive Markdown graph rooted at canonical
   `AGENTS.md`, exact `CLAUDE.md` import, and `docs/INDEX.md`;
@@ -29,6 +31,10 @@ activation blocks counted against `total_iterations`):
   internal blind-spot pass, exposes only plausible consequential candidates,
   challenges framing when material, avoids ritual questions, and resumes an
   already active Plan Mode without artifacts or implementation authority;
+- an implicit 374-word `explain-with-evidence` presentation skill that follows
+  the latest substantive user language, uses only observed narrative stages,
+  keeps fixed artifacts and exact verdicts unchanged, and ships its pinned
+  Apache-2.0 notice outside model context;
 - fix-complete `diagnose`, which forbids hypotheses and product edits until a
   command has shown the user's exact symptom red and the scenario has been
   minimised; if that gate cannot open it requests the missing evidence without
@@ -38,7 +44,7 @@ activation blocks counted against `total_iterations`):
 - focused deep-module `codebase-design`, and an explicit
   `improve-codebase-architecture` product-code scan whose temporary offline
   report never becomes repository documentation or completion evidence;
-- an exact thirteen-skill plugin and twelve-skill project catalog with distinct
+- an exact fourteen-skill plugin and thirteen-skill project catalog with distinct
   namespaced and project-local Codex prompt metadata;
 - clean retirement of pre-v5 workflow input plus Claude 2.1.217 and Codex
   0.145.0 minimums before host-specific writes.
@@ -72,6 +78,7 @@ force product rework until a configured limit becomes terminal.
 - `F16`: bounded specialized engineering skills.
 - `F17`: fix-complete `diagnose` loop.
 - `F18`: decision-ready `deep-interview` blind-spot pass.
+- `F20`: context-efficient evidence explanations.
 
 ## In-Progress Item
 
@@ -81,11 +88,33 @@ force product rework until a configured limit becomes terminal.
   the isolated fixture can execute its authoritative Python command inside the
   configured workspace sandbox.
 
-The v5.3 project kit installs twelve project skills, ten canonical contracts,
+The v5.4 project kit installs thirteen project skills, ten canonical contracts,
 and two deterministic tools. The plugin exposes those skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+v5.4.0 context-efficient evidence explanation verification on 2026-07-27:
+
+- `python -m unittest discover -s tests`: 153 tests passed in 696.690
+  seconds.
+- `python -m unittest tests.test_v5_workflow_surface
+  tests.test_codex_plugin_discovery tests.test_repo_check`: 27 focused tests
+  passed in 7.243 seconds.
+- `quick_validate.py skills/explain-with-evidence`: skill structure valid.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
+  PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
+  PASS for real install -> validate -> verify -> certify -> stale.
+- `python scripts/verify-harness-kit.py`: v5.4 project kit manifest valid with
+  thirteen project skills, ten contracts, and two tools.
+- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
+  Claude 2.1.220 accepted the manifests, and Codex 0.145.0 loaded all project
+  and namespaced skills with matching prompts in isolation.
+- The language-selection and evidence rules are covered by deterministic
+  contract tests and actual host discovery. No live model-response probe was
+  used, so this evidence does not claim semantic output conformance from a
+  hosted model.
 
 v5.3.4 candidate harness-chain loop hardening verification on 2026-07-26:
 

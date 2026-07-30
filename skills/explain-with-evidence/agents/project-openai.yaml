@@ -1,0 +1,6 @@
+interface:
+  display_name: "Explain with Evidence"
+  short_description: "Match language and ground explanations in evidence"
+  default_prompt: "Use $explain-with-evidence to explain this in my conversational language with observed evidence and honest limits."
+policy:
+  allow_implicit_invocation: true

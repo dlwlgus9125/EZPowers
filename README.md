@@ -3,7 +3,7 @@
 > Claude Code와 Codex가 같은 저장소 증거로 작업의 **완료 여부**를
 > 판단하도록 만드는 프로젝트 로컬 워크플로 플러그인입니다.
 
-**Plugin v5.3.4 · Project kit v5.3.0 · Python 3.10+ · MIT**
+**Plugin v5.4.0 · Project kit v5.4.0 · Python 3.10+ · MIT**
 
 [빠른 시작](#빠른-시작) · [워크플로](#기본-워크플로) ·
 [스킬 목록](#스킬-목록) · [업데이트](#업데이트) ·
@@ -20,6 +20,7 @@ EZPowers는 저장소 안에 문서, 명세, 계획, 실제 검증 명령, 해�
 | --- | --- |
 | 세션이 바뀌면 프로젝트 맥락이 사라짐 | 저장소 근거로 관리되는 문서 그래프와 로컬 wiki |
 | “테스트가 통과했다”는 설명만 남음 | exact-argv 명령의 실제 stdout/stderr, 종료 코드와 SHA-256 증거 |
+| 결과 설명이 장황하거나 근거 없는 서사로 흐름 | 대화 언어를 따르고 관찰된 근거만 쓰는 `explain-with-evidence` |
 | 요구사항과 구현 계획의 연결이 끊김 | acceptance criterion → task → check 추적 |
 | Claude Code와 Codex의 완료 기준이 달라짐 | 동일한 프로젝트 키트와 host-independent PASS/FAIL 판정 |
 | 자동 실행이 검증이나 리뷰를 건너뜀 | 명시적 승인과 한도가 있는 `harness-chain` |
@@ -96,8 +97,8 @@ preview/apply/lint 순서로 진행되며, 관리되지 않은 기존 문서는 
 
 | 계층 | 역할 | 포함 범위 |
 | --- | --- | --- |
-| EZPowers 플러그인 | 어느 저장소에서든 namespaced 스킬 제공 | 13개 스킬, 플러그인 메타데이터 |
-| 프로젝트 로컬 키트 | 저장소가 독립적으로 검증·재개 가능하게 함 | 12개 스킬, 10개 계약, 런타임, 2개 도구 |
+| EZPowers 플러그인 | 어느 저장소에서든 namespaced 스킬 제공 | 14개 스킬, 플러그인 메타데이터 |
+| 프로젝트 로컬 키트 | 저장소가 독립적으로 검증·재개 가능하게 함 | 13개 스킬, 10개 계약, 런타임, 2개 도구 |
 
 프로젝트 키트가 설치되면 핵심 파일은 다음 위치에 생깁니다.
 
@@ -165,6 +166,7 @@ harness-chain configure
 | --- | --- | --- |
 | `setup` | 설치, 복구, refresh, 문서 bootstrap | 프로젝트 키트를 설치하고 실제 검증 명령을 등록 |
 | `deep-interview` | 요청이 모호하거나 숨은 전제까지 점검해야 할 때 | 중요한 사각지대만 한 질문씩 확인해 세션 안에서 요청을 확정; 파일이나 구현 권한은 만들지 않음 |
+| `explain-with-evidence` | 작업 결과·기술 판단·개념을 사용자에게 설명할 때 | 현재 대화 언어와 실측 근거를 따르며 고정 형식과 완료 판정은 바꾸지 않음 |
 | `diagnose` | 버그, 실패한 테스트·빌드, flaky·성능 문제 | exact-red → 최소화 뒤에만 가설을 쓰고 source-cause fix와 원증상 검증까지 완료 |
 | `codebase-design` | 한 모듈의 interface·seam·테스트 구조를 설계할 때 | 집중 설계 조언; 전체 코드베이스 스캔이나 구현은 하지 않음 |
 | `improve-codebase-architecture` | 기존 제품 코드의 구조 개선 후보를 넓게 찾을 때 | 임시 offline HTML 보고서와 한 후보 탐색; refactor를 직접 구현하지 않음 |
@@ -305,7 +307,7 @@ python scripts/plugin_smoke.py --host both --live-diagnose
 - [Harness chain 계약](docs/reference/harness-chain-contract.md)
 - [Engineering practices 계약](docs/reference/engineering-practices-contract.md)
 - [Claude Code와 Codex 플러그인 동작 차이](docs/reference/codex-plugin-discovery.md)
-- [13개 스킬 한국어 가이드](docs/ezpowers-skills-guide.html)
+- [14개 스킬 한국어 가이드](docs/ezpowers-skills-guide.html)
 
 호스트 자체의 플러그인 관리 방식은
 [Claude Code 플러그인 문서](https://code.claude.com/docs/en/discover-plugins)와
@@ -314,4 +316,7 @@ python scripts/plugin_smoke.py --host both --live-diagnose
 
 ## 라이선스
 
-[MIT License](LICENSE) © 2026 MannerLee
+[MIT License](LICENSE) © 2026 MannerLee.
+`explain-with-evidence`에는 별도로 표시된
+[Apache-2.0 원문·수정 고지](skills/explain-with-evidence/LICENSE)가
+동봉됩니다.

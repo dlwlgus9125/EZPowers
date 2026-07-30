@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "version": "5.3.0",
+  "version": "5.4.0",
   "no_synthesis": true,
   "runtime": {
     "source": "scripts/ezpowers.py",
     "target": ".ezpowers/ezpowers.py",
-    "sha256": "81c799b46673574945d39768566907fc50dd4cb56dc83bab82c78fd56e236695"
+    "sha256": "85ca29239f76b6f08517ea77aaac61fae002671dad347404e5d21bc7fbb1a380"
   },
   "tools": [
     {
@@ -41,12 +41,32 @@
         {
           "source": "skills/deep-interview/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "3e966e1af5f1abbd8b6e4bed8ecf2c36e6c1d4582a17ec35fb50d5d0f67c9183"
+          "sha256": "d30619eb5d61108ce838a6618e2fecc36c87a092f5add3758c85818dbb82e67c"
         },
         {
           "source": "skills/deep-interview/agents/project-openai.yaml",
           "path": "agents/openai.yaml",
           "sha256": "a1b7c84ba1e0b8935ea9105250d0c02c8d0eefc6ea353e41420a26d1bfd54bf7"
+        }
+      ]
+    },
+    {
+      "name": "explain-with-evidence",
+      "files": [
+        {
+          "source": "skills/explain-with-evidence/SKILL.md",
+          "path": "SKILL.md",
+          "sha256": "f64a8a4724f6179acf6e722183a73703727b0ddf9a4d2009065471d816b245cd"
+        },
+        {
+          "source": "skills/explain-with-evidence/LICENSE",
+          "path": "LICENSE",
+          "sha256": "3416746292652c79824def0bab0f814bfd7f55cfefa9a12cc993439fe4d24f9c"
+        },
+        {
+          "source": "skills/explain-with-evidence/agents/project-openai.yaml",
+          "path": "agents/openai.yaml",
+          "sha256": "edcdb0ca7429dbdbab1676595e615bacbe63de749a9630e23a463e9133857b48"
         }
       ]
     },
@@ -205,7 +225,7 @@
     {
       "source": "docs/reference/setup-contract.md",
       "target": ".ezpowers/contracts/setup-contract.md",
-      "sha256": "eb94a6f6c255fb5a235ce4dd4c82fbb32ebade7a5d047cac3a4595e59504fc1c"
+      "sha256": "1517558f9d96154b779bd6d0e5cf9d4fc16bdda7e19d1dfbe8519a8525b4e673"
     },
     {
       "source": "docs/reference/design-architecture-contract.md",

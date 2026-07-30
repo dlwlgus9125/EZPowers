@@ -12,10 +12,12 @@ turning the conversation into an exhaustive audit or specification.
 ## Keep it session-only
 
 Keep the interview and its result in the current conversation. Do not create or
-update `CONTEXT.md`, ADRs, briefs, specs, plans, or any other file. Do not invoke
-or hand off to another skill or workflow. Outside Plan Mode, stop after
-confirmation; a later explicit request may use the result. Resuming an already
-active Plan Mode is continuation of the same host mode, not a handoff.
+update `CONTEXT.md`, ADRs, briefs, specs, plans, or any other file. Do not assume
+that any companion skill, workflow, runtime, contract, or project artifact
+exists. Do not invoke or hand off to another skill or workflow. Outside Plan
+Mode, stop after confirmation; a later explicit request may use the result.
+Resuming an already active Plan Mode is continuation of the same host mode, not
+a handoff.
 
 ## Build a grounded provisional request
 
@@ -113,8 +115,8 @@ After explicit confirmation, continue only if the host remains in Plan Mode:
    decisions.
 3. Produce the native final plan if decision-complete; otherwise keep planning
    rather than ending with an interview-only summary.
-4. Do not invoke `design-architecture`, `spec`, `prepare-execute`, `execute`, or
-   any other workflow, create a project artifact, or start implementation.
+4. Stay within the host's current Plan Mode. Do not invoke or hand off to any
+   skill or workflow, create a project artifact, or start implementation.
 
 If the user corrects the request, revise it and obtain confirmation again. If
 the user ends the interview early, provide the best current clarified request

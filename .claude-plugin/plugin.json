@@ -1,8 +1,8 @@
 {
   "name": "ezpowers",
   "displayName": "EZPowers",
-  "description": "Repository documentation, specialized diagnosis and codebase design, specification, verified harness chains, evidence, and resume support for Claude Code and Codex.",
-  "version": "5.3.4",
+  "description": "Repository documentation, evidence-grounded explanations, specialized diagnosis and codebase design, specification, verified harness chains, and resume support for Claude Code and Codex.",
+  "version": "5.4.0",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
@@ -14,6 +14,7 @@
     "sdd",
     "spec-driven",
     "deep-interview",
+    "explain-with-evidence",
     "diagnose",
     "codebase-design",
     "improve-codebase-architecture",

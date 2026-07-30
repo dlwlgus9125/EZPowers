@@ -44,6 +44,10 @@ Roles are intentionally narrow:
   does not review artifacts, write files, or invoke another workflow. After
   explicit confirmation, an already active Plan Mode resumes host-native
   planning without granting implementation authority.
+- `explain-with-evidence`: implicit presentation guidance for user-facing
+  explanations and result reports. It matches the user's active conversational
+  language, omits unsupported narrative stages, and never reshapes fixed
+  artifacts or completion verdicts.
 - `diagnose`: exact-reproduction-gated, end-to-end bug fixing by default for
   explicit invocation or fix/debug requests. It forbids hypotheses and product
   edits until the user's symptom has run red and been minimised, then continues
@@ -104,7 +108,7 @@ plugin-only global Codex utility and is never installed into a project kit.
 - Local supporting knowledge: `.ezpowers/wiki/`
 - Resume/evidence pointer: `.ezpowers/state.json`
 - Runtime: `scripts/ezpowers.py`
-- Distribution manifest: `project-kit/v5.3.0/manifest.json`
+- Distribution manifest: `project-kit/v5.4.0/manifest.json`
 - Specs and plans: `docs/specs/`, `docs/plans/`
 - Canonical contracts: `docs/reference/*-contract.md`
 - Product state: `PROGRESS.md`, `feature_list.json`

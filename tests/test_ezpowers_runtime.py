@@ -220,10 +220,10 @@ class EZPowersInstallTests(unittest.TestCase):
             distribution.mkdir()
             project_root.mkdir()
 
-            manifest_path = REPO_ROOT / "project-kit" / "v5.3.0" / "manifest.json"
+            manifest_path = REPO_ROOT / "project-kit" / "v5.4.0" / "manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             sources = {
-                "project-kit/v5.3.0/manifest.json",
+                "project-kit/v5.4.0/manifest.json",
                 manifest["runtime"]["source"],
                 *(item["source"] for item in manifest.get("tools", [])),
                 *(item["source"] for item in manifest.get("contracts", [])),
@@ -246,6 +246,31 @@ class EZPowersInstallTests(unittest.TestCase):
                 cwd=distribution,
             )
             self.assertEqual(install.returncode, 0, install.stderr + install.stdout)
+            installed_licenses = [
+                project.root
+                / ".ezpowers"
+                / "kit"
+                / "skills"
+                / "explain-with-evidence"
+                / "LICENSE",
+                project.root
+                / ".claude"
+                / "skills"
+                / "explain-with-evidence"
+                / "LICENSE",
+                project.root
+                / ".agents"
+                / "skills"
+                / "explain-with-evidence"
+                / "LICENSE",
+            ]
+            self.assertTrue(all(path.is_file() for path in installed_licenses))
+            self.assertEqual(
+                1,
+                len({path.read_bytes() for path in installed_licenses}),
+                "the Apache-2.0 adaptation notice must remain byte-identical "
+                "across canonical and host skill copies",
+            )
 
             shutil.rmtree(distribution)
             status = run_cli(project.runtime, "status", "--json", cwd=project.root)
@@ -317,7 +342,7 @@ class EZPowersInstallTests(unittest.TestCase):
             refreshed = project.install("--refresh")
             self.assertEqual(refreshed.returncode, 0, refreshed.stderr + refreshed.stdout)
             repaired = json.loads(ledger_path.read_text(encoding="utf-8"))
-            self.assertEqual(repaired["version"], "5.3.0")
+            self.assertEqual(repaired["version"], "5.4.0")
 
     def test_opt_in_hooks_use_native_nested_shape_and_work_from_a_subdirectory(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

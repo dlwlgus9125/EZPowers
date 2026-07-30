@@ -1,6 +1,6 @@
 # EZPowers Roadmap
 
-## Current: v5.3.0 core / v5.3.4 plugin
+## Current: v5.4.0 core / plugin
 
 - Preserve the v5.1 documentation graph and local wiki.
 - Add an explicit project-question workflow for chain stages, QA triggers,
@@ -26,8 +26,6 @@
   a speculative patch.
 - Render broad architecture reviews through a deterministic standard-library
   tool into a unique temporary offline HTML report.
-- Keep one exact catalog: thirteen plugin skills, twelve project skills, and separate
-  namespaced versus project-local Codex prompt metadata.
 - Enforce Claude Code 2.1.217 and Codex CLI 0.145.0 before host-specific
   project hook writes, and treat all pre-v5 workflow input as retired.
 - Resume an already active Plan Mode after a user confirms the
@@ -36,7 +34,14 @@
 - Make `deep-interview` distinguish stated ambiguity from plausible
   consequential blind spots, challenge framing only when material, and avoid
   ritual questions for requests that are already settled.
-- Upgrade existing v5.2 installations only through explicit `setup --refresh`;
+- Add a compact implicit `explain-with-evidence` presentation skill that
+  follows the user's active conversational language, uses only observed
+  alternatives and measurements, and leaves fixed artifacts and exact verdicts
+  unchanged.
+- Keep one exact catalog: fourteen plugin skills, thirteen project skills, and
+  separate namespaced versus project-local Codex prompt metadata.
+- Upgrade existing pre-v5.4 installations only through explicit
+  `setup --refresh`;
   preserve customized managed files and fail atomically on conflicts.
 
 ## Later, only with demonstrated demand

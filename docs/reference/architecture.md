@@ -33,7 +33,7 @@ the selected host still performs every implementation action.
 
 ## Distribution And Installation
 
-The plugin repository contains the thirteen retained skills and the Claude and
+The plugin repository contains the fourteen retained skills and the Claude and
 Codex manifests. `setup` installs the project kit into the target repository:
 
 ```text
@@ -55,8 +55,9 @@ or repairing a project must not require this checkout, another repository, or
 a hidden user-local script. The target project root is also the Git worktree
 root because Git state is part of every completion fingerprint.
 
-Twelve skills are installed in a project, including `diagnose`,
-`codebase-design`, `improve-codebase-architecture`, `wiki`, and
+Thirteen skills are installed in a project, including
+`explain-with-evidence`, `diagnose`, `codebase-design`,
+`improve-codebase-architecture`, `wiki`, and
 `harness-chain`.
 `hud` is
 intentionally excluded from the project kit. It is a plugin-only, global Codex
@@ -94,6 +95,14 @@ active Plan Mode, explicit confirmation returns the clarified intent to that
 same host mode so planning can finish without a second command. It does not
 invoke `design-architecture`, `spec`, or an execution workflow, and it grants
 no implementation authority.
+
+`explain-with-evidence` is an implicit presentation discipline around
+user-facing explanations and result reports. It infers language from the
+latest substantive natural-language request, falls back to recent conversation
+when needed, and uses only alternatives, reversals, measurements, and
+verification actually observed. It does not reshape specs, plans, JSON,
+receipts, certificates, or exact completion states, and it adds no task or
+workflow authority.
 
 `diagnose` and `codebase-design` are implicit disciplines inside the current
 request. Explicit diagnose invocation or fix/debug intent selects an

@@ -64,7 +64,7 @@ The single page contains:
    plan, execute, verify, and certify.
 4. **Decision helper:** common user situations mapped to the first relevant
    skill.
-5. **Skill catalog:** all thirteen plugin skills with purpose, trigger, non-goal,
+5. **Skill catalog:** all fourteen plugin skills with purpose, trigger, non-goal,
    output, invocation, and key caution.
 6. **Recipes:** standard feature, ambiguous request, UI feature, diagnosis,
    architecture improvement, and explicit unattended chain.
@@ -175,14 +175,14 @@ The normative checks are:
 
 1. Open `docs/ezpowers-skills-guide.html` directly from disk with no network.
 2. Inspect at 1440×1000, 768×1024, and 390×844.
-3. Confirm the main workflow, thirteen skill cards, six recipes, and chain route
+3. Confirm the main workflow, fourteen skill cards, six recipes, and chain route
    are all readable with no page-level horizontal overflow.
 4. Switch Claude/Codex and verify every visible command uses the correct
    plugin namespace; switch theme and verify controls remain legible.
 5. Search for a known term and a no-result term; reset the query.
 6. Traverse all controls by keyboard and confirm focus visibility.
 7. Disable JavaScript and confirm the full guide remains readable.
-8. Run repository checks and a static content check that asserts the thirteen
+8. Run repository checks and a static content check that asserts the fourteen
    canonical skill names and both host invocation forms.
 
 The repository does not configure a screenshot-baseline or visual-diff lane,
@@ -199,11 +199,11 @@ Content freshness is bound to the canonical sources:
 - `skills/*/SKILL.md` for skill behavior;
 - `AGENTS.md` for the current route and responsibility boundary;
 - `docs/reference/codex-plugin-discovery.md` for host invocation;
-- `project-kit/v5.3.0/manifest.json` for plugin/project inventory.
+- `project-kit/v5.4.0/manifest.json` for plugin/project inventory.
 
 When those sources change, maintainers must review both this artifact and the
-HTML guide. The HTML distinguishes the v5.3.0 project kit from the v5.3.4
-plugin patch rather than claiming automatic synchronization.
+HTML guide. The HTML presents the v5.4.0 project kit and plugin catalog rather
+than claiming automatic synchronization.
 
 ## Unresolved questions
 
