@@ -37,14 +37,17 @@ three EZPowers-owned MIT adaptations in the core catalog:
    architecture documents.
 3. `improve-codebase-architecture`, explicit-only, scans existing product code,
    produces one to eight evidence-backed candidates, renders a temporary
-   offline HTML report, and explores one user-selected candidate without
-   implementing it.
+   offline HTML report, defers interface design until selection, and explores
+   one user-selected candidate without implementing it.
 
-Install a shared `engineering-practices-contract.md` and a standard-library
-`architecture-review-report.py`. The renderer accepts strict versioned JSON,
-escapes all input, uses inline CSS and SVG under a restrictive Content Security
-Policy, rejects repository-internal or existing outputs, writes atomically,
-and returns a hashed JSON receipt. Installation never fetches upstream.
+Install a shared `engineering-practices-contract.md`, a focused report contract
+beside the broad-scan skill, a cross-host renderer resolver, and a
+standard-library `architecture-review-report.py`. Schema v2 binds actual
+file-line evidence, compatibility, migration, ADR context, semantic graph
+styles, and the top recommendation rationale. The renderer escapes all input,
+uses inline CSS and SVG under a restrictive Content Security Policy, rejects
+repository-internal or existing outputs, writes atomically, and returns
+input/source/report hashes. Installation never fetches upstream.
 
 The plugin therefore exposes thirteen skills and the project kit installs
 twelve; `hud` remains plugin-only. Move the single live kit manifest to
@@ -64,8 +67,14 @@ when kit identity changes.
   unchanged.
 - Broad scans create temporary advisory data, not repository documentation,
   wiki knowledge, or completion evidence.
+- The scan preserves its initial Git status, avoids test/build cache writes,
+  deletes its temporary structured input, and does not design an interface
+  before the user selects a candidate.
 - The exact catalog, both metadata variants, project manifest hashes, renderer
   safety, installation copies, and host discovery require regression tests.
+  A representative isolated fixture supports actual host probes, with
+  authentication or sandbox failures recorded separately from semantic
+  behavior.
 - Upstream updates are deliberate source reviews rather than runtime sync.
 - Other Matt Pocock skills are not bundled; any future addition needs a
   separate bounded role and catalog decision.

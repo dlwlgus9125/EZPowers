@@ -16,7 +16,7 @@
     {
       "source": "scripts/architecture-review-report.py",
       "target": ".ezpowers/tools/architecture-review-report.py",
-      "sha256": "b121ac8111eafcbbe54f6265c849f23f5f1836074032ac9f6508e660ecd81ff6"
+      "sha256": "632c7a7a010ccaa36c467815fca5767518f387dd77a4246a9f00c9f74638bb8b"
     }
   ],
   "skills": [
@@ -106,12 +106,22 @@
         {
           "source": "skills/improve-codebase-architecture/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "897c15221c6160537555b85bca29fdcd2f51fa4fd5055d10a3acbe6e66fee9e5"
+          "sha256": "3c4ada8060c4913e245de95c7255c8e2de4c4d04a1e4cce74bcabf6d09f7f8dd"
         },
         {
           "source": "skills/improve-codebase-architecture/agents/project-openai.yaml",
           "path": "agents/openai.yaml",
-          "sha256": "bd4c1dd53782e26e21135cab70c13e117f6c8ff939d31883cb5901eebe5c2222"
+          "sha256": "69931322485cb2d268e8729e21f266ccfa5c05e192eb3fc0f7e6cbbb22ff97e0"
+        },
+        {
+          "source": "skills/improve-codebase-architecture/references/report-contract.md",
+          "path": "references/report-contract.md",
+          "sha256": "1c3f20eb48e79ede0c951d15c1f47f98585cc99f043926a1264a2e3e9cdc0596"
+        },
+        {
+          "source": "skills/improve-codebase-architecture/scripts/render-report.py",
+          "path": "scripts/render-report.py",
+          "sha256": "afd0c9d0238eb674b4072cb3156bea5185513f8990f628949397a0f6df28a2ba"
         }
       ]
     },
@@ -270,7 +280,7 @@
     {
       "source": "docs/reference/engineering-practices-contract.md",
       "target": ".ezpowers/contracts/engineering-practices-contract.md",
-      "sha256": "2c8e6de804b61f550b0a0a7f53d839f8daacc192eb941e7580d3c340a136ffba"
+      "sha256": "d6cd127335f8c7931c541a769c617a967ef398d9ebec817a6b5b08d62b43d68e"
     }
   ]
 }

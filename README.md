@@ -169,7 +169,7 @@ harness-chain configure
 | `explain-with-evidence` | 작업 결과·기술 판단·개념을 사용자에게 설명할 때 | 현재 대화 언어와 실측 근거를 따르며 고정 형식과 완료 판정은 바꾸지 않음 |
 | `diagnose` | 버그, 실패한 테스트·빌드, flaky·성능 문제 | exact-red → 최소화 뒤에만 가설을 쓰고 source-cause fix와 원증상 검증까지 완료 |
 | `codebase-design` | 한 모듈의 interface·seam·테스트 구조를 설계할 때 | 집중 설계 조언; 전체 코드베이스 스캔이나 구현은 하지 않음 |
-| `improve-codebase-architecture` | 기존 제품 코드의 구조 개선 후보를 넓게 찾을 때 | 임시 offline HTML 보고서와 한 후보 탐색; refactor를 직접 구현하지 않음 |
+| `improve-codebase-architecture` | 기존 제품 코드의 구조 개선 후보를 넓게 찾을 때 | 실제 file/line·결정 맥락에 결속된 offline 보고서 후, 선택한 한 후보만 설계하고 구현하지 않음 |
 | `design-architecture` | 영속적인 경계·data flow·deployment 결정이 필요할 때 | spec 전에 추적 가능한 architecture 결정을 기록 |
 | `spec` | 결정된 요구를 검증 가능한 기준으로 고정할 때 | traceable acceptance contract 생성 |
 | `prepare-execute` | spec을 구현 순서와 정확한 검사로 변환할 때 | 모든 criterion을 덮는 plan 생성; 구현은 하지 않음 |

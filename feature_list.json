@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-07-27T01:37:33Z",
+  "updated_at": "2026-07-30T05:16:52Z",
   "features": [
     {
       "id": "F11",
@@ -117,8 +117,9 @@
       "success_criteria": [
         "Diagnose is implicitly matchable, builds a reproducible evidence loop, preserves explicit analysis-only boundaries, and requires a red regression signal before an authorized source-cause fix",
         "Codebase-design is implicitly matchable and compares at least two focused deep-module interfaces without scanning the whole repository or owning durable architecture documents",
-        "Improve-codebase-architecture is explicit-only, scans existing product code, writes no repository files, and explores one user-selected candidate without implementing it",
-        "The standard-library architecture report renderer validates strict v1 input, escapes untrusted content, has no remote or script dependency, writes atomically outside the repository without overwrite, and returns a hashed JSON receipt",
+        "Improve-codebase-architecture is explicit-only, preserves a user-named scope, writes no repository files or scan artifacts, defers interface design until one candidate is selected, and never implements the refactor",
+        "The standard-library architecture report renderer validates strict v2 input with real file-line evidence, decision context, semantic graph styles, top-recommendation rationale, and input/source/report hashes; it escapes untrusted content, has no remote or script dependency, and writes atomically outside the repository without overwrite",
+        "A representative isolated fixture verifies the report and post-selection boundaries; actual Claude and Codex probes distinguish hosted-model conformance from external authentication or sandbox blockers",
         "The pinned upstream commit and complete MIT notice are installed in one canonical engineering-practices contract, with no runtime upstream fetch",
         "F20 supersedes only the catalog counts: the v5.4.0 catalog exposes fourteen plugin skills and installs thirteen project skills, ten contracts, and two tools with dual-host metadata parity",
         "Existing v5.2 projects require explicit refresh, managed conflicts fail without partial replacement, and a changed kit identity stales prior completion evidence"
@@ -129,8 +130,11 @@
         "skills/diagnose/SKILL.md",
         "skills/codebase-design/SKILL.md",
         "skills/improve-codebase-architecture/SKILL.md",
+        "skills/improve-codebase-architecture/references/report-contract.md",
+        "skills/improve-codebase-architecture/scripts/render-report.py",
         "scripts/architecture-review-report.py",
         "tests/test_architecture_review_report.py",
+        "scripts/plugin_smoke.py",
         "tests/test_v5_workflow_surface.py",
         "tests/test_ezpowers_runtime.py",
         "project-kit/v5.4.0/manifest.json"

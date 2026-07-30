@@ -116,10 +116,13 @@ an explicit analysis-only/no-edit request stops a reproducible path at
 evidence.
 `codebase-design` compares focused module interfaces and honest seams.
 `improve-codebase-architecture` is explicit-only. It scans existing product
-code and invokes the installed standard-library renderer to create an escaped,
-dependency-free HTML report in an OS temporary directory. It neither changes
-repository files nor replaces `design-architecture`, which remains the owner
-of durable architecture artifacts.
+code within a frozen scope and invokes the same standard-library renderer
+through a skill-local resolver in project and plugin installations. Report
+schema v2 binds real source lines, decision context, semantic before/after
+graphs, and input/source/report hashes in an escaped, dependency-free HTML
+report under the OS temporary directory. Interface design begins only after
+the user selects a candidate. The scan preserves Git status and neither
+replaces `design-architecture` nor owns durable architecture artifacts.
 
 `spec` records host-independent observable criteria. `prepare-execute` maps
 each criterion to exact project checks. `execute` does not create a second

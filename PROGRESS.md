@@ -42,8 +42,11 @@ blocks counted against `total_iterations`):
   original-symptom rerun, and affected checks unless analysis-only/no-edit
   behavior is explicit;
 - focused deep-module `codebase-design`, and an explicit
-  `improve-codebase-architecture` product-code scan whose temporary offline
-  report never becomes repository documentation or completion evidence;
+  `improve-codebase-architecture` product-code scan that freezes named scope,
+  binds candidates to real source lines and decision context, defers interface
+  design until selection, and emits input/source/report hashes in a temporary
+  schema-v2 offline report that never becomes repository documentation or
+  completion evidence;
 - an exact fourteen-skill plugin and thirteen-skill project catalog with distinct
   namespaced and project-local Codex prompt metadata;
 - clean retirement of pre-v5 workflow input plus Claude 2.1.217 and Codex
@@ -93,6 +96,41 @@ and two deterministic tools. The plugin exposes those skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+v5.4.0 architecture-scan boundary hardening verification on 2026-07-30:
+
+- `python -m unittest discover -s tests`: 158 tests passed in 723.289
+  seconds.
+- `python -m unittest tests.test_architecture_review_report
+  tests.test_v5_workflow_surface`: 19 focused tests passed in 7.166 seconds.
+- The self-contained dual-host install and distribution-removal tests passed
+  with the skill-local report contract and renderer resolver installed
+  byte-identically for both hosts.
+- An actual two-turn Codex 0.146.0 call on the isolated Order intake fixture
+  kept the named scope, ran no tests or builds, produced a schema-v2 receipt
+  with one candidate and input/source/report hashes, deleted its temporary
+  JSON, preserved a clean Git state, stopped for candidate selection before
+  interface design, then compared two materially different seams in the
+  selected candidate's `Refactor brief`.
+- The rendered report cited all six affected/context files, excluded the
+  out-of-scope health module, contained compatibility, migration, ADR, and top
+  rationale sections, had no remote/script dependency, and its observed file
+  hash matched the receipt.
+- Claude Code 2.1.220 accepted the plugin manifest, but
+  `claude auth status` reported `loggedIn: false` and `authMethod: none`; the
+  actual `claude -p` architecture call exited 1 before returning a model
+  response. This is recorded as an external authentication blocker, not a
+  semantic pass or product failure.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
+  PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
+  PASS for real install -> validate -> verify -> certify -> stale.
+- `python scripts/verify-harness-kit.py`: v5.4 project kit manifest valid with
+  thirteen project skills, ten contracts, and two tools.
+- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
+  Claude 2.1.220 accepted the manifests, and Codex 0.146.0 loaded all project
+  and namespaced skills with matching prompts and the required architecture
+  resources in isolation.
 
 v5.4.0 context-efficient evidence explanation verification on 2026-07-27:
 

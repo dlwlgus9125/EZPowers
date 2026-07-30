@@ -211,6 +211,50 @@ class EZPowersInstallTests(unittest.TestCase):
                     / "engineering-practices-contract.md"
                 ).is_file()
             )
+            architecture_skill_files = (
+                pathlib.Path("references/report-contract.md"),
+                pathlib.Path("scripts/render-report.py"),
+            )
+            for relative_path in architecture_skill_files:
+                canonical = (
+                    project.root
+                    / ".ezpowers"
+                    / "kit"
+                    / "skills"
+                    / "improve-codebase-architecture"
+                    / relative_path
+                )
+                claude = (
+                    project.root
+                    / ".claude"
+                    / "skills"
+                    / "improve-codebase-architecture"
+                    / relative_path
+                )
+                codex = (
+                    project.root
+                    / ".agents"
+                    / "skills"
+                    / "improve-codebase-architecture"
+                    / relative_path
+                )
+                self.assertTrue(canonical.is_file(), canonical)
+                self.assertEqual(canonical.read_bytes(), claude.read_bytes())
+                self.assertEqual(canonical.read_bytes(), codex.read_bytes())
+            installed_wrapper = (
+                project.root
+                / ".agents"
+                / "skills"
+                / "improve-codebase-architecture"
+                / "scripts"
+                / "render-report.py"
+            )
+            wrapper_help = run_cli(installed_wrapper, "--help", cwd=project.root)
+            self.assertEqual(
+                wrapper_help.returncode,
+                0,
+                wrapper_help.stderr + wrapper_help.stdout,
+            )
 
     def test_installed_runtime_survives_removal_of_the_plugin_distribution(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

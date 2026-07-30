@@ -3371,12 +3371,12 @@
               </div>
               <p class="skill-purpose">
                 기존 제품 코드에서 얕은 모듈·새는 경계·흩어진 복잡성을 찾아
-                1–8개 후보와 before/after 도식을 안전한 임시 HTML 보고서로 렌더링합니다.
+                실제 file/line 근거가 있는 1–8개 후보와 before/after 도식을 안전한 임시 HTML 보고서로 렌더링합니다.
               </p>
               <dl class="fact-list">
                 <div class="fact"><dt>언제</dt><dd>특정 하위 시스템이나 최근 hotspot의 구조 개선 후보를 넓게 비교할 때</dd></div>
-                <div class="fact"><dt>결과</dt><dd>OS 임시 경로의 오프라인 보고서, SHA-256 receipt, 선택 후보의 refactor brief</dd></div>
-                <div class="fact"><dt>안 함</dt><dd>워크플로 하네스 감사, 저장소 파일 작성, 후보 자동 구현, CDN·원격 자산 사용</dd></div>
+                <div class="fact"><dt>결과</dt><dd>결정 맥락과 input/source/report hash가 있는 오프라인 보고서, 선택 후보의 refactor brief</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>명시 범위 확대, 선택 전 interface 설계, 저장소 파일 작성, 후보 자동 구현, CDN·원격 자산 사용</dd></div>
               </dl>
               <div class="command-stack">
                 <div class="command-label"><span>Project invocation</span><span class="scope-note">범위를 명시</span></div>
@@ -3390,10 +3390,10 @@
               <summary>보고서 안전성과 다음 단계</summary>
               <div class="detail-body">
                 <ul>
-                  <li>기존 저장소 상대 경로와 line-specific evidence가 있는 후보만 포함합니다.</li>
+                  <li>실제로 존재하는 저장소 file/line과 affected product/test file이 결속된 후보만 포함합니다.</li>
                   <li>renderer는 입력을 escape하고 repository 내부·기존 출력 파일을 거부합니다.</li>
                   <li>보고서에는 script, 원격 요청, 이미지·폰트·분석 의존성이 없습니다.</li>
-                  <li>사용자가 후보 하나를 고른 뒤에만 codebase-design 방식으로 더 깊게 탐색합니다.</li>
+                  <li>사용자가 후보 하나를 고른 뒤에만 최소 두 interface/seam 대안을 비교합니다.</li>
                 </ul>
               </div>
             </details>

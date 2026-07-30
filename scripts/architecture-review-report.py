@@ -17,7 +17,7 @@ import uuid
 import webbrowser
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 MAX_INPUT_BYTES = 1024 * 1024
 MAX_CANDIDATES = 8
 MAX_LIST_ITEMS = 20
@@ -30,6 +30,11 @@ ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 LANGUAGE_RE = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
 STRENGTHS = {"strong", "worth_exploring", "speculative"}
 NODE_KINDS = {"caller", "module", "adapter", "dependency", "data", "external"}
+NODE_EMPHASES = {"normal", "shallow", "deep", "faded"}
+EDGE_KINDS = {"call", "dependency", "leak", "seam"}
+EVIDENCE_ROLES = {"product", "test", "context", "decision"}
+SCOPE_BASES = {"user_named", "git_hotspot", "widened"}
+ADR_STATUSES = {"none", "aligned", "conflicts", "revisit"}
 
 
 class ReportError(ValueError):
@@ -116,6 +121,23 @@ def _repo_path(
     return pure.as_posix()
 
 
+def _validate_source_line(
+    project_root: Path,
+    relative_path: str,
+    line: int,
+    label: str,
+) -> None:
+    source = project_root / Path(*PurePosixPath(relative_path).parts)
+    try:
+        line_count = len(source.read_text(encoding="utf-8-sig").splitlines())
+    except (OSError, UnicodeError) as exc:
+        raise ReportError(f"{label} must identify a readable UTF-8 text file") from exc
+    if line > line_count:
+        raise ReportError(
+            f"{label}.line exceeds the file length ({line_count} lines)"
+        )
+
+
 def _validate_timestamp(value: Any) -> str:
     result = _text(value, "generated_at", 64)
     try:
@@ -145,6 +167,7 @@ def _validate_graph(value: Any, label: str) -> dict[str, Any]:
         _require_keys(
             node,
             required={"id", "label", "layer", "kind"},
+            optional={"emphasis"},
             label=node_label,
         )
         node_id = _identifier(node["id"], f"{node_label}.id")
@@ -157,12 +180,20 @@ def _validate_graph(value: Any, label: str) -> dict[str, Any]:
         kind = _text(node["kind"], f"{node_label}.kind", 32)
         if kind not in NODE_KINDS:
             raise ReportError(f"{node_label}.kind is invalid")
+        emphasis = _text(
+            node.get("emphasis", "normal"),
+            f"{node_label}.emphasis",
+            32,
+        )
+        if emphasis not in NODE_EMPHASES:
+            raise ReportError(f"{node_label}.emphasis is invalid")
         nodes.append(
             {
                 "id": node_id,
                 "label": _text(node["label"], f"{node_label}.label", MAX_LABEL),
                 "layer": layer,
                 "kind": kind,
+                "emphasis": emphasis,
             }
         )
     edges: list[dict[str, str]] = []
@@ -172,17 +203,21 @@ def _validate_graph(value: Any, label: str) -> dict[str, Any]:
         _require_keys(
             edge,
             required={"from", "to"},
-            optional={"label"},
+            optional={"label", "kind"},
             label=edge_label,
         )
         source = _identifier(edge["from"], f"{edge_label}.from")
         target = _identifier(edge["to"], f"{edge_label}.to")
         if source not in node_ids or target not in node_ids:
             raise ReportError(f"{edge_label} has a dangling endpoint")
+        kind = _text(edge.get("kind", "call"), f"{edge_label}.kind", 32)
+        if kind not in EDGE_KINDS:
+            raise ReportError(f"{edge_label}.kind is invalid")
         edges.append(
             {
                 "from": source,
                 "to": target,
+                "kind": kind,
                 "label": (
                     _text(edge["label"], f"{edge_label}.label", MAX_LABEL)
                     if "label" in edge
@@ -201,18 +236,23 @@ def validate_report(value: Any, project_root: Path) -> dict[str, Any]:
             "schema_version",
             "repository",
             "scope",
+            "scope_basis",
+            "scope_rationale",
             "generated_at",
-            "top_recommendation_id",
+            "top_recommendation",
             "candidates",
         },
         optional={"language"},
         label="report",
     )
     if report["schema_version"] != SCHEMA_VERSION:
-        raise ReportError("schema_version must be 1")
+        raise ReportError(f"schema_version must be {SCHEMA_VERSION}")
     language = report.get("language", "en")
     if not isinstance(language, str) or LANGUAGE_RE.fullmatch(language) is None:
         raise ReportError("language must be a BCP-47-style language tag")
+    scope_basis = _text(report["scope_basis"], "scope_basis", 32)
+    if scope_basis not in SCOPE_BASES:
+        raise ReportError("scope_basis is invalid")
     repository = _require_object(report["repository"], "repository")
     _require_keys(
         repository,
@@ -248,6 +288,9 @@ def validate_report(value: Any, project_root: Path) -> dict[str, Any]:
                 "solution",
                 "benefits",
                 "test_effect",
+                "compatibility",
+                "migration",
+                "adr",
                 "before",
                 "after",
             },
@@ -269,31 +312,87 @@ def validate_report(value: Any, project_root: Path) -> dict[str, Any]:
             raise ReportError(f"{label}.files contains duplicates")
         raw_evidence = _bounded_list(candidate["evidence"], f"{label}.evidence")
         evidence: list[dict[str, Any]] = []
+        evidence_locations: set[tuple[str, int]] = set()
         for evidence_index, raw_item in enumerate(raw_evidence):
             item_label = f"{label}.evidence[{evidence_index}]"
             item = _require_object(raw_item, item_label)
             _require_keys(
                 item,
-                required={"path", "finding"},
-                optional={"line"},
+                required={"path", "line", "role", "finding"},
                 label=item_label,
             )
-            line = item.get("line")
-            if line is not None and (
-                isinstance(line, bool) or not isinstance(line, int) or line < 1
-            ):
+            line = item["line"]
+            if isinstance(line, bool) or not isinstance(line, int) or line < 1:
                 raise ReportError(f"{item_label}.line must be a positive integer")
+            path = _repo_path(
+                item["path"],
+                f"{item_label}.path",
+                project_root,
+                file_only=True,
+            )
+            _validate_source_line(project_root, path, line, item_label)
+            location = (path, line)
+            if location in evidence_locations:
+                raise ReportError(f"{label}.evidence contains duplicate path and line")
+            evidence_locations.add(location)
+            role = _text(item["role"], f"{item_label}.role", 32)
+            if role not in EVIDENCE_ROLES:
+                raise ReportError(f"{item_label}.role is invalid")
             evidence.append(
                 {
-                    "path": _repo_path(
-                        item["path"],
-                        f"{item_label}.path",
-                        project_root,
-                        file_only=True,
-                    ),
+                    "path": path,
                     "line": line,
+                    "role": role,
                     "finding": _text(item["finding"], f"{item_label}.finding"),
                 }
+            )
+        covered_files = {
+            item["path"]
+            for item in evidence
+            if item["role"] in {"product", "test"}
+        }
+        if set(files) != covered_files:
+            raise ReportError(
+                f"{label}.evidence with product/test roles must cover every "
+                "candidate file and no other files"
+            )
+        raw_adr = _require_object(candidate["adr"], f"{label}.adr")
+        _require_keys(
+            raw_adr,
+            required={"status", "references", "finding"},
+            label=f"{label}.adr",
+        )
+        adr_status = _text(raw_adr["status"], f"{label}.adr.status", 32)
+        if adr_status not in ADR_STATUSES:
+            raise ReportError(f"{label}.adr.status is invalid")
+        raw_adr_references = _bounded_list(
+            raw_adr["references"],
+            f"{label}.adr.references",
+            minimum=0,
+        )
+        adr_references = [
+            _repo_path(
+                item,
+                f"{label}.adr.references[{reference_index}]",
+                project_root,
+                file_only=True,
+            )
+            for reference_index, item in enumerate(raw_adr_references)
+        ]
+        if len(adr_references) != len(set(adr_references)):
+            raise ReportError(f"{label}.adr.references contains duplicates")
+        if adr_status == "none" and adr_references:
+            raise ReportError(f"{label}.adr.references must be empty when status is none")
+        if adr_status != "none" and not adr_references:
+            raise ReportError(
+                f"{label}.adr.references requires at least one file for {adr_status}"
+            )
+        decision_evidence = {
+            item["path"] for item in evidence if item["role"] == "decision"
+        }
+        if not set(adr_references).issubset(decision_evidence):
+            raise ReportError(
+                f"{label}.adr.references must have line-specific decision evidence"
             )
         raw_benefits = _bounded_list(candidate["benefits"], f"{label}.benefits")
         candidates.append(
@@ -310,20 +409,41 @@ def validate_report(value: Any, project_root: Path) -> dict[str, Any]:
                     for benefit_index, item in enumerate(raw_benefits)
                 ],
                 "test_effect": _text(candidate["test_effect"], f"{label}.test_effect"),
+                "compatibility": _text(
+                    candidate["compatibility"],
+                    f"{label}.compatibility",
+                ),
+                "migration": _text(candidate["migration"], f"{label}.migration"),
+                "adr": {
+                    "status": adr_status,
+                    "references": adr_references,
+                    "finding": _text(raw_adr["finding"], f"{label}.adr.finding"),
+                },
                 "before": _validate_graph(candidate["before"], f"{label}.before"),
                 "after": _validate_graph(candidate["after"], f"{label}.after"),
             }
         )
-    top_id = _identifier(report["top_recommendation_id"], "top_recommendation_id")
+    top = _require_object(report["top_recommendation"], "top_recommendation")
+    _require_keys(
+        top,
+        required={"candidate_id", "rationale"},
+        label="top_recommendation",
+    )
+    top_id = _identifier(top["candidate_id"], "top_recommendation.candidate_id")
     if top_id not in candidate_ids:
-        raise ReportError("top_recommendation_id does not identify a candidate")
+        raise ReportError("top_recommendation.candidate_id does not identify a candidate")
     return {
         "schema_version": SCHEMA_VERSION,
         "language": language,
         "repository": clean_repository,
         "scope": _text(report["scope"], "scope"),
+        "scope_basis": scope_basis,
+        "scope_rationale": _text(report["scope_rationale"], "scope_rationale"),
         "generated_at": _validate_timestamp(report["generated_at"]),
-        "top_recommendation_id": top_id,
+        "top_recommendation": {
+            "candidate_id": top_id,
+            "rationale": _text(top["rationale"], "top_recommendation.rationale"),
+        },
         "candidates": candidates,
     }
 
@@ -353,20 +473,33 @@ def _graph_svg(graph: dict[str, Any], prefix: str, title: str) -> str:
             positions[node["id"]] = (x + node_width / 2, y + node_height / 2)
             visible = node["label"] if len(node["label"]) <= 42 else node["label"][:39] + "..."
             node_parts.append(
-                f'<g class="graph-node kind-{node["kind"]}">'
+                f'<g class="graph-node kind-{node["kind"]} '
+                f'emphasis-{node["emphasis"]}">'
                 f"<title>{html.escape(node['label'])}</title>"
                 f'<rect x="{x:.1f}" y="{y:.1f}" width="{node_width:.1f}" '
                 f'height="{node_height}" rx="12"></rect>'
                 f'<text x="{x + node_width / 2:.1f}" y="{y + 32:.1f}" '
                 f'text-anchor="middle">{html.escape(visible)}</text></g>'
             )
-    marker_id = f"arrow-{prefix}"
+    marker_ids = {
+        kind: f"arrow-{prefix}-{kind}"
+        for kind in sorted(EDGE_KINDS)
+    }
+    marker_parts = [
+        f'<marker class="marker-{kind}" id="{marker_id}" viewBox="0 0 10 10" '
+        'refX="9" refY="5" markerWidth="6" markerHeight="6" '
+        'orient="auto-start-reverse">'
+        '<path d="M 0 0 L 10 5 L 0 10 z"></path></marker>'
+        for kind, marker_id in marker_ids.items()
+    ]
     edge_parts: list[str] = []
     for edge in graph["edges"]:
         source_x, source_y = positions[edge["from"]]
         target_x, target_y = positions[edge["to"]]
+        marker_id = marker_ids[edge["kind"]]
         edge_parts.append(
-            f'<line x1="{source_x:.1f}" y1="{source_y + node_height / 2:.1f}" '
+            f'<line class="edge-{edge["kind"]}" '
+            f'x1="{source_x:.1f}" y1="{source_y + node_height / 2:.1f}" '
             f'x2="{target_x:.1f}" y2="{target_y - node_height / 2:.1f}" '
             f'marker-end="url(#{marker_id})"></line>'
         )
@@ -380,10 +513,8 @@ def _graph_svg(graph: dict[str, Any], prefix: str, title: str) -> str:
         f'<svg class="architecture-graph" viewBox="0 0 {width} {height}" '
         f'role="img" aria-labelledby="{prefix}-title {prefix}-desc">'
         f'<title id="{prefix}-title">{html.escape(title)}</title>'
-        f'<desc id="{prefix}-desc">Layered module and dependency diagram.</desc>'
-        f"<defs><marker id=\"{marker_id}\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" "
-        'markerWidth="6" markerHeight="6" orient="auto-start-reverse">'
-        '<path d="M 0 0 L 10 5 L 0 10 z"></path></marker></defs>'
+        f'<desc id="{prefix}-desc">Layered module, seam, and dependency diagram.</desc>'
+        f"<defs>{''.join(marker_parts)}</defs>"
         + "".join(edge_parts)
         + "".join(node_parts)
         + "</svg>"
@@ -392,14 +523,22 @@ def _graph_svg(graph: dict[str, Any], prefix: str, title: str) -> str:
 
 def render_html(report: dict[str, Any]) -> str:
     repository = report["repository"]
+    top_recommendation = report["top_recommendation"]
+    top_candidate = next(
+        candidate
+        for candidate in report["candidates"]
+        if candidate["id"] == top_recommendation["candidate_id"]
+    )
     candidate_parts: list[str] = []
     for index, candidate in enumerate(report["candidates"], 1):
-        top = candidate["id"] == report["top_recommendation_id"]
+        top = candidate["id"] == top_recommendation["candidate_id"]
         evidence_items = "".join(
             "<li><code>"
             + html.escape(item["path"])
-            + (f":{item['line']}" if item["line"] is not None else "")
-            + "</code><span>"
+            + f":{item['line']}"
+            + "</code><span class=\"evidence-role\">"
+            + html.escape(item["role"])
+            + "</span><span>"
             + html.escape(item["finding"])
             + "</span></li>"
             for item in candidate["evidence"]
@@ -410,6 +549,10 @@ def render_html(report: dict[str, Any]) -> str:
         )
         benefits = "".join(
             f"<li>{html.escape(benefit)}</li>" for benefit in candidate["benefits"]
+        )
+        adr_references = "".join(
+            f'<code class="file-chip">{html.escape(path)}</code>'
+            for path in candidate["adr"]["references"]
         )
         strength = candidate["strength"].replace("_", " ")
         candidate_parts.append(
@@ -436,9 +579,21 @@ def render_html(report: dict[str, Any]) -> str:
             + f"<ul>{benefits}</ul></section>"
             + "<section><h3>Test effect</h3>"
             + f"<p>{html.escape(candidate['test_effect'])}</p></section></div>"
+            + '<div class="candidate-copy"><section><h3>Compatibility</h3>'
+            + f"<p>{html.escape(candidate['compatibility'])}</p></section>"
+            + "<section><h3>Migration</h3>"
+            + f"<p>{html.escape(candidate['migration'])}</p></section></div>"
+            + f'<section class="adr-callout adr-{candidate["adr"]["status"]}">'
+            + "<h3>ADR context</h3>"
+            + f'<p><strong>{html.escape(candidate["adr"]["status"])}</strong> '
+            + html.escape(candidate["adr"]["finding"])
+            + "</p>"
+            + (f'<div class="file-list">{adr_references}</div>' if adr_references else "")
+            + "</section>"
             + "</article>"
         )
     dirty = "dirty working tree" if repository["dirty"] else "clean working tree"
+    scope_basis = report["scope_basis"].replace("_", " ")
     return f"""<!doctype html>
 <html lang="{html.escape(report['language'])}">
 <head>
@@ -459,6 +614,9 @@ def render_html(report: dict[str, Any]) -> str:
     .lede {{ max-width:760px; font-size:1.15rem; color:var(--muted); }}
     .meta {{ display:flex; flex-wrap:wrap; gap:8px; margin:24px 0 44px; }}
     .meta span,.file-chip {{ border:1px solid var(--line); border-radius:999px; padding:6px 11px; background:var(--card); }}
+    .top-recommendation {{ margin:30px 0 44px; padding:24px 28px; border-left:5px solid var(--blue); background:var(--card); border-radius:0 18px 18px 0; }}
+    .top-recommendation h2 {{ margin-bottom:8px; }}
+    .top-recommendation a {{ color:var(--blue); font-weight:750; }}
     .candidate {{ margin:28px 0; padding:clamp(22px,4vw,42px); background:var(--card); border:1px solid var(--line); border-radius:24px; box-shadow:0 14px 34px rgba(25,30,45,.06); }}
     .candidate.top {{ border:2px solid var(--blue); }}
     .candidate-header {{ display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }}
@@ -472,16 +630,28 @@ def render_html(report: dict[str, Any]) -> str:
     .candidate-copy,.diagrams {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; margin:28px 0; }}
     .candidate-copy section,.diagrams section {{ min-width:0; }}
     .evidence-list {{ list-style:none; padding:0; display:grid; gap:9px; }}
-    .evidence-list li {{ display:grid; grid-template-columns:minmax(160px,.45fr) 1fr; gap:14px; border-top:1px solid var(--line); padding-top:9px; }}
+    .evidence-list li {{ display:grid; grid-template-columns:minmax(150px,.38fr) auto 1fr; gap:12px; border-top:1px solid var(--line); padding-top:9px; }}
     .evidence-list code {{ overflow-wrap:anywhere; color:var(--blue); }}
+    .evidence-role {{ align-self:start; border:1px solid var(--line); border-radius:999px; padding:1px 7px; color:var(--muted); font-size:.7rem; text-transform:uppercase; }}
     .architecture-graph {{ width:100%; height:auto; border:1px solid var(--line); border-radius:16px; background:var(--paper); }}
     .architecture-graph line {{ stroke:#7b8494; stroke-width:2; }}
     .architecture-graph marker path {{ fill:#7b8494; }}
+    .architecture-graph line.edge-leak {{ stroke:var(--coral); stroke-width:3; }}
+    .architecture-graph .marker-leak path {{ fill:var(--coral); }}
+    .architecture-graph line.edge-seam {{ stroke:var(--mint); stroke-dasharray:8 6; }}
+    .architecture-graph .marker-seam path {{ fill:var(--mint); }}
+    .architecture-graph line.edge-dependency {{ stroke:var(--amber); }}
+    .architecture-graph .marker-dependency path {{ fill:var(--amber); }}
     .architecture-graph rect {{ fill:#eef2ff; stroke:#7086c7; stroke-width:1.5; }}
     .architecture-graph .kind-adapter rect {{ fill:#dff7ed; stroke:#45a783; }}
     .architecture-graph .kind-external rect,.architecture-graph .kind-dependency rect {{ fill:#fff0d6; stroke:#c88a33; }}
+    .architecture-graph .emphasis-shallow rect {{ stroke-dasharray:7 5; }}
+    .architecture-graph .emphasis-deep rect {{ stroke:var(--blue); stroke-width:4; }}
+    .architecture-graph .emphasis-faded {{ opacity:.45; }}
     .architecture-graph text {{ fill:var(--ink); font-size:13px; font-weight:650; }}
     .architecture-graph .edge-label {{ font-size:10px; font-weight:500; fill:var(--muted); paint-order:stroke; stroke:var(--paper); stroke-width:4px; }}
+    .adr-callout {{ margin-top:28px; padding:18px 20px; border:1px solid var(--line); border-radius:16px; }}
+    .adr-conflicts,.adr-revisit {{ border-color:var(--amber); background:color-mix(in srgb,var(--amber) 8%,transparent); }}
     footer {{ margin-top:50px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); }}
     @media (max-width:760px) {{ .candidate-copy,.diagrams {{ grid-template-columns:1fr; }} .candidate-header {{ display:block; }} .strength {{ display:inline-block; margin-bottom:16px; }} .evidence-list li {{ grid-template-columns:1fr; }} }}
     @media (prefers-color-scheme:dark) {{ :root {{ --paper:#111317; --card:#181b20; --ink:#f5f3ed; --muted:#a8b0bd; --line:#353b45; --blue:#8aa7ff; }} .strength-strong {{ background:#153e32; color:#8ee6c4; }} .strength-worth_exploring {{ background:#493516; color:#ffd589; }} .strength-speculative {{ background:#30343b; color:#d0d5dd; }} .architecture-graph rect {{ fill:#25304d; }} .architecture-graph .kind-adapter rect {{ fill:#173d33; }} .architecture-graph .kind-external rect,.architecture-graph .kind-dependency rect {{ fill:#493516; }} }}
@@ -494,13 +664,21 @@ def render_html(report: dict[str, Any]) -> str:
     <p class="eyebrow">EZPowers · Architecture review</p>
     <h1>Deepening opportunities in {html.escape(repository['name'])}</h1>
     <p class="lede">{html.escape(report['scope'])}</p>
+    <p>{html.escape(report['scope_rationale'])}</p>
     <div class="meta">
       <span>Revision: {html.escape(repository['revision'])}</span>
       <span>{html.escape(dirty)}</span>
+      <span>Scope basis: {html.escape(scope_basis)}</span>
       <span>Generated: {html.escape(report['generated_at'])}</span>
       <span>{len(report['candidates'])} candidates</span>
     </div>
   </header>
+  <section class="top-recommendation">
+    <p class="eyebrow">Top recommendation</p>
+    <h2><a href="#{html.escape(top_candidate['id'])}">{html.escape(top_candidate['title'])}</a></h2>
+    <h3>Why this candidate</h3>
+    <p>{html.escape(top_recommendation['rationale'])}</p>
+  </section>
   {''.join(candidate_parts)}
   <footer>This local advisory report uses no network resources and is not EZPowers completion evidence.</footer>
 </main>
@@ -509,15 +687,18 @@ def render_html(report: dict[str, Any]) -> str:
 """
 
 
-def _read_input(path: Path) -> Any:
-    if not path.is_file():
-        raise ReportError(f"input file does not exist: {path}")
-    if path.stat().st_size > MAX_INPUT_BYTES:
+def _read_input(path: Path) -> tuple[Any, str]:
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        raise ReportError(f"cannot read input JSON: {exc}") from exc
+    if len(raw) > MAX_INPUT_BYTES:
         raise ReportError(f"input exceeds {MAX_INPUT_BYTES} bytes")
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        value = json.loads(raw.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
         raise ReportError(f"cannot read input JSON: {exc}") from exc
+    return value, hashlib.sha256(raw).hexdigest()
 
 
 def _output_path(raw: str | None, project_root: Path) -> Path:
@@ -575,6 +756,33 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _source_fingerprint(
+    report: dict[str, Any],
+    project_root: Path,
+) -> tuple[str, int]:
+    relative_paths = sorted(
+        {
+            path
+            for candidate in report["candidates"]
+            for path in (
+                candidate["files"]
+                + [item["path"] for item in candidate["evidence"]]
+                + candidate["adr"]["references"]
+            )
+        }
+    )
+    digest = hashlib.sha256()
+    for relative_path in relative_paths:
+        source = project_root / Path(*PurePosixPath(relative_path).parts)
+        digest.update(relative_path.encode("utf-8"))
+        digest.update(b"\0")
+        with source.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        digest.update(b"\0")
+    return digest.hexdigest(), len(relative_paths)
+
+
 def render(
     *,
     project_root: Path,
@@ -585,7 +793,10 @@ def render(
     root = project_root.expanduser().resolve()
     if not root.is_dir():
         raise ReportError(f"project root does not exist: {root}")
-    report = validate_report(_read_input(input_path.expanduser().resolve()), root)
+    resolved_input = input_path.expanduser().resolve()
+    input_value, input_sha256 = _read_input(resolved_input)
+    report = validate_report(input_value, root)
+    source_sha256, source_file_count = _source_fingerprint(report, root)
     output_path = _output_path(output, root)
     _atomic_write(output_path, render_html(report))
     warnings: list[str] = []
@@ -599,8 +810,12 @@ def render(
             warnings.append("browser open request was not accepted")
     return {
         "status": "PASS_WITH_WARNING" if warnings else "PASS",
+        "schema_version": SCHEMA_VERSION,
         "report_path": str(output_path),
         "report_sha256": _sha256(output_path),
+        "input_sha256": input_sha256,
+        "source_sha256": source_sha256,
+        "source_file_count": source_file_count,
         "candidate_count": len(report["candidates"]),
         "opened": opened,
         "warnings": warnings,

@@ -227,6 +227,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             / "engineering-practices-contract.md"
         ).read_text(encoding="utf-8")
         normalized_diagnose = " ".join(diagnose.split())
+        normalized_improve = " ".join(improve.split())
         normalized_contract = " ".join(contract.split()).lower()
 
         for phrase in (
@@ -255,6 +256,16 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertIn("disable-model-invocation: true", improve)
         self.assertIn("Do not implement the refactor", improve)
         self.assertIn("OS temporary path", improve)
+        for phrase in (
+            "directory containing this `SKILL.md`",
+            "Do not widen a user-named scope",
+            "Do not propose interfaces during the scan",
+            "Delete the temporary input JSON",
+            "Ask exactly one question at a time",
+            "at least two materially different",
+            "Refactor brief",
+        ):
+            self.assertIn(phrase, normalized_improve)
 
         for name in ("diagnose", "codebase-design"):
             metadata = (
@@ -308,6 +319,11 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             "stops without hypotheses or a product patch",
             normalized_contract,
         )
+        self.assertIn("schema_version", contract)
+        self.assertIn("schema version 2", normalized_contract)
+        self.assertIn("scope_basis", contract)
+        self.assertIn("top_recommendation", contract)
+        self.assertIn("source_sha256", contract)
         self.assertIn("1-8 candidates", contract)
         self.assertIn(
             "restrictive content security policy",

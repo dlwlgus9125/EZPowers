@@ -980,6 +980,12 @@ def _probe_codex(repo_root: Path) -> tuple[str, str]:
         plugin_source.mkdir()
         for relative in (".codex-plugin", ".agents", "skills"):
             shutil.copytree(repo_root / relative, plugin_source / relative)
+        plugin_scripts = plugin_source / "scripts"
+        plugin_scripts.mkdir()
+        shutil.copy2(
+            repo_root / "scripts" / "architecture-review-report.py",
+            plugin_scripts / "architecture-review-report.py",
+        )
         plugin_home = temp_root / "plugin-codex-home"
         plugin_home.mkdir()
         plugin_env = os.environ.copy()
@@ -1015,6 +1021,28 @@ def _probe_codex(repo_root: Path) -> tuple[str, str]:
             installed_path = Path(install_payload["installedPath"])
         except (json.JSONDecodeError, KeyError, TypeError) as exc:
             return "fail", f"Codex plugin install returned invalid JSON: {exc}"
+        installed_architecture_resources = (
+            installed_path
+            / "skills"
+            / "improve-codebase-architecture"
+            / "references"
+            / "report-contract.md",
+            installed_path
+            / "skills"
+            / "improve-codebase-architecture"
+            / "scripts"
+            / "render-report.py",
+            installed_path / "scripts" / "architecture-review-report.py",
+        )
+        missing_architecture_resources = [
+            str(path) for path in installed_architecture_resources if not path.is_file()
+        ]
+        if missing_architecture_resources:
+            return (
+                "fail",
+                "isolated Codex plugin omitted architecture resources: "
+                + ", ".join(missing_architecture_resources),
+            )
 
         plain_root = temp_root / "plain-project"
         plain_root.mkdir()

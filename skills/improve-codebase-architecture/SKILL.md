@@ -1,76 +1,92 @@
 ---
 name: improve-codebase-architecture
-description: Explicitly scan existing product code for architecture deepening opportunities, render an evidence-backed offline HTML report, and explore one user-selected refactor. Use for broad maintenance analysis of shallow modules, scattered complexity, leaky seams, and hard-to-test code; not for new-system architecture, workflow-harness audits, or direct implementation.
+description: Explicitly scan existing product code for evidence-backed deep-module opportunities, render a safe offline report, and explore one user-selected refactor without implementing it. Use for broad maintenance discovery of shallow modules, scattered policy, leaky seams, repeated orchestration, and hard-to-test behavior; not for new-system architecture, workflow-harness audits, or direct refactoring.
 disable-model-invocation: true
 ---
 
 # Improve Codebase Architecture
 
-Scan existing product code for high-value deepening opportunities without
-changing the repository.
+Find high-value product-code deepening opportunities without changing the
+repository.
 
-## Load and scope
+## Ground and freeze the scan
 
-Read `.ezpowers/contracts/engineering-practices-contract.md` and use the
-installed `.ezpowers/tools/architecture-review-report.py`. When the project
-kit is absent, read the matching contract and tool from the EZPowers plugin
-distribution.
+Resolve `<skill-root>` as the directory containing this `SKILL.md`. Read
+`<skill-root>/references/report-contract.md` and use
+`<skill-root>/scripts/render-report.py`. Verify both exist before scanning;
+never fetch an upstream file at runtime.
 
-Read repository instructions, Git status and history, `CONTEXT.md` when
-present, applicable ADRs, current architecture documents, affected code, and
-tests. Preserve user changes.
+Read repository instructions, the exact initial Git status, relevant history,
+`CONTEXT.md` when present, applicable ADRs, architecture documents, product
+code, callers, and tests. Treat documentation as context, not automatically as
+an affected product file. Do not run tests, builds, formatters, or generators
+during this advisory scan unless the user explicitly requests them; inspection
+must not create caches or other workspace artifacts.
 
-Use a user-named module, subsystem, or pain point as the scan boundary. When
-none is named, use recent Git history to identify recurring product-code
-hotspots before widening the scan. Do not use this skill to audit EZPowers
-workflow/harness authority; that requires direct tracing of installed files,
-runtime callers, evidence, and host capabilities.
+Use a user-named module, subsystem, or pain point as the boundary. Do not widen
+a user-named scope. With no named scope, use recurring recent product-code
+changes to choose a hotspot, state why, and widen only when history has no
+coherent hotspot. Do not audit EZPowers workflow or harness authority with
+this skill.
 
-## Find candidates
+## Find and rank candidates
 
-Apply the `codebase-design` vocabulary and deletion test. Look for scattered
-domain behavior, interfaces nearly as complex as implementations, pass-through
-modules, false seams with one adapter, coupling that leaks into callers, and
-behavior that cannot be tested through an honest interface.
+Apply the deletion test and the Module, Interface, Implementation, Depth, Seam,
+Adapter, Leverage, and Locality vocabulary. Look organically for scattered
+domain behavior, repeated ordering policy, interfaces nearly as complex as
+implementations, pass-through modules, one-adapter false seams, caller leakage,
+and behavior that cannot be tested through an honest interface.
 
-Keep 1-8 evidence-backed candidates. For each one record:
+Keep only 1–8 candidates supported by exact existing file-and-line evidence.
+Every affected product or test file needs evidence. Mark glossary, architecture,
+and ADR findings separately as context or decision evidence. Record the current
+problem, responsibility-level deepening, locality and leverage, surviving test
+surface, compatibility, migration, ADR status, recommendation strength, and
+semantically styled before/after graphs.
 
-- existing repository-relative files and line-specific findings;
-- the current problem and proposed deepening;
-- locality, leverage, and test-surface benefits;
-- a `strong`, `worth_exploring`, or `speculative` recommendation;
-- before and after node/edge diagrams;
-- compatibility, migration, and ADR conflicts.
+Do not propose interfaces during the scan; selection must precede interface
+design. Do not invent a candidate to satisfy the report schema. If the bounded
+scope has no evidence-backed candidate, report that result and stop without a
+report.
 
-## Render the report
+## Render and present
 
-Write the renderer input JSON to an OS temporary path, then run:
+Write schema-version-2 JSON to an OS temporary path and run:
 
 ```text
-python .ezpowers/tools/architecture-review-report.py
+python <skill-root>/scripts/render-report.py
   --project-root <project-root>
   --input <temporary-json>
   --open
   --json
 ```
 
-Use the exact input and safety contract documented in
-`engineering-practices-contract.md`. Do not hand-author HTML, load a CDN, write
-the report into the repository, or overwrite an existing report. If browser
-opening fails, return the absolute generated path and warning. If validation
-or rendering fails, correct the structured input and rerun it; do not claim
-the scan completed without a valid receipt.
+Correct invalid structured input and rerun; never hand-author HTML, use a CDN,
+write the report inside the repository, overwrite a report, or claim success
+without a valid receipt. Delete the temporary input JSON after a successful
+render and also on terminal failure. Preserve the generated HTML for the user.
 
-Report the scan scope, Git revision and dirty state, top recommendation,
-candidate count, report path, SHA-256, and renderer warnings.
+Confirm the final Git status exactly matches the initial status. If this scan
+changed the workspace, stop and report the drift without deleting unknown
+files. Report scope and its basis, revision and dirty state, top recommendation
+and rationale, candidate count, report path, report/input/source SHA-256 values,
+source file count, and warnings.
 
-## Explore one candidate
+Ask exactly one question at a time. At this stage ask only which candidate the
+user wants to explore, then wait.
 
-Ask which candidate the user wants to explore. After selection, apply the
-`codebase-design` discipline to compare interfaces and seams, then return a
-decision-ready refactor brief in the conversation.
+## Explore the selected candidate
 
-Do not implement the refactor or automatically edit `CONTEXT.md`, ADRs,
-architecture documents, specs, or plans. Durable boundary changes belong to
-`design-architecture`; implementation continues only through an independently
-authorized host-native plan or request.
+After selection, inspect missing facts and ask one consequential constraint
+question at a time rather than inventing a decision. When the user has answered
+or delegated the choices, compare at least two materially different Interface
+and Seam options. Do not vary only names.
+
+Return **Refactor brief** with the selected candidate and evidence, settled
+constraints, interface options and tradeoffs, recommendation, compatibility
+and migration boundary, surviving tests, and unresolved risks.
+
+Do not implement the refactor or automatically edit product code, `CONTEXT.md`,
+ADRs, architecture documents, specs, or plans. Durable project-boundary changes
+remain separate architecture work; implementation requires independent user
+authority.

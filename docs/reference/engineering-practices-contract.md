@@ -50,6 +50,13 @@ SOFTWARE.
 Updates are explicit source reviews. Installation and skill execution never
 fetch upstream content.
 
+The upstream `improve-codebase-architecture/SKILL.md` at `main` was reviewed
+again on 2026-07-30 and was byte-identical to the pinned source. Upstream
+hotspot scoping, organic exploration, visual before/after comparison, and
+post-selection design remain behavioral benchmarks. Claude-only exploration,
+automatic `CONTEXT.md` or ADR mutation, and CDN report assets remain
+intentional non-goals rather than parity defects.
+
 ## Shared authority boundary
 
 Claude Code or Codex owns repository inspection, commands, edits, and any
@@ -145,45 +152,69 @@ Apply these rules:
   consequential design;
 - do not add abstraction only to make an implementation mockable.
 
-## Architecture report input v1
+## Architecture report input v2
 
-The renderer accepts one UTF-8 JSON object up to 1 MiB:
+Schema version 2 replaces the temporary v1 input; reports are non-durable, so
+project refresh upgrades the skill and renderer together. The renderer accepts
+one UTF-8 JSON object up to 1 MiB:
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "language": "en",
   "repository": {
     "name": "example",
     "revision": "abc123",
     "dirty": false
   },
-  "scope": "Recently changed order-processing modules",
-  "generated_at": "2026-07-24T00:00:00Z",
-  "top_recommendation_id": "order-intake",
+  "scope": "Recently changed Order intake modules",
+  "scope_basis": "git_hotspot",
+  "scope_rationale": "Order intake recurs in recent product changes.",
+  "generated_at": "2026-07-30T00:00:00Z",
+  "top_recommendation": {
+    "candidate_id": "order-intake",
+    "rationale": "Repeated policy gains the most locality."
+  },
   "candidates": []
 }
 ```
 
-There must be 1-8 candidates. Each candidate has exactly:
+`scope_basis` is `user_named`, `git_hotspot`, or `widened`. There must be
+1-8 candidates. A bounded scan with no evidence-backed candidate stops without
+rendering rather than inventing one. Each rendered candidate has exactly:
 
 - `id`, `title`, and `strength`, where strength is `strong`,
   `worth_exploring`, or `speculative`;
-- 1-20 existing repository-relative `files`;
-- 1-20 `evidence` items containing `path`, optional positive `line`, and
-  `finding`;
-- non-empty `problem`, `solution`, `test_effect`, and 1-20 `benefits`;
+- 1-20 existing repository-relative affected product/test `files`;
+- 1-20 `evidence` items containing `path`, required positive `line`, `finding`,
+  and role `product`, `test`, `context`, or `decision`;
+- non-empty `problem`, responsibility-level `solution`, `test_effect`,
+  `compatibility`, `migration`, and 1-20 `benefits`;
+- `adr` with status `none`, `aligned`, `conflicts`, or `revisit`, references,
+  and a finding;
 - `before` and `after` graphs.
 
+Product/test evidence must cover the affected `files` exactly. Context and
+decision evidence may cite additional files. Every non-`none` ADR status
+requires an existing reference backed by line-specific decision evidence.
+
 Each graph contains 1-24 unique nodes and 0-48 edges. A node has `id`, `label`,
-integer `layer` from 0 through 7, and `kind` from `caller`, `module`, `adapter`,
-`dependency`, `data`, or `external`. An edge has `from`, `to`, and an optional
-`label`; both endpoints must exist in that graph.
+integer `layer` from 0 through 7, `kind` from `caller`, `module`, `adapter`,
+`dependency`, `data`, or `external`, and optional emphasis `normal`, `shallow`,
+`deep`, or `faded`. An edge has `from`, `to`, optional `label`, and optional
+kind `call`, `dependency`, `leak`, or `seam`; both endpoints must exist.
 
 IDs use lower-case hyphen form and are at most 64 characters. Titles and graph
 labels are at most 200 characters, paths at most 512, and prose fields at most
-8,000. Unknown fields, duplicate values, unsafe paths, missing paths, dangling
-edges, invalid timestamps, and an unknown top recommendation fail validation.
+8,000. Unknown fields, duplicate values, unsafe or missing paths, nonexistent
+evidence lines, uncovered affected files, dangling edges, invalid timestamps,
+and an unknown top recommendation fail validation.
+
+The installed skill carries the focused executable schema from
+`skills/improve-codebase-architecture/references/report-contract.md`, so a scan
+does not load the unrelated diagnosis contract. Its
+`skills/improve-codebase-architecture/scripts/render-report.py` resolves the
+same canonical renderer from an installed project kit or the plugin root.
 
 ## Renderer output and safety
 
@@ -205,9 +236,12 @@ existing output file. Write atomically.
 The report uses semantic HTML, inline CSS and SVG, a restrictive Content
 Security Policy, and escaped input. It contains no script, remote request,
 font, image, or analytics dependency. The JSON receipt contains `status`,
-`report_path`, `report_sha256`, `candidate_count`, `opened`, and `warnings`.
-Failure to open the browser is a warning after successful generation.
+`schema_version`, `report_path`, `report_sha256`, `input_sha256`,
+`source_sha256`, `source_file_count`, `candidate_count`, `opened`, and
+`warnings`. `source_sha256` binds all cited and affected file bytes at render
+time. Failure to open the browser is a warning after successful generation.
 
-Reports and their input JSON are temporary local advisory data. They are not
-registered documentation, wiki pages, completion evidence, or workspace
-fingerprint exclusions if a user manually copies them into the repository.
+Reports are temporary local advisory data. The skill deletes its temporary
+input JSON after rendering. Neither is registered documentation, a wiki page,
+completion evidence, or a workspace fingerprint exclusion if a user manually
+copies it into the repository.
