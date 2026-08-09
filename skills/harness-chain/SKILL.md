@@ -144,6 +144,8 @@ Place the spec, plan, oracle files, and `bundle.json` under one
   "files": [
     {"role": "spec", "source": "spec.md", "target": "docs/specs/feature-id.md"},
     {"role": "plan", "source": "plan.md", "target": "docs/plans/feature-id.md"},
+    {"role": "frontend-design", "source": "frontend-design.md", "target": "docs/ux/frontend-design.md"},
+    {"role": "design-system", "source": "DESIGN.md", "target": "DESIGN.md"},
     {"role": "oracle", "source": "test_feature.py", "target": "tests/test_feature.py"}
   ],
   "oracles": [
@@ -162,6 +164,11 @@ Place the spec, plan, oracle files, and `bundle.json` under one
 ```
 
 Feature `limit_overrides` may lower, never raise, project limits.
+The two design roles are present only when
+`spec.design_context.required` is true. In that case there is exactly one
+frontend-design file and at least one design-system file, and their targets
+must exactly equal the spec paths and managed mapping. A non-UI spec includes
+neither role.
 
 ### 2. Prove the oracle before approval
 
@@ -196,7 +203,8 @@ against unchanged oracle evidence until one returns `PASS`.
 When preview is `READY`, show the user:
 
 - the settled request and selected/skipped stages;
-- spec, plan, oracle targets and create/replace actions;
+- spec, plan, oracle, and applicable frontend/DESIGN.md targets and
+  create/replace actions;
 - baseline result, risks, QA requirement, and hard limits;
 - preview hash and any forced replacement/backup requirement;
 - that approval starts an unattended loop until `CERTIFIED`,
@@ -232,8 +240,9 @@ missing capability.
 ### 5. Implement until the runtime verdict
 
 Edit product code with host-native tools. The approved spec, plan, oracle,
-project checks, chain config, and approval are frozen. If any changes, stop
-normal work at `NEEDS_REAPPROVAL`; do not repair hashes or silently thaw it.
+applicable frontend/DESIGN.md files, project checks, chain config, and approval
+are frozen. If any changes, stop normal work at `NEEDS_REAPPROVAL`; do not
+repair hashes or silently thaw it.
 
 Run real verification:
 

@@ -7,8 +7,8 @@ or embed commands.
 ## Preflight
 
 Read repository instructions, `CONTEXT.md`, applicable ADRs, architecture and
-frontend-design artifacts, existing specs, public entry points, tests, and
-`.ezpowers/config.json`.
+frontend-design artifacts, every applicable nearest `DESIGN.md`, existing
+specs, public entry points, tests, and `.ezpowers/config.json`.
 Read `.ezpowers/docs.json` when present. Wiki candidates are supporting hints
 only and must be confirmed against repository evidence before becoming a
 requirement.
@@ -43,6 +43,11 @@ Every spec contains exactly one block with these exact markers:
 ```json
 {
   "schema_version": 1,
+  "design_context": {
+    "required": true,
+    "frontend_artifact": "docs/ux/frontend-design.md",
+    "systems": ["DESIGN.md"]
+  },
   "criteria": [
     {
       "id": "AC-1",
@@ -58,6 +63,20 @@ Every spec contains exactly one block with these exact markers:
 ````
 
 The fenced body is one JSON object and is the machine source of truth.
+
+Every newly written spec includes `design_context`. UI work uses `required:
+true`, names the broad frontend artifact, and lists every applicable
+project-relative `DESIGN.md`. Non-UI work records the decision explicitly:
+
+```json
+"design_context": {
+  "required": false,
+  "reason": "No UI surface or visual-system behavior changes."
+}
+```
+
+Legacy specs without this field remain readable and valid. Their omission is
+not permission for a new or revised UI spec to skip design-system discovery.
 
 ### Criterion Rules
 
@@ -80,9 +99,11 @@ claims.
 ## Frontend Criteria
 
 When a claim depends on visual structure, interaction state, responsive
-behavior, accessibility, or a normative prototype, link the readable
-requirement to `docs/ux/frontend-design.md`. The claim names the user-visible
-outcome; the plan selects the project-local visual or interaction check.
+behavior, accessibility, or reusable styling, link the readable requirement to
+the `design_context` artifacts. The broad artifact owns UX behavior; each
+listed nearest `DESIGN.md` owns tokens and reusable-component rules. The claim
+names the user-visible outcome; the plan selects the project-local mapping,
+visual, or interaction check.
 
 ## Validation
 
@@ -92,8 +113,9 @@ Run the installed runtime:
 python .ezpowers/ezpowers.py validate --spec <spec-path> --json
 ```
 
-Invalid markers, invalid JSON, path traversal, duplicate IDs, empty claims,
-missing fields, or a non-boolean `integration` value are blocking. Validation
+Invalid markers, invalid JSON, unsafe or malformed design context, path
+traversal, duplicate IDs, empty claims, missing fields, or a non-boolean
+`integration` value are blocking. Validation
 does not prove product behavior; it proves the acceptance contract can be
 planned deterministically.
 

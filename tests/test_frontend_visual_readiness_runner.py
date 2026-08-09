@@ -59,6 +59,52 @@ class FrontendVisualReadinessRunnerTests(unittest.TestCase):
             self.assertFalse(data["lanes"]["storybook_component_states"]["required"])
             self.assertFalse(data["lanes"]["screenshot_visual_baseline"]["required"])
 
+    def test_managed_design_system_mapping_is_a_required_lane(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            design = """---
+version: alpha
+name: Fixture
+omitted: ["typography", "rounded", "spacing", "components"]
+colors:
+  primary: "#315bdc"
+---
+# Fixture
+
+## Overview
+Fixture direction.
+
+## Colors
+Primary action color.
+"""
+            self.write(root, "DESIGN.md", design)
+            self.write(root, "index.html", "<!doctype html>")
+            mapping = {
+                "schema_version": 1,
+                "design_systems": [
+                    {
+                        "path": "DESIGN.md",
+                        "profile": "google-alpha-0.4.0-ezpowers-1",
+                        "frontend_roots": ["."],
+                        "implementation_paths": ["index.html"],
+                    }
+                ],
+            }
+            artifact = (
+                "# Frontend Design\n\n"
+                "<!-- ezpowers:frontend-design:start -->\n```json\n"
+                + json.dumps(mapping, indent=2)
+                + "\n```\n<!-- ezpowers:frontend-design:end -->\n"
+            )
+            self.make_project(root, artifact)
+
+            code, data = self.run_runner(root)
+
+            self.assertEqual(code, 0, data)
+            lane = data["lanes"]["design_system_mapping"]
+            self.assertTrue(lane["required"])
+            self.assertTrue(lane["pass"])
+
     def test_existing_storybook_requires_component_state_stories(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)

@@ -1,6 +1,6 @@
 # EZPowers Roadmap
 
-## Current: v5.4.0 core / plugin
+## Current: v5.5.0 core / plugin
 
 - Preserve the v5.1 documentation graph and local wiki.
 - Add an explicit project-question workflow for chain stages, QA triggers,
@@ -38,9 +38,17 @@
   follows the user's active conversational language, uses only observed
   alternatives and measurements, and leaves fixed artifacts and exact verdicts
   unchanged.
+- Keep the broad frontend readiness document while adding root/app-local
+  `DESIGN.md` as the authoritative token and reusable-component contract.
+- Pin a selectively adapted Google design.md alpha profile and ship offline
+  standard-library lint, diff, mapping, and explicit upstream-review tools;
+  do not add token export or code generation.
+- Carry design context through new specs, plans, execute, managed documentation
+  checks, and explicit harness-chain frozen inputs while leaving legacy specs
+  and old profiles readable until explicit migration.
 - Keep one exact catalog: fourteen plugin skills, thirteen project skills, and
   separate namespaced versus project-local Codex prompt metadata.
-- Upgrade existing pre-v5.4 installations only through explicit
+- Upgrade existing pre-v5.5 installations only through explicit
   `setup --refresh`;
   preserve customized managed files and fail atomically on conflicts.
 

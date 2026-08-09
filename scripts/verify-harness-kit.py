@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate or stamp the self-contained EZPowers v5.4 project-kit manifest."""
+"""Validate or stamp the self-contained EZPowers v5.5 project-kit manifest."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from pathlib import Path, PurePosixPath
 import re
 
 
-VERSION = "5.4.0"
-MANIFEST = "project-kit/v5.4.0/manifest.json"
+VERSION = "5.5.0"
+MANIFEST = "project-kit/v5.5.0/manifest.json"
 PROJECT_SKILLS = {
     "codebase-design",
     "setup",
@@ -38,6 +38,7 @@ CONTRACT_TARGETS = {
     ".ezpowers/contracts/wiki-contract.md",
     ".ezpowers/contracts/harness-chain-contract.md",
     ".ezpowers/contracts/engineering-practices-contract.md",
+    ".ezpowers/contracts/design-md-profile.json",
 }
 HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -160,6 +161,7 @@ def validate(repo_root: Path, manifest_path: Path) -> list[str]:
     expected_tool = {
         ("scripts/frontend-visual-readiness.py", ".ezpowers/tools/frontend-visual-readiness.py"),
         ("scripts/architecture-review-report.py", ".ezpowers/tools/architecture-review-report.py"),
+        ("scripts/design-md.py", ".ezpowers/tools/design-md.py"),
     }
     actual_tools = {
         (item.get("source"), item.get("target"))
@@ -168,8 +170,8 @@ def validate(repo_root: Path, manifest_path: Path) -> list[str]:
     } if isinstance(tools, list) else set()
     if actual_tools != expected_tool:
         errors.append(
-            "tools must install frontend-visual-readiness.py and "
-            "architecture-review-report.py under .ezpowers/tools"
+            "tools must install frontend-visual-readiness.py, "
+            "architecture-review-report.py, and design-md.py under .ezpowers/tools"
         )
 
     seen_sources: set[str] = set()
@@ -211,7 +213,7 @@ def main() -> int:
         for error in errors:
             print(f"ERROR: {error}")
         return 1
-    print("EZPowers v5.4 project kit manifest valid")
+    print("EZPowers v5.5 project kit manifest valid")
     return 0
 
 

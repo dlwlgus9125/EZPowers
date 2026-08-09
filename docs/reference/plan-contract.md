@@ -6,7 +6,8 @@ delegates, isolates worktrees, reviews, or retries.
 
 ## Preflight
 
-Read the selected valid spec, architecture and frontend-design artifacts,
+Read the selected valid spec, its `design_context`, architecture and
+frontend-design artifacts, every applicable nearest `DESIGN.md`,
 repository instructions, the registered documentation graph when present,
 source and tests, CI commands, and
 `.ezpowers/config.json`. Run:
@@ -79,6 +80,8 @@ Avoid mapping the same config check as both a task check and a required project
 check unless running it twice during `verify --all` is intentional.
 When documentation status is ready, `ezpowers.docs` is a required project
 check and must remain exact.
+When its graph contains DESIGN.md, `ezpowers.design` is also required and must
+remain exact.
 
 ## Exact Check Contract
 
@@ -108,13 +111,24 @@ convert a command to a shell string or drop a feature filter for convenience.
 
 ## UI And Delivery Work
 
-Carry applicable constraints from `docs/ux/frontend-design.md` into the human
-task description and bind their observable claims to real visual,
-accessibility, browser, terminal, or native-window checks. Detect configured
-visual lanes with:
+For `design_context.required: true`, carry constraints from the broad frontend
+artifact and each listed nearest `DESIGN.md` into task descriptions. Include
+an implementation-alignment task whenever current code differs; do not rewrite
+the intended tokens to match drift. Review an existing token contract with
+`design-md.py diff`.
+
+When a ready documentation graph already supplies `ezpowers.design`, preserve
+that exact required check. Otherwise add this plan-local static check:
 
 ```text
-python .ezpowers/tools/frontend-visual-readiness.py --mode check
+python .ezpowers/tools/design-md.py check-project --project-root . --frontend-design <artifact> --json
+```
+
+Bind observable UI claims to real visual, accessibility, browser, terminal, or
+native-window checks. Detect configured visual lanes with:
+
+```text
+python .ezpowers/tools/frontend-visual-readiness.py --project-root . --design-artifact <artifact> --mode check --json
 ```
 
 Use it as a gate only when the architecture or a prerequisite declares that

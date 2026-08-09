@@ -211,6 +211,21 @@ class EZPowersInstallTests(unittest.TestCase):
                     / "engineering-practices-contract.md"
                 ).is_file()
             )
+            installed_design = project.root / ".ezpowers" / "tools" / "design-md.py"
+            design_help = run_cli(installed_design, "--help", cwd=project.root)
+            self.assertEqual(
+                design_help.returncode,
+                0,
+                design_help.stderr + design_help.stdout,
+            )
+            self.assertTrue(
+                (
+                    project.root
+                    / ".ezpowers"
+                    / "contracts"
+                    / "design-md-profile.json"
+                ).is_file()
+            )
             architecture_skill_files = (
                 pathlib.Path("references/report-contract.md"),
                 pathlib.Path("scripts/render-report.py"),
@@ -264,10 +279,10 @@ class EZPowersInstallTests(unittest.TestCase):
             distribution.mkdir()
             project_root.mkdir()
 
-            manifest_path = REPO_ROOT / "project-kit" / "v5.4.0" / "manifest.json"
+            manifest_path = REPO_ROOT / "project-kit" / "v5.5.0" / "manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             sources = {
-                "project-kit/v5.4.0/manifest.json",
+                "project-kit/v5.5.0/manifest.json",
                 manifest["runtime"]["source"],
                 *(item["source"] for item in manifest.get("tools", [])),
                 *(item["source"] for item in manifest.get("contracts", [])),
@@ -386,7 +401,7 @@ class EZPowersInstallTests(unittest.TestCase):
             refreshed = project.install("--refresh")
             self.assertEqual(refreshed.returncode, 0, refreshed.stderr + refreshed.stdout)
             repaired = json.loads(ledger_path.read_text(encoding="utf-8"))
-            self.assertEqual(repaired["version"], "5.4.0")
+            self.assertEqual(repaired["version"], "5.5.0")
 
     def test_opt_in_hooks_use_native_nested_shape_and_work_from_a_subdirectory(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -630,6 +645,54 @@ class EZPowersVerificationTests(unittest.TestCase):
             "timeout_seconds": 10,
             "kind": "test",
         }
+
+    def test_design_context_is_additive_for_legacy_specs_and_strict_when_present(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = RuntimeProject(pathlib.Path(temp_dir))
+            self.assertEqual(project.install().returncode, 0)
+            legacy_plan = project.write_flow([self.passing_check()], slug="legacy")
+            legacy_spec = project.root / "docs" / "specs" / "legacy.md"
+            legacy = run_cli(
+                project.runtime,
+                "validate",
+                "--spec",
+                str(legacy_spec),
+                "--json",
+                cwd=project.root,
+            )
+            self.assertEqual(0, legacy.returncode, legacy.stdout + legacy.stderr)
+            del legacy_plan
+
+            invalid_spec = project.root / "docs" / "specs" / "invalid-design.md"
+            invalid_spec.write_text(
+                managed_block(
+                    "spec",
+                    {
+                        "schema_version": 1,
+                        "design_context": {"required": True, "systems": ["not-design.md"]},
+                        "criteria": [
+                            {
+                                "id": "AC-1",
+                                "requirement_id": "R1",
+                                "claim": "A UI outcome is observable.",
+                                "verify_type": "e2e",
+                                "integration": True,
+                            }
+                        ],
+                    },
+                ),
+                encoding="utf-8",
+            )
+            invalid = run_cli(
+                project.runtime,
+                "validate",
+                "--spec",
+                str(invalid_spec),
+                "--json",
+                cwd=project.root,
+            )
+            self.assertEqual(2, invalid.returncode, invalid.stdout + invalid.stderr)
+            self.assertIn("design_context", invalid.stdout + invalid.stderr)
 
     def test_validate_verify_certify_status_and_staleness(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

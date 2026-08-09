@@ -13,12 +13,15 @@ import argparse
 import json
 import pathlib
 import re
+import subprocess
 import sys
 from typing import Any, Iterable
 
 
 SCHEMA_VERSION = 2
 DEFAULT_DESIGN_ARTIFACT = "docs/ux/frontend-design.md"
+FRONTEND_DESIGN_START = "<!-- ezpowers:frontend-design:start -->"
+FRONTEND_DESIGN_END = "<!-- ezpowers:frontend-design:end -->"
 MAX_SOURCE_SCAN_FILES = 2500
 SOURCE_EXTENSIONS = {
     ".js",
@@ -494,6 +497,85 @@ def mock_prototype_state(*texts: str) -> dict[str, Any]:
     return {"required": True, "pass": passed, "findings": findings}
 
 
+def design_system_state(
+    project_root: pathlib.Path,
+    design_artifact: pathlib.Path,
+    design_text: str,
+) -> dict[str, Any]:
+    marker_count = design_text.count(FRONTEND_DESIGN_START) + design_text.count(
+        FRONTEND_DESIGN_END
+    )
+    if marker_count == 0:
+        return {
+            "required": False,
+            "pass": True,
+            "findings": [
+                "Legacy frontend artifact has no managed DESIGN.md mapping; "
+                "use an explicit documentation migration to adopt one."
+            ],
+        }
+    if marker_count != 2:
+        return {
+            "required": True,
+            "pass": False,
+            "findings": ["Frontend design artifact has incomplete DESIGN.md mapping markers."],
+        }
+    script = pathlib.Path(__file__).resolve()
+    candidates = [script.parent / "design-md.py", project_root / ".ezpowers" / "tools" / "design-md.py"]
+    tool = next((candidate for candidate in candidates if candidate.is_file()), None)
+    if tool is None:
+        return {
+            "required": True,
+            "pass": False,
+            "findings": ["Installed DESIGN.md validator is missing."],
+        }
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(tool),
+                "check-project",
+                "--project-root",
+                str(project_root),
+                "--frontend-design",
+                str(design_artifact),
+                "--json",
+            ],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=90,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "required": True,
+            "pass": False,
+            "findings": [f"DESIGN.md validation could not run: {exc}"],
+        }
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        return {
+            "required": True,
+            "pass": False,
+            "findings": [
+                f"DESIGN.md validator returned invalid JSON (exit {completed.returncode})."
+            ],
+        }
+    passed = completed.returncode == 0 and payload.get("status") == "PASS"
+    findings = [
+        "Mapped DESIGN.md files and implementation ownership pass the installed profile."
+    ] if passed else [
+        str(message) for message in payload.get("errors", []) if isinstance(message, str)
+    ]
+    if not findings:
+        findings.append(f"DESIGN.md validation failed with exit {completed.returncode}.")
+    return {"required": True, "pass": passed, "findings": findings}
+
+
 def resolve_design_artifact(config: dict[str, Any], explicit: str | None) -> str:
     if explicit:
         return explicit
@@ -571,6 +653,11 @@ def run_check(
     )
 
     lanes = {
+        "design_system_mapping": design_system_state(
+            project_root,
+            design_artifact,
+            design_text,
+        ),
         "storybook_component_states": {
             "required": storybook_required,
             "pass": True if not storybook_required else contains_component_state_story(combined_text),

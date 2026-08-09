@@ -14,9 +14,10 @@ edits, delegates, isolates, reviews, and retries the work.
 
 Read `.ezpowers/contracts/plan-contract.md` and
 `.ezpowers/contracts/verification-contract.md`; they are the source of truth
-for the managed schema and check rules. Read the selected spec, architecture
-and frontend-design artifacts, repository instructions, the documentation
-graph when present, source, tests, CI commands, and `.ezpowers/config.json`.
+for the managed schema and check rules. Read the selected spec and its
+`design_context`, architecture and frontend-design artifacts, every applicable
+nearest `DESIGN.md`, repository instructions, the documentation graph when
+present, source, tests, CI commands, and `.ezpowers/config.json`.
 When the plan changes product-code module boundaries, read
 `.ezpowers/contracts/engineering-practices-contract.md` and preserve the
 focused `codebase-design` seams and regression checks in the task mapping.
@@ -32,7 +33,11 @@ dependencies, expected files, constraints, prerequisites, non-goals, and risks
 in Markdown. Add exactly one managed JSON block using the canonical plan
 contract. Map every criterion exactly once and bind it to real named or inline
 project checks. Preserve frontend, accessibility, integration, and visual
-oracles; missing tooling becomes an explicit prerequisite.
+oracles; missing tooling becomes an explicit prerequisite. For UI work,
+include code-to-DESIGN.md alignment and `check-project`. Reuse the exact
+required `ezpowers.design` check when registered; otherwise add it as a
+plan-local static check. Add the pinned official CLI command only when that
+package is already installed locally, always with `npx --no-install`.
 
 Run:
 
@@ -42,5 +47,6 @@ python .ezpowers/ezpowers.py validate --plan <plan-path> --json
 
 Missing, duplicate, unknown, or weakened coverage is blocking. Report the plan
 path, task order, exact criterion coverage, configured and plan-local checks,
-including the required `ezpowers.docs` check when documentation is ready, and
-unresolved prerequisites. Continue to `execute` only with a valid plan.
+including required `ezpowers.docs` and applicable `ezpowers.design` checks when
+documentation is ready, and unresolved prerequisites. Continue to `execute`
+only with a valid plan.

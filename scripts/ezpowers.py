@@ -32,7 +32,7 @@ from typing import Any, Iterable, Iterator
 
 
 SCHEMA_VERSION = 1
-KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.4.0/manifest.json")
+KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.5.0/manifest.json")
 CONFIG_RELATIVE_PATH = pathlib.Path(".ezpowers/config.json")
 STATE_RELATIVE_PATH = pathlib.Path(".ezpowers/state.json")
 LEDGER_RELATIVE_PATH = pathlib.Path(".ezpowers/ledger.json")
@@ -63,12 +63,25 @@ CHECK_KINDS = {
     "visual",
 }
 DOCS_CHECK_ID = "ezpowers.docs"
+DESIGN_CHECK_ID = "ezpowers.design"
+DEFAULT_DESIGN_PROFILE = "google-alpha-0.4.0-ezpowers-1"
 DOCS_ALLOWED_ROOT_FILES = {"AGENTS.md", "CLAUDE.md"}
 DOCS_AUTHORITIES = {"canonical", "supporting", "derived"}
 DOCS_STATUSES = {"draft", "active"}
 DOCS_OWNERS = {"ezpowers", "external"}
-DOCS_VALIDATORS = {"markdown", "spec", "plan"}
+DOCS_VALIDATORS = {"markdown", "spec", "plan", "design-md"}
 DOCS_LINK_RELATIONS = {"imports", "indexes", "parent", "references"}
+DOCS_RESERVED_DESIGN_PARTS = {
+    ".git",
+    ".ezpowers",
+    ".agents",
+    ".claude",
+    ".cache",
+    "node_modules",
+    "dist",
+    "build",
+    "target",
+}
 WIKI_CATEGORIES = {
     "architecture",
     "decision",
@@ -1237,14 +1250,95 @@ def _load_docs_registry(root: pathlib.Path) -> dict[str, Any]:
 def _safe_document_path(root: pathlib.Path, value: str, label: str) -> pathlib.Path:
     normalized = pathlib.PurePosixPath(value.replace("\\", "/")).as_posix()
     pure = pathlib.PurePosixPath(normalized)
+    design_md = (
+        pure.name == "DESIGN.md"
+        and not pure.is_absolute()
+        and ".." not in pure.parts
+        and not any(part.lower() in DOCS_RESERVED_DESIGN_PARTS for part in pure.parts)
+    )
     allowed = normalized in DOCS_ALLOWED_ROOT_FILES or (
         len(pure.parts) >= 2 and pure.parts[0] == "docs" and pure.suffix.lower() == ".md"
-    )
+    ) or design_md
     if not allowed:
         raise EZPowersError(
-            f"{label} must be AGENTS.md, CLAUDE.md, or Markdown under docs/: {value}"
+            f"{label} must be AGENTS.md, CLAUDE.md, Markdown under docs/, "
+            f"or a safe root/app DESIGN.md: {value}"
         )
     return _safe_target(root, normalized, label)
+
+
+def _design_tool_path(root: pathlib.Path) -> pathlib.Path:
+    candidates = [
+        root / ".ezpowers" / "tools" / "design-md.py",
+        pathlib.Path(__file__).resolve().parent / "design-md.py",
+        pathlib.Path(__file__).resolve().parent / "tools" / "design-md.py",
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    raise EZPowersError("installed DESIGN.md validator is missing")
+
+
+def _design_tool_payload(
+    root: pathlib.Path,
+    arguments: list[str],
+    *,
+    accepted_codes: set[int] | None = None,
+) -> tuple[dict[str, Any], int]:
+    accepted_codes = {0, 1} if accepted_codes is None else accepted_codes
+    tool = _design_tool_path(root)
+    try:
+        completed = subprocess.run(
+            [sys.executable, str(tool), *arguments, "--json"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=90,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise EZPowersError(f"DESIGN.md validator could not run: {exc}") from exc
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise EZPowersError(
+            f"DESIGN.md validator returned invalid JSON (exit {completed.returncode}): {detail[:1000]}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise EZPowersError("DESIGN.md validator JSON root must be an object")
+    if completed.returncode not in accepted_codes:
+        detail = payload.get("error") or completed.stderr.strip() or payload.get("status")
+        raise EZPowersError(
+            f"DESIGN.md validator failed with exit {completed.returncode}: {detail}"
+        )
+    return payload, completed.returncode
+
+
+def _validate_design_document(
+    root: pathlib.Path,
+    path: pathlib.Path,
+    profile: str,
+    *,
+    label: str,
+) -> dict[str, Any]:
+    payload, _ = _design_tool_payload(
+        root,
+        ["lint", "--file", str(path), "--profile", profile],
+    )
+    if payload.get("status") != "PASS":
+        messages = [
+            f"{item.get('rule')} {item.get('path')}: {item.get('message')}"
+            for item in payload.get("findings", [])
+            if isinstance(item, dict) and item.get("severity") == "error"
+        ]
+        raise EZPowersError(
+            f"{label} does not pass DESIGN.md profile {profile}"
+            + (":\n- " + "\n- ".join(messages) if messages else "")
+        )
+    return payload
 
 
 def _valid_evidence_reference(
@@ -1365,6 +1459,17 @@ def _load_docs_bundle(
             "evidence": list(evidence),
             "adopt": raw.get("adopt") is True,
         }
+        validator_profile = raw.get("validator_profile")
+        if validator == "design-md":
+            if not isinstance(validator_profile, str) or not ID_RE.fullmatch(validator_profile):
+                raise EZPowersError(
+                    f"documentation validator_profile is required for DESIGN.md: {target_name}"
+                )
+            normalized["validator_profile"] = validator_profile
+        elif validator_profile is not None:
+            raise EZPowersError(
+                f"documentation validator_profile is only valid with design-md: {target_name}"
+            )
         if ownership == "ezpowers":
             source_name = pathlib.PurePosixPath(
                 str(raw.get("source", "")).replace("\\", "/")
@@ -1389,8 +1494,15 @@ def _load_docs_bundle(
                         raise EZPowersError(
                             f"{target_name} frontmatter.status must match its bundle entry"
                         )
-            else:
+            elif validator in {"spec", "plan"}:
                 _extract_block(source, validator)
+            else:
+                _validate_design_document(
+                    root,
+                    source,
+                    normalized["validator_profile"],
+                    label=target_name,
+                )
             normalized["source"] = source_name
             normalized["data"] = data
             normalized["sha256"] = _sha256_bytes(data)
@@ -1400,6 +1512,13 @@ def _load_docs_bundle(
                 raise EZPowersError(f"external documentation target is missing: {target_name}")
             if validator in {"spec", "plan"}:
                 _extract_block(target, validator)
+            elif validator == "design-md":
+                _validate_design_document(
+                    root,
+                    target,
+                    normalized["validator_profile"],
+                    label=target_name,
+                )
         normalized_documents.append(normalized)
 
     for entry in normalized_documents:
@@ -1482,13 +1601,43 @@ def _docs_preview(
                 action = "conflict"
                 reason = "unmanaged document exists"
                 conflicts.append(f"{entry['path']}: {reason}")
-        actions.append(
-            {
-                "path": entry["path"],
-                "action": action,
-                **({"reason": reason} if reason else {}),
-            }
-        )
+        action_entry: dict[str, Any] = {
+            "path": entry["path"],
+            "action": action,
+            **({"reason": reason} if reason else {}),
+        }
+        if entry["validator"] == "design-md" and entry["ownership"] == "ezpowers":
+            proposed = _safe_target(
+                bundle,
+                entry["source"],
+                "documentation bundle source",
+            )
+            if exists:
+                design_review, _ = _design_tool_payload(
+                    root,
+                    [
+                        "diff",
+                        "--before",
+                        str(target),
+                        "--after",
+                        str(proposed),
+                        "--profile",
+                        entry["validator_profile"],
+                    ],
+                )
+            else:
+                design_review, _ = _design_tool_payload(
+                    root,
+                    [
+                        "lint",
+                        "--file",
+                        str(proposed),
+                        "--profile",
+                        entry["validator_profile"],
+                    ],
+                )
+            action_entry["design_review"] = design_review
+        actions.append(action_entry)
         target_states.append({"path": entry["path"], "sha256": current_sha})
         token_documents.append(
             {
@@ -1539,7 +1688,46 @@ def _docs_desired_check() -> dict[str, Any]:
     }
 
 
-def _config_with_docs_check(root: pathlib.Path) -> dict[str, Any]:
+def _design_desired_check(frontend_design: str) -> dict[str, Any]:
+    return {
+        "argv": [
+            sys.executable,
+            ".ezpowers/tools/design-md.py",
+            "check-project",
+            "--project-root",
+            ".",
+            "--frontend-design",
+            frontend_design,
+            "--json",
+        ],
+        "cwd": ".",
+        "timeout_seconds": 90,
+        "kind": "static",
+    }
+
+
+def _frontend_design_for_documents(documents: dict[str, Any]) -> str | None:
+    if not any(
+        isinstance(node, dict) and node.get("validator") == "design-md"
+        for node in documents.values()
+    ):
+        return None
+    candidates = sorted(
+        path
+        for path, node in documents.items()
+        if isinstance(path, str)
+        and isinstance(node, dict)
+        and node.get("role") == "frontend-design"
+    )
+    if len(candidates) != 1:
+        raise EZPowersError(
+            "a documentation graph with DESIGN.md entries requires exactly one "
+            "frontend-design role"
+        )
+    return candidates[0]
+
+
+def _config_with_docs_check(root: pathlib.Path, documents: dict[str, Any]) -> dict[str, Any]:
     config_path = root / CONFIG_RELATIVE_PATH
     config = _read_json(config_path)
     checks = config.setdefault("checks", {})
@@ -1555,6 +1743,17 @@ def _config_with_docs_check(root: pathlib.Path) -> dict[str, Any]:
     checks[DOCS_CHECK_ID] = desired
     if DOCS_CHECK_ID not in required:
         required.append(DOCS_CHECK_ID)
+    frontend_design = _frontend_design_for_documents(documents)
+    if frontend_design is not None:
+        design_desired = _design_desired_check(frontend_design)
+        design_existing = checks.get(DESIGN_CHECK_ID)
+        if design_existing is not None and design_existing != design_desired:
+            raise InstallConflict(
+                f"conflict: config check {DESIGN_CHECK_ID} already has a different definition"
+            )
+        checks[DESIGN_CHECK_ID] = design_desired
+        if DESIGN_CHECK_ID not in required:
+            required.append(DESIGN_CHECK_ID)
     errors: list[str] = []
     _validate_config_value(root, config, errors)
     if errors:
@@ -1632,6 +1831,8 @@ def _docs_apply_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
                 "validator": entry["validator"],
                 "evidence": entry["evidence"],
             }
+            if entry["validator"] == "design-md":
+                node["validator_profile"] = entry["validator_profile"]
             if entry["ownership"] == "ezpowers":
                 node["sha256"] = entry["sha256"]
             updated_documents[entry["path"]] = node
@@ -1653,7 +1854,7 @@ def _docs_apply_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
         config_update: dict[str, Any] | None = None
         required_check: dict[str, Any] | None = registry.get("required_check")
         if manifest.get("status", "ready") == "ready":
-            config_update = _config_with_docs_check(root)
+            config_update = _config_with_docs_check(root, updated_documents)
             required_check = config_update["checks"][DOCS_CHECK_ID]
         registry.update(
             {
@@ -1806,6 +2007,20 @@ def _docs_lint_payload(root: pathlib.Path) -> tuple[dict[str, Any], int]:
                 _extract_block(path, str(validator))
             except EZPowersError as exc:
                 errors.append(str(exc))
+        elif validator == "design-md":
+            validator_profile = raw.get("validator_profile")
+            if not isinstance(validator_profile, str) or not ID_RE.fullmatch(validator_profile):
+                errors.append(f"{path_name}: invalid DESIGN.md validator_profile")
+            else:
+                try:
+                    _validate_design_document(
+                        root,
+                        path,
+                        validator_profile,
+                        label=path_name,
+                    )
+                except EZPowersError as exc:
+                    errors.append(str(exc))
         elif ownership == "ezpowers":
             try:
                 _validate_generated_markdown(text, label=path_name)
@@ -1908,6 +2123,39 @@ def _docs_lint_payload(root: pathlib.Path) -> tuple[dict[str, Any], int]:
             errors.append(f"config check {DOCS_CHECK_ID} is missing or changed")
         if not isinstance(required, list) or DOCS_CHECK_ID not in required:
             errors.append(f"config required_checks is missing {DOCS_CHECK_ID}")
+        try:
+            frontend_design = _frontend_design_for_documents(documents)
+        except EZPowersError as exc:
+            errors.append(str(exc))
+            frontend_design = None
+        if frontend_design is not None:
+            expected_design_check = _design_desired_check(frontend_design)
+            if (
+                not isinstance(checks, dict)
+                or checks.get(DESIGN_CHECK_ID) != expected_design_check
+            ):
+                errors.append(f"config check {DESIGN_CHECK_ID} is missing or changed")
+            if not isinstance(required, list) or DESIGN_CHECK_ID not in required:
+                errors.append(f"config required_checks is missing {DESIGN_CHECK_ID}")
+            try:
+                design_payload, _ = _design_tool_payload(
+                    root,
+                    [
+                        "check-project",
+                        "--project-root",
+                        ".",
+                        "--frontend-design",
+                        frontend_design,
+                    ],
+                )
+                if design_payload.get("status") != "PASS":
+                    errors.extend(
+                        f"{DESIGN_CHECK_ID}: {message}"
+                        for message in design_payload.get("errors", [])
+                        if isinstance(message, str)
+                    )
+            except EZPowersError as exc:
+                errors.append(str(exc))
     except EZPowersError as exc:
         errors.append(str(exc))
     payload = {
@@ -2808,6 +3056,75 @@ def _extract_block(path: pathlib.Path, kind: str) -> dict[str, Any]:
     return value
 
 
+def _validate_design_context(
+    root: pathlib.Path,
+    spec: dict[str, Any],
+    errors: list[str],
+) -> dict[str, Any] | None:
+    """Validate the additive v5.5 design context while accepting legacy specs."""
+    if "design_context" not in spec:
+        return None
+    value = spec.get("design_context")
+    if not isinstance(value, dict) or not isinstance(value.get("required"), bool):
+        errors.append("spec.design_context must be an object with boolean required")
+        return None
+    if value["required"] is False:
+        reason = value.get("reason")
+        if not isinstance(reason, str) or not reason.strip():
+            errors.append("spec.design_context.reason is required when UI design is not required")
+        if "frontend_artifact" in value or "systems" in value:
+            errors.append(
+                "spec.design_context must not name frontend artifacts when required is false"
+            )
+        return value
+
+    frontend_artifact = value.get("frontend_artifact")
+    systems = value.get("systems")
+    if not isinstance(frontend_artifact, str) or not frontend_artifact:
+        errors.append(
+            "spec.design_context.frontend_artifact is required for UI work"
+        )
+    else:
+        try:
+            path = _safe_document_path(
+                root,
+                frontend_artifact,
+                "spec.design_context.frontend_artifact",
+            )
+            if path.name == "DESIGN.md":
+                errors.append(
+                    "spec.design_context.frontend_artifact must name the broader frontend design artifact"
+                )
+        except EZPowersError as exc:
+            errors.append(str(exc))
+    if (
+        not isinstance(systems, list)
+        or not systems
+        or any(not isinstance(item, str) or not item for item in systems)
+    ):
+        errors.append(
+            "spec.design_context.systems must be a non-empty DESIGN.md path array"
+        )
+    else:
+        normalized: set[str] = set()
+        for item in systems:
+            try:
+                path = _safe_document_path(root, item, "spec.design_context.system")
+                relative = _relative(root, path)
+                if pathlib.PurePosixPath(relative).name != "DESIGN.md":
+                    errors.append(
+                        f"spec.design_context system must end in DESIGN.md: {item}"
+                    )
+                if relative in normalized:
+                    errors.append(
+                        f"spec.design_context contains duplicate system: {relative}"
+                    )
+                normalized.add(relative)
+            except EZPowersError as exc:
+                errors.append(str(exc))
+    return value
+
+
 def _validate_spec_document(
     root: pathlib.Path,
     spec_argument: str | pathlib.Path,
@@ -2831,6 +3148,7 @@ def _validate_spec_document(
         return spec_path, {}, {}
     if spec.get("schema_version") != SCHEMA_VERSION:
         errors.append("spec schema_version must be 1")
+    _validate_design_context(root, spec, errors)
 
     criteria_by_id: dict[str, dict[str, Any]] = {}
     criteria = spec.get("criteria", [])
@@ -3806,7 +4124,13 @@ def _load_chain_run_bundle(
         raise EZPowersError("chain run files must be a non-empty array")
     files: list[dict[str, Any]] = []
     seen_targets: set[str] = set()
-    role_counts: dict[str, int] = {"spec": 0, "plan": 0, "oracle": 0}
+    role_counts: dict[str, int] = {
+        "spec": 0,
+        "plan": 0,
+        "oracle": 0,
+        "frontend-design": 0,
+        "design-system": 0,
+    }
     for index, raw in enumerate(raw_files):
         if not isinstance(raw, dict):
             raise EZPowersError(f"chain run files[{index}] must be an object")
@@ -3834,6 +4158,16 @@ def _load_chain_run_bundle(
             target_name.startswith("docs/plans/") and target_name.endswith(".md")
         ):
             raise EZPowersError("chain plan target must be under docs/plans/")
+        if role == "frontend-design":
+            _safe_document_path(root, target_name, "chain frontend-design target")
+            if pathlib.PurePosixPath(target_name).name == "DESIGN.md":
+                raise EZPowersError(
+                    "chain frontend-design target must be the broader UX artifact"
+                )
+        if role == "design-system":
+            _safe_document_path(root, target_name, "chain design-system target")
+            if pathlib.PurePosixPath(target_name).name != "DESIGN.md":
+                raise EZPowersError("chain design-system target must end in DESIGN.md")
         if role == "oracle" and (
             target_name.startswith(".ezpowers/")
             or target_name.startswith(".git/")
@@ -3873,6 +4207,184 @@ def _load_chain_run_bundle(
         spec_target=spec_entry["target"],
         plan_path=plan_entry["source_path"],
     )
+    design_context = flow["spec"].get("design_context")
+    design_entries = [item for item in files if item["role"] == "design-system"]
+    frontend_entries = [item for item in files if item["role"] == "frontend-design"]
+    if isinstance(design_context, dict) and design_context.get("required") is True:
+        if len(frontend_entries) != 1 or not design_entries:
+            raise EZPowersError(
+                "UI chain run requires exactly one frontend-design file and at "
+                "least one design-system file"
+            )
+        expected_frontend = design_context.get("frontend_artifact")
+        expected_systems = design_context.get("systems")
+        if frontend_entries[0]["target"] != expected_frontend:
+            raise EZPowersError(
+                "chain frontend-design target must match spec.design_context.frontend_artifact"
+            )
+        actual_systems = {item["target"] for item in design_entries}
+        if not isinstance(expected_systems, list) or actual_systems != set(expected_systems):
+            raise EZPowersError(
+                "chain design-system targets must exactly match spec.design_context.systems"
+            )
+        frontend_value = _extract_block(
+            frontend_entries[0]["source_path"],
+            "frontend-design",
+        )
+        raw_design_systems = frontend_value.get("design_systems")
+        if (
+            frontend_value.get("schema_version") != SCHEMA_VERSION
+            or not isinstance(raw_design_systems, list)
+            or not raw_design_systems
+        ):
+            raise EZPowersError(
+                "staged frontend-design managed block must contain design_systems"
+            )
+        mapped_paths: set[str] = set()
+        entry_by_target = {item["target"]: item for item in design_entries}
+        mapped_roots: list[tuple[str, int]] = []
+        claimed_roots: set[str] = set()
+        mapped_implementations: list[tuple[str, int, str]] = []
+        for index, raw_system in enumerate(raw_design_systems):
+            if not isinstance(raw_system, dict):
+                raise EZPowersError(
+                    f"frontend-design design_systems[{index}] must be an object"
+                )
+            design_path = raw_system.get("path")
+            profile = raw_system.get("profile")
+            roots = raw_system.get("frontend_roots")
+            implementation_paths = raw_system.get("implementation_paths")
+            if not isinstance(design_path, str) or design_path not in entry_by_target:
+                raise EZPowersError(
+                    "frontend-design mapping must name every staged design-system target"
+                )
+            if design_path in mapped_paths:
+                raise EZPowersError(
+                    f"duplicate frontend-design design system mapping: {design_path}"
+                )
+            mapped_paths.add(design_path)
+            if not isinstance(profile, str) or not ID_RE.fullmatch(profile):
+                raise EZPowersError(
+                    f"frontend-design design_systems[{index}].profile is invalid"
+                )
+            if (
+                not isinstance(roots, list)
+                or not roots
+                or any(not isinstance(item, str) for item in roots)
+            ):
+                raise EZPowersError(
+                    f"frontend-design design_systems[{index}].frontend_roots is invalid"
+                )
+            if (
+                not isinstance(implementation_paths, list)
+                or not implementation_paths
+                or any(not isinstance(item, str) for item in implementation_paths)
+            ):
+                raise EZPowersError(
+                    f"frontend-design design_systems[{index}].implementation_paths is invalid"
+                )
+            normalized_roots: list[str] = []
+            design_parent = pathlib.PurePosixPath(design_path).parent.as_posix()
+            design_parent_parts = (
+                ()
+                if design_parent == "."
+                else pathlib.PurePosixPath(design_parent).parts
+            )
+            for root_name in roots:
+                root_path = _contained_path(
+                    root,
+                    root_name,
+                    label="frontend design root",
+                    must_exist=True,
+                    directory=True,
+                )
+                root_relative = _relative(root, root_path)
+                root_parts = (
+                    ()
+                    if root_relative == "."
+                    else pathlib.PurePosixPath(root_relative).parts
+                )
+                if root_relative in claimed_roots:
+                    raise EZPowersError(
+                        f"frontend root is assigned more than once: {root_relative}"
+                    )
+                if root_parts[: len(design_parent_parts)] != design_parent_parts:
+                    raise EZPowersError(
+                        f"{design_path} must be at or above frontend root {root_relative}"
+                    )
+                claimed_roots.add(root_relative)
+                normalized_roots.append(root_relative)
+                mapped_roots.append((root_relative, index))
+            for implementation in implementation_paths:
+                implementation_path = _contained_path(
+                    root,
+                    implementation,
+                    label="frontend implementation path",
+                    must_exist=True,
+                )
+                implementation_relative = _relative(root, implementation_path)
+                implementation_parts = pathlib.PurePosixPath(
+                    implementation_relative
+                ).parts
+                implementation_is_mapped = False
+                for root_name in normalized_roots:
+                    root_parts = (
+                        ()
+                        if root_name == "."
+                        else pathlib.PurePosixPath(root_name).parts
+                    )
+                    if implementation_parts[: len(root_parts)] == root_parts:
+                        implementation_is_mapped = True
+                        break
+                if not implementation_is_mapped:
+                    raise EZPowersError(
+                        f"{implementation_relative} is outside the frontend roots for {design_path}"
+                    )
+                mapped_implementations.append(
+                    (implementation_relative, index, design_path)
+                )
+            _validate_design_document(
+                root,
+                entry_by_target[design_path]["source_path"],
+                profile,
+                label=design_path,
+            )
+        if mapped_paths != actual_systems:
+            raise EZPowersError(
+                "frontend-design mappings must exactly match staged design-system targets"
+            )
+        for implementation, owner, design_path in mapped_implementations:
+            implementation_parts = pathlib.PurePosixPath(implementation).parts
+            candidates: list[tuple[str, int, int]] = []
+            for root_name, candidate_owner in mapped_roots:
+                root_parts = (
+                    ()
+                    if root_name == "."
+                    else pathlib.PurePosixPath(root_name).parts
+                )
+                if implementation_parts[: len(root_parts)] == root_parts:
+                    candidates.append((root_name, candidate_owner, len(root_parts)))
+            if not candidates:
+                raise EZPowersError(
+                    f"no DESIGN.md mapping applies to {implementation}"
+                )
+            nearest_depth = max(item[2] for item in candidates)
+            nearest = [item for item in candidates if item[2] == nearest_depth]
+            if len(nearest) != 1 or nearest[0][1] != owner:
+                selected = (
+                    raw_design_systems[nearest[0][1]].get("path")
+                    if len(nearest) == 1
+                    and isinstance(raw_design_systems[nearest[0][1]], dict)
+                    else "ambiguous mapping"
+                )
+                raise EZPowersError(
+                    f"{implementation} is claimed by {design_path} but nearest "
+                    f"mapping is {selected}"
+                )
+    elif design_entries or frontend_entries:
+        raise EZPowersError(
+            "chain design files require spec.design_context.required to be true"
+        )
     oracle_targets = {
         item["target"] for item in files if item["role"] == "oracle"
     }

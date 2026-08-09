@@ -15,6 +15,7 @@ class FrontendDesignReadinessTests(unittest.TestCase):
         design = self.read("skills/design-architecture/SKILL.md")
 
         self.assertIn("reference/frontend-design-contract.md", index)
+        self.assertIn("reference/design-md-profile.json", index)
         for text in (setup, design):
             self.assertIn("frontend-design", text)
         self.assertIn("docs/ux/frontend-design.md", design)
@@ -26,6 +27,8 @@ class FrontendDesignReadinessTests(unittest.TestCase):
 
         for text in (spec, plan, contract):
             self.assertIn("frontend-design", text)
+            self.assertIn("DESIGN.md", text)
+        self.assertIn("design_context", spec)
         self.assertIn("accessibility", plan.lower())
         self.assertIn("visual", plan.lower())
         self.assertIn(
@@ -47,10 +50,25 @@ class FrontendDesignReadinessTests(unittest.TestCase):
         self.assertIn("Playwright availability alone is not enough", contract)
         self.assertIn("BackstopJS", contract)
 
+    def test_design_md_profile_and_offline_tools_are_maintainable(self):
+        contract = self.read("docs/reference/frontend-design-contract.md")
+        profile = self.read("docs/reference/design-md-profile.json")
+        agents = self.read("AGENTS.md")
+
+        self.assertIn("google-alpha-0.4.0-ezpowers-1", profile)
+        self.assertIn("9bf8eae67128b6cc55ad9bf86665767deb4c11cd", profile)
+        self.assertIn('"orphaned-tokens": "info"', profile)
+        self.assertIn('"runtime-upstream-fetch"', profile)
+        self.assertIn("design-md.py lint", contract)
+        self.assertIn("check-design-md-upstream.py", contract)
+        self.assertIn("never installs a package", contract)
+        self.assertIn("nearest mapped `DESIGN.md`", agents)
+
     def test_frontend_skill_has_reference_and_no_codegen_shortcut(self):
         skill = self.read("skills/frontend-design/SKILL.md")
 
         self.assertIn(".ezpowers/contracts/frontend-design-contract.md", skill)
+        self.assertIn("docs/reference/design-md-profile.json", skill)
         self.assertIn("Do not implement product UI code", skill)
         self.assertIn("Propose 2-3 distinct design directions", skill)
         self.assertIn("state matrix", skill)

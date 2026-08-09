@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-07-30T05:16:52Z",
+  "updated_at": "2026-08-09T05:17:52Z",
   "features": [
     {
       "id": "F11",
@@ -20,7 +20,7 @@
         "tests/test_v5_workflow_surface.py",
         "scripts/runtime_smoke.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.4.0/manifest.json"
+        "project-kit/v5.5.0/manifest.json"
       ]
     },
     {
@@ -33,14 +33,14 @@
         "A ready graph registers deterministic documentation lint as a required project check",
         "The installed wiki skill supports local Markdown add, read, list, CJK query, lint, refresh, promotion, and backup-first prune operations",
         "Claude and Codex SessionEnd capture is separately opt-in, allowlisted, best effort, and excluded from completion freshness",
-        "The current v5.4 project kit and both plugin manifests preserve the same thirteen-project-skill and fourteen-plugin-skill surface"
+        "The current v5.5 project kit and both plugin manifests preserve the same thirteen-project-skill and fourteen-plugin-skill surface"
       ],
       "evidence": [
         "docs/reference/documentation-contract.md",
         "docs/reference/wiki-contract.md",
         "tests/test_ezpowers_docs_wiki.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.4.0/manifest.json"
+        "project-kit/v5.5.0/manifest.json"
       ]
     },
     {
@@ -55,7 +55,7 @@
         "Validation, review, QA, identical-error, and continuation limits become terminal on the attempt that reaches the approved limit, including a configured limit of one",
         "A failed oracle audit consumes its exact preview, while failed verification, code review, or QA requires changed repository content and a new all-scope PASS before the chain can review again",
         "Certification requires fresh real command evidence, a bound independent code-review receipt, and adversarial QA when approved risks or project triggers require it",
-        "The v5.4 project kit exposes thirteen project skills and ten contracts while the plugin exposes those skills plus the plugin-only hud utility"
+        "The v5.5 project kit exposes thirteen project skills and eleven contracts while the plugin exposes those skills plus the plugin-only hud utility"
       ],
       "evidence": [
         "docs/reference/harness-chain-contract.md",
@@ -63,7 +63,7 @@
         "skills/harness-chain/SKILL.md",
         "tests/test_harness_chain.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.4.0/manifest.json"
+        "project-kit/v5.5.0/manifest.json"
       ]
     },
     {
@@ -87,7 +87,7 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_harness_chain.py",
         "tests/test_codex_hud.py",
-        "project-kit/v5.4.0/manifest.json"
+        "project-kit/v5.5.0/manifest.json"
       ]
     },
     {
@@ -107,7 +107,7 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.4.0/manifest.json"
+        "project-kit/v5.5.0/manifest.json"
       ]
     },
     {
@@ -121,7 +121,7 @@
         "The standard-library architecture report renderer validates strict v2 input with real file-line evidence, decision context, semantic graph styles, top-recommendation rationale, and input/source/report hashes; it escapes untrusted content, has no remote or script dependency, and writes atomically outside the repository without overwrite",
         "A representative isolated fixture verifies the report and post-selection boundaries; actual Claude and Codex probes distinguish hosted-model conformance from external authentication or sandbox blockers",
         "The pinned upstream commit and complete MIT notice are installed in one canonical engineering-practices contract, with no runtime upstream fetch",
-        "F20 supersedes only the catalog counts: the v5.4.0 catalog exposes fourteen plugin skills and installs thirteen project skills, ten contracts, and two tools with dual-host metadata parity",
+        "F21 supersedes only the contract and tool counts: the v5.5.0 catalog exposes fourteen plugin skills and installs thirteen project skills, eleven contracts, and three tools with dual-host metadata parity",
         "Existing v5.2 projects require explicit refresh, managed conflicts fail without partial replacement, and a changed kit identity stales prior completion evidence"
       ],
       "evidence": [
@@ -137,7 +137,7 @@
         "scripts/plugin_smoke.py",
         "tests/test_v5_workflow_surface.py",
         "tests/test_ezpowers_runtime.py",
-        "project-kit/v5.4.0/manifest.json"
+        "project-kit/v5.5.0/manifest.json"
       ]
     },
     {
@@ -160,7 +160,7 @@
         "docs/reference/engineering-practices-contract.md",
         "tests/test_v5_workflow_surface.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.4.0/manifest.json",
+        "project-kit/v5.5.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -184,7 +184,7 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.4.0/manifest.json",
+        "project-kit/v5.5.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -199,7 +199,7 @@
         "When exact red cannot be produced, diagnose reports real attempts and requests the specific missing access, capture, or instrumentation without hypotheses or a speculative product patch",
         "After the gate, falsifiable hypotheses remain evidence probes and FIX-COMPLETE still owns the regression red/green signal, source-cause patch, original-symptom rerun, affected checks, and cleanup",
         "Deterministic tests validate the contract and fixture receipts, while an opt-in dual-host probe verifies baseline-red-before-patch and no-edit blocker behavior with real Claude and Codex calls",
-        "The v5.4.0 plugin metadata, canonical guidance, and project-kit hashes expose the same gate; the diagnosis change itself adds no skill or completion authority"
+        "The v5.5.0 plugin metadata, canonical guidance, and project-kit hashes expose the same gate; the diagnosis change itself adds no skill or completion authority"
       ],
       "evidence": [
         "skills/diagnose/SKILL.md",
@@ -209,7 +209,7 @@
         "tests/test_v5_workflow_surface.py",
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.4.0/manifest.json",
+        "project-kit/v5.5.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -224,7 +224,7 @@
         "Alternatives, objections, reversals, chronology, measurements, and PASS/FAIL claims appear only when actually considered or observed, with observation separated from inference and unverified possibility",
         "Fixed-schema specs, plans, JSON, tool output, receipts, certificates, and exact states remain unchanged, and the presentation skill adds no tools, workflow transition, write authority, retry policy, or completion authority",
         "The SKILL.md body stays at or below 450 words with no mandatory reference or sample load; a pinned Apache-2.0 license and modification notice are installed byte-identically beside all project skill copies",
-        "Claude and Codex expose the same implicit skill contract with namespaced and project-local prompt metadata in the fourteen-plugin-skill and thirteen-project-skill v5.4.0 catalog",
+        "Claude and Codex expose the same implicit skill contract with namespaced and project-local prompt metadata in the fourteen-plugin-skill and thirteen-project-skill v5.5.0 catalog",
         "Deterministic tests validate rule order, prompt size, provenance, installed license parity, manifest inventory, Korean guide coverage, and isolated host discovery"
       ],
       "evidence": [
@@ -237,7 +237,38 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.4.0/manifest.json",
+        "project-kit/v5.5.0/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
+      ]
+    },
+    {
+      "id": "F21",
+      "title": "Maintainable DESIGN.md frontend contract",
+      "status": "complete",
+      "success_criteria": [
+        "Frontend design keeps the broad docs/ux/frontend-design.md contract and adds a normative DESIGN.md per independent visual brand, with the nearest declared frontend-root mapping winning without merging",
+        "A pinned offline profile selectively adopts Google design.md alpha tokens, sections, references, lint, diff, and review semantics without adding export, code generation, runtime network access, or an automatic upstream migration",
+        "The self-contained design-md tool validates deterministic frontmatter, token references, values, sections, contrast, project-safe mappings, and regressions; an exact locally installed official CLI is only an optional no-install cross-check",
+        "Managed documentation preview, apply, lint, adoption, backup, and profile migration retain explicit ownership, while a ready graph installs the profile and tools and registers the exact ezpowers.design check",
+        "New UI specs carry strict design_context, plans and execution retain mapped checks, and harness-chain approvals freeze the broad artifact plus every applicable DESIGN.md so changes require reapproval",
+        "The current EZPowers guide maps its existing CSS tokens without a visual redesign, and v5.5.0 plugin metadata, contracts, skills, tests, and the project-kit manifest expose the same maintainable workflow"
+      ],
+      "evidence": [
+        "DESIGN.md",
+        "docs/ux/frontend-design.md",
+        "docs/reference/design-md-profile.json",
+        "docs/reference/frontend-design-contract.md",
+        "scripts/design-md.py",
+        "scripts/check-design-md-upstream.py",
+        "scripts/frontend-visual-readiness.py",
+        "scripts/ezpowers.py",
+        "skills/frontend-design/SKILL.md",
+        "tests/test_design_md.py",
+        "tests/test_ezpowers_docs_wiki.py",
+        "tests/test_ezpowers_runtime.py",
+        "tests/test_harness_chain.py",
+        "project-kit/v5.5.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]

@@ -68,6 +68,83 @@ def managed_block(kind: str, payload: dict) -> str:
     ).strip() + "\n"
 
 
+def add_ui_design_files(bundle: pathlib.Path) -> None:
+    manifest_path = bundle / "bundle.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    spec = {
+        "schema_version": 1,
+        "design_context": {
+            "required": True,
+            "frontend_artifact": "docs/ux/frontend-design.md",
+            "systems": ["DESIGN.md"],
+        },
+        "criteria": [
+            {
+                "id": "AC-1",
+                "requirement_id": "R1",
+                "claim": "The public value function returns five.",
+                "verify_type": "cli",
+                "integration": False,
+            }
+        ],
+    }
+    (bundle / "spec.md").write_text(managed_block("spec", spec), encoding="utf-8")
+    design = textwrap.dedent(
+        """\
+        ---
+        version: alpha
+        name: Chain Fixture
+        omitted: ["typography", "rounded", "spacing", "components"]
+        colors:
+          primary: "#315bdc"
+        ---
+        # Chain Fixture
+
+        ## Overview
+        UI contract fixture.
+
+        ## Colors
+        Primary action color.
+        """
+    )
+    (bundle / "DESIGN.md").write_text(design, encoding="utf-8")
+    mapping = {
+        "schema_version": 1,
+        "design_systems": [
+            {
+                "path": "DESIGN.md",
+                "profile": "google-alpha-0.4.0-ezpowers-1",
+                "frontend_roots": ["."],
+                "implementation_paths": ["index.html"],
+            }
+        ],
+    }
+    (bundle / "frontend-design.md").write_text(
+        "# Chain Frontend Design\n\n"
+        "<!-- ezpowers:frontend-design:start -->\n```json\n"
+        + json.dumps(mapping, indent=2)
+        + "\n```\n<!-- ezpowers:frontend-design:end -->\n",
+        encoding="utf-8",
+    )
+    manifest["stage_selection"]["frontend_design"] = {
+        "selected": True,
+        "reason": "The approved feature changes a UI surface.",
+    }
+    manifest["files"][2:2] = [
+        {
+            "role": "frontend-design",
+            "source": "frontend-design.md",
+            "target": "docs/ux/frontend-design.md",
+        },
+        {
+            "role": "design-system",
+            "source": "DESIGN.md",
+            "target": "DESIGN.md",
+        },
+    ]
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+
 class ChainProject:
     def __init__(self, root: pathlib.Path) -> None:
         self.root = root
@@ -810,6 +887,56 @@ class HarnessChainTests(unittest.TestCase):
                 "NEEDS_REAPPROVAL",
                 json.loads(status.stdout)["status"],
             )
+
+    def test_ui_design_context_requires_and_freezes_paired_design_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            (project.root / "index.html").write_text("<!doctype html>\n", encoding="utf-8")
+            project.commit_all("frontend fixture")
+            project.configure()
+            missing_bundle = project.write_run_bundle(run_id="ui-missing")
+            add_ui_design_files(missing_bundle)
+            missing_manifest_path = missing_bundle / "bundle.json"
+            missing_manifest = json.loads(missing_manifest_path.read_text(encoding="utf-8"))
+            missing_manifest["files"] = [
+                item
+                for item in missing_manifest["files"]
+                if item["role"] not in {"frontend-design", "design-system"}
+            ]
+            missing_manifest_path.write_text(
+                json.dumps(missing_manifest, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            rejected = project.command(
+                "chain",
+                "run",
+                "preview",
+                "--bundle",
+                str(missing_bundle),
+                "--json",
+            )
+            self.assertEqual(2, rejected.returncode, rejected.stdout + rejected.stderr)
+            self.assertIn("frontend-design", rejected.stdout + rejected.stderr)
+
+            bundle = project.write_run_bundle(run_id="ui-run")
+            add_ui_design_files(bundle)
+            applied = project.approve(bundle)
+            approval = json.loads(
+                (project.root / applied["approval_path"]).read_text(encoding="utf-8")
+            )
+            frozen_paths = {
+                item["path"] for item in approval["files"]
+            }
+            self.assertIn("DESIGN.md", frozen_paths)
+            self.assertIn("docs/ux/frontend-design.md", frozen_paths)
+            (project.root / "DESIGN.md").write_text(
+                (project.root / "DESIGN.md").read_text(encoding="utf-8")
+                + "\nChanged after approval.\n",
+                encoding="utf-8",
+            )
+            status = project.command("chain", "run", "status", "--json")
+            project.assert_success(status)
+            self.assertEqual("NEEDS_REAPPROVAL", json.loads(status.stdout)["status"])
 
     def test_third_validation_failure_is_terminal_without_an_extra_pass(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

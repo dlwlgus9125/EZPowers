@@ -65,6 +65,8 @@ EZPowers owns:
 - a pinned, installed engineering-practices contract and deterministic,
   standard-library architecture-report renderer;
 - thin host adapters and optional frontend readiness detection;
+- paired broad frontend and nearest DESIGN.md contracts with pinned offline
+  validation, change review, and managed maintenance gates;
 - compact cross-host presentation guidance for evidence-grounded explanations.
 
 Claude Code and Codex own code changes, shell UX, model choice, spawning
@@ -103,6 +105,11 @@ EZPowers does not require an external shared repository or executor.
   graphs pass a required deterministic lint.
 - Documentation replacement is preview-bound, preserves unmanaged edits, and
   backs up explicitly forced targets.
+- UI maintenance resolves the nearest mapped DESIGN.md as the normative token
+  and reusable-component source while the broad artifact retains UX, state,
+  responsive, accessibility, and visual-QA ownership.
+- New specs declare design applicability, and UI plans, required checks, and
+  explicit chain approvals carry and freeze both artifact types.
 - Local wiki capture never stores transcripts or affects completion freshness.
 - Every acceptance criterion is mapped exactly once to executable checks.
 - Integration criteria require a real integration, end-to-end, or smoke check.

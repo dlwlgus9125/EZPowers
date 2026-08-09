@@ -1,6 +1,6 @@
 # Setup Contract
 
-This contract defines installation of the self-contained v5.4 project kit.
+This contract defines installation of the self-contained v5.5 project kit.
 `setup` configures deterministic project checks and may stage the
 repository-aware documentation workflow defined by
 `documentation-contract.md`; it does not configure an external executor or
@@ -9,7 +9,8 @@ choose how a host performs implementation.
 ## Inspect First
 
 Read project instructions, existing Markdown, manifests, source roots, package
-scripts, CI files, tests, existing specs and plans, and any
+scripts, CI files, tests, existing specs and plans, root or app-local
+`DESIGN.md` files, and any
 `.ezpowers/config.json` or `.ezpowers/docs.json`. Infer checks and documentation
 claims only from repository evidence. Ask one question at a time for a required
 command, authority choice, or completion condition that cannot be established
@@ -45,7 +46,7 @@ For an installed project upgraded from the current plugin distribution:
 python <plugin-root>/scripts/ezpowers.py install --project-root <project> --refresh
 ```
 
-An existing v5.2 installation does not update implicitly. The explicit refresh
+An older v5 installation does not update implicitly. The explicit refresh
 changes the installed kit identity and makes prior completion evidence stale.
 If any managed target differs from its ledger hash, refresh reports every
 conflict and writes none of the replacement set.
@@ -84,6 +85,7 @@ The manifest and ledger must make these files locally available:
   contracts/...
   tools/frontend-visual-readiness.py
   tools/architecture-review-report.py
+  tools/design-md.py
 .claude/skills/<thirteen-project-skills>/...
 .agents/skills/<thirteen-project-skills>/...
 ```
@@ -93,8 +95,9 @@ The thirteen project skills are `setup`, `deep-interview`,
 `improve-codebase-architecture`, `design-architecture`, `spec`,
 `prepare-execute`, `execute`, `frontend-design`, `wiki`, and `harness-chain`.
 `hud` remains plugin-only and global. Engineering practices, documentation,
-wiki, and harness-chain contracts are installed with the existing workflow
-contracts. The explanation skill's Apache-2.0 license and adaptation notice
+wiki, harness-chain, frontend-design, and pinned DESIGN.md profile contracts
+are installed with the existing workflow contracts. The explanation skill's
+Apache-2.0 license and adaptation notice
 are installed beside its `SKILL.md` without being loaded as prompt context.
 
 Each manifest source and installed target is SHA-256 verified. Canonical skill
@@ -208,6 +211,15 @@ must include canonical `AGENTS.md`, exact `CLAUDE.md` import shim, and
 adds `ezpowers.docs` to required checks. Existing unmanaged documents are
 preserved unless the bundle marks explicit adoption and the user authorizes a
 force-backed apply.
+
+Analysis detects existing root and frontend-local `DESIGN.md` files and reports
+candidate frontend roots. It does not auto-adopt, relocate, normalize, or
+migrate them. A newly managed DESIGN.md uses validator `design-md` and an
+explicit retained profile. When a ready graph contains such entries, exactly
+one broader `frontend-design` role supplies their mappings and setup also
+registers `ezpowers.design`. Old-profile migration follows the ordinary
+preview, explicit approval, and backup rules; installer refresh alone never
+changes repository design documents.
 
 ## Ordinary Optional Hook Adapters
 

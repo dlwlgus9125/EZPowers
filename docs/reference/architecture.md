@@ -18,6 +18,8 @@ must remain stable across hosts and sessions:
 
 - settled project intent and architecture decisions;
 - a repository-evidenced Markdown graph with explicit ownership and lint;
+- paired frontend UX and nearest DESIGN.md contracts with pinned offline
+  profiles and deterministic mapping/diff validation;
 - one managed JSON contract in each feature spec and plan;
 - project-specific checks represented as exact argument arrays;
 - check output, hashes, workspace freshness, certification, and resume state;
@@ -47,6 +49,7 @@ plugin distribution
   -> .ezpowers/wiki/             optional local session knowledge
   -> .ezpowers/chain.json        explicitly configured chain policy
   -> .ezpowers/approvals/        immutable feature approvals
+  -> DESIGN.md                   separately previewed normative visual tokens
 ```
 
 The installed `.ezpowers/ezpowers.py` is standard-library only and is the
@@ -70,6 +73,7 @@ setup
   -> documentation preview/apply/lint
   -> deep-interview (while material ambiguity or a plausible consequential
                      blind spot remains)
+  -> frontend-design (for UI: broad artifact + mapped DESIGN.md)
   -> design-architecture
   -> spec
   -> prepare-execute
@@ -129,6 +133,13 @@ each criterion to exact project checks. `execute` does not create a second
 task-state machine; it implements the plan and asks the local runtime for the
 completion verdict.
 
+New specs also state whether a design context applies. UI specs carry the
+broad frontend artifact and every applicable nearest `DESIGN.md`; plans and
+execute preserve the same mapping. DESIGN.md tokens outrank implementation
+drift. The installed standard-library validator follows a pinned, selective
+Google alpha profile and uses a locally installed exact official CLI only as a
+`--no-install` cross-check.
+
 `harness-chain` does not replace this data flow. It freezes the chosen inputs,
 adds explicit approval and independent-evidence gates, and records bounded
 resume state. Codex Stop observes its native goal; Claude Stop supplies
@@ -141,6 +152,9 @@ hash-bound preview. Apply preserves unmanaged or edited files unless explicit
 adoption and force-backed replacement are approved. `.ezpowers/docs.json`
 holds the graph and `ezpowers.docs` becomes a required check. `AGENTS.md` is
 canonical; `CLAUDE.md` is only `@AGENTS.md`.
+Graphs with DESIGN.md also register `ezpowers.design`; unmanaged design files
+and profile migrations require the same explicit preview/adoption/backup
+boundary as other repository documentation.
 
 The optional `.ezpowers/wiki/` stores candidates, a derived index, a local
 operation log, and backups. Keyword/tag search supports CJK without an
@@ -168,6 +182,9 @@ for resume guidance but cannot promote the all-scope completion verdict.
   `docs/reference/codex-plugin-discovery.md`.
 - Documentation ownership and graph rules:
   `docs/reference/documentation-contract.md`.
+- Frontend artifact split, DESIGN.md mapping, pinned profile, and maintenance:
+  `docs/reference/frontend-design-contract.md` and
+  `docs/reference/design-md-profile.json`.
 - Local wiki, promotion, pruning, and capture privacy:
   `docs/reference/wiki-contract.md`.
 - Explicit chain configuration, approval, independent receipts, limits, and

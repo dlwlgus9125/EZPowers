@@ -47,15 +47,20 @@ not a promise that a host or external service will remain available until it.
 
 A feature bundle lives under `.ezpowers/staging/` and declares one request,
 host, optional-stage decisions with reasons, risk classes, one managed spec,
-one managed plan, and one or more acceptance-oracle files.
+one managed plan, and one or more acceptance-oracle files. When the spec has
+`design_context.required: true`, the same bundle also declares exactly one
+`frontend-design` file and every listed `design-system` file. Their targets
+must exactly match the spec and the managed frontend mapping.
 
 Every criterion must be covered exactly once by an oracle. Every oracle names
 its observable boundary, positive case, negative case, exact mapped checks,
 artifact paths, and expected current baseline. Source-presence, string,
 test-name, or prose-only boundaries are invalid.
 
-Preview validates the staged spec and plan against the actual project config,
-runs the oracle checks against an isolated current-workspace overlay, and
+Preview validates the staged spec and plan against the actual project config.
+For UI work it also validates the frontend managed mapping and each staged
+DESIGN.md against its retained profile. It then runs the oracle checks against
+an isolated current-workspace overlay and
 requires the declared baseline result. Preview identity binds:
 
 - request, host, stages, risks, and effective limits;
@@ -102,6 +107,8 @@ The feature approval freezes by path and SHA-256:
 - project chain configuration;
 - project verification configuration and exact required argv;
 - managed spec and plan;
+- the broad frontend-design artifact and every applicable DESIGN.md for UI
+  work;
 - every acceptance-oracle file;
 - approval identity.
 

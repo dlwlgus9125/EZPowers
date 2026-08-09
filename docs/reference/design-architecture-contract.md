@@ -54,6 +54,8 @@ equivalent exists, use these conventional paths:
 - the project's existing structure or architecture document, when present;
 - `docs/product/ROADMAP.md` when delivery order matters
 - `docs/ux/frontend-design.md` when UI design decisions are required
+- the root or nearest frontend-local `DESIGN.md` when UI tokens or reusable
+  component styling are required
 - `docs/decisions/` only for accepted ADRs
 
 Do not create empty slots merely to satisfy a filename. Each generated artifact
@@ -107,12 +109,15 @@ exist, record adding it as a prerequisite rather than weakening the claim.
 
 ## Frontend Readiness
 
-For UI work, follow `frontend-design-contract.md`. Record the chosen design
-artifact and deterministic visual, accessibility, browser, terminal, or native
-window oracle. Use the installed non-mutating detector at:
+For UI work, follow `frontend-design-contract.md`. Record the broad frontend
+artifact, every applicable nearest `DESIGN.md`, implementation mappings, and
+deterministic visual, accessibility, browser, terminal, or native-window
+oracle. The broad artifact owns behavior and the mapped files own tokens; they
+are carried together to `spec`. Use the installed non-mutating detector at:
 
 ```text
-python .ezpowers/tools/frontend-visual-readiness.py --mode detect
+python .ezpowers/tools/design-md.py check-project --project-root . --frontend-design <artifact> --json
+python .ezpowers/tools/frontend-visual-readiness.py --project-root . --design-artifact <artifact> --mode detect --json
 ```
 
 Tool presence is project-local evidence only; a globally installed executable
@@ -127,7 +132,7 @@ Proceed to `spec` when:
 - every completion claim can be mapped to an observable project check or to a
   named prerequisite that will create that check;
 - UI implementation will not have to invent visual direction or accessibility
-  policy;
+  policy, and its applicable DESIGN.md mapping is valid;
 - accepted decisions are reflected in their canonical artifacts.
 
 Report changed artifacts, decisions and evidence sources, exact verification

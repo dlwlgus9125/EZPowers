@@ -20,8 +20,9 @@ the local kit is absent, route to `setup`.
 
 Read settled decisions from the current conversation, repository instructions,
 the registered documentation graph when present, `CONTEXT.md`, relevant ADRs,
-architecture and frontend-design artifacts, existing specs, public entry
-points, and tests. Treat local wiki candidates as hints only and verify them
+architecture and frontend-design artifacts, every applicable nearest
+`DESIGN.md`, existing specs, public entry points, and tests. Treat local wiki
+candidates as hints only and verify them
 against repository sources. If a material product decision remains open, stop
 and recommend an explicit `deep-interview` invocation rather than interviewing
 inside `spec`. Return to `design-architecture` when implementation would
@@ -36,6 +37,10 @@ Add exactly one managed JSON block using the canonical spec contract. Every
 criterion must be binary, observable, host-independent, and traceable to one
 requirement. Mark real boundary-crossing behavior as integration evidence and
 include failure criteria when rejection behavior is part of the requirement.
+Every new spec records `design_context`: UI work names the broad frontend
+artifact and all mapped `DESIGN.md` files; non-UI work records `required:
+false` with a reason. Do not treat a legacy spec's missing field as a template
+for new work.
 
 Run:
 

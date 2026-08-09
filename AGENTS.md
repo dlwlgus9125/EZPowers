@@ -76,6 +76,13 @@ Roles are intentionally narrow:
 `frontend-design` is an independent advisory skill. `hud` is an explicit,
 plugin-only global Codex utility and is never installed into a project kit.
 
+For UI or frontend maintenance, read `docs/ux/frontend-design.md` and resolve
+the nearest mapped `DESIGN.md` before editing. The broad artifact owns UX,
+state, responsive, accessibility, and visual-QA decisions; `DESIGN.md` owns
+normative tokens and reusable-component styling. A nearer app mapping overrides
+the root mapping without merging. Align code to the document unless the user
+has explicitly approved a design-contract change.
+
 ## Responsibility Boundary
 
 - Claude Code or Codex owns editing, shell execution, subagents, worktrees,
@@ -108,7 +115,7 @@ plugin-only global Codex utility and is never installed into a project kit.
 - Local supporting knowledge: `.ezpowers/wiki/`
 - Resume/evidence pointer: `.ezpowers/state.json`
 - Runtime: `scripts/ezpowers.py`
-- Distribution manifest: `project-kit/v5.4.0/manifest.json`
+- Distribution manifest: `project-kit/v5.5.0/manifest.json`
 - Specs and plans: `docs/specs/`, `docs/plans/`
 - Canonical contracts: `docs/reference/*-contract.md`
 - Product state: `PROGRESS.md`, `feature_list.json`

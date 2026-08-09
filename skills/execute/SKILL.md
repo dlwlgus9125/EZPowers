@@ -14,7 +14,8 @@ subagents, worktrees, sandboxing, retries, and code review.
 ## Preflight
 
 Read repository instructions, the selected spec and plan, architecture and
-frontend-design artifacts, current Git state, `.ezpowers/config.json`, and
+frontend-design artifacts, every `DESIGN.md` named by the spec's
+`design_context`, current Git state, `.ezpowers/config.json`, and
 `.ezpowers/contracts/verification-contract.md`.
 Read `.ezpowers/contracts/engineering-practices-contract.md` before diagnosing
 a nontrivial failure or implementing a planned product-code boundary change.
@@ -40,6 +41,9 @@ Work through the plan's dependency order. Use the host's native execution and
 review features when they improve safety, but do not pretend a capability from
 one host exists in the other. Do not translate the plan into a second phase or
 step state machine. Do not select models or impose a generic retry policy.
+Before changing UI, resolve the nearest mapped `DESIGN.md`. Treat it as
+authoritative for tokens and reusable-component styling, and implement any
+recorded code alignment rather than weakening the design contract.
 
 After each coherent slice, run the task's real checks. Treat the check result as
 feedback, not completion evidence; only a full `verify --all` run can become

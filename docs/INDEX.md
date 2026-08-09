@@ -10,13 +10,14 @@
 
 ## Live Reference
 
-- [Architecture](reference/architecture.md): v5.4 repository and installed-kit map.
+- [Architecture](reference/architecture.md): v5.5 repository and installed-kit map.
 - [Host Plugin Discovery](reference/codex-plugin-discovery.md): Claude Code and Codex discovery, invocation, hook, worktree, and sandbox differences.
 - [Setup Contract](reference/setup-contract.md): self-contained install, refresh, clean-break legacy boundary, conflicts, and optional hooks.
 - [Documentation Contract](reference/documentation-contract.md): repository analysis, adaptive Markdown graph, ownership, preview/apply, and lint.
 - [Wiki Contract](reference/wiki-contract.md): local knowledge, CJK search, promotion, pruning, and SessionEnd privacy.
 - [Design Architecture Contract](reference/design-architecture-contract.md): project architecture and verification-design artifact.
 - [Frontend Design Contract](reference/frontend-design-contract.md): frontend readiness and tool-conditional visual lanes.
+- [DESIGN.md profile](reference/design-md-profile.json): pinned Google-derived format, local rules, and upstream review hashes.
 - [Spec Contract](reference/spec-contract.md): managed acceptance-criteria schema.
 - [Plan Contract](reference/plan-contract.md): managed task/check schema and coverage rules.
 - [Verification Contract](reference/verification-contract.md): command execution, evidence, certification, freshness, resume, and host verdict adapters.
@@ -41,6 +42,8 @@
 - [Skill guide frontend design](ux/frontend-design.md): selected visual
   direction, information architecture, responsive behavior, accessibility,
   and visual QA contract for the HTML guide.
+- [Skill guide design system](../DESIGN.md): normative tokens and reusable
+  component styling for the HTML guide.
 - `.ezpowers/docs.json`: managed documentation graph and whole-file hashes in an installed project.
 - `.ezpowers/wiki/`: optional untracked, worktree-local session knowledge.
 - `.ezpowers/chain.json`, `.ezpowers/approvals/`, and chain evidence: created

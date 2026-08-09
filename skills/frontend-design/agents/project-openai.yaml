@@ -1,6 +1,6 @@
 interface:
   display_name: "Frontend Design"
-  short_description: "Design frontend structure before implementation"
-  default_prompt: "Use $frontend-design to create a frontend design readiness artifact for this UI project."
+  short_description: "Design paired UX and DESIGN.md contracts"
+  default_prompt: "Use $frontend-design to create paired frontend readiness and DESIGN.md contracts for this UI project."
 policy:
   allow_implicit_invocation: true

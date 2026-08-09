@@ -1,5 +1,32 @@
 # EZPowers Skill Guide Frontend Design
 
+## Design-system mapping and authority
+
+This artifact owns product intent, information architecture, interaction
+states, responsive behavior, accessibility, and visual QA. The nearest mapped
+`DESIGN.md` owns machine-readable visual tokens and reusable component styling;
+when code and a mapped `DESIGN.md` disagree, maintainers align the
+implementation unless an intentional design-contract change was explicitly
+approved. For an approved design change, update `DESIGN.md` first and then
+align the implementation. Independent frontend roots may add a nearer
+`DESIGN.md`; mappings do not merge.
+
+<!-- ezpowers:frontend-design:start -->
+```json
+{
+  "schema_version": 1,
+  "design_systems": [
+    {
+      "path": "DESIGN.md",
+      "profile": "google-alpha-0.4.0-ezpowers-1",
+      "frontend_roots": ["."],
+      "implementation_paths": ["docs/ezpowers-skills-guide.html"]
+    }
+  ]
+}
+```
+<!-- ezpowers:frontend-design:end -->
+
 ## Surface, audience, and intent
 
 - **Surface:** a self-contained, static HTML guide at
@@ -96,17 +123,13 @@ remain available when it is disabled.
 
 ## Design tokens and primitive policy
 
-The repository has no existing frontend system. The guide therefore owns a
-small inline token set:
-
-- color tokens for canvas, elevated paper, ink, muted text, lines, workflow,
-  supporting knowledge, decisions, cautions, and code;
-- a system Korean sans-serif stack for body text and a system serif stack for
-  display headings, with no external font request;
-- an 8 px spacing basis with a restrained responsive type scale;
-- 14–24 px corner radii, one subtle paper shadow, and 2 px focus outlines;
-- motion limited to opacity, transform, and color changes under 180 ms, fully
-  disabled by `prefers-reduced-motion`.
+The repository's root `DESIGN.md` is the normative token and reusable-component
+source for this guide. Its light/dark colors map to the HTML custom properties,
+its system font stacks keep the page offline, and its spacing and radius scales
+govern new reusable components. The implemented 3 px focus outline remains a
+required accessibility affordance. Motion is limited to opacity, transform,
+and color changes under 180 ms and is fully disabled by
+`prefers-reduced-motion`.
 
 Primitives are semantic HTML elements, CSS grid/flex layouts, buttons, links,
 `details`/`summary`, code blocks, and inline SVG. No framework, remote script,
@@ -191,18 +214,19 @@ so screenshots are advisory evidence rather than a completion gate.
 ## Prototype and freshness
 
 There is no separate mock or prototype. The HTML guide is the production
-artifact. This design document is normative for its information architecture,
-tokens, responsive behavior, accessibility, and visual QA.
+artifact. This document is normative for information architecture, interaction
+states, responsive behavior, accessibility, and visual QA; the mapped root
+`DESIGN.md` is normative for tokens and reusable-component styling.
 
 Content freshness is bound to the canonical sources:
 
 - `skills/*/SKILL.md` for skill behavior;
 - `AGENTS.md` for the current route and responsibility boundary;
 - `docs/reference/codex-plugin-discovery.md` for host invocation;
-- `project-kit/v5.4.0/manifest.json` for plugin/project inventory.
+- `project-kit/v5.5.0/manifest.json` for plugin/project inventory.
 
 When those sources change, maintainers must review both this artifact and the
-HTML guide. The HTML presents the v5.4.0 project kit and plugin catalog rather
+HTML guide. The HTML presents the v5.5.0 project kit and plugin catalog rather
 than claiming automatic synchronization.
 
 ## Unresolved questions

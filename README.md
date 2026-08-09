@@ -3,7 +3,7 @@
 > Claude Code와 Codex가 같은 저장소 증거로 작업의 **완료 여부**를
 > 판단하도록 만드는 프로젝트 로컬 워크플로 플러그인입니다.
 
-**Plugin v5.4.0 · Project kit v5.4.0 · Python 3.10+ · MIT**
+**Plugin v5.5.0 · Project kit v5.5.0 · Python 3.10+ · MIT**
 
 [빠른 시작](#빠른-시작) · [워크플로](#기본-워크플로) ·
 [스킬 목록](#스킬-목록) · [업데이트](#업데이트) ·
@@ -25,6 +25,7 @@ EZPowers는 저장소 안에 문서, 명세, 계획, 실제 검증 명령, 해�
 | Claude Code와 Codex의 완료 기준이 달라짐 | 동일한 프로젝트 키트와 host-independent PASS/FAIL 판정 |
 | 자동 실행이 검증이나 리뷰를 건너뜀 | 명시적 승인과 한도가 있는 `harness-chain` |
 | 가설로 먼저 패치해 실제 버그를 놓침 | exact-red 재현 전에는 가설·제품 수정을 금지하는 `diagnose` |
+| UI 유지보수 중 토큰과 구현이 어긋남 | UX 문서와 가까운 `DESIGN.md`를 함께 검증하는 오프라인 디자인 계약 |
 
 ```mermaid
 flowchart LR
@@ -98,7 +99,7 @@ preview/apply/lint 순서로 진행되며, 관리되지 않은 기존 문서는 
 | 계층 | 역할 | 포함 범위 |
 | --- | --- | --- |
 | EZPowers 플러그인 | 어느 저장소에서든 namespaced 스킬 제공 | 14개 스킬, 플러그인 메타데이터 |
-| 프로젝트 로컬 키트 | 저장소가 독립적으로 검증·재개 가능하게 함 | 13개 스킬, 10개 계약, 런타임, 2개 도구 |
+| 프로젝트 로컬 키트 | 저장소가 독립적으로 검증·재개 가능하게 함 | 13개 스킬, 11개 계약, 런타임, 3개 도구 |
 
 프로젝트 키트가 설치되면 핵심 파일은 다음 위치에 생깁니다.
 
@@ -174,7 +175,7 @@ harness-chain configure
 | `spec` | 결정된 요구를 검증 가능한 기준으로 고정할 때 | traceable acceptance contract 생성 |
 | `prepare-execute` | spec을 구현 순서와 정확한 검사로 변환할 때 | 모든 criterion을 덮는 plan 생성; 구현은 하지 않음 |
 | `execute` | 검증된 plan을 구현할 때 | 호스트가 구현하고 EZPowers가 verify/certify |
-| `frontend-design` | UI·UX·responsive·accessibility 결정을 먼저 정할 때 | 구현 전 frontend 결정과 visual QA 조건 정리 |
+| `frontend-design` | UI·UX·responsive·accessibility 결정을 먼저 정할 때 | 넓은 UX 문서와 토큰 권위인 `DESIGN.md`를 짝으로 정리 |
 | `wiki` | 로컬 지식을 저장·검색·승격·정리할 때 | 보조 기억만 관리; 저장소 근거나 완료 권한을 대체하지 않음 |
 | `harness-chain` | 승인된 기능을 한도 내에서 무인 실행할 때 | 독립 oracle/review/QA와 terminal limit을 결합; 명시 호출 전에는 비활성 |
 | `hud` | 전역 Codex model·usage statusline을 관리할 때 | plugin-only 전역 유틸리티; 프로젝트 harness와 분리 |
@@ -263,6 +264,8 @@ file이 있으면 전체 교체를 중단하고 충돌을 보고합니다. kit i
   환경 변수, 자격 증명이나 파일 내용을 저장하지 않습니다.
 - documentation lint와 wiki 저장·검색은 자체적으로 네트워크 요청을 하지
   않습니다.
+- DESIGN.md lint/diff/mapping도 설치된 프로필로 오프라인 실행되며, 이미
+  설치된 정확한 공식 CLI만 `--no-install` 교차 검사에 사용합니다.
 - `.ezpowers/wiki/`는 로컬 보조 기억이며 canonical documentation이나
   completion evidence가 아닙니다.
 - 설치와 refresh는 managed-file hash drift를 충돌로 처리하고 부분 교체를
@@ -306,6 +309,8 @@ python scripts/plugin_smoke.py --host both --live-diagnose
 - [검증 계약](docs/reference/verification-contract.md)
 - [Harness chain 계약](docs/reference/harness-chain-contract.md)
 - [Engineering practices 계약](docs/reference/engineering-practices-contract.md)
+- [Frontend design 및 DESIGN.md 계약](docs/reference/frontend-design-contract.md)
+- [핀 고정 DESIGN.md 프로필](docs/reference/design-md-profile.json)
 - [Claude Code와 Codex 플러그인 동작 차이](docs/reference/codex-plugin-discovery.md)
 - [14개 스킬 한국어 가이드](docs/ezpowers-skills-guide.html)
 

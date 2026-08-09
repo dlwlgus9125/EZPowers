@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "current_profile": "google-alpha-0.4.0-ezpowers-1",
+  "profiles": {
+    "google-alpha-0.4.0-ezpowers-1": {
+      "format_version": "alpha",
+      "status": "active",
+      "upstream": {
+        "repository": "https://github.com/google-labs-code/design.md",
+        "commit": "9bf8eae67128b6cc55ad9bf86665767deb4c11cd",
+        "cli_package": "@google/design.md",
+        "cli_version": "0.4.0",
+        "reviewed_at": "2026-08-09",
+        "license": "Apache-2.0",
+        "watched_files": [
+          {
+            "path": "docs/spec.md",
+            "sha256": "8f297a7bd38cf08bde06c96f5eea2ebfcd9930a8bc1dfe964f8e8dec894e691a"
+          },
+          {
+            "path": "packages/cli/src/linter/spec-config.yaml",
+            "sha256": "6244e829849e63b55316258f32e1110833d193b79943ec79f245b33ebeec2ef8"
+          },
+          {
+            "path": "packages/cli/src/commands/diff.ts",
+            "sha256": "4fd22f4d9c07c0325fe1b9370d3bfa131b60e83cee4973bce14e538784d5e36b"
+          },
+          {
+            "path": "packages/cli/package.json",
+            "sha256": "9cd26dae8342295b88dad6df3432f732f38c215f401f49af61068211cf2015b9"
+          }
+        ]
+      },
+      "frontmatter": {
+        "allowed_groups": [
+          "version",
+          "name",
+          "description",
+          "omitted",
+          "colors",
+          "typography",
+          "rounded",
+          "spacing",
+          "components"
+        ],
+        "token_groups": [
+          "colors",
+          "typography",
+          "rounded",
+          "spacing",
+          "components"
+        ],
+        "typography_properties": [
+          "fontFamily",
+          "fontSize",
+          "fontWeight",
+          "lineHeight",
+          "letterSpacing",
+          "fontFeature",
+          "fontVariation"
+        ],
+        "component_properties": [
+          "backgroundColor",
+          "textColor",
+          "typography",
+          "rounded",
+          "padding",
+          "size",
+          "height",
+          "width"
+        ],
+        "dimension_units": ["px", "em", "rem"]
+      },
+      "sections": [
+        {"name": "Overview", "aliases": ["Brand & Style"]},
+        {"name": "Colors", "aliases": []},
+        {"name": "Typography", "aliases": []},
+        {"name": "Layout", "aliases": ["Layout & Spacing"]},
+        {"name": "Elevation & Depth", "aliases": ["Elevation"]},
+        {"name": "Shapes", "aliases": []},
+        {"name": "Components", "aliases": []},
+        {"name": "Do's and Don'ts", "aliases": []}
+      ],
+      "adopted_rules": [
+        "broken-ref",
+        "missing-primary",
+        "contrast-ratio",
+        "orphaned-tokens",
+        "token-summary",
+        "missing-sections",
+        "missing-typography",
+        "section-order",
+        "unknown-key",
+        "token-like-ignored",
+        "omitted-rules"
+      ],
+      "ezpowers_extensions": {
+        "restricted_yaml": true,
+        "unknown_sections": "preserve",
+        "duplicate_sections": "error",
+        "rule_severity": {
+          "orphaned-tokens": "info",
+          "token-like-ignored": "info",
+          "token-summary": "info"
+        },
+        "diff_breaking_changes": [
+          "invalid-after",
+          "removed-token",
+          "new-error",
+          "new-warning"
+        ],
+        "excluded_capabilities": [
+          "token-export",
+          "code-generation",
+          "runtime-upstream-fetch"
+        ]
+      }
+    }
+  }
+}

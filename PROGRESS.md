@@ -2,13 +2,14 @@
 
 ## Current State
 
-EZPowers v5.4.0 project kit and plugin candidate are present in the working tree
-on `main`. F20 is complete; F19 remains the release blocker because its live
+EZPowers v5.5.0 project kit and plugin candidate are present in the working tree
+on `main`. F21 is complete; F19 remains the release blocker because its live
 dual-host diagnosis probe still needs external host access. The candidate
 preserves the host-native verification core, documentation graph, local wiki,
 explicit harness chain, and Plan Mode-aware clarification while adding a
-context-efficient evidence explanation skill, tightening diagnosis around an
-exact-reproduction gate, and retaining the harness-chain loop hardening (a
+maintainable paired frontend design contract, retaining the context-efficient
+evidence explanation skill, tightening diagnosis around an exact-reproduction
+gate, and retaining the harness-chain loop hardening (a
 reviewer rubric whose embedded template matches the receipt parser exactly and
 stays FAIL when copied unedited, chain hooks that degrade to a fail-safe no-op
 instead of exit 2 on unreadable runtime state, and `PENDING_LOOP` activation
@@ -16,6 +17,10 @@ blocks counted against `total_iterations`):
 
 - repository analysis and an adaptive Markdown graph rooted at canonical
   `AGENTS.md`, exact `CLAUDE.md` import, and `docs/INDEX.md`;
+- paired frontend authority: broad UX decisions in
+  `docs/ux/frontend-design.md`, normative visual tokens/components in the
+  nearest mapped `DESIGN.md`, a pinned Google-derived alpha profile, and
+  deterministic offline lint/diff/mapping checks without export or codegen;
 - a local session wiki with deterministic CJK keyword/tag search, explicit
   promotion, backup-first pruning, and separately opt-in allowlisted
   SessionEnd capture;
@@ -56,7 +61,8 @@ Documentation proposals are staged, previewed with a hash that binds the
 bundle, registry, config, and current targets, then applied transactionally.
 Unmanaged documents require explicit adoption; edited/adopted targets require
 force and are backed up first. A ready graph registers `ezpowers.docs` as an
-exact required project check.
+exact required project check and, when a managed frontend mapping exists,
+registers the exact self-contained `ezpowers.design` check too.
 
 The wiki remains supporting memory under `.ezpowers/wiki/`. It is excluded from
 completion fingerprints, never stores transcripts through automatic capture,
@@ -82,6 +88,7 @@ force product rework until a configured limit becomes terminal.
 - `F17`: fix-complete `diagnose` loop.
 - `F18`: decision-ready `deep-interview` blind-spot pass.
 - `F20`: context-efficient evidence explanations.
+- `F21`: maintainable paired `DESIGN.md` frontend contract.
 
 ## In-Progress Item
 
@@ -91,11 +98,47 @@ force product rework until a configured limit becomes terminal.
   the isolated fixture can execute its authoritative Python command inside the
   configured workspace sandbox.
 
-The v5.4 project kit installs thirteen project skills, ten canonical contracts,
-and two deterministic tools. The plugin exposes those skills plus the
+The v5.5 project kit installs thirteen project skills, eleven canonical
+contracts, and three deterministic tools. The plugin exposes fourteen skills,
+including the project skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+v5.5.0 maintainable `DESIGN.md` frontend contract verification on 2026-08-09:
+
+- `python -m unittest discover -s tests`: 171 tests passed in 824.082
+  seconds.
+- Focused runtime evidence passed: 7 documentation/wiki tests in 57.505
+  seconds, 33 install/verification tests in 315.737 seconds, 21 harness-chain
+  tests in 412.493 seconds, and 10 workflow-surface tests in 0.048 seconds.
+- `python scripts/design-md.py lint --file DESIGN.md --profile
+  google-alpha-0.4.0-ezpowers-1 --json`: PASS with 86 token values, zero
+  errors, zero warnings, and 64 informational orphan-token findings retained
+  for the current CSS inventory.
+- `design-md.py check-project` and `frontend-visual-readiness.py --mode check`:
+  PASS for the root mapping from `DESIGN.md` to
+  `docs/ezpowers-skills-guide.html`; project-local Storybook and screenshot
+  lanes remain honestly advisory.
+- `python scripts/check-design-md-upstream.py --json`: `CURRENT` for all four
+  watched upstream files at pinned commit
+  `9bf8eae67128b6cc55ad9bf86665767deb4c11cd`; no writes were performed.
+  The optional exact-version official CLI cross-check reported
+  `NOT_INSTALLED`, which is a non-gating state.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
+  PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
+  PASS for real install -> validate -> verify -> certify -> stale.
+- `python scripts/verify-harness-kit.py`: v5.5 project kit manifest valid with
+  thirteen project skills, eleven contracts, and three tools.
+- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
+  Claude 2.1.220 accepted the manifests, and Codex 0.147.0 loaded standalone
+  deep-interview plus all project and namespaced skills with matching prompts
+  in isolation.
+- `quick_validate.py skills/frontend-design`: PASS. The same generic validator
+  cannot parse the pre-existing EZPowers `disable-model-invocation` extension
+  on workflow skills; repository and dual-host plugin validators passed those
+  skills without removing the extension.
 
 v5.4.0 architecture-scan boundary hardening verification on 2026-07-30:
 

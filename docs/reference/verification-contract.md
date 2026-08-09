@@ -57,6 +57,13 @@ The runtime reads checks from the current plan and `.ezpowers/config.json` on
 every run. It passes `argv` directly to `subprocess` with `shell` disabled and
 runs it in the declared project-relative `cwd`.
 
+A ready managed documentation graph contributes the exact required
+`ezpowers.docs` static check. When that graph contains DESIGN.md entries, it
+also contributes `ezpowers.design`, which validates the broad frontend mapping,
+nearest implementation ownership, retained local profiles, and any already
+installed pinned official CLI cross-check. Both run as real required checks
+and participate in evidence and freshness; neither is a prose verdict.
+
 For every check it records:
 
 - exact argv, cwd, kind, and timeout;

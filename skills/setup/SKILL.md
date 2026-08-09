@@ -24,8 +24,9 @@ do not copy or reinterpret their rules.
 
 ## Inspect
 
-Read repository instructions, existing Markdown, manifests, scripts, CI files,
-tests, source boundaries, and any `.ezpowers/config.json` or
+Read repository instructions, existing Markdown including root or app-local
+`DESIGN.md`, manifests, scripts, CI files, tests, source boundaries, and any
+`.ezpowers/config.json` or
 `.ezpowers/docs.json`. Require the target path to equal the Git worktree root.
 Before invoking the runtime, run `python --version` and require Python 3.10 or
 newer; if it is unavailable, stop with that prerequisite instead of attempting
@@ -78,7 +79,8 @@ Follow `documentation-contract.md`:
 1. Map existing authority and repository evidence.
 2. Select the smallest adaptive document set. Always include canonical
    `AGENTS.md`, exact `CLAUDE.md` import shim, and `docs/INDEX.md`; preserve
-   existing user documents as external unless adoption is explicit.
+   existing user documents as external unless adoption is explicit. Detect
+   existing DESIGN.md candidates without auto-adopting or migrating them.
 3. Write the proposal only under `.ezpowers/staging/<unique-bundle>/`, including
    `bundle.json`.
 4. Run `docs preview --json` and present every create, update, adoption,
@@ -86,7 +88,8 @@ Follow `documentation-contract.md`:
 5. Apply with the returned preview hash only after the user has accepted any
    adoption or force-backed replacement. Never hand-edit `.ezpowers/docs.json`.
 6. Run `docs lint --json`. A ready graph must register `ezpowers.docs` as a
-   required project check.
+   required project check. A graph with DESIGN.md also requires one paired
+   frontend-design mapping and registers `ezpowers.design`.
 
 Do not synthesize generic architecture or testing prose, generate one file per
 directory, or modify specs/plans in this lane. Stage an incomplete graph or ask

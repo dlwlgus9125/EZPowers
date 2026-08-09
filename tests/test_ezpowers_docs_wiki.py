@@ -365,6 +365,208 @@ class DocumentationRuntimeTests(unittest.TestCase):
                 " ".join(json.loads(drift.stdout)["errors"]),
             )
 
+    def test_ready_design_bundle_registers_profile_and_exact_design_check(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = Project(pathlib.Path(temp_dir))
+            install = project.install()
+            self.assertEqual(0, install.returncode, install.stdout + install.stderr)
+            bundle = write_ready_bundle(project, "design-bootstrap")
+            files = bundle / "files"
+            (project.root / "index.html").write_text("<!doctype html>\n", encoding="utf-8")
+            design = textwrap.dedent(
+                """\
+                ---
+                version: alpha
+                name: Fixture
+                omitted: ["typography", "rounded", "spacing", "components"]
+                colors:
+                  primary: "#315bdc"
+                ---
+                # Fixture Design System
+
+                ## Overview
+                A compact fixture.
+
+                ## Colors
+                Primary is used for the main action.
+                """
+            )
+            (files / "DESIGN.md").write_text(design, encoding="utf-8")
+            mapping = {
+                "schema_version": 1,
+                "design_systems": [
+                    {
+                        "path": "DESIGN.md",
+                        "profile": "google-alpha-0.4.0-ezpowers-1",
+                        "frontend_roots": ["."],
+                        "implementation_paths": ["index.html"],
+                    }
+                ],
+            }
+            frontend_body = (
+                "## Design system mapping\n\n"
+                "<!-- ezpowers:frontend-design:start -->\n```json\n"
+                + json.dumps(mapping, indent=2)
+                + "\n```\n<!-- ezpowers:frontend-design:end -->"
+            )
+            (files / "frontend-design.md").write_text(
+                "---\n"
+                'doc_type: "frontend-design"\n'
+                'authority: "supporting"\n'
+                'status: "active"\n'
+                'generated_by: "ezpowers"\n'
+                "---\n\n"
+                "# Fixture Frontend Design\n\n"
+                + frontend_body
+                + "\n\n## Evidence\n\n- Repository sources declared by the bundle.\n",
+                encoding="utf-8",
+            )
+            manifest_path = bundle / "bundle.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["documents"].extend(
+                [
+                    {
+                        "path": "docs/ux/frontend-design.md",
+                        "source": "files/frontend-design.md",
+                        "role": "frontend-design",
+                        "ownership": "ezpowers",
+                        "authority": "supporting",
+                        "status": "active",
+                        "validator": "markdown",
+                        "evidence": ["index.html"],
+                    },
+                    {
+                        "path": "DESIGN.md",
+                        "source": "files/DESIGN.md",
+                        "role": "design-system",
+                        "ownership": "ezpowers",
+                        "authority": "canonical",
+                        "status": "active",
+                        "validator": "design-md",
+                        "validator_profile": "google-alpha-0.4.0-ezpowers-1",
+                        "evidence": ["docs/ux/frontend-design.md", "index.html"],
+                    },
+                ]
+            )
+            manifest_path.write_text(
+                json.dumps(manifest, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            preview = run_cli(
+                project.runtime,
+                "docs",
+                "preview",
+                "--bundle",
+                str(bundle.relative_to(project.root)),
+                "--json",
+                cwd=project.root,
+            )
+            self.assertEqual(0, preview.returncode, preview.stdout + preview.stderr)
+            preview_payload = json.loads(preview.stdout)
+            design_action = next(
+                item for item in preview_payload["actions"] if item["path"] == "DESIGN.md"
+            )
+            self.assertEqual("PASS", design_action["design_review"]["status"])
+            applied = run_cli(
+                project.runtime,
+                "docs",
+                "apply",
+                "--bundle",
+                str(bundle.relative_to(project.root)),
+                "--preview-sha256",
+                preview_payload["preview_sha256"],
+                "--json",
+                cwd=project.root,
+            )
+            self.assertEqual(0, applied.returncode, applied.stdout + applied.stderr)
+            config = json.loads(
+                (project.root / ".ezpowers" / "config.json").read_text(encoding="utf-8")
+            )
+            self.assertIn("ezpowers.design", config["required_checks"])
+            self.assertEqual(
+                [
+                    ".ezpowers/tools/design-md.py",
+                    "check-project",
+                    "--project-root",
+                    ".",
+                    "--frontend-design",
+                    "docs/ux/frontend-design.md",
+                    "--json",
+                ],
+                config["checks"]["ezpowers.design"]["argv"][1:],
+            )
+            registry = json.loads(
+                (project.root / ".ezpowers" / "docs.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                "google-alpha-0.4.0-ezpowers-1",
+                registry["documents"]["DESIGN.md"]["validator_profile"],
+            )
+            lint = run_cli(project.runtime, "docs", "lint", "--json", cwd=project.root)
+            self.assertEqual(0, lint.returncode, lint.stdout + lint.stderr)
+
+            update_bundle = project.root / ".ezpowers" / "staging" / "design-update"
+            (update_bundle / "files").mkdir(parents=True)
+            (update_bundle / "files" / "DESIGN.md").write_text(
+                design.replace("#315bdc", "#2143ab"),
+                encoding="utf-8",
+            )
+            (update_bundle / "bundle.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "status": "ready",
+                        "documents": [
+                            {
+                                "path": "DESIGN.md",
+                                "source": "files/DESIGN.md",
+                                "role": "design-system",
+                                "ownership": "ezpowers",
+                                "authority": "canonical",
+                                "status": "active",
+                                "validator": "design-md",
+                                "validator_profile": "google-alpha-0.4.0-ezpowers-1",
+                                "evidence": ["docs/ux/frontend-design.md", "index.html"],
+                            }
+                        ],
+                        "links": [],
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            update_preview = run_cli(
+                project.runtime,
+                "docs",
+                "preview",
+                "--bundle",
+                str(update_bundle.relative_to(project.root)),
+                "--json",
+                cwd=project.root,
+            )
+            self.assertEqual(
+                0,
+                update_preview.returncode,
+                update_preview.stdout + update_preview.stderr,
+            )
+            review = json.loads(update_preview.stdout)["actions"][0]["design_review"]
+            self.assertTrue(
+                any(item["path"] == "colors.primary" for item in review["tokens"]["modified"])
+            )
+            config["checks"]["ezpowers.design"]["argv"][0] = "python-other"
+            (project.root / ".ezpowers" / "config.json").write_text(
+                json.dumps(config, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            drift = run_cli(project.runtime, "docs", "lint", "--json", cwd=project.root)
+            self.assertEqual(1, drift.returncode, drift.stdout + drift.stderr)
+            self.assertIn(
+                "config check ezpowers.design is missing or changed",
+                " ".join(json.loads(drift.stdout)["errors"]),
+            )
+
     def test_unmanaged_document_requires_adoption_force_and_creates_backup(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             project = Project(pathlib.Path(temp_dir))

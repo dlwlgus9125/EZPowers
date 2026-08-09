@@ -20,8 +20,8 @@ interface, dependency, or seam decisions, also read
 `.ezpowers/contracts/documentation-contract.md` when `.ezpowers/docs.json`
 exists. If the local kit is absent, route to `setup`. Then inspect repository
 instructions, the documentation graph, `CONTEXT.md`, relevant ADRs, manifests,
-entry points, public interfaces, CI/deploy files, tests, and existing
-architecture or frontend-design artifacts.
+entry points, public interfaces, CI/deploy files, tests, existing architecture
+or frontend-design artifacts, and every applicable nearest `DESIGN.md`.
 
 Ask one question at a time only when repository evidence cannot settle a
 consequential choice. Use `deep-interview` when the uncertainty is a product or
@@ -33,7 +33,9 @@ Apply the canonical contract to record only the boundaries, ownership, data
 flow, lifecycle, deployment, compatibility, and verification choices this
 project actually needs. Prefer existing project conventions. For UI work,
 delegate design direction to `frontend-design` and carry its
-`docs/ux/frontend-design.md` artifact path and oracle forward.
+`docs/ux/frontend-design.md` artifact path, mapped `DESIGN.md` paths, profile
+IDs, implementation mappings, and oracle forward. Treat the pair as one design
+context; architecture does not redefine visual tokens.
 
 Use `codebase-design` only to deepen a focused product-code boundary already in
 scope. This skill remains the owner of durable project architecture artifacts.
