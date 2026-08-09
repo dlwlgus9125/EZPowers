@@ -49,7 +49,7 @@ documented product requirement for one.
 Update the project's existing canonical architecture documents. When no
 equivalent exists, use these conventional paths:
 
-- `docs/reference/architecture.md`
+- root `ARCHITECTURE.md` for the primary architecture artifact;
 - the project's existing testing methodology, when present;
 - the project's existing structure or architecture document, when present;
 - `docs/product/ROADMAP.md` when delivery order matters
@@ -62,7 +62,26 @@ Do not create empty slots merely to satisfy a filename. Each generated artifact
 must state its authority and link to the document that owns overlapping rules.
 When `.ezpowers/docs.json` owns an artifact, update it through a staged
 documentation preview/apply transaction. Never hand-edit managed bytes or
-silently adopt an external file.
+silently adopt an external file. When architecture editing is authorized, the
+host may update an external canonical document without changing its registered
+`external` ownership.
+
+Use a lean, tool-neutral content profile rather than a full template. Record
+only applicable system context, runtime/module/data ownership boundaries with
+real code mappings, important data/control flows, deployment and lifecycle,
+quality constraints, verification strategy, decisions, and risks. C4 or arc42
+terminology may organize those facts, but diagrams never replace a readable
+text mapping. Every primary artifact includes a `Maintenance` section that
+names its structural update triggers.
+
+Treat module/service boundaries, public interfaces, data ownership,
+cross-boundary flows, state/concurrency, lifecycle/recovery,
+deployment/migration, and verification boundaries as architecture impact.
+Behavior-preserving internal changes have no impact by default. Report either
+`Architecture impact: none` with evidence or the changed artifact paths and
+decision IDs. Settle and apply affected architecture before `spec`; if
+implementation later needs a different boundary, return here and revise the
+spec and plan instead of appending post-hoc documentation.
 
 ## Decision Ledger And ADRs
 
@@ -134,6 +153,7 @@ Proceed to `spec` when:
 - UI implementation will not have to invent visual direction or accessibility
   policy, and its applicable DESIGN.md mapping is valid;
 - accepted decisions are reflected in their canonical artifacts.
+- the architecture impact and canonical artifact paths are explicit.
 
 Report changed artifacts, decisions and evidence sources, exact verification
 design, and remaining risks. Artifact readiness and deterministic validation

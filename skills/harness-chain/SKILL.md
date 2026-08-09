@@ -112,7 +112,8 @@ applies:
 - use `deep-interview` for stated ambiguity or a plausible consequential blind
   spot;
 - use `frontend-design` when UI/UX decisions are unsettled;
-- use `design-architecture` when technical boundaries are unsettled.
+- use `design-architecture` when the feature creates or changes a durable
+  boundary, or when its technical boundaries are unsettled.
 
 Create settled spec and plan data using their installed contracts. Create at
 least one acceptance-oracle file. Each criterion must map exactly once to an
@@ -164,6 +165,14 @@ Place the spec, plan, oracle files, and `bundle.json` under one
 ```
 
 Feature `limit_overrides` may lower, never raise, project limits.
+The architecture role contains one or more safe Markdown artifacts exactly
+when `design_architecture` is selected. Those files are applied with the
+feature bundle and frozen by full-file hash, for example:
+
+```json
+{"role": "architecture", "source": "ARCHITECTURE.md", "target": "ARCHITECTURE.md"}
+```
+
 The two design roles are present only when
 `spec.design_context.required` is true. In that case there is exactly one
 frontend-design file and at least one design-system file, and their targets
@@ -203,7 +212,7 @@ against unchanged oracle evidence until one returns `PASS`.
 When preview is `READY`, show the user:
 
 - the settled request and selected/skipped stages;
-- spec, plan, oracle, and applicable frontend/DESIGN.md targets and
+- spec, plan, oracle, applicable architecture, and frontend/DESIGN.md targets and
   create/replace actions;
 - baseline result, risks, QA requirement, and hard limits;
 - preview hash and any forced replacement/backup requirement;
@@ -240,8 +249,9 @@ missing capability.
 ### 5. Implement until the runtime verdict
 
 Edit product code with host-native tools. The approved spec, plan, oracle,
-applicable frontend/DESIGN.md files, project checks, chain config, and approval
-are frozen. If any changes, stop normal work at `NEEDS_REAPPROVAL`; do not
+applicable architecture and frontend/DESIGN.md files, project checks, chain
+config, and approval are frozen. If any changes, stop normal work at
+`NEEDS_REAPPROVAL`; do not
 repair hashes or silently thaw it.
 
 Run real verification:

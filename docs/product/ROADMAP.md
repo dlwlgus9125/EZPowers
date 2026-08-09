@@ -1,6 +1,6 @@
 # EZPowers Roadmap
 
-## Current: v5.5.0 core / plugin
+## Current: v5.6.0 core / plugin
 
 - Preserve the v5.1 documentation graph and local wiki.
 - Add an explicit project-question workflow for chain stages, QA triggers,
@@ -46,9 +46,13 @@
 - Carry design context through new specs, plans, execute, managed documentation
   checks, and explicit harness-chain frozen inputs while leaving legacy specs
   and old profiles readable until explicit migration.
+- Keep canonical architecture in standard Markdown, create it only for real
+  structural boundaries, record feature impact before implementation, and
+  freeze affected artifacts in explicit harness-chain approvals without a
+  second architecture state machine.
 - Keep one exact catalog: fourteen plugin skills, thirteen project skills, and
   separate namespaced versus project-local Codex prompt metadata.
-- Upgrade existing pre-v5.5 installations only through explicit
+- Upgrade existing pre-v5.6 installations only through explicit
   `setup --refresh`;
   preserve customized managed files and fail atomically on conflicts.
 

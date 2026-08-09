@@ -32,7 +32,7 @@ from typing import Any, Iterable, Iterator
 
 
 SCHEMA_VERSION = 1
-KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.5.0/manifest.json")
+KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.6.0/manifest.json")
 CONFIG_RELATIVE_PATH = pathlib.Path(".ezpowers/config.json")
 STATE_RELATIVE_PATH = pathlib.Path(".ezpowers/state.json")
 LEDGER_RELATIVE_PATH = pathlib.Path(".ezpowers/ledger.json")
@@ -65,7 +65,7 @@ CHECK_KINDS = {
 DOCS_CHECK_ID = "ezpowers.docs"
 DESIGN_CHECK_ID = "ezpowers.design"
 DEFAULT_DESIGN_PROFILE = "google-alpha-0.4.0-ezpowers-1"
-DOCS_ALLOWED_ROOT_FILES = {"AGENTS.md", "CLAUDE.md"}
+DOCS_ALLOWED_ROOT_FILES = {"AGENTS.md", "ARCHITECTURE.md", "CLAUDE.md"}
 DOCS_AUTHORITIES = {"canonical", "supporting", "derived"}
 DOCS_STATUSES = {"draft", "active"}
 DOCS_OWNERS = {"ezpowers", "external"}
@@ -4128,6 +4128,7 @@ def _load_chain_run_bundle(
         "spec": 0,
         "plan": 0,
         "oracle": 0,
+        "architecture": 0,
         "frontend-design": 0,
         "design-system": 0,
     }
@@ -4158,6 +4159,12 @@ def _load_chain_run_bundle(
             target_name.startswith("docs/plans/") and target_name.endswith(".md")
         ):
             raise EZPowersError("chain plan target must be under docs/plans/")
+        if role == "architecture":
+            _safe_document_path(root, target_name, "chain architecture target")
+            if pathlib.PurePosixPath(target_name).name == "DESIGN.md":
+                raise EZPowersError(
+                    "chain architecture target cannot be a DESIGN.md file"
+                )
         if role == "frontend-design":
             _safe_document_path(root, target_name, "chain frontend-design target")
             if pathlib.PurePosixPath(target_name).name == "DESIGN.md":
@@ -4198,6 +4205,16 @@ def _load_chain_run_bundle(
         raise EZPowersError("chain run requires exactly one spec and one plan")
     if role_counts["oracle"] < 1:
         raise EZPowersError("chain run requires at least one acceptance oracle file")
+    architecture_selected = stages["design_architecture"]["selected"] is True
+    if architecture_selected and role_counts["architecture"] < 1:
+        raise EZPowersError(
+            "selected design_architecture stage requires at least one "
+            "architecture file"
+        )
+    if not architecture_selected and role_counts["architecture"]:
+        raise EZPowersError(
+            "chain architecture files require design_architecture to be selected"
+        )
 
     spec_entry = next(item for item in files if item["role"] == "spec")
     plan_entry = next(item for item in files if item["role"] == "plan")

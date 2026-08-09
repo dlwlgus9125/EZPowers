@@ -25,7 +25,8 @@ do not copy or reinterpret their rules.
 ## Inspect
 
 Read repository instructions, existing Markdown including root or app-local
-`DESIGN.md`, manifests, scripts, CI files, tests, source boundaries, and any
+`DESIGN.md` and existing architecture/C4/arc42 documents, manifests, scripts,
+CI files, tests, source boundaries, and any
 `.ezpowers/config.json` or
 `.ezpowers/docs.json`. Require the target path to equal the Git worktree root.
 Before invoking the runtime, run `python --version` and require Python 3.10 or
@@ -80,7 +81,8 @@ Follow `documentation-contract.md`:
 2. Select the smallest adaptive document set. Always include canonical
    `AGENTS.md`, exact `CLAUDE.md` import shim, and `docs/INDEX.md`; preserve
    existing user documents as external unless adoption is explicit. Detect
-   existing DESIGN.md candidates without auto-adopting or migrating them.
+   existing architecture and DESIGN.md candidates without auto-adopting,
+   relocating, or migrating them.
 3. Write the proposal only under `.ezpowers/staging/<unique-bundle>/`, including
    `bundle.json`.
 4. Run `docs preview --json` and present every create, update, adoption,
@@ -94,6 +96,11 @@ Follow `documentation-contract.md`:
 Do not synthesize generic architecture or testing prose, generate one file per
 directory, or modify specs/plans in this lane. Stage an incomplete graph or ask
 one focused question when a required claim has no evidence.
+When multiple meaningful module, service, runtime, deployment, API, or data
+ownership boundaries require a primary architecture artifact and none exists,
+leave the graph incomplete and hand authorship to `design-architecture`. Its
+default path is root `ARCHITECTURE.md`; setup never fills it with guessed
+boundaries.
 
 ## Verify and report
 

@@ -128,7 +128,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             self.assertNotIn("stress-test", metadata)
 
         manifest = json.loads(
-            (REPO_ROOT / "project-kit" / "v5.5.0" / "manifest.json").read_text(
+            (REPO_ROOT / "project-kit" / "v5.6.0" / "manifest.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -152,7 +152,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertFalse((REPO_ROOT / "harness-kit").exists())
         self.assertFalse((REPO_ROOT / "phases").exists())
         self.assertFalse((REPO_ROOT / ".harness").exists())
-        self.assertTrue((REPO_ROOT / "project-kit" / "v5.5.0" / "manifest.json").is_file())
+        self.assertTrue((REPO_ROOT / "project-kit" / "v5.6.0" / "manifest.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "config.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "state.json").is_file())
 
@@ -166,6 +166,36 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertIn("validate --plan <plan-path> --activate", execute)
         self.assertIn("validate --plan <plan-path> --json", prepare)
         self.assertNotIn("--activate", prepare)
+
+    def test_architecture_lifecycle_uses_standard_markdown_and_existing_state(self) -> None:
+        documentation = (
+            REPO_ROOT / "docs" / "reference" / "documentation-contract.md"
+        ).read_text(encoding="utf-8")
+        architecture = (
+            REPO_ROOT / "docs" / "reference" / "design-architecture-contract.md"
+        ).read_text(encoding="utf-8")
+        spec = (
+            REPO_ROOT / "docs" / "reference" / "spec-contract.md"
+        ).read_text(encoding="utf-8")
+        chain = (
+            REPO_ROOT / "docs" / "reference" / "harness-chain-contract.md"
+        ).read_text(encoding="utf-8")
+        decision = (
+            REPO_ROOT
+            / "docs"
+            / "decisions"
+            / "0006-architecture-artifact-lifecycle.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("root `ARCHITECTURE.md`", documentation)
+        self.assertIn("ordinary Markdown", documentation)
+        self.assertIn("leave the graph `incomplete`", documentation)
+        self.assertIn("`Maintenance` section", architecture)
+        self.assertIn("`Architecture impact` statement", spec)
+        self.assertIn("role `architecture`", chain)
+        self.assertIn("Do not add a second architecture manifest", decision)
+        self.assertFalse((REPO_ROOT / "architecture-check.json").exists())
+        self.assertFalse((REPO_ROOT / "scripts" / "architecture-check.py").exists())
 
     def test_harness_chain_is_explicit_asymmetric_and_project_installed(
         self,
@@ -187,7 +217,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.5.0"
+                / "v5.6.0"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -435,7 +465,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.5.0"
+                / "v5.6.0"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -464,16 +494,16 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertEqual(14, guide.count('class="skill-card"'))
         self.assertIn("14 plugin skills", guide)
         self.assertIn("13 project skills", guide)
-        self.assertIn("../project-kit/v5.5.0/manifest.json", guide)
+        self.assertIn("../project-kit/v5.6.0/manifest.json", guide)
         self.assertNotIn("v5.2.0/manifest.json", guide)
 
     def test_plugin_manifests_expose_the_same_version_and_current_workflow(self) -> None:
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.5.0")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.5.0")
-        self.assertTrue(codex["version"].startswith("5.5.0+codex."))
+        self.assertEqual(claude["version"], "5.6.0")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.6.0")
+        self.assertTrue(codex["version"].startswith("5.6.0+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)

@@ -76,6 +76,14 @@ Roles are intentionally narrow:
 `frontend-design` is an independent advisory skill. `hud` is an explicit,
 plugin-only global Codex utility and is never installed into a project kit.
 
+Before specifying a change to module/service boundaries, public interfaces,
+data ownership, cross-boundary flows, lifecycle, deployment, or verification
+boundaries, read the canonical architecture artifact from `docs/INDEX.md` and
+settle the change through `design-architecture`. Update that artifact before
+`spec`; if implementation needs a different boundary, return through design
+and revalidate the spec/plan. Behavior-preserving work should record no
+architecture impact and avoid documentation churn.
+
 For UI or frontend maintenance, read `docs/ux/frontend-design.md` and resolve
 the nearest mapped `DESIGN.md` before editing. The broad artifact owns UX,
 state, responsive, accessibility, and visual-QA decisions; `DESIGN.md` owns
@@ -112,10 +120,11 @@ has explicitly approved a design-contract change.
 - Explicit chain config: `.ezpowers/chain.json`
 - Feature approvals: `.ezpowers/approvals/`
 - Documentation graph: `.ezpowers/docs.json`
+- Canonical architecture: the artifact indexed by `docs/INDEX.md`
 - Local supporting knowledge: `.ezpowers/wiki/`
 - Resume/evidence pointer: `.ezpowers/state.json`
 - Runtime: `scripts/ezpowers.py`
-- Distribution manifest: `project-kit/v5.5.0/manifest.json`
+- Distribution manifest: `project-kit/v5.6.0/manifest.json`
 - Specs and plans: `docs/specs/`, `docs/plans/`
 - Canonical contracts: `docs/reference/*-contract.md`
 - Product state: `PROGRESS.md`, `feature_list.json`

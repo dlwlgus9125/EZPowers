@@ -10,7 +10,7 @@
 
 ## Live Reference
 
-- [Architecture](reference/architecture.md): v5.5 repository and installed-kit map.
+- [Architecture](reference/architecture.md): v5.6 repository map, structural boundaries, and maintenance triggers.
 - [Host Plugin Discovery](reference/codex-plugin-discovery.md): Claude Code and Codex discovery, invocation, hook, worktree, and sandbox differences.
 - [Setup Contract](reference/setup-contract.md): self-contained install, refresh, clean-break legacy boundary, conflicts, and optional hooks.
 - [Documentation Contract](reference/documentation-contract.md): repository analysis, adaptive Markdown graph, ownership, preview/apply, and lint.
@@ -33,6 +33,7 @@
 - [Explicit asymmetric harness chain ADR](decisions/0003-explicit-asymmetric-harness-chain.md)
 - [Specialized engineering skills ADR](decisions/0004-specialized-engineering-skills.md)
 - [Context-efficient evidence explanations ADR](decisions/0005-context-efficient-evidence-explanations.md)
+- [Architecture artifact lifecycle ADR](decisions/0006-architecture-artifact-lifecycle.md)
 - [2026-07-24 workflow harness audit](reports/workflow-harness-audit-2026-07-24.md)
 
 ## Generated Project Artifacts

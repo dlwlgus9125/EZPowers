@@ -1,6 +1,6 @@
 # Setup Contract
 
-This contract defines installation of the self-contained v5.5 project kit.
+This contract defines installation of the self-contained v5.6 project kit.
 `setup` configures deterministic project checks and may stage the
 repository-aware documentation workflow defined by
 `documentation-contract.md`; it does not configure an external executor or
@@ -211,6 +211,14 @@ must include canonical `AGENTS.md`, exact `CLAUDE.md` import shim, and
 adds `ezpowers.docs` to required checks. Existing unmanaged documents are
 preserved unless the bundle marks explicit adoption and the user authorizes a
 force-backed apply.
+
+Analysis also discovers an existing canonical architecture, C4, arc42, or
+organization-standard document and registers it without relocation or
+duplication. When none exists but repository evidence shows multiple
+meaningful runtime/module/deployment boundaries or consequential API/data
+ownership, setup leaves the graph incomplete and hands authorship to
+`design-architecture`; it does not synthesize plausible boundaries. The
+default new primary path is root `ARCHITECTURE.md`.
 
 Analysis detects existing root and frontend-local `DESIGN.md` files and reports
 candidate frontend roots. It does not auto-adopt, relocate, normalize, or

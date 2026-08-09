@@ -44,6 +44,10 @@ step state machine. Do not select models or impose a generic retry policy.
 Before changing UI, resolve the nearest mapped `DESIGN.md`. Treat it as
 authoritative for tokens and reusable-component styling, and implement any
 recorded code alignment rather than weakening the design contract.
+Treat the spec's architecture impact and referenced artifacts as settled
+constraints. If implementation requires a new or different structural
+boundary, stop that path and return through `design-architecture`, `spec`, and
+plan validation; do not hide the divergence with a final documentation edit.
 
 After each coherent slice, run the task's real checks. Treat the check result as
 feedback, not completion evidence; only a full `verify --all` run can become

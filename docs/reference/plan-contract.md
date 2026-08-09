@@ -18,13 +18,17 @@ python .ezpowers/ezpowers.py validate --spec <spec-path> --json
 
 Return to `spec` when a claim is ambiguous or cannot be automated without
 weakening it. Add a prerequisite when the project lacks a required adapter.
+Return to `design-architecture` when the proposed work would contradict the
+spec's architecture impact or invent a new structural boundary.
 
 ## Human-Readable Plan
 
 Write the plan under `docs/plans/`. Explain the goal, ordered vertical slices,
 dependencies, expected files, architecture/design constraints, non-goals, and
-risks in Markdown. Keep the machine coverage and command data in one managed
-block.
+risks in Markdown. Carry the spec's architecture artifact paths into those
+constraints; architecture is settled input, not a cosmetic documentation task
+at the end of implementation. Keep the machine coverage and command data in
+one managed block.
 
 ## Managed JSON Block
 

@@ -145,6 +145,30 @@ def add_ui_design_files(bundle: pathlib.Path) -> None:
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
 
+def add_architecture_file(bundle: pathlib.Path) -> None:
+    manifest_path = bundle / "bundle.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    (bundle / "ARCHITECTURE.md").write_text(
+        "# Architecture\n\n"
+        "## System Context\n\nThe public library entry point owns the value.\n\n"
+        "## Maintenance\n\nUpdate this file when that boundary changes.\n",
+        encoding="utf-8",
+    )
+    manifest["stage_selection"]["design_architecture"] = {
+        "selected": True,
+        "reason": "The approved feature changes a durable module boundary.",
+    }
+    manifest["files"].insert(
+        2,
+        {
+            "role": "architecture",
+            "source": "ARCHITECTURE.md",
+            "target": "ARCHITECTURE.md",
+        },
+    )
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+
 class ChainProject:
     def __init__(self, root: pathlib.Path) -> None:
         self.root = root
@@ -931,6 +955,88 @@ class HarnessChainTests(unittest.TestCase):
             self.assertIn("docs/ux/frontend-design.md", frozen_paths)
             (project.root / "DESIGN.md").write_text(
                 (project.root / "DESIGN.md").read_text(encoding="utf-8")
+                + "\nChanged after approval.\n",
+                encoding="utf-8",
+            )
+            status = project.command("chain", "run", "status", "--json")
+            project.assert_success(status)
+            self.assertEqual("NEEDS_REAPPROVAL", json.loads(status.stdout)["status"])
+
+    def test_selected_architecture_stage_requires_and_freezes_architecture_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+
+            unexpected_bundle = project.write_run_bundle(
+                run_id="architecture-unselected"
+            )
+            add_architecture_file(unexpected_bundle)
+            unexpected_manifest_path = unexpected_bundle / "bundle.json"
+            unexpected_manifest = json.loads(
+                unexpected_manifest_path.read_text(encoding="utf-8")
+            )
+            unexpected_manifest["stage_selection"]["design_architecture"] = {
+                "selected": False,
+                "reason": "The feature has no durable boundary change.",
+            }
+            unexpected_manifest_path.write_text(
+                json.dumps(unexpected_manifest, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            unexpected = project.command(
+                "chain",
+                "run",
+                "preview",
+                "--bundle",
+                str(unexpected_bundle),
+                "--json",
+            )
+            self.assertEqual(
+                2,
+                unexpected.returncode,
+                unexpected.stdout + unexpected.stderr,
+            )
+            self.assertIn(
+                "require design_architecture to be selected",
+                unexpected.stdout + unexpected.stderr,
+            )
+
+            missing_bundle = project.write_run_bundle(run_id="architecture-missing")
+            missing_manifest_path = missing_bundle / "bundle.json"
+            missing_manifest = json.loads(
+                missing_manifest_path.read_text(encoding="utf-8")
+            )
+            missing_manifest["stage_selection"]["design_architecture"] = {
+                "selected": True,
+                "reason": "The feature changes a durable module boundary.",
+            }
+            missing_manifest_path.write_text(
+                json.dumps(missing_manifest, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            rejected = project.command(
+                "chain",
+                "run",
+                "preview",
+                "--bundle",
+                str(missing_bundle),
+                "--json",
+            )
+            self.assertEqual(2, rejected.returncode, rejected.stdout + rejected.stderr)
+            self.assertIn("architecture file", rejected.stdout + rejected.stderr)
+
+            bundle = project.write_run_bundle(run_id="architecture-run")
+            add_architecture_file(bundle)
+            applied = project.approve(bundle)
+            approval = json.loads(
+                (project.root / applied["approval_path"]).read_text(encoding="utf-8")
+            )
+            architecture = next(
+                item for item in approval["files"] if item["role"] == "architecture"
+            )
+            self.assertEqual("ARCHITECTURE.md", architecture["path"])
+            (project.root / "ARCHITECTURE.md").write_text(
+                (project.root / "ARCHITECTURE.md").read_text(encoding="utf-8")
                 + "\nChanged after approval.\n",
                 encoding="utf-8",
             )

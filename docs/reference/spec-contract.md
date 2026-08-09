@@ -25,6 +25,8 @@ Write the spec under `docs/specs/`. Its Markdown should state:
 
 - purpose and user or system outcome;
 - included and excluded scope;
+- an `Architecture impact` statement: `none` with evidence, or the settled
+  canonical artifact paths and decision IDs;
 - settled architecture and design references;
 - requirements and observable failure behavior;
 - compatibility, migration, security, accessibility, or operational
@@ -33,6 +35,9 @@ Write the spec under `docs/specs/`. Its Markdown should state:
 
 Use stable requirement IDs such as `R1`. Keep implementation choices out of
 Given/When/Then-style claims unless they are themselves a public constraint.
+If implementation would require a boundary different from the referenced
+architecture, return to `design-architecture` instead of treating the
+architecture document as an implementation task.
 
 ## Managed JSON Block
 

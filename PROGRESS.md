@@ -2,21 +2,27 @@
 
 ## Current State
 
-EZPowers v5.5.0 project kit and plugin candidate are present in the working tree
-on `main`. F21 is complete; F19 remains the release blocker because its live
-dual-host diagnosis probe still needs external host access. The candidate
+EZPowers v5.6.0 project kit and plugin candidate are present in the working tree
+on `main`. F21 and F22 are complete; F19 remains the release blocker because
+its live dual-host diagnosis probe still needs external host access. The
+candidate
 preserves the host-native verification core, documentation graph, local wiki,
 explicit harness chain, and Plan Mode-aware clarification while adding a
 maintainable paired frontend design contract, retaining the context-efficient
 evidence explanation skill, tightening diagnosis around an exact-reproduction
-gate, and retaining the harness-chain loop hardening (a
-reviewer rubric whose embedded template matches the receipt parser exactly and
+gate, adding a portable architecture artifact lifecycle, and retaining the
+harness-chain loop hardening (a reviewer rubric whose embedded template
+matches the receipt parser exactly and
 stays FAIL when copied unedited, chain hooks that degrade to a fail-safe no-op
 instead of exit 2 on unreadable runtime state, and `PENDING_LOOP` activation
 blocks counted against `total_iterations`):
 
 - repository analysis and an adaptive Markdown graph rooted at canonical
   `AGENTS.md`, exact `CLAUDE.md` import, and `docs/INDEX.md`;
+- an existing-first canonical architecture artifact, conventional root
+  `ARCHITECTURE.md` fallback, structural maintenance triggers, readable spec
+  impact, and conditional chain freezing without a second manifest or
+  semantic-freshness state machine;
 - paired frontend authority: broad UX decisions in
   `docs/ux/frontend-design.md`, normative visual tokens/components in the
   nearest mapped `DESIGN.md`, a pinned Google-derived alpha profile, and
@@ -89,6 +95,7 @@ force product rework until a configured limit becomes terminal.
 - `F18`: decision-ready `deep-interview` blind-spot pass.
 - `F20`: context-efficient evidence explanations.
 - `F21`: maintainable paired `DESIGN.md` frontend contract.
+- `F22`: portable architecture artifact lifecycle.
 
 ## In-Progress Item
 
@@ -98,12 +105,32 @@ force product rework until a configured limit becomes terminal.
   the isolated fixture can execute its authoritative Python command inside the
   configured workspace sandbox.
 
-The v5.5 project kit installs thirteen project skills, eleven canonical
+The v5.6 project kit installs thirteen project skills, eleven canonical
 contracts, and three deterministic tools. The plugin exposes fourteen skills,
 including the project skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+v5.6.0 portable architecture artifact lifecycle verification on 2026-08-09:
+
+- `python -m unittest discover -s tests`: 174 tests passed in 805.082
+  seconds.
+- Focused new behavior passed: the managed root `ARCHITECTURE.md` docs
+  transaction in 4.760 seconds, the selected/unselected/missing/frozen chain
+  lifecycle in 19.948 seconds, and all 11 workflow-surface tests in 0.058
+  seconds.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File
+  scripts/check-repo.ps1`: PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File
+  scripts/harness-runtime-smoke.ps1`: PASS for real install, validate, verify,
+  certify, and stale flow.
+- `python scripts/verify-harness-kit.py`: v5.6 project kit manifest valid with
+  thirteen project skills, eleven contracts, and three tools.
+- `python scripts/plugin_smoke.py --host both`: plugin files matched, Claude
+  2.1.220 accepted both manifests, and Codex 0.147.0 loaded standalone
+  deep-interview plus every project and namespaced plugin skill with matching
+  prompts.
 
 v5.5.0 maintainable `DESIGN.md` frontend contract verification on 2026-08-09:
 

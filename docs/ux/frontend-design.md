@@ -223,10 +223,10 @@ Content freshness is bound to the canonical sources:
 - `skills/*/SKILL.md` for skill behavior;
 - `AGENTS.md` for the current route and responsibility boundary;
 - `docs/reference/codex-plugin-discovery.md` for host invocation;
-- `project-kit/v5.5.0/manifest.json` for plugin/project inventory.
+- `project-kit/v5.6.0/manifest.json` for plugin/project inventory.
 
 When those sources change, maintainers must review both this artifact and the
-HTML guide. The HTML presents the v5.5.0 project kit and plugin catalog rather
+HTML guide. The HTML presents the v5.6.0 project kit and plugin catalog rather
 than claiming automatic synchronization.
 
 ## Unresolved questions

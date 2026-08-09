@@ -24,13 +24,16 @@ focused `codebase-design` seams and regression checks in the task mapping.
 
 Validate the spec first with the exact command in the plan contract. Return to
 `spec` when a criterion is ambiguous or cannot be automated without weakening
-its observable claim.
+its observable claim. Return to `design-architecture` when planned work would
+contradict the spec's architecture impact or introduce an unrecorded boundary.
 
 ## Plan and validate
 
 Create one plan under `docs/plans/`. Explain ordered vertical slices,
 dependencies, expected files, constraints, prerequisites, non-goals, and risks
-in Markdown. Add exactly one managed JSON block using the canonical plan
+in Markdown. Carry settled architecture paths and constraints as inputs; do
+not add a tail-end task that merely makes documentation resemble the code.
+Add exactly one managed JSON block using the canonical plan
 contract. Map every criterion exactly once and bind it to real named or inline
 project checks. Preserve frontend, accessibility, integration, and visual
 oracles; missing tooling becomes an explicit prerequisite. For UI work,

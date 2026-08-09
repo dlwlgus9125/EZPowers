@@ -191,6 +191,99 @@ def write_ready_bundle(project: Project, name: str = "bootstrap") -> pathlib.Pat
 
 
 class DocumentationRuntimeTests(unittest.TestCase):
+    def test_root_architecture_document_is_a_safe_managed_graph_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = Project(pathlib.Path(temp_dir))
+            install = project.install()
+            self.assertEqual(0, install.returncode, install.stdout + install.stderr)
+            bundle = write_ready_bundle(project, "root-architecture")
+            files = bundle / "files"
+            (files / "ARCHITECTURE.md").write_text(
+                "---\n"
+                'doc_type: "reference"\n'
+                'authority: "canonical"\n'
+                'status: "active"\n'
+                'generated_by: "ezpowers"\n'
+                "---\n\n"
+                "# Architecture\n\n"
+                "## System Context\n\nThe CLI is the public entry point.\n\n"
+                "## Maintenance\n\n"
+                "Update this document when a durable boundary changes.\n\n"
+                "## Evidence\n\n"
+                "- Repository sources declared by the bundle.\n",
+                encoding="utf-8",
+            )
+            index_path = files / "INDEX.md"
+            index_path.write_text(
+                index_path.read_text(encoding="utf-8")
+                + "\n- [Architecture](../ARCHITECTURE.md)\n",
+                encoding="utf-8",
+            )
+            manifest_path = bundle / "bundle.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["documents"].append(
+                {
+                    "path": "ARCHITECTURE.md",
+                    "source": "files/ARCHITECTURE.md",
+                    "role": "architecture",
+                    "ownership": "ezpowers",
+                    "authority": "canonical",
+                    "status": "active",
+                    "validator": "markdown",
+                    "evidence": ["package.json"],
+                }
+            )
+            manifest["links"].append(
+                {
+                    "from": "docs/INDEX.md",
+                    "to": "ARCHITECTURE.md",
+                    "relation": "indexes",
+                }
+            )
+            manifest_path.write_text(
+                json.dumps(manifest, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            preview = run_cli(
+                project.runtime,
+                "docs",
+                "preview",
+                "--bundle",
+                str(bundle.relative_to(project.root)),
+                "--json",
+                cwd=project.root,
+            )
+            self.assertEqual(0, preview.returncode, preview.stdout + preview.stderr)
+            preview_value = json.loads(preview.stdout)
+            applied = run_cli(
+                project.runtime,
+                "docs",
+                "apply",
+                "--bundle",
+                str(bundle.relative_to(project.root)),
+                "--preview-sha256",
+                preview_value["preview_sha256"],
+                "--json",
+                cwd=project.root,
+            )
+            self.assertEqual(0, applied.returncode, applied.stdout + applied.stderr)
+            registry = json.loads(
+                (project.root / ".ezpowers" / "docs.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                "architecture",
+                registry["documents"]["ARCHITECTURE.md"]["role"],
+            )
+            lint = run_cli(
+                project.runtime,
+                "docs",
+                "lint",
+                "--json",
+                cwd=project.root,
+            )
+            self.assertEqual(0, lint.returncode, lint.stdout + lint.stderr)
+
     def test_external_spec_remains_user_owned_but_must_keep_its_managed_block(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             project = Project(pathlib.Path(temp_dir))

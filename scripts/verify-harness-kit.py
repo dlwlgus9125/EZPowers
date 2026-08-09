@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate or stamp the self-contained EZPowers v5.5 project-kit manifest."""
+"""Validate or stamp the self-contained EZPowers v5.6 project-kit manifest."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from pathlib import Path, PurePosixPath
 import re
 
 
-VERSION = "5.5.0"
-MANIFEST = "project-kit/v5.5.0/manifest.json"
+VERSION = "5.6.0"
+MANIFEST = "project-kit/v5.6.0/manifest.json"
 PROJECT_SKILLS = {
     "codebase-design",
     "setup",
@@ -213,7 +213,7 @@ def main() -> int:
         for error in errors:
             print(f"ERROR: {error}")
         return 1
-    print("EZPowers v5.5 project kit manifest valid")
+    print("EZPowers v5.6 project kit manifest valid")
     return 0
 
 

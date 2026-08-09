@@ -51,6 +51,10 @@ one managed plan, and one or more acceptance-oracle files. When the spec has
 `design_context.required: true`, the same bundle also declares exactly one
 `frontend-design` file and every listed `design-system` file. Their targets
 must exactly match the spec and the managed frontend mapping.
+When `design_architecture` is selected, the bundle also declares one or more
+safe Markdown files with role `architecture`; when it is not selected, that
+role is absent. The files are already-settled architecture inputs, not a
+license to invent boundaries during implementation.
 
 Every criterion must be covered exactly once by an oracle. Every oracle names
 its observable boundary, positive case, negative case, exact mapped checks,
@@ -107,6 +111,7 @@ The feature approval freezes by path and SHA-256:
 - project chain configuration;
 - project verification configuration and exact required argv;
 - managed spec and plan;
+- every architecture artifact when `design_architecture` was selected;
 - the broad frontend-design artifact and every applicable DESIGN.md for UI
   work;
 - every acceptance-oracle file;

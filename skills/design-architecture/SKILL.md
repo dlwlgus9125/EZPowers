@@ -41,9 +41,25 @@ Use `codebase-design` only to deepen a focused product-code boundary already in
 scope. This skill remains the owner of durable project architecture artifacts.
 Do not invoke the broad `improve-codebase-architecture` scan implicitly.
 
+Adopt an existing canonical architecture, C4, arc42, or organization-standard
+document without duplicating it. If none exists and the project has meaningful
+structural boundaries, use root `ARCHITECTURE.md`. Keep it ordinary Markdown
+with only applicable system context, code-mapped boundaries, important flows,
+lifecycle/deployment, constraints, verification, decisions, and risks. Add a
+`Maintenance` section with concrete structural update triggers; do not add
+empty template sections or diagrams without a textual mapping.
+
+Classify the current feature explicitly. Report `Architecture impact: none`
+with repository evidence for behavior-preserving work, or update every affected
+canonical artifact and decision ID before handoff. If implementation would
+later cross a different boundary, return here and revise downstream artifacts
+rather than treating architecture as end-of-task prose.
+
 Respect documentation ownership. Update an EZPowers-owned architecture file
 through a staged docs preview/apply bundle; do not hand-edit it or silently
-adopt an external document. Keep external canonical documents user-owned.
+adopt an external document. Under the user's architecture-edit authority, the
+host may update an external canonical document while its registry ownership
+remains `external`.
 
 Do not prescribe model selection, subagent placement, worktrees, sandbox
 settings, reviewer routing, or general retries; the active host owns those

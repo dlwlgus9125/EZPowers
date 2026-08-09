@@ -33,6 +33,9 @@ decision.
 
 Create one feature spec under `docs/specs/`. Keep purpose, scope, settled
 requirements, exclusions, risks, and design references in readable Markdown.
+Include `Architecture impact: none` with evidence or name the settled canonical
+architecture paths and decision IDs. Return to `design-architecture` if that
+impact is not settled; do not defer a boundary decision to implementation.
 Add exactly one managed JSON block using the canonical spec contract. Every
 criterion must be binary, observable, host-independent, and traceable to one
 requirement. Mark real boundary-crossing behavior as integration evidence and
