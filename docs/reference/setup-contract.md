@@ -1,6 +1,6 @@
 # Setup Contract
 
-This contract defines installation of the self-contained v5.6 project kit.
+This contract defines installation of the self-contained v5.7 project kit.
 `setup` configures deterministic project checks and may stage the
 repository-aware documentation workflow defined by
 `documentation-contract.md`; it does not configure an external executor or
@@ -125,23 +125,36 @@ not authority to overwrite a customized managed file.
 
 ## Config Schema
 
-`.ezpowers/config.json` schema version 1 is intentionally small:
+New `.ezpowers/config.json` files use schema version 2:
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project_name": "example",
+  "verification": {"max_parallel_checks": 4},
   "checks": {
     "unit": {
       "argv": ["python", "-m", "unittest"],
       "cwd": ".",
       "timeout_seconds": 120,
-      "kind": "test"
+      "kind": "test",
+      "concurrency": {
+        "safe": false,
+        "resource_locks": []
+      }
     }
   },
   "required_checks": ["unit"]
 }
 ```
+
+`verification.max_parallel_checks` is an integer from 1 through 32. Check
+concurrency is an explicit v2 contract governed by `plan-contract.md` and
+`verification-contract.md`; missing or false safety is a global barrier.
+Existing schema-v1 config is still valid, is never rewritten by refresh, and
+always executes serially. Moving an existing project to v2 is a deliberate
+configuration edit with project-specific safety evidence, not an installer
+migration.
 
 Check IDs are 1-64 characters, start with a letter, and contain only letters,
 digits, `.`, `_`, or `-`. `argv` is a non-empty string array executed without
@@ -190,7 +203,7 @@ The complete approval, host asymmetry, and evidence rules are in
 
 ## Pre-v5 Clean Break
 
-When no v5 config exists, installation creates the small default v5 config
+When no v5 config exists, installation creates the small default v5 config-v2
 from repository identity only. Retired pre-v5 files remain user-owned and
 untouched; they are not configuration inputs, warning sources, or command
 sources. A user who wants an old check retained must confirm it as a new

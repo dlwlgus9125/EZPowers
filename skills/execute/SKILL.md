@@ -28,6 +28,7 @@ Run:
 ```text
 python .ezpowers/ezpowers.py validate --plan <plan-path> --activate
 python .ezpowers/ezpowers.py status --json
+python .ezpowers/ezpowers.py trace --plan <plan-path> --json
 ```
 
 Stop if the kit is missing, the plan is invalid, or a managed-file conflict is
@@ -37,7 +38,8 @@ read-only. Preserve unrelated and user-owned changes.
 
 ## Implement
 
-Work through the plan's dependency order. Use the host's native execution and
+Work through the plan's dependency order. The runtime graph orders only check
+readiness and never assigns implementation tasks. Use the host's native execution and
 review features when they improve safety, but do not pretend a capability from
 one host exists in the other. Do not translate the plan into a second phase or
 step state machine. Do not select models or impose a generic retry policy.
@@ -51,7 +53,9 @@ plan validation; do not hide the divergence with a final documentation edit.
 
 After each coherent slice, run the task's real checks. Treat the check result as
 feedback, not completion evidence; only a full `verify --all` run can become
-the certification candidate.
+the certification candidate. Plan-v2 verification may overlap only checks
+whose own contract is explicitly safe and lock-compatible; do not add a safety
+declaration merely to accelerate the current run.
 
 ## Verify and certify
 
@@ -61,6 +65,7 @@ When implementation and review are complete, run:
 python .ezpowers/ezpowers.py verify --plan <plan-path> --all --json
 python .ezpowers/ezpowers.py certify --plan <plan-path> --json
 python .ezpowers/ezpowers.py status --json
+python .ezpowers/ezpowers.py trace --plan <plan-path> --json
 ```
 
 Never edit evidence, synthesize a PASS result, omit a required check, or weaken

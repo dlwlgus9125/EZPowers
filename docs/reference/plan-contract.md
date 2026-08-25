@@ -1,8 +1,9 @@
 # Plan Contract
 
-This contract maps every spec criterion exactly once to ordered work and exact
-project-local checks. The plan does not decide how Claude Code or Codex edits,
-delegates, isolates worktrees, reviews, or retries.
+This contract maps every spec criterion exactly once to dependency-constrained
+work and exact project-local checks. The dependency graph constrains plan
+validation and check execution only; it does not decide how Claude Code or
+Codex edits, delegates, isolates worktrees, reviews, or retries.
 
 ## Preflight
 
@@ -36,19 +37,24 @@ one managed block.
 <!-- ezpowers:plan:start -->
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "spec": "docs/specs/example.md",
   "checks": {
     "feature-cli": {
       "argv": ["python", "-m", "unittest", "tests.test_feature"],
       "cwd": ".",
       "timeout_seconds": 120,
-      "kind": "test"
+      "kind": "test",
+      "concurrency": {
+        "safe": false,
+        "resource_locks": []
+      }
     }
   },
   "tasks": [
     {
       "id": "T1",
+      "depends_on": [],
       "criteria": ["AC-1"],
       "checks": ["feature-cli"]
     }
@@ -62,11 +68,19 @@ The block markers occur exactly once and contain one fenced JSON object.
 
 ## Plan Rules
 
-- `schema_version` is `1`.
+- `schema_version` is `1` or `2`. Version 1 is a compatibility contract: it
+  has no dependency or concurrency fields and always executes serially.
+  Newly authored plans use version 2.
 - `spec` is a contained project-relative path to a valid managed spec;
   absolute POSIX or Windows paths and drive-prefixed paths are invalid.
 - `tasks` is a non-empty array with unique IDs that follow the same 1-64
   character identifier rule as spec criteria.
+- Every version-2 task has a `depends_on` string array. Dependencies name
+  current task IDs and may point forward in declaration order, but duplicates,
+  missing targets, self-dependencies, and cycles are invalid. Stable
+  topological waves preserve declaration order among simultaneously ready
+  tasks. A version-1 plan that contains `depends_on` is invalid rather than
+  silently ignoring it.
 - Every task has a non-empty `criteria` array and `checks` array.
 - Every spec criterion appears in exactly one task. Unknown, duplicate, or
   uncovered criteria fail validation.
@@ -95,7 +109,11 @@ remain exact.
   "argv": ["python", "-m", "unittest", "tests.test_feature"],
   "cwd": ".",
   "timeout_seconds": 120,
-  "kind": "test"
+  "kind": "test",
+  "concurrency": {
+    "safe": true,
+    "resource_locks": ["read-only-repository"]
+  }
 }
 ```
 
@@ -106,6 +124,13 @@ remain exact.
 - `timeout_seconds` is an integer from 1 through 86400.
 - `kind` is `build`, `custom`, `e2e`, `integration`, `lint`, `security`,
   `smoke`, `static`, `test`, `typecheck`, or `visual`.
+- `concurrency` is available only in plan/config schema v2. `safe` is a
+  boolean and `resource_locks` is a duplicate-free array of stable identifiers.
+  Missing `concurrency`, or `safe: false`, is a global execution barrier. The
+  runtime also adds an implicit same-check lock to every occurrence. Mark a
+  check safe only after serial/parallel outcome equivalence and workspace
+  behavior have been measured; the declaration is a safety contract, not a
+  speed hint.
 - `echo`, `true`, trivial zero-exit snippets, shell pipelines, redirections,
   opaque PowerShell command forms, `cmd /K`, path traversal, and synthetic PASS
   output are invalid.
@@ -145,8 +170,12 @@ Run:
 
 ```text
 python .ezpowers/ezpowers.py validate --plan <plan-path> --json
+python .ezpowers/ezpowers.py trace --plan <plan-path> --json
 ```
 
-Report the plan path, task order, exact criterion coverage, each exact check,
-project required checks, and unresolved prerequisites. Continue to `execute`
-only with a valid plan; the host chooses its own execution mechanics.
+Validation reports the stable assurance-graph hash and topological task waves.
+`trace` reports the sorted typed graph and current blocking paths without
+command logs, prompts, or request text. Report the plan path, task waves, exact
+criterion coverage, each exact check, project required checks, graph hash, and
+unresolved prerequisites. Continue to `execute` only with a valid plan; the
+host chooses its own implementation mechanics.

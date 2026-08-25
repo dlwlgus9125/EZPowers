@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="EZPowers v5.6.0 플러그인의 14개 스킬을 언제, 어떤 순서로, Claude Code와 Codex에서 어떻게 사용하는지 설명하는 한국어 가이드">
+  <meta name="description" content="EZPowers v5.7.0 플러그인의 14개 스킬을 언제, 어떤 순서로, Claude Code와 Codex에서 어떻게 사용하는지 설명하는 한국어 가이드">
   <meta name="color-scheme" content="light dark">
   <title>EZPowers Skill Atlas — 스킬 사용 가이드</title>
   <script>
@@ -2698,7 +2698,7 @@
         <span class="brand-mark" aria-hidden="true">EZ</span>
         <span class="brand-copy">
           <strong>Skill Atlas</strong>
-          <span>EZPowers v5.6</span>
+          <span>EZPowers v5.7</span>
         </span>
       </a>
 
@@ -2726,7 +2726,7 @@
           실제 동작 기준:
           <a href="../AGENTS.md">AGENTS.md</a>,
           <a href="reference/codex-plugin-discovery.md">호스트 호출 계약</a>,
-          <a href="../project-kit/v5.6.0/manifest.json">v5.6 매니페스트</a>
+          <a href="../project-kit/v5.7.0/manifest.json">v5.7 매니페스트</a>
         </p>
       </div>
     </aside>
@@ -2735,7 +2735,7 @@
       <div class="mobile-bar">
         <a class="mobile-brand" href="#overview">
           <span class="brand-mark" aria-hidden="true">EZ</span>
-          <span>Skill Atlas · v5.6</span>
+          <span>Skill Atlas · v5.7</span>
         </a>
         <div class="control-group">
           <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
@@ -2752,7 +2752,7 @@
 
       <section class="section hero" id="overview" aria-labelledby="hero-title">
         <div class="hero-topline">
-          <span class="hero-edition">Verified workflow · plugin v5.6.0</span>
+          <span class="hero-edition">Verified workflow · plugin v5.7.0</span>
           <div class="control-group">
             <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
               <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true">
@@ -3543,11 +3543,11 @@
               </div>
               <p class="skill-purpose">
                 유효한 스펙의 모든 기준을 한 번씩만 다루는 작은 구현 계획으로 바꾸고,
-                순서·의존성·예상 파일·정확한 프로젝트 검사를 결합합니다.
+                plan v2의 명시적 의존성·예상 파일·정확한 프로젝트 검사를 결합합니다.
               </p>
               <dl class="fact-list">
                 <div class="fact"><dt>언제</dt><dd>스펙이 유효하고 구현 전에 criterion coverage와 검사 명령을 확정할 때</dd></div>
-                <div class="fact"><dt>결과</dt><dd><code>docs/plans/</code> 아래 순서화된 계획 + 관리 JSON 블록</dd></div>
+                <div class="fact"><dt>결과</dt><dd><code>docs/plans/</code> 아래 DAG 계획 + 안정적인 assurance graph hash</dd></div>
                 <div class="fact"><dt>안 함</dt><dd>계획 구현, 검사 약화, 중복/누락 기준 허용, 호스트 실행 전략 지정</dd></div>
               </dl>
               <div class="command-stack">
@@ -3563,6 +3563,8 @@
               <div class="detail-body">
                 <ul>
                   <li>모든 수락 기준은 정확히 한 작업에 매핑되어야 합니다.</li>
+                  <li>모든 새 작업은 <code>depends_on</code>을 명시하며 누락·자기참조·순환 의존성은 차단됩니다.</li>
+                  <li>검사의 병렬 안전성이 재현되지 않았다면 <code>safe: false</code> 장벽으로 둡니다.</li>
                   <li>프런트엔드·접근성·통합·시각 오라클을 보존합니다.</li>
                   <li>도구가 없으면 검사를 빼지 말고 명시적인 선행 작업으로 둡니다.</li>
                   <li><code>validate --plan</code>이 PASS일 때만 <code>execute</code>로 이어집니다.</li>
@@ -3602,13 +3604,15 @@
               </div>
             </div>
             <details>
-              <summary>완료까지의 세 명령</summary>
+              <summary>완료까지의 네 명령</summary>
               <div class="detail-body">
                 <ol>
                   <li><code>validate --plan &lt;path&gt; --activate</code>로 resume 대상을 명시합니다.</li>
+                  <li><code>trace --plan &lt;path&gt; --json</code>으로 graph hash·task wave·차단 경로를 확인합니다.</li>
                   <li>구현·리뷰 후 <code>verify --plan &lt;path&gt; --all --json</code>으로 전체 검사를 실행합니다.</li>
                   <li><code>certify --plan &lt;path&gt; --json</code>과 <code>status --json</code>으로 신선한 완료를 확인합니다.</li>
                   <li>워크스페이스·계획·설정·문서가 바뀌면 이전 PASS는 완료를 대신하지 못합니다.</li>
+                  <li>명시적으로 안전하고 lock이 충돌하지 않는 검사만 겹쳐 실행되며 결과 배열은 선언 순서를 유지합니다.</li>
                 </ol>
               </div>
             </details>
@@ -4032,7 +4036,7 @@
         <div>
           <strong>EZPowers Skill Atlas</strong>
           <p>
-            v5.6.0 프로젝트 키트와 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
+            v5.7.0 프로젝트 키트와 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
             동작이 바뀌면 <code>skills/*/SKILL.md</code>, 호출 계약, 프로젝트 매니페스트와 함께 이 문서를 갱신하세요.
             시각 토큰과 재사용 컴포넌트 규칙은 루트 <code>DESIGN.md</code>를 먼저 갱신한 뒤 이 구현에 반영하세요.
           </p>
@@ -4042,6 +4046,7 @@
           <a href="../DESIGN.md">디자인 시스템</a>
           <a href="reference/architecture.md">아키텍처</a>
           <a href="reference/verification-contract.md">검증 계약</a>
+          <a href="reports/graph-engineering-paper-evaluation-2026-08-25.md">Graph Engineering 평가</a>
           <a href="#overview">맨 위로 ↑</a>
         </div>
       </footer>

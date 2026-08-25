@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cross-platform structural gate for the EZPowers v5.6 repository surface."""
+"""Cross-platform structural gate for the EZPowers v5.7 repository surface."""
 
 from __future__ import annotations
 
@@ -125,7 +125,7 @@ OBSOLETE_REFERENCES = (
     "testing-methodology.md",
 )
 
-PROJECT_KIT_MANIFEST = pathlib.Path("project-kit/v5.6.0/manifest.json")
+PROJECT_KIT_MANIFEST = pathlib.Path("project-kit/v5.7.0/manifest.json")
 PROJECT_KIT_VERIFIER = pathlib.Path("scripts/verify-harness-kit.py")
 
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
@@ -146,6 +146,17 @@ LEGACY_PATTERNS = (
     ("internal pipeline audit", re.compile(r"\binternal pipeline audit\b", re.IGNORECASE)),
     ("workflow-runner", re.compile(r"\bworkflow-runner\b")),
     ("Path 2", re.compile(r"\bPath\s+2\b", re.IGNORECASE)),
+)
+LEGACY_PATTERN_HINTS = (
+    ".harness",
+    "phases",
+    "harness.root",
+    "execute.py",
+    "easypowersharness",
+    "choice-execute",
+    "internal pipeline audit",
+    "workflow-runner",
+    "path",
 )
 
 VALIDATOR_REFERENCE_EXEMPTIONS = {
@@ -622,10 +633,10 @@ def _explicit_retired_reference(lines: list[str], index: int) -> bool:
 
 def _validate_obsolete_references(root: pathlib.Path, errors: list[str]) -> None:
     obsolete_name_patterns = tuple(
-        (f"obsolete script {name}", re.compile(re.escape(name)))
+        (f"obsolete script {name}", re.compile(re.escape(name)), name.lower())
         for name in OBSOLETE_SCRIPTS
     ) + tuple(
-        (f"obsolete reference {name}", re.compile(re.escape(name)))
+        (f"obsolete reference {name}", re.compile(re.escape(name)), name.lower())
         for name in OBSOLETE_REFERENCES
     ) + tuple(
         (
@@ -635,10 +646,17 @@ def _validate_obsolete_references(root: pathlib.Path, errors: list[str]) -> None
                 rf"(?<![A-Za-z0-9_-])(?:\$|/)(?:ezpowers:)?"
                 rf"{re.escape(name)}\b)"
             ),
+            name.lower(),
         )
         for name in REMOVED_SKILLS
     )
-    patterns = LEGACY_PATTERNS + obsolete_name_patterns
+    patterns = tuple(
+        (label, pattern, hint)
+        for (label, pattern), hint in zip(
+            LEGACY_PATTERNS,
+            LEGACY_PATTERN_HINTS,
+        )
+    ) + obsolete_name_patterns
     seen: set[tuple[str, str]] = set()
     for path in _live_contract_and_steering_files(root):
         relative_path = path.relative_to(root)
@@ -649,7 +667,10 @@ def _validate_obsolete_references(root: pathlib.Path, errors: list[str]) -> None
             continue
         lines = text.splitlines()
         for index, line in enumerate(lines):
-            for label, pattern in patterns:
+            lowered_line = line.lower()
+            for label, pattern, hint in patterns:
+                if hint not in lowered_line:
+                    continue
                 if not pattern.search(line):
                     continue
                 if _explicit_retired_reference(lines, index):

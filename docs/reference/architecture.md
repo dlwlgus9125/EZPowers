@@ -20,18 +20,25 @@ must remain stable across hosts and sessions:
 - a repository-evidenced Markdown graph with explicit ownership and lint;
 - paired frontend UX and nearest DESIGN.md contracts with pinned offline
   profiles and deterministic mapping/diff validation;
-- one managed JSON contract in each feature spec and plan;
+- one managed JSON contract in each feature spec and plan, with compatible
+  plan-v2 dependency declarations for new work;
 - project-specific checks represented as exact argument arrays;
+- a deterministic assurance graph derived from criteria, tasks, check
+  occurrences, evidence, independent chain review, and certification;
 - check output, hashes, workspace freshness, certification, and resume state;
 - optional worktree-local session knowledge that has no completion authority;
 - explicit, hash-frozen feature approvals, bound independent-review receipts,
   and hard terminal limits when a harness chain is requested;
 - thin, optional host hook adapters over the same completion verdict.
 
-There is no second executor, numbered execution path, parallel task-state
-machine, or generic host-independent orchestration policy in the v5
-architecture. The optional chain composes the existing artifacts and verdict;
-the selected host still performs every implementation action.
+There is no second executor, numbered execution path, mutable task-state
+machine, or generic host-independent implementation-orchestration policy. A
+plan-v2 dependency graph constrains only validation order and project-check
+execution; it never assigns implementation work. Explicitly safe checks may
+run concurrently under resource locks, while legacy plans/configuration and
+all unmarked checks remain serial. The optional chain composes the existing
+artifacts and verdict; the selected host still performs every implementation
+action.
 
 ## Distribution And Installation
 
@@ -162,10 +169,26 @@ embedding service. Promotion binds a page to an already-authored canonical
 document; it does not write or own that document. SessionEnd capture is
 separately opt-in and retains only allowlisted repository metadata.
 
+The runtime normalizes ordinary and staged-chain plans through the same
+validation core. It derives a typed, versioned assurance graph rather than
+persisting a second source of truth. Plan v2 requires explicit task
+dependencies and rejects missing targets, duplicates, self-dependencies, and
+cycles. `trace` exposes the stable graph hash, topological task waves, current
+node states, and candidate blocking paths without exposing command output or
+prompts. Dependency paths narrow investigation; they are not represented as
+proof of causality.
+
 The runtime executes checks without an implicit shell, stores logs and hashes
 under `.ezpowers/evidence/`, and binds a PASS to the current spec, plan,
-config, installed-kit identity, Git HEAD, tracked diff, and untracked-file
-digest. A bounded project-local lock serializes state writers.
+config, installed-kit identity, Git HEAD, tracked diff, untracked-file digest,
+and, for plan-v2 evidence, the assurance-graph snapshot and hash. Config v2
+sets a bounded worker cap. Concurrency is per-check opt-in and is constrained
+by explicit resource locks, an implicit same-check lock, task dependencies,
+and a global barrier for every unmarked check. Task failures do not suppress
+downstream declared checks: all checks still run so the evidence remains
+complete. Required project checks remain a distinct phase after task checks.
+A bounded project-local lock serializes state writers, not the safe child
+checks within one verification run.
 `.ezpowers/state.json` holds only revalidated resume pointers; it never turns a
 stale result into PASS. Plan validation is read-only until execution explicitly
 activates a resume target. Task-scope pointers are independently revalidated
@@ -177,6 +200,9 @@ for resume guidance but cannot promote the all-scope completion verdict.
 - Observable feature claims: the spec managed JSON block.
 - Task coverage and exact commands: the plan managed JSON block plus named
   checks in `.ezpowers/config.json`.
+- Assurance relationships and blocker paths: the deterministic graph derived
+  from the current plan, config, evidence, chain receipts, and certificate;
+  its topology is not a separately editable artifact.
 - Completion: fresh all-scope evidence and its certificate.
 - Host discovery and adapter differences:
   `docs/reference/codex-plugin-discovery.md`.
@@ -193,6 +219,8 @@ for resume guidance but cannot promote the all-scope completion verdict.
 - Explicit chain configuration, approval, independent receipts, limits, and
   host asymmetry: `docs/reference/harness-chain-contract.md`.
 - Evidence and freshness rules: `docs/reference/verification-contract.md`.
+- Assurance-graph and concurrency decision:
+  `docs/decisions/0007-evidence-gated-assurance-graph.md`.
 
 Human-readable Markdown may explain these contracts but must not duplicate or
 override the managed JSON values.

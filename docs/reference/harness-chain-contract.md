@@ -82,7 +82,8 @@ cycling independent reviewers over unchanged evidence is not a retry path.
 Apply requires one explicit approval for a `READY` preview. Replaced files
 require approved `--force` and are backed up. Apply writes the staged files and
 immutable `.ezpowers/approvals/<run-id>.json`, clears old completion pointers,
-and enters `PENDING_LOOP`.
+and enters `PENDING_LOOP`. New approvals use schema v2 and bind the assurance
+graph derived by the same normalizer used for ordinary plans.
 
 ## One host-native loop
 
@@ -111,6 +112,8 @@ The feature approval freezes by path and SHA-256:
 - project chain configuration;
 - project verification configuration and exact required argv;
 - managed spec and plan;
+- the deterministic assurance-graph SHA-256, including task dependencies,
+  check occurrences, concurrency contracts, and required-check phase;
 - every architecture artifact when `design_architecture` was selected;
 - the broad frontend-design artifact and every applicable DESIGN.md for UI
   work;
@@ -121,7 +124,9 @@ PreToolUse denies obvious writes to these paths, but the authoritative check
 is a fresh hash comparison before verification, review, and certification.
 Missing or changed frozen material immediately sets `NEEDS_REAPPROVAL`.
 Evidence cannot thaw it. A new preview, oracle audit, and human approval are
-required.
+required. On explicit kit refresh, a nonterminal legacy approval that predates
+the graph binding also becomes `NEEDS_REAPPROVAL`; the runtime never invents a
+hash for an approval the user did not inspect.
 
 Product source is not frozen and is expected to change during implementation.
 
@@ -178,7 +183,11 @@ historical attempts.
 ## Verification, evidence, and certification
 
 For a matching RUNNING chain, `verify` first checks the frozen approval.
-Evidence includes the run ID, approval path and hash, and chain hash. Any
+Evidence includes the run ID, approval path and hash, chain hash, and graph
+hash. Staged plan validation, isolated baseline checks, ordinary verification,
+and certification use the shared plan/config normalizer. A plan-v2 baseline
+may overlap only the explicitly safe oracle checks under the same resource-lock
+and worker-cap rules; version-1 baselines remain serial. Any
 all-scope verification invalidates older code-review and QA pointers. On FAIL,
 the product must be reworked and real checks rerun; changing the oracle or
 check is reapproval, not rework.

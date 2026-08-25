@@ -13,6 +13,9 @@ exact completion commands, durable evidence, and resume state. It supports
 both Claude Code and Codex while leaving implementation mechanics to the host.
 For users who explicitly request it, the same local facts can be composed into
 one approved, unattended feature chain without adding a second Codex loop.
+New plans can also expose a deterministic assurance graph and safely overlap a
+measured subset of independent check processes without scheduling host
+implementation work.
 
 ## User Outcome
 
@@ -27,6 +30,12 @@ fresh without trusting conversation memory. User-facing explanations and
 result reports follow the user's active conversational language and ground
 their narrative in evidence actually inspected without changing fixed
 artifacts or machine verdicts.
+
+For plan-v2 work, the user can inspect criterion-to-task-to-check-to-evidence-
+review-to-certificate relationships, a stable graph hash, topological waves,
+and candidate blocking paths. Legacy plans remain serial. Only checks with an
+explicit, evidence-backed safety contract may overlap, and exact results retain
+declaration order and the existing freshness rules.
 
 For product-code work, the user can also request evidence-first diagnosis and
 fix completion, focused module/interface design, or an explicit broad
@@ -55,7 +64,11 @@ EZPowers owns:
 - local wiki structure, deterministic CJK keyword/tag search, promotion
   bindings, and opt-in allowlisted capture;
 - project-local spec and plan schemas;
+- the deterministic assurance graph derived from current authoritative
+  artifacts, without a second editable graph source;
 - check argv, working directories, kinds, and timeouts;
+- bounded per-check concurrency safety, resource locks, task waves, and the
+  separate required-check phase;
 - fail-closed execution, stdout/stderr logs and hashes;
 - binding evidence to spec/plan/config, the installed-kit identity, and the
   Git workspace;
@@ -74,7 +87,8 @@ subagents, worktrees, sandboxing, and implementation decisions. Ordinary
 execution also leaves general retries and review entirely to the host. In an
 explicit chain, EZPowers binds host-native reviewer identities and counts
 approved attempts, but does not supply reviewer agents or perform the review.
-EZPowers does not require an external shared repository or executor.
+EZPowers does not require an external shared repository or executor. Task
+dependencies never assign implementation work or select an agent.
 
 ## Success Conditions
 
@@ -112,6 +126,13 @@ EZPowers does not require an external shared repository or executor.
   explicit chain approvals carry and freeze both artifact types.
 - Local wiki capture never stores transcripts or affects completion freshness.
 - Every acceptance criterion is mapped exactly once to executable checks.
+- New plan-v2 tasks declare an acyclic dependency graph, and `trace` exposes a
+  stable hash and non-causal blocking paths without logs or prompts.
+- Config/plan v1 remains readable, unmodified, and serial; config/plan v2 may
+  overlap only explicitly safe, lock-compatible checks within its worker cap.
+- Plan-v2 evidence and certificates, plus new feature-chain approvals, bind
+  the assurance graph; a nonterminal legacy approval without that binding
+  requires explicit reapproval after refresh.
 - Integration criteria require a real integration, end-to-end, or smoke check.
 - Merely validating a candidate plan cannot alter the active resume target.
 - Task evidence is revalidated for resume guidance without becoming completion.

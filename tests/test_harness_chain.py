@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 import json
 import os
 import pathlib
@@ -720,6 +721,151 @@ class HarnessChainTests(unittest.TestCase):
             self.assertFalse((project.root / ".ezpowers" / "chain.json").exists())
             self.assertFalse((project.root / ".claude" / "settings.json").exists())
             self.assertFalse((project.root / ".codex" / "hooks.json").exists())
+
+    def test_v2_staged_flow_freezes_graph_and_legacy_approval_needs_reapproval(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle(run_id="graph-bound")
+            plan = {
+                "schema_version": 2,
+                "spec": "docs/specs/graph-bound.md",
+                "checks": {
+                    "feature-oracle": {
+                        "argv": [
+                            sys.executable,
+                            "-m",
+                            "unittest",
+                            "discover",
+                            "-s",
+                            "tests",
+                            "-p",
+                            "test_graph_bound.py",
+                        ],
+                        "cwd": ".",
+                        "timeout_seconds": 30,
+                        "kind": "test",
+                        "concurrency": {
+                            "safe": True,
+                            "resource_locks": [],
+                        },
+                    }
+                },
+                "tasks": [
+                    {
+                        "id": "T1",
+                        "depends_on": [],
+                        "criteria": ["AC-1"],
+                        "checks": ["feature-oracle"],
+                    }
+                ],
+            }
+            (bundle / "plan.md").write_text(
+                managed_block("plan", plan), encoding="utf-8"
+            )
+            applied = project.approve(bundle)
+            approval_path = project.root / applied["approval_path"]
+            approval = json.loads(approval_path.read_text(encoding="utf-8"))
+            self.assertEqual(2, approval["schema_version"])
+            self.assertRegex(
+                approval["assurance_graph_sha256"], r"^[0-9a-f]{64}$"
+            )
+            status = project.command("chain", "run", "status", "--json")
+            project.assert_success(status)
+            self.assertEqual(
+                approval["assurance_graph_sha256"],
+                json.loads(status.stdout)["assurance_graph_sha256"],
+            )
+
+            approval["schema_version"] = 1
+            approval.pop("assurance_graph_sha256")
+            approval_path.write_text(
+                json.dumps(approval, ensure_ascii=False, indent=2, sort_keys=True)
+                + "\n",
+                encoding="utf-8",
+            )
+            approval_hash = hashlib.sha256(approval_path.read_bytes()).hexdigest()
+            state_path = project.root / ".ezpowers" / "state.json"
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            state["chain_run"]["approval_sha256"] = approval_hash
+            state_path.write_text(
+                json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True)
+                + "\n",
+                encoding="utf-8",
+            )
+            refreshed = run_cli(
+                EZPOWERS,
+                "install",
+                "--project-root",
+                str(project.root),
+                "--refresh",
+                cwd=REPO_ROOT,
+            )
+            project.assert_success(refreshed)
+            refreshed_state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                "NEEDS_REAPPROVAL",
+                refreshed_state["chain_run"]["status"],
+            )
+            legacy = project.command("chain", "run", "status", "--json")
+            project.assert_success(legacy)
+            legacy_value = json.loads(legacy.stdout)
+            self.assertEqual("NEEDS_REAPPROVAL", legacy_value["status"])
+            self.assertIn("predates assurance graph", legacy_value["terminal_reason"])
+
+    def test_v2_staged_flow_uses_the_same_cycle_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle(run_id="graph-cycle")
+            plan = {
+                "schema_version": 2,
+                "spec": "docs/specs/graph-cycle.md",
+                "checks": {
+                    "feature-oracle": {
+                        "argv": [
+                            sys.executable,
+                            "-m",
+                            "unittest",
+                            "discover",
+                            "-s",
+                            "tests",
+                            "-p",
+                            "test_graph_cycle.py",
+                        ],
+                        "cwd": ".",
+                        "timeout_seconds": 30,
+                        "kind": "test",
+                        "concurrency": {
+                            "safe": False,
+                            "resource_locks": [],
+                        },
+                    }
+                },
+                "tasks": [
+                    {
+                        "id": "T1",
+                        "depends_on": ["T1"],
+                        "criteria": ["AC-1"],
+                        "checks": ["feature-oracle"],
+                    }
+                ],
+            }
+            (bundle / "plan.md").write_text(
+                managed_block("plan", plan), encoding="utf-8"
+            )
+            preview = project.command(
+                "chain",
+                "run",
+                "preview",
+                "--bundle",
+                str(bundle),
+                "--json",
+            )
+            self.assertEqual(2, preview.returncode, preview.stdout + preview.stderr)
+            self.assertIn("depend on itself", preview.stdout + preview.stderr)
 
     def test_failed_oracle_forces_product_rework_review_qa_and_certification(
         self,

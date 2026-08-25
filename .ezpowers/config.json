@@ -1,36 +1,59 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project_name": "EZPowers",
+  "verification": {
+    "max_parallel_checks": 4
+  },
   "checks": {
     "unit": {
       "argv": ["python", "-m", "unittest", "discover", "-s", "tests"],
       "cwd": ".",
       "timeout_seconds": 600,
-      "kind": "test"
+      "kind": "test",
+      "concurrency": {
+        "safe": false,
+        "resource_locks": []
+      }
     },
     "repo-check": {
       "argv": ["python", "scripts/check_repo.py"],
       "cwd": ".",
       "timeout_seconds": 180,
-      "kind": "static"
+      "kind": "static",
+      "concurrency": {
+        "safe": true,
+        "resource_locks": []
+      }
     },
     "runtime-smoke": {
       "argv": ["python", "scripts/runtime_smoke.py"],
       "cwd": ".",
       "timeout_seconds": 300,
-      "kind": "smoke"
+      "kind": "smoke",
+      "concurrency": {
+        "safe": false,
+        "resource_locks": []
+      }
     },
     "kit-manifest": {
       "argv": ["python", "scripts/verify-harness-kit.py"],
       "cwd": ".",
       "timeout_seconds": 120,
-      "kind": "static"
+      "kind": "static",
+      "concurrency": {
+        "safe": true,
+        "resource_locks": []
+      }
     },
     "plugin-files": {
       "argv": ["python", "scripts/plugin_smoke.py", "--host", "both", "--skip-host-probes"],
       "cwd": ".",
       "timeout_seconds": 120,
-      "kind": "smoke"
+      "kind": "smoke",
+      "concurrency": {
+        "safe": true,
+        "resource_locks": []
+      }
     }
   },
   "required_checks": [

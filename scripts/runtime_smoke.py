@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the installed EZPowers v5 user flow in a disposable Git project."""
+"""Exercise the installed EZPowers v5.7 graph-bound flow in a disposable project."""
 
 from __future__ import annotations
 
@@ -111,11 +111,12 @@ def smoke() -> None:
             block(
                 "plan",
                 {
-                    "schema_version": 1,
+                    "schema_version": 2,
                     "spec": "docs/specs/smoke.md",
                     "tasks": [
                         {
                             "id": "T1",
+                            "depends_on": [],
                             "criteria": ["AC-1"],
                             "checks": [
                                 {
@@ -131,6 +132,10 @@ def smoke() -> None:
                                     "cwd": ".",
                                     "timeout_seconds": 10,
                                     "kind": "test",
+                                    "concurrency": {
+                                        "safe": True,
+                                        "resource_locks": [],
+                                    },
                                 }
                             ],
                         }
@@ -147,7 +152,44 @@ def smoke() -> None:
         run(["git", "add", "-A"], root)
         run(["git", "commit", "-qm", "fixture"], root)
 
-        run([sys.executable, str(runtime), "validate", "--plan", str(plan_path)], root)
+        validated = run(
+            [
+                sys.executable,
+                str(runtime),
+                "validate",
+                "--plan",
+                str(plan_path),
+                "--json",
+            ],
+            root,
+        )
+        validation = json.loads(validated.stdout)
+        graph_sha256 = validation.get("assurance_graph_sha256")
+        if (
+            validation.get("status") != "PASS"
+            or not isinstance(graph_sha256, str)
+            or len(graph_sha256) != 64
+            or validation.get("task_waves") != [["T1"]]
+        ):
+            raise RuntimeError("v2 validation did not derive a stable assurance graph")
+        traced = run(
+            [
+                sys.executable,
+                str(runtime),
+                "trace",
+                "--plan",
+                str(plan_path),
+                "--json",
+            ],
+            root,
+        )
+        trace = json.loads(traced.stdout)
+        if (
+            trace.get("status") != "PASS"
+            or trace.get("assurance_graph_sha256") != graph_sha256
+            or not trace.get("blocking_paths")
+        ):
+            raise RuntimeError("inactive v2 trace did not expose its graph and blocker")
         verified = run(
             [sys.executable, str(runtime), "verify", "--plan", str(plan_path), "--all", "--json"],
             root,
@@ -155,11 +197,28 @@ def smoke() -> None:
         evidence = json.loads(verified.stdout)
         if evidence.get("status") != "PASS" or not (root / evidence["evidence_path"]).is_file():
             raise RuntimeError("all-scope verification did not preserve real PASS evidence")
+        evidence_document = json.loads((root / evidence["evidence_path"]).read_text(encoding="utf-8"))
+        if (
+            evidence_document.get("schema_version") != 2
+            or evidence_document.get("assurance_graph_sha256") != graph_sha256
+        ):
+            raise RuntimeError("v2 evidence was not bound to the validated assurance graph")
         certified = run(
             [sys.executable, str(runtime), "certify", "--plan", str(plan_path), "--json"],
             root,
         )
-        if json.loads(certified.stdout).get("status") != "PASS":
+        certificate_result = json.loads(certified.stdout)
+        certificate_path = certificate_result.get("certificate_path")
+        certificate = (
+            json.loads((root / certificate_path).read_text(encoding="utf-8"))
+            if isinstance(certificate_path, str)
+            else {}
+        )
+        if (
+            certificate_result.get("status") != "PASS"
+            or certificate.get("schema_version") != 2
+            or certificate.get("assurance_graph_sha256") != graph_sha256
+        ):
             raise RuntimeError("fresh evidence was not certified")
 
         (root / "source.txt").write_text("two\n", encoding="utf-8")
@@ -176,9 +235,9 @@ def main() -> int:
     try:
         smoke()
     except Exception as exc:
-        print(f"[FAIL] EZPowers v5 runtime smoke: {exc}", file=sys.stderr)
+        print(f"[FAIL] EZPowers v5.7 runtime smoke: {exc}", file=sys.stderr)
         return 1
-    print("[PASS] EZPowers v5 install -> validate -> verify -> certify -> stale flow")
+    print("[PASS] EZPowers v5.7 install -> trace -> verify -> certify -> stale flow")
     return 0
 
 

@@ -30,12 +30,17 @@ snapshot because that would change freshness semantics across projects.
 python .ezpowers/ezpowers.py validate --spec <spec-path> --json
 python .ezpowers/ezpowers.py validate --plan <plan-path> --json
 python .ezpowers/ezpowers.py validate --plan <plan-path> --activate --json
+python .ezpowers/ezpowers.py trace --plan <plan-path> --json
 ```
 
 Spec validation checks the one managed JSON block and its observable criteria.
 Plan validation additionally checks the referenced spec, exact criterion
 coverage, check references, command shape, contained paths, placeholder bans,
-and integration evidence kind.
+and integration evidence kind. Plan v2 also requires every `depends_on`
+array, rejects duplicate, unknown, self, and cyclic dependencies, and returns
+stable topological task waves plus the derived assurance-graph hash. Plan v1
+remains valid and serial; graph-only fields in v1 fail instead of being
+ignored.
 
 Spec validation and ordinary plan validation are read-only. `--activate` is
 valid only with `--plan` and explicitly selects a valid plan as the resume
@@ -74,6 +79,25 @@ For every check it records:
 Exit zero, no timeout, and no spawn error are all required for a check PASS.
 The runtime kills the process tree on timeout. It never infers PASS from log
 text or an implementer report.
+
+### Versioned safe concurrency
+
+Config schema v2 requires `verification.max_parallel_checks` from 1 through
+32. Check concurrency is opt-in on each plan/config-v2 check. A safe check
+holds its declared `resource_locks` plus an implicit lock derived from the
+check ID. Checks in the same ready task wave may overlap only when every check
+is safe, their locks are disjoint, and the worker cap is not exceeded. An
+unmarked or `safe: false` check is a global barrier. Plan or config v1 forces a
+worker cap of one regardless of other input.
+
+Task dependencies order ready waves, not outcomes. A failed task never skips a
+dependent task's declared checks: all selected checks run so the evidence is
+complete. All-scope required project checks start only after every task wave
+finishes. Task scope runs exactly the selected task and neither auto-runs nor
+blocks on its declared dependencies. Results and log arrays retain plan and
+check declaration order even when process execution overlaps. Timeout,
+interrupt, and scheduler-error cleanup terminates active process trees before
+the runtime exits.
 
 ## Verification Scopes
 
@@ -117,6 +141,14 @@ workspace and installation snapshots. The installed identity binds the local
 manifest, ledger, runtime, and every managed target. Its adjacent
 `result.json.sha256` binds the record bytes.
 
+Plan-v2 results use evidence schema v2. They additionally record the complete
+assurance-graph-v1 snapshot and SHA-256, unique node ID and start/finish time
+for every check occurrence, the bounded execution waves, and the effective
+worker cap. Repeated references to one named check remain distinct
+occurrences with distinct logs while the implicit same-check lock prevents
+overlap. Plan-v1 evidence remains schema v1 and retains the existing serial
+shape.
+
 For a matching chain run, the result additionally binds the chain run ID,
 approval path and SHA-256, and chain configuration SHA-256. That binding is
 part of the immutable result bytes; ordinary non-chain evidence has no
@@ -150,6 +182,10 @@ An all-scope result is fresh only when all of these hold:
   the record's own path and run ID agree with that directory;
 - `result.json`, its sidecar, and the state pointer hashes agree;
 - schema, scope, and status are valid and PASS, and `reasons` is empty;
+- for plan v2, the graph snapshot hashes to the recorded value, equals the
+  graph derived from the current plan/config, every occurrence ID is exact,
+  and execution waves obey task waves, phase order, locks, barriers, and the
+  worker cap;
 - plan and spec paths and current SHA-256 values agree;
 - current config SHA-256 agrees;
 - the current installed manifest, ledger, runtime, and managed files agree with
@@ -189,7 +225,8 @@ python .ezpowers/ezpowers.py status --json
 `certify` revalidates freshness, then writes `certificate.json` next to the
 evidence and stores its pointer. The certificate binds the plan, config, spec,
 installed-kit identity, workspace, canonical evidence path, and evidence
-SHA-256. The selected plan must already be active through explicit activation
+SHA-256. A plan-v2 certificate uses schema v2 and also binds the assurance
+graph SHA-256. The selected plan must already be active through explicit activation
 or verification; certification never changes the resume target or clears a
 different plan's pointers. Its state pointer must resolve to the canonical `certificate.json`
 next to that exact evidence result and match the certificate hash. It never
@@ -208,6 +245,13 @@ by implementer prose; a terminal chain cannot be certified by another attempt.
 - `STALE`: no fresh all-scope result or a freshness check failed;
 - `READY`: fresh all-scope evidence exists but certification is absent;
 - `CERTIFIED`: fresh evidence and its certificate agree.
+
+For an active valid plan, status adds the compatible
+`assurance_graph_sha256` and `primary_blocker` summary. The dedicated `trace`
+command returns the sorted typed graph, task waves, node states, and all
+candidate blocking paths. It omits argv, logs, prompts, and request text.
+Every path is labelled `causality: not-proven`: dependency structure narrows
+where to investigate but does not establish the cause of a failure.
 
 Its `task_evidence` object reports every current task, while
 `orphan_task_evidence` exposes stale state keys that no longer occur in the

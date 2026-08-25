@@ -255,6 +255,11 @@ The local `.ezpowers/staging/`, `.ezpowers/backups/`, and `.ezpowers/wiki/`
 trees are excluded from completion fingerprints. Applied documentation, the
 registry, and config are not excluded.
 
+This registered Markdown graph is distinct from the v5.7 assurance graph. The
+documentation registry remains an editable project authority for document
+ownership and links. The assurance graph is a read-only derivation from
+spec/plan/config/evidence relations and has no separate registry file.
+
 ## Evidence
 
 - [OMC deep initialization skill](https://github.com/Yeachan-Heo/oh-my-claudecode/blob/main/skills/deepinit/SKILL.md)

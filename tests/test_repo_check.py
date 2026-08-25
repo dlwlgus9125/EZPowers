@@ -101,7 +101,7 @@ class RepositoryGateTests(unittest.TestCase):
         write(root / ".claude-plugin" / "marketplace.json", json.dumps(marketplace))
         write(root / ".codex-plugin" / "plugin.json", json.dumps(codex))
 
-        write(root / "project-kit" / "v5.6.0" / "manifest.json", "{}")
+        write(root / "project-kit" / "v5.7.0" / "manifest.json", "{}")
         write(
             root / "scripts" / "verify-harness-kit.py",
             """
@@ -205,6 +205,39 @@ class RepositoryGateTests(unittest.TestCase):
             self.assertFalse(
                 any("obsolete live reference" in error for error in errors), errors
             )
+
+    def test_legacy_prefilter_preserves_every_regex_match(self) -> None:
+        examples = (
+            "read .harness/config.json",
+            "read phases/one.md",
+            "set harness.root here",
+            "run execute.py here",
+            "invoke EasyPowersHarness here",
+            "invoke /choice-execute here",
+            "run the internal pipeline audit here",
+            "invoke workflow-runner here",
+            "follow Path 2 here",
+        )
+        self.assertEqual(
+            len(self.gate.LEGACY_PATTERNS),
+            len(self.gate.LEGACY_PATTERN_HINTS),
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            self.make_valid_repo(root)
+            write(root / "AGENTS.md", "\n\n\n".join(examples) + "\n")
+
+            errors: list[str] = []
+            self.gate._validate_obsolete_references(root, errors)
+
+            for (label, pattern), hint, example in zip(
+                self.gate.LEGACY_PATTERNS,
+                self.gate.LEGACY_PATTERN_HINTS,
+                examples,
+            ):
+                self.assertIn(hint, example.lower())
+                self.assertIsNotNone(pattern.search(example))
+                self.assertTrue(any(label in error for error in errors), errors)
 
     def test_project_kit_verifier_failure_is_reported(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

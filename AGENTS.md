@@ -25,7 +25,7 @@ setup -> documentation preview/apply/lint
       -> deep-interview (when the request is ambiguous or has a plausible
                          consequential blind spot)
       -> design-architecture (when technical boundaries are unsettled)
-      -> spec -> prepare-execute -> execute
+      -> spec -> prepare-execute -> trace -> execute
 
 explicit harness-chain:
 configure once -> feature preview -> independent oracle audit
@@ -100,6 +100,9 @@ has explicitly approved a design-contract change.
   certification freshness, and resume state. In an explicitly approved chain
   it also owns frozen hashes, review challenges/receipts, hard limits, and the
   terminal verdict.
+- The assurance graph is a deterministic view over those authorities. It may
+  order ready check processes, but it never assigns implementation work,
+  selects agents/models, or becomes a second mutable task state machine.
 - `AGENTS.md` is canonical project guidance. Claude projects use an exact
   `CLAUDE.md` import shim containing `@AGENTS.md`.
 - `.ezpowers/wiki/` is local supporting memory, excluded from completion
@@ -124,7 +127,7 @@ has explicitly approved a design-contract change.
 - Local supporting knowledge: `.ezpowers/wiki/`
 - Resume/evidence pointer: `.ezpowers/state.json`
 - Runtime: `scripts/ezpowers.py`
-- Distribution manifest: `project-kit/v5.6.0/manifest.json`
+- Distribution manifest: `project-kit/v5.7.0/manifest.json`
 - Specs and plans: `docs/specs/`, `docs/plans/`
 - Canonical contracts: `docs/reference/*-contract.md`
 - Product state: `PROGRESS.md`, `feature_list.json`
@@ -146,6 +149,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1
 python scripts/verify-harness-kit.py
 python scripts/plugin_smoke.py --host both
+```
+
+For a v5.7 release candidate, also run both three-run scheduler measurements:
+
+```powershell
+python scripts/benchmark_parallel_verification.py --mode fixture --runs 3 --minimum-improvement 30
+python scripts/benchmark_parallel_verification.py --mode project --runs 3 --minimum-improvement 30
 ```
 
 Completion requires applicable command output and a clean final diff review,

@@ -1,6 +1,21 @@
 # EZPowers Roadmap
 
-## Current: v5.6.0 core / plugin
+## Current: v5.7.0 core / plugin
+
+- Derive one typed criterion-to-task-to-check-to-evidence-to-review-to-
+  certificate assurance graph from existing authorities; do not create a
+  second editable graph or implementation state machine.
+- Add compatible plan/config v2 with required acyclic task dependencies,
+  stable topological waves, a bounded worker cap, and per-check safety/resource
+  locks. Preserve all v1 plans/configs as serial without automatic rewriting.
+- Add `trace --plan ... --json`, graph-bound v2 evidence/certificates, and
+  graph-bound chain approvals with explicit legacy reapproval.
+- Allow only the measured `repo-check`, `kit-manifest`, and file-only plugin
+  smoke checks to opt into concurrency in this repository; keep unit and
+  runtime smoke serial barriers.
+- Gate the optimisation on serial/parallel equivalence and at least 30%
+  median improvement across three matched controlled runs, then repeat the
+  measurement on the allowlisted repository checks.
 
 - Preserve the v5.1 documentation graph and local wiki.
 - Add an explicit project-question workflow for chain stages, QA triggers,
@@ -52,11 +67,15 @@
   second architecture state machine.
 - Keep one exact catalog: fourteen plugin skills, thirteen project skills, and
   separate namespaced versus project-local Codex prompt metadata.
-- Upgrade existing pre-v5.6 installations only through explicit
+- Upgrade existing pre-v5.7 installations only through explicit
   `setup --refresh`;
   preserve customized managed files and fail atomically on conflicts.
 
 ## Later, only with demonstrated demand
+
+- Complete F19's authenticated live Claude and sandbox-capable Codex diagnose
+  probes when both external host environments are available; v5.7 does not
+  claim those deferred probes.
 
 - Real visual-baseline generation and visual-diff execution behind the current
   frontend readiness detector.
@@ -69,5 +88,7 @@
   catalog.
 
 Model routing, bundled reviewer fleets, generic host-independent retries,
-custom task graphs, phase conversion, and an external executor are not roadmap
-items; supported hosts already own those execution concerns.
+host-independent implementation task graphs, phase conversion, and an
+external executor are not roadmap items; supported hosts already own those
+execution concerns. The v5.7 assurance graph is a derived verification view,
+not an exception to that boundary.

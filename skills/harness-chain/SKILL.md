@@ -127,6 +127,12 @@ oracle that names:
 Do not use source presence, test names, model assertions, self-mocks, or
 prose-only checks as acceptance proof.
 
+New staged plans use schema v2 with explicit `depends_on`. Concurrency remains
+per-check opt-in: the baseline and later verification may overlap a check only
+when its independence and resource locks are already justified. The preview
+shows the derived assurance-graph hash, and the approval freezes it; this graph
+does not assign host implementation work.
+
 Place the spec, plan, oracle files, and `bundle.json` under one
 `.ezpowers/staging/<run-id>/` directory. The bundle shape is:
 
@@ -216,6 +222,7 @@ When preview is `READY`, show the user:
   create/replace actions;
 - baseline result, risks, QA requirement, and hard limits;
 - preview hash and any forced replacement/backup requirement;
+- assurance-graph hash and topological task waves;
 - that approval starts an unattended loop until `CERTIFIED`,
   `NEEDS_REAPPROVAL`, `BLOCKED`, or `FAILED`.
 
@@ -250,7 +257,7 @@ missing capability.
 
 Edit product code with host-native tools. The approved spec, plan, oracle,
 applicable architecture and frontend/DESIGN.md files, project checks, chain
-config, and approval are frozen. If any changes, stop normal work at
+config, assurance graph, and approval are frozen. If any changes, stop normal work at
 `NEEDS_REAPPROVAL`; do not
 repair hashes or silently thaw it.
 
@@ -306,6 +313,10 @@ python .ezpowers/ezpowers.py chain run status --json
 Stop only at a runtime terminal verdict. `CERTIFIED` is success. Report the
 approval, evidence, review receipt, QA receipt when required, certificate
 hashes, command exits, changes, and remaining limitations.
+
+After an explicit v5.7 refresh, a nonterminal legacy approval without an
+assurance-graph hash is intentionally terminal at `NEEDS_REAPPROVAL`. Start a
+new preview, oracle audit, and approval; never synthesize the missing binding.
 
 ## Emergency stop
 

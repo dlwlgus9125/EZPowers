@@ -3,7 +3,7 @@
 > Claude Code와 Codex가 같은 저장소 증거로 작업의 **완료 여부**를
 > 판단하도록 만드는 프로젝트 로컬 워크플로 플러그인입니다.
 
-**Plugin v5.6.0 · Project kit v5.6.0 · Python 3.10+ · MIT**
+**Plugin v5.7.0 · Project kit v5.7.0 · Python 3.10+ · MIT**
 
 [빠른 시작](#빠른-시작) · [워크플로](#기본-워크플로) ·
 [스킬 목록](#스킬-목록) · [업데이트](#업데이트) ·
@@ -133,9 +133,10 @@ setup -> documentation preview/apply/lint
 ```text
 settled intent
   -> acceptance criteria
-  -> criterion-covered plan
+  -> criterion-covered dependency plan
   -> host-native implementation
-  -> exact project checks
+  -> typed assurance graph
+  -> exact project checks (safe occurrences may overlap)
   -> hashed evidence
   -> certification
 ```
@@ -208,6 +209,7 @@ root cause, failing regression test, 첫 targeted green은 중간 진행 상황�
 ```bash
 python .ezpowers/ezpowers.py validate --spec <spec-path> --json
 python .ezpowers/ezpowers.py validate --plan <plan-path> --activate --json
+python .ezpowers/ezpowers.py trace --plan <plan-path> --json
 python .ezpowers/ezpowers.py verify --plan <plan-path> --all --json
 python .ezpowers/ezpowers.py certify --plan <plan-path> --json
 python .ezpowers/ezpowers.py status --json
@@ -216,6 +218,7 @@ python .ezpowers/ezpowers.py status --json
 인증은 다음 상태에 결합됩니다.
 
 - spec, plan, config와 설치된 kit identity
+- plan-v2 assurance graph hash, task waves, and unique check occurrences
 - Git HEAD, tracked diff와 untracked file fingerprint
 - 실행된 check의 argv, cwd, timeout, stdout/stderr, exit code
 - all-scope evidence와 독립 review/QA receipt(활성화된 chain인 경우)

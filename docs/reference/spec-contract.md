@@ -2,7 +2,8 @@
 
 This contract defines the host-independent feature acceptance artifact. A spec
 states observable claims; it does not choose an execution host, assign agents,
-or embed commands.
+or embed commands. Spec schema remains version 1 in v5.7; the assurance graph
+is derived later from this criterion set plus the selected plan and config.
 
 ## Preflight
 

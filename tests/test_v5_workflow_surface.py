@@ -128,7 +128,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             self.assertNotIn("stress-test", metadata)
 
         manifest = json.loads(
-            (REPO_ROOT / "project-kit" / "v5.6.0" / "manifest.json").read_text(
+            (REPO_ROOT / "project-kit" / "v5.7.0" / "manifest.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -152,7 +152,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertFalse((REPO_ROOT / "harness-kit").exists())
         self.assertFalse((REPO_ROOT / "phases").exists())
         self.assertFalse((REPO_ROOT / ".harness").exists())
-        self.assertTrue((REPO_ROOT / "project-kit" / "v5.6.0" / "manifest.json").is_file())
+        self.assertTrue((REPO_ROOT / "project-kit" / "v5.7.0" / "manifest.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "config.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "state.json").is_file())
 
@@ -217,7 +217,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.6.0"
+                / "v5.7.0"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -465,7 +465,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.6.0"
+                / "v5.7.0"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -479,7 +479,60 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             {item["path"] for item in entry["files"]},
         )
 
-    def test_korean_skill_guide_covers_the_v55_catalog(self) -> None:
+    def test_assurance_graph_release_contracts_share_the_bounded_decision(self) -> None:
+        plan_contract = (
+            REPO_ROOT / "docs" / "reference" / "plan-contract.md"
+        ).read_text(encoding="utf-8")
+        verification_contract = (
+            REPO_ROOT / "docs" / "reference" / "verification-contract.md"
+        ).read_text(encoding="utf-8")
+        chain_contract = (
+            REPO_ROOT / "docs" / "reference" / "harness-chain-contract.md"
+        ).read_text(encoding="utf-8")
+        architecture = (
+            REPO_ROOT / "docs" / "reference" / "architecture.md"
+        ).read_text(encoding="utf-8")
+        decision = (
+            REPO_ROOT
+            / "docs"
+            / "decisions"
+            / "0007-evidence-gated-assurance-graph.md"
+        ).read_text(encoding="utf-8")
+        evaluation = (
+            REPO_ROOT
+            / "docs"
+            / "reports"
+            / "graph-engineering-paper-evaluation-2026-08-25.md"
+        ).read_text(encoding="utf-8")
+        combined = " ".join(
+            " ".join(value.split())
+            for value in (
+                plan_contract,
+                verification_contract,
+                chain_contract,
+                architecture,
+                decision,
+                evaluation,
+            )
+        )
+        for phrase in (
+            "assurance graph",
+            "trace --plan",
+            "depends_on",
+            "max_parallel_checks",
+            "resource locks",
+            "global barrier",
+            "NEEDS_REAPPROVAL",
+            "at least 30%",
+            "not an editable source of truth",
+            "host implementation scheduling remains out of scope",
+        ):
+            self.assertIn(phrase, combined)
+        self.assertIn("https://arxiv.org/abs/2608.21156", evaluation)
+        self.assertIn("Dynamic agent/team/capability graphs | Defer", evaluation)
+        self.assertIn("Automatic capability/model routing", evaluation)
+
+    def test_korean_skill_guide_covers_the_v57_catalog(self) -> None:
         guide = (
             REPO_ROOT / "docs" / "ezpowers-skills-guide.html"
         ).read_text(encoding="utf-8")
@@ -494,16 +547,16 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertEqual(14, guide.count('class="skill-card"'))
         self.assertIn("14 plugin skills", guide)
         self.assertIn("13 project skills", guide)
-        self.assertIn("../project-kit/v5.6.0/manifest.json", guide)
+        self.assertIn("../project-kit/v5.7.0/manifest.json", guide)
         self.assertNotIn("v5.2.0/manifest.json", guide)
 
     def test_plugin_manifests_expose_the_same_version_and_current_workflow(self) -> None:
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.6.0")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.6.0")
-        self.assertTrue(codex["version"].startswith("5.6.0+codex."))
+        self.assertEqual(claude["version"], "5.7.0")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.7.0")
+        self.assertTrue(codex["version"].startswith("5.7.0+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)

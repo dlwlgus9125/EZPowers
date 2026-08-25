@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import concurrent.futures
 import contextlib
 import datetime as dt
 import hashlib
@@ -24,6 +25,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unicodedata
 import uuid
@@ -32,7 +34,11 @@ from typing import Any, Iterable, Iterator
 
 
 SCHEMA_VERSION = 1
-KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.6.0/manifest.json")
+PLAN_SCHEMA_VERSIONS = {1, 2}
+CONFIG_SCHEMA_VERSIONS = {1, 2}
+ASSURANCE_GRAPH_SCHEMA_VERSION = 1
+GRAPH_BOUND_SCHEMA_VERSION = 2
+KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.7.0/manifest.json")
 CONFIG_RELATIVE_PATH = pathlib.Path(".ezpowers/config.json")
 STATE_RELATIVE_PATH = pathlib.Path(".ezpowers/state.json")
 LEDGER_RELATIVE_PATH = pathlib.Path(".ezpowers/ledger.json")
@@ -49,6 +55,7 @@ LOCK_RELATIVE_PATH = pathlib.Path(".ezpowers/runtime.lock")
 LOCK_TIMEOUT_SECONDS = 1.0
 LOCK_POLL_SECONDS = 0.05
 ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9._-]{0,63}$")
+RESOURCE_LOCK_RE = re.compile(r"^[A-Za-z][A-Za-z0-9._-]{0,127}$")
 CHECK_KINDS = {
     "build",
     "custom",
@@ -178,6 +185,12 @@ class Flow:
     tasks: list[dict[str, Any]]
     project_checks: dict[str, dict[str, Any]]
     required_checks: list[str]
+    plan_schema_version: int
+    config_schema_version: int
+    max_parallel_checks: int
+    task_waves: list[list[str]]
+    assurance_graph: dict[str, Any]
+    assurance_graph_sha256: str
     errors: list[str]
 
 
@@ -632,8 +645,9 @@ def _prepare_config(project_root: pathlib.Path) -> dict[str, Any] | None:
         _read_json(config_path)
         return None
     return {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": 2,
         "project_name": project_root.name,
+        "verification": {"max_parallel_checks": 4},
         "checks": {},
         "required_checks": [],
     }
@@ -1069,6 +1083,41 @@ def _install(args: argparse.Namespace) -> int:
         return _install_locked(args, project_root)
 
 
+def _mark_legacy_chain_reapproval_after_refresh(project_root: pathlib.Path) -> None:
+    state_path = project_root / STATE_RELATIVE_PATH
+    if not state_path.is_file():
+        return
+    state = _load_state(project_root)
+    run = state.get("chain_run")
+    if (
+        not isinstance(run, dict)
+        or run.get("status") in CHAIN_TERMINAL_STATUSES
+    ):
+        return
+    approval_name = run.get("approval_path")
+    if not isinstance(approval_name, str):
+        return
+    try:
+        approval_path = _contained_path(
+            project_root,
+            approval_name,
+            label="legacy chain approval",
+            must_exist=True,
+        )
+        approval = _read_json(approval_path)
+    except EZPowersError:
+        return
+    if isinstance(approval.get("assurance_graph_sha256"), str):
+        return
+    _chain_mark_reapproval(
+        state,
+        [
+            "chain approval predates assurance graph binding; explicit reapproval is required"
+        ],
+    )
+    _save_state(project_root, state)
+
+
 def _install_locked(args: argparse.Namespace, project_root: pathlib.Path) -> int:
     manifest_path, source_root, installed_mode = _manifest_and_mode(project_root)
     desired, manifest = _distribution_files(project_root, manifest_path, source_root, installed_mode)
@@ -1196,6 +1245,9 @@ def _install_locked(args: argparse.Namespace, project_root: pathlib.Path) -> int
         _save_state(project_root, _default_state())
     for path, data in hook_updates:
         _atomic_write(path, data)
+
+    if args.refresh:
+        _mark_legacy_chain_reapproval_after_refresh(project_root)
 
     new_ledger = {
         "schema_version": SCHEMA_VERSION,
@@ -3146,15 +3198,28 @@ def _validate_spec_document(
     except EZPowersError as exc:
         errors.append(str(exc))
         return spec_path, {}, {}
+    criteria_by_id = _validate_spec_value(root, spec, errors)
+    return spec_path, spec, criteria_by_id
+
+
+def _validate_spec_value(
+    root: pathlib.Path,
+    spec: dict[str, Any],
+    errors: list[str],
+    *,
+    validate_design_context: bool = True,
+) -> dict[str, dict[str, Any]]:
+    """Normalize the shared spec value used by ordinary and staged flows."""
     if spec.get("schema_version") != SCHEMA_VERSION:
         errors.append("spec schema_version must be 1")
-    _validate_design_context(root, spec, errors)
+    if validate_design_context:
+        _validate_design_context(root, spec, errors)
 
     criteria_by_id: dict[str, dict[str, Any]] = {}
     criteria = spec.get("criteria", [])
     if not isinstance(criteria, list) or not criteria:
         errors.append("spec.criteria must be a non-empty array")
-        return spec_path, spec, criteria_by_id
+        return criteria_by_id
     for index, criterion in enumerate(criteria):
         if not isinstance(criterion, dict):
             errors.append(f"spec.criteria[{index}] must be an object")
@@ -3173,7 +3238,7 @@ def _validate_spec_document(
         if not isinstance(criterion.get("integration"), bool):
             errors.append(f"criterion {criterion_id} integration must be a boolean")
         criteria_by_id[criterion_id] = criterion
-    return spec_path, spec, criteria_by_id
+    return criteria_by_id
 
 
 def _placeholder(argv: list[str]) -> bool:
@@ -3248,6 +3313,7 @@ def _validate_check(
     root: pathlib.Path,
     label: str,
     errors: list[str],
+    allow_concurrency: bool = False,
 ) -> dict[str, Any] | None:
     if not ID_RE.fullmatch(check_id):
         errors.append(f"{label} has invalid check id: {check_id!r}")
@@ -3283,12 +3349,52 @@ def _validate_check(
         errors.append(
             f"{label}.argv contains shell control operators or an opaque shell command form"
         )
+    concurrency = {"safe": False, "resource_locks": []}
+    if "concurrency" in raw:
+        raw_concurrency = raw.get("concurrency")
+        if not allow_concurrency:
+            errors.append(f"{label}.concurrency requires schema_version 2")
+        if not isinstance(raw_concurrency, dict):
+            errors.append(f"{label}.concurrency must be an object")
+        else:
+            unknown = set(raw_concurrency) - {"safe", "resource_locks"}
+            if unknown:
+                errors.append(
+                    f"{label}.concurrency contains unknown fields: "
+                    + ", ".join(sorted(unknown))
+                )
+            safe = raw_concurrency.get("safe")
+            locks = raw_concurrency.get("resource_locks")
+            if not isinstance(safe, bool):
+                errors.append(f"{label}.concurrency.safe must be a boolean")
+                safe = False
+            if (
+                not isinstance(locks, list)
+                or any(
+                    not isinstance(item, str)
+                    or not RESOURCE_LOCK_RE.fullmatch(item)
+                    for item in locks
+                )
+            ):
+                errors.append(
+                    f"{label}.concurrency.resource_locks must be a valid string array"
+                )
+                locks = []
+            elif len(set(locks)) != len(locks):
+                errors.append(
+                    f"{label}.concurrency.resource_locks must not contain duplicates"
+                )
+            concurrency = {
+                "safe": bool(safe),
+                "resource_locks": list(locks),
+            }
     return {
         "id": check_id,
         "argv": list(argv),
         "cwd": cwd,
         "timeout_seconds": timeout,
         "kind": kind,
+        "concurrency": concurrency,
     }
 
 
@@ -3296,9 +3402,36 @@ def _validate_config_value(
     root: pathlib.Path,
     config: dict[str, Any],
     errors: list[str],
-) -> tuple[dict[str, dict[str, Any]], list[str]]:
-    if config.get("schema_version") != SCHEMA_VERSION:
-        errors.append("config schema_version must be 1")
+) -> tuple[dict[str, dict[str, Any]], list[str], int, int]:
+    raw_version = config.get("schema_version")
+    if raw_version not in CONFIG_SCHEMA_VERSIONS:
+        errors.append("config schema_version must be 1 or 2")
+    config_version = raw_version if raw_version in CONFIG_SCHEMA_VERSIONS else 1
+    max_parallel_checks = 1
+    if config_version == 2:
+        verification = config.get("verification")
+        if not isinstance(verification, dict):
+            errors.append("config.verification must be an object for schema_version 2")
+        else:
+            unknown = set(verification) - {"max_parallel_checks"}
+            if unknown:
+                errors.append(
+                    "config.verification contains unknown fields: "
+                    + ", ".join(sorted(unknown))
+                )
+            raw_max = verification.get("max_parallel_checks")
+            if (
+                not isinstance(raw_max, int)
+                or isinstance(raw_max, bool)
+                or not 1 <= raw_max <= 32
+            ):
+                errors.append(
+                    "config.verification.max_parallel_checks must be an integer from 1 to 32"
+                )
+            else:
+                max_parallel_checks = raw_max
+    elif "verification" in config:
+        errors.append("config.verification requires schema_version 2")
     project_checks: dict[str, dict[str, Any]] = {}
     raw_project_checks = config.get("checks", {})
     if not isinstance(raw_project_checks, dict):
@@ -3311,6 +3444,7 @@ def _validate_config_value(
             root=root,
             label=f"config.checks.{check_id}",
             errors=errors,
+            allow_concurrency=config_version == 2,
         )
         if normalized:
             project_checks[str(check_id)] = normalized
@@ -3320,10 +3454,450 @@ def _validate_config_value(
     ):
         errors.append("config.required_checks must be a string array")
         required_checks = []
+    elif len(set(required_checks)) != len(required_checks):
+        errors.append("config.required_checks must not contain duplicates")
     for check_id in required_checks:
         if check_id not in project_checks:
             errors.append(f"config.required_checks references unknown check: {check_id}")
-    return project_checks, list(required_checks)
+    return (
+        project_checks,
+        list(required_checks),
+        int(config_version),
+        int(max_parallel_checks),
+    )
+
+
+def _check_contract_sha256(check: dict[str, Any]) -> str:
+    contract = {
+        key: check[key]
+        for key in (
+            "id",
+            "argv",
+            "cwd",
+            "timeout_seconds",
+            "kind",
+            "concurrency",
+        )
+    }
+    return _sha256_bytes(_json_bytes(contract))
+
+
+def _task_check_node_id(task_id: str, index: int, check_id: str) -> str:
+    return f"check:task:{task_id}:{index}:{check_id}"
+
+
+def _project_check_node_id(index: int, check_id: str) -> str:
+    return f"check:project:{index}:{check_id}"
+
+
+def _topological_task_waves(
+    tasks: list[dict[str, Any]],
+    errors: list[str],
+    *,
+    plan_schema_version: int,
+) -> list[list[str]]:
+    if plan_schema_version == 1:
+        return [[str(task["id"])] for task in tasks]
+    ordered_ids = [str(task["id"]) for task in tasks]
+    known = set(ordered_ids)
+    dependencies: dict[str, list[str]] = {}
+    for task in tasks:
+        task_id = str(task["id"])
+        raw = task.get("depends_on", [])
+        if not isinstance(raw, list) or any(not isinstance(item, str) for item in raw):
+            errors.append(f"task {task_id} depends_on must be a string array")
+            raw = []
+        if len(set(raw)) != len(raw):
+            errors.append(f"task {task_id} depends_on must not contain duplicates")
+        for dependency in raw:
+            if dependency == task_id:
+                errors.append(f"task {task_id} cannot depend on itself")
+            elif dependency not in known:
+                errors.append(
+                    f"task {task_id} depends_on references unknown task: {dependency}"
+                )
+        dependencies[task_id] = list(raw)
+
+    remaining = list(ordered_ids)
+    completed: set[str] = set()
+    waves: list[list[str]] = []
+    while remaining:
+        wave = [
+            task_id
+            for task_id in remaining
+            if all(dependency in completed for dependency in dependencies[task_id])
+        ]
+        if not wave:
+            errors.append(
+                "plan task dependency cycle detected: " + ", ".join(remaining)
+            )
+            break
+        waves.append(wave)
+        completed.update(wave)
+        remaining = [task_id for task_id in remaining if task_id not in completed]
+    return waves
+
+
+def _build_assurance_graph(
+    *,
+    criteria_by_id: dict[str, dict[str, Any]],
+    tasks: list[dict[str, Any]],
+    project_checks: dict[str, dict[str, Any]],
+    required_checks: list[str],
+    task_waves: list[list[str]],
+    plan_schema_version: int,
+    config_schema_version: int,
+    max_parallel_checks: int,
+) -> tuple[dict[str, Any], str]:
+    effective_max = (
+        max_parallel_checks
+        if plan_schema_version == 2 and config_schema_version == 2
+        else 1
+    )
+    nodes: list[dict[str, Any]] = []
+    edges: list[dict[str, str]] = []
+    for criterion_id in criteria_by_id:
+        nodes.append(
+            {"id": f"criterion:{criterion_id}", "type": "criterion"}
+        )
+    for task in tasks:
+        task_id = str(task["id"])
+        nodes.append(
+            {
+                "id": f"task:{task_id}",
+                "type": "task",
+                "depends_on": list(task.get("depends_on", [])),
+            }
+        )
+        for criterion_id in task["criteria"]:
+            edges.append(
+                {
+                    "source": f"criterion:{criterion_id}",
+                    "target": f"task:{task_id}",
+                    "relation": "covered_by",
+                }
+            )
+        for dependency in task.get("depends_on", []):
+            edges.append(
+                {
+                    "source": f"task:{dependency}",
+                    "target": f"task:{task_id}",
+                    "relation": "precedes",
+                }
+            )
+        for index, check in enumerate(task["checks"], 1):
+            node_id = _task_check_node_id(task_id, index, str(check["id"]))
+            concurrency = check["concurrency"]
+            nodes.append(
+                {
+                    "id": node_id,
+                    "type": "check",
+                    "check_id": check["id"],
+                    "phase": "task",
+                    "kind": check["kind"],
+                    "safe": bool(concurrency["safe"]),
+                    "resource_locks": list(concurrency["resource_locks"]),
+                    "implicit_lock": f"check-id.{check['id']}",
+                    "contract_sha256": _check_contract_sha256(check),
+                }
+            )
+            edges.append(
+                {
+                    "source": f"task:{task_id}",
+                    "target": node_id,
+                    "relation": "verified_by",
+                }
+            )
+            edges.append(
+                {
+                    "source": node_id,
+                    "target": "evidence:all",
+                    "relation": "produces",
+                }
+    )
+    for index, check_id in enumerate(required_checks, 1):
+        check = project_checks.get(check_id)
+        if check is None:
+            continue
+        node_id = _project_check_node_id(index, check_id)
+        concurrency = check["concurrency"]
+        nodes.append(
+            {
+                "id": node_id,
+                "type": "check",
+                "check_id": check_id,
+                "phase": "required",
+                "kind": check["kind"],
+                "safe": bool(concurrency["safe"]),
+                "resource_locks": list(concurrency["resource_locks"]),
+                "implicit_lock": f"check-id.{check_id}",
+                "contract_sha256": _check_contract_sha256(check),
+            }
+        )
+        edges.append(
+            {
+                "source": node_id,
+                "target": "evidence:all",
+                "relation": "produces",
+            }
+        )
+    nodes.extend(
+        [
+            {"id": "evidence:all", "type": "evidence"},
+            {
+                "id": "review:code-review",
+                "type": "independent_review",
+                "required_in": "harness-chain",
+            },
+            {
+                "id": "review:adversarial-qa",
+                "type": "independent_review",
+                "required_in": "conditional-harness-chain",
+            },
+            {"id": "certificate:completion", "type": "certificate"},
+        ]
+    )
+    edges.extend(
+        [
+            {
+                "source": "evidence:all",
+                "target": "review:code-review",
+                "relation": "reviewed_by",
+            },
+            {
+                "source": "evidence:all",
+                "target": "review:adversarial-qa",
+                "relation": "conditionally_reviewed_by",
+            },
+            {
+                "source": "evidence:all",
+                "target": "certificate:completion",
+                "relation": "required_for",
+            },
+            {
+                "source": "review:code-review",
+                "target": "certificate:completion",
+                "relation": "gates_chain",
+            },
+            {
+                "source": "review:adversarial-qa",
+                "target": "certificate:completion",
+                "relation": "conditionally_gates_chain",
+            },
+        ]
+    )
+    graph = {
+        "schema_version": ASSURANCE_GRAPH_SCHEMA_VERSION,
+        "plan_schema_version": plan_schema_version,
+        "config_schema_version": config_schema_version,
+        "execution": {
+            "mode": "parallel-opt-in" if effective_max > 1 else "serial",
+            "max_parallel_checks": effective_max,
+        },
+        "task_waves": [list(wave) for wave in task_waves],
+        "nodes": sorted(nodes, key=lambda item: str(item["id"])),
+        "edges": sorted(
+            edges,
+            key=lambda item: (
+                str(item["source"]),
+                str(item["target"]),
+                str(item["relation"]),
+            ),
+        ),
+    }
+    return graph, _sha256_bytes(_json_bytes(graph))
+
+
+def _normalize_plan_value(
+    root: pathlib.Path,
+    *,
+    plan: dict[str, Any],
+    criteria_by_id: dict[str, dict[str, Any]],
+    project_checks: dict[str, dict[str, Any]],
+    required_checks: list[str],
+    config_schema_version: int,
+    max_parallel_checks: int,
+    errors: list[str],
+) -> dict[str, Any]:
+    raw_version = plan.get("schema_version")
+    if raw_version not in PLAN_SCHEMA_VERSIONS:
+        errors.append("plan schema_version must be 1 or 2")
+    plan_schema_version = raw_version if raw_version in PLAN_SCHEMA_VERSIONS else 1
+
+    top_checks: dict[str, dict[str, Any]] = {}
+    raw_top_checks = plan.get("checks", {})
+    if raw_top_checks is None:
+        raw_top_checks = {}
+    if not isinstance(raw_top_checks, dict):
+        errors.append("plan.checks must be an object when present")
+        raw_top_checks = {}
+    for check_id, raw in raw_top_checks.items():
+        name = str(check_id)
+        if name in project_checks:
+            errors.append(f"plan check collides with config check: {name}")
+        normalized = _validate_check(
+            raw,
+            check_id=name,
+            root=root,
+            label=f"plan.checks.{name}",
+            errors=errors,
+            allow_concurrency=plan_schema_version == 2,
+        )
+        if normalized:
+            top_checks[name] = normalized
+
+    raw_tasks = plan.get("tasks", [])
+    if not isinstance(raw_tasks, list) or not raw_tasks:
+        errors.append("plan.tasks must be a non-empty array")
+        raw_tasks = []
+    tasks: list[dict[str, Any]] = []
+    task_ids: set[str] = set()
+    inline_ids: set[str] = set()
+    criterion_coverage: dict[str, list[dict[str, Any]]] = {
+        key: [] for key in criteria_by_id
+    }
+    criterion_occurrences: dict[str, int] = {
+        key: 0 for key in criteria_by_id
+    }
+    criterion_checks: dict[str, list[str]] = {
+        key: [] for key in criteria_by_id
+    }
+    used_top_checks: set[str] = set()
+    for index, raw_task in enumerate(raw_tasks):
+        if not isinstance(raw_task, dict):
+            errors.append(f"plan.tasks[{index}] must be an object")
+            continue
+        task_id = str(raw_task.get("id", ""))
+        if not ID_RE.fullmatch(task_id) or task_id in task_ids:
+            errors.append(f"invalid or duplicate task id: {task_id!r}")
+        task_ids.add(task_id)
+        if plan_schema_version == 2 and "depends_on" not in raw_task:
+            errors.append(f"task {task_id or index} depends_on is required for schema_version 2")
+        if plan_schema_version == 1 and "depends_on" in raw_task:
+            errors.append(f"task {task_id or index} depends_on requires schema_version 2")
+        raw_dependencies = raw_task.get("depends_on", [])
+        if not isinstance(raw_dependencies, list) or any(
+            not isinstance(item, str) for item in raw_dependencies
+        ):
+            errors.append(f"task {task_id or index} depends_on must be a string array")
+            raw_dependencies = []
+        raw_criteria = raw_task.get("criteria", [])
+        if (
+            not isinstance(raw_criteria, list)
+            or not raw_criteria
+            or any(not isinstance(item, str) for item in raw_criteria)
+        ):
+            errors.append(
+                f"task {task_id or index} criteria must be a non-empty string array"
+            )
+            raw_criteria = []
+        for criterion_id in raw_criteria:
+            if criterion_id not in criteria_by_id:
+                errors.append(
+                    f"task {task_id} references unknown criterion: {criterion_id}"
+                )
+            else:
+                criterion_occurrences[criterion_id] += 1
+        raw_checks = raw_task.get("checks", [])
+        if not isinstance(raw_checks, list) or not raw_checks:
+            errors.append(f"task {task_id or index} checks must be a non-empty array")
+            raw_checks = []
+        normalized_checks: list[dict[str, Any]] = []
+        for check_index, raw_check in enumerate(raw_checks):
+            if isinstance(raw_check, str):
+                if raw_check in project_checks:
+                    normalized_checks.append(project_checks[raw_check])
+                elif raw_check in top_checks:
+                    normalized_checks.append(top_checks[raw_check])
+                    used_top_checks.add(raw_check)
+                else:
+                    errors.append(
+                        f"task {task_id} references unknown check: {raw_check}"
+                    )
+                continue
+            if not isinstance(raw_check, dict):
+                errors.append(
+                    f"task {task_id} check {check_index} must be an object or check id"
+                )
+                continue
+            check_id = str(raw_check.get("id", ""))
+            if (
+                check_id in project_checks
+                or check_id in top_checks
+                or check_id in inline_ids
+            ):
+                errors.append(f"duplicate check id: {check_id}")
+            inline_ids.add(check_id)
+            normalized = _validate_check(
+                raw_check,
+                check_id=check_id,
+                root=root,
+                label=f"task {task_id} check {check_id or check_index}",
+                errors=errors,
+                allow_concurrency=plan_schema_version == 2,
+            )
+            if normalized:
+                normalized_checks.append(normalized)
+        task = {
+            "id": task_id,
+            "depends_on": list(raw_dependencies),
+            "criteria": list(raw_criteria),
+            "checks": normalized_checks,
+        }
+        tasks.append(task)
+        for criterion_id in raw_criteria:
+            if criterion_id in criterion_coverage:
+                criterion_coverage[criterion_id].extend(normalized_checks)
+                criterion_checks[criterion_id].extend(
+                    str(check["id"]) for check in normalized_checks
+                )
+
+    for check_id in sorted(set(top_checks) - used_top_checks):
+        errors.append(f"plan check is not referenced by any task: {check_id}")
+    for criterion_id, mapped_checks in criterion_coverage.items():
+        if criterion_occurrences[criterion_id] != 1:
+            errors.append(f"criterion must be mapped exactly once: {criterion_id}")
+        if not mapped_checks:
+            errors.append(
+                f"criterion is not mapped to an executable check: {criterion_id}"
+            )
+            continue
+        criterion = criteria_by_id[criterion_id]
+        integration = bool(criterion.get("integration")) or str(
+            criterion.get("verify_type", "")
+        ).lower() in {"integration", "e2e"}
+        if integration and not any(
+            check.get("kind") in {"integration", "e2e", "smoke"}
+            for check in mapped_checks
+        ):
+            errors.append(
+                f"integration criterion {criterion_id} requires an integration, e2e, or smoke check"
+            )
+
+    task_waves = _topological_task_waves(
+        tasks,
+        errors,
+        plan_schema_version=int(plan_schema_version),
+    )
+    graph, graph_sha256 = _build_assurance_graph(
+        criteria_by_id=criteria_by_id,
+        tasks=tasks,
+        project_checks=project_checks,
+        required_checks=required_checks,
+        task_waves=task_waves,
+        plan_schema_version=int(plan_schema_version),
+        config_schema_version=config_schema_version,
+        max_parallel_checks=max_parallel_checks,
+    )
+    return {
+        "plan_schema_version": int(plan_schema_version),
+        "top_checks": top_checks,
+        "tasks": tasks,
+        "criterion_checks": criterion_checks,
+        "task_waves": task_waves,
+        "assurance_graph": graph,
+        "assurance_graph_sha256": graph_sha256,
+    }
 
 
 def _validate_flow(root: pathlib.Path, plan_argument: str | pathlib.Path) -> Flow:
@@ -3343,15 +3917,17 @@ def _validate_flow(root: pathlib.Path, plan_argument: str | pathlib.Path) -> Flo
         config = _read_json(config_path)
     except EZPowersError as exc:
         errors.append(str(exc))
-    project_checks, required_checks = _validate_config_value(root, config, errors)
+    (
+        project_checks,
+        required_checks,
+        config_schema_version,
+        max_parallel_checks,
+    ) = _validate_config_value(root, config, errors)
     if plan_path.is_file():
         try:
             plan = _extract_block(plan_path, "plan")
         except EZPowersError as exc:
             errors.append(str(exc))
-    if plan and plan.get("schema_version") != SCHEMA_VERSION:
-        errors.append("plan schema_version must be 1")
-
     spec_path = root / "__invalid_spec__"
     criteria_by_id: dict[str, dict[str, Any]] = {}
     spec_value = plan.get("spec") if isinstance(plan, dict) else None
@@ -3367,102 +3943,16 @@ def _validate_flow(root: pathlib.Path, plan_argument: str | pathlib.Path) -> Flo
             label="plan.spec",
         )
 
-    top_checks: dict[str, dict[str, Any]] = {}
-    raw_top_checks = plan.get("checks", {}) if isinstance(plan, dict) else {}
-    if raw_top_checks is None:
-        raw_top_checks = {}
-    if not isinstance(raw_top_checks, dict):
-        errors.append("plan.checks must be an object when present")
-        raw_top_checks = {}
-    for check_id, raw in raw_top_checks.items():
-        if check_id in project_checks:
-            errors.append(f"plan check collides with config check: {check_id}")
-        normalized = _validate_check(
-            raw,
-            check_id=str(check_id),
-            root=root,
-            label=f"plan.checks.{check_id}",
-            errors=errors,
-        )
-        if normalized:
-            top_checks[str(check_id)] = normalized
-
-    raw_tasks = plan.get("tasks", []) if isinstance(plan, dict) else []
-    if not isinstance(raw_tasks, list) or not raw_tasks:
-        errors.append("plan.tasks must be a non-empty array")
-        raw_tasks = []
-    tasks: list[dict[str, Any]] = []
-    task_ids: set[str] = set()
-    inline_ids: set[str] = set()
-    criterion_coverage: dict[str, list[dict[str, Any]]] = {key: [] for key in criteria_by_id}
-    criterion_occurrences: dict[str, int] = {key: 0 for key in criteria_by_id}
-    used_top_checks: set[str] = set()
-    for index, raw_task in enumerate(raw_tasks):
-        if not isinstance(raw_task, dict):
-            errors.append(f"plan.tasks[{index}] must be an object")
-            continue
-        task_id = str(raw_task.get("id", ""))
-        if not ID_RE.fullmatch(task_id) or task_id in task_ids:
-            errors.append(f"invalid or duplicate task id: {task_id!r}")
-        task_ids.add(task_id)
-        raw_criteria = raw_task.get("criteria", [])
-        if not isinstance(raw_criteria, list) or not raw_criteria or any(not isinstance(item, str) for item in raw_criteria):
-            errors.append(f"task {task_id or index} criteria must be a non-empty string array")
-            raw_criteria = []
-        for criterion_id in raw_criteria:
-            if criterion_id not in criteria_by_id:
-                errors.append(f"task {task_id} references unknown criterion: {criterion_id}")
-            else:
-                criterion_occurrences[criterion_id] += 1
-        raw_checks = raw_task.get("checks", [])
-        if not isinstance(raw_checks, list) or not raw_checks:
-            errors.append(f"task {task_id or index} checks must be a non-empty array")
-            raw_checks = []
-        normalized_checks: list[dict[str, Any]] = []
-        for check_index, raw_check in enumerate(raw_checks):
-            if isinstance(raw_check, str):
-                if raw_check in project_checks:
-                    normalized_checks.append(project_checks[raw_check])
-                elif raw_check in top_checks:
-                    normalized_checks.append(top_checks[raw_check])
-                    used_top_checks.add(raw_check)
-                else:
-                    errors.append(f"task {task_id} references unknown check: {raw_check}")
-                continue
-            if not isinstance(raw_check, dict):
-                errors.append(f"task {task_id} check {check_index} must be an object or check id")
-                continue
-            check_id = str(raw_check.get("id", ""))
-            if check_id in project_checks or check_id in top_checks or check_id in inline_ids:
-                errors.append(f"duplicate check id: {check_id}")
-            inline_ids.add(check_id)
-            normalized = _validate_check(
-                raw_check,
-                check_id=check_id,
-                root=root,
-                label=f"task {task_id} check {check_id or check_index}",
-                errors=errors,
-            )
-            if normalized:
-                normalized_checks.append(normalized)
-        task = {"id": task_id, "criteria": list(raw_criteria), "checks": normalized_checks}
-        tasks.append(task)
-        for criterion_id in raw_criteria:
-            if criterion_id in criterion_coverage:
-                criterion_coverage[criterion_id].extend(normalized_checks)
-
-    for check_id in sorted(set(top_checks) - used_top_checks):
-        errors.append(f"plan check is not referenced by any task: {check_id}")
-    for criterion_id, mapped_checks in criterion_coverage.items():
-        if criterion_occurrences[criterion_id] > 1:
-            errors.append(f"criterion must be mapped exactly once: {criterion_id}")
-        if not mapped_checks:
-            errors.append(f"criterion is not mapped to an executable check: {criterion_id}")
-            continue
-        criterion = criteria_by_id[criterion_id]
-        integration = bool(criterion.get("integration")) or str(criterion.get("verify_type", "")).lower() in {"integration", "e2e"}
-        if integration and not any(check.get("kind") in {"integration", "e2e", "smoke"} for check in mapped_checks):
-            errors.append(f"integration criterion {criterion_id} requires an integration, e2e, or smoke check")
+    normalized_plan = _normalize_plan_value(
+        root,
+        plan=plan,
+        criteria_by_id=criteria_by_id,
+        project_checks=project_checks,
+        required_checks=required_checks,
+        config_schema_version=config_schema_version,
+        max_parallel_checks=max_parallel_checks,
+        errors=errors,
+    )
 
     plan_rel = ""
     if plan_path.exists():
@@ -3477,9 +3967,15 @@ def _validate_flow(root: pathlib.Path, plan_argument: str | pathlib.Path) -> Flo
         config=config,
         spec=spec,
         plan=plan,
-        tasks=tasks,
+        tasks=normalized_plan["tasks"],
         project_checks=project_checks,
         required_checks=list(required_checks),
+        plan_schema_version=normalized_plan["plan_schema_version"],
+        config_schema_version=config_schema_version,
+        max_parallel_checks=max_parallel_checks,
+        task_waves=normalized_plan["task_waves"],
+        assurance_graph=normalized_plan["assurance_graph"],
+        assurance_graph_sha256=normalized_plan["assurance_graph_sha256"],
         errors=errors,
     )
 
@@ -3878,179 +4374,37 @@ def _validate_chain_staged_flow(
         spec = _extract_block(spec_path, "spec")
     except EZPowersError as exc:
         raise EZPowersError(str(exc)) from exc
-    if spec.get("schema_version") != SCHEMA_VERSION:
-        errors.append("spec schema_version must be 1")
-    criteria_by_id: dict[str, dict[str, Any]] = {}
-    raw_criteria = spec.get("criteria")
-    if not isinstance(raw_criteria, list) or not raw_criteria:
-        errors.append("spec.criteria must be a non-empty array")
-        raw_criteria = []
-    for index, criterion in enumerate(raw_criteria):
-        if not isinstance(criterion, dict):
-            errors.append(f"spec.criteria[{index}] must be an object")
-            continue
-        criterion_id = criterion.get("id")
-        if (
-            not isinstance(criterion_id, str)
-            or not ID_RE.fullmatch(criterion_id)
-            or criterion_id in criteria_by_id
-        ):
-            errors.append(f"invalid or duplicate criterion id: {criterion_id!r}")
-            continue
-        if not isinstance(criterion.get("requirement_id"), str) or not str(
-            criterion.get("requirement_id")
-        ).strip():
-            errors.append(f"criterion {criterion_id} must have requirement_id")
-        if not isinstance(criterion.get("claim"), str) or not str(
-            criterion.get("claim")
-        ).strip():
-            errors.append(f"criterion {criterion_id} must have an observable claim")
-        if not isinstance(criterion.get("verify_type"), str) or not str(
-            criterion.get("verify_type")
-        ).strip():
-            errors.append(f"criterion {criterion_id} must have verify_type")
-        if not isinstance(criterion.get("integration"), bool):
-            errors.append(f"criterion {criterion_id} integration must be a boolean")
-        criteria_by_id[criterion_id] = criterion
+    criteria_by_id = _validate_spec_value(
+        root,
+        spec,
+        errors,
+        validate_design_context=False,
+    )
 
     try:
         plan = _extract_block(plan_path, "plan")
     except EZPowersError as exc:
         raise EZPowersError(str(exc)) from exc
-    if plan.get("schema_version") != SCHEMA_VERSION:
-        errors.append("plan schema_version must be 1")
     if plan.get("spec") != spec_target:
         errors.append("staged plan.spec must equal the staged spec target")
 
     config = _read_json(root / CONFIG_RELATIVE_PATH)
-    project_checks, required_checks = _validate_config_value(root, config, errors)
-    raw_top_checks = plan.get("checks", {})
-    if not isinstance(raw_top_checks, dict):
-        errors.append("plan.checks must be an object")
-        raw_top_checks = {}
-    top_checks: dict[str, dict[str, Any]] = {}
-    for check_id, raw in raw_top_checks.items():
-        name = str(check_id)
-        if name in project_checks:
-            errors.append(f"plan check collides with config check: {name}")
-        normalized = _validate_check(
-            raw,
-            check_id=name,
-            root=root,
-            label=f"plan.checks.{name}",
-            errors=errors,
-        )
-        if normalized is not None:
-            top_checks[name] = normalized
-
-    raw_tasks = plan.get("tasks")
-    if not isinstance(raw_tasks, list) or not raw_tasks:
-        errors.append("plan.tasks must be a non-empty array")
-        raw_tasks = []
-    used_checks: set[str] = set()
-    task_ids: set[str] = set()
-    criterion_occurrences = {key: 0 for key in criteria_by_id}
-    criterion_checks: dict[str, list[str]] = {
-        key: [] for key in criteria_by_id
-    }
-    tasks: list[dict[str, Any]] = []
-    for index, raw_task in enumerate(raw_tasks):
-        if not isinstance(raw_task, dict):
-            errors.append(f"plan.tasks[{index}] must be an object")
-            continue
-        task_id = raw_task.get("id")
-        if (
-            not isinstance(task_id, str)
-            or not ID_RE.fullmatch(task_id)
-            or task_id in task_ids
-        ):
-            errors.append(f"invalid or duplicate task id: {task_id!r}")
-            task_id = f"invalid-{index}"
-        task_ids.add(task_id)
-        criteria = raw_task.get("criteria")
-        if not isinstance(criteria, list) or not criteria or any(
-            not isinstance(item, str) for item in criteria
-        ):
-            errors.append(f"task {task_id} criteria must be a non-empty string array")
-            criteria = []
-        raw_checks = raw_task.get("checks")
-        if not isinstance(raw_checks, list) or not raw_checks:
-            errors.append(f"task {task_id} checks must be a non-empty array")
-            raw_checks = []
-        normalized_checks: list[dict[str, Any]] = []
-        check_ids: list[str] = []
-        for check_index, raw_check in enumerate(raw_checks):
-            if isinstance(raw_check, str):
-                check = top_checks.get(raw_check) or project_checks.get(raw_check)
-                if check is None:
-                    errors.append(
-                        f"task {task_id} references unknown check: {raw_check}"
-                    )
-                    continue
-                normalized_checks.append(check)
-                check_ids.append(raw_check)
-                if raw_check in top_checks:
-                    used_checks.add(raw_check)
-                continue
-            if isinstance(raw_check, dict):
-                inline_id = raw_check.get("id")
-                if not isinstance(inline_id, str):
-                    errors.append(
-                        f"task {task_id} inline check {check_index} must have id"
-                    )
-                    continue
-                check = _validate_check(
-                    raw_check,
-                    check_id=inline_id,
-                    root=root,
-                    label=f"task {task_id} inline check {inline_id}",
-                    errors=errors,
-                )
-                if check is not None:
-                    normalized_checks.append(check)
-                    check_ids.append(inline_id)
-                continue
-            errors.append(f"task {task_id} has an invalid check entry")
-        for criterion_id in criteria:
-            if criterion_id not in criteria_by_id:
-                errors.append(
-                    f"task {task_id} references unknown criterion: {criterion_id}"
-                )
-                continue
-            criterion_occurrences[criterion_id] += 1
-            criterion_checks[criterion_id].extend(check_ids)
-        tasks.append(
-            {
-                "id": task_id,
-                "criteria": list(criteria),
-                "checks": normalized_checks,
-            }
-        )
-    for check_id in sorted(set(top_checks) - used_checks):
-        errors.append(f"plan check is not referenced by any task: {check_id}")
-    for criterion_id, occurrence in criterion_occurrences.items():
-        if occurrence != 1:
-            errors.append(
-                f"criterion must be mapped exactly once: {criterion_id}"
-            )
-        criterion = criteria_by_id[criterion_id]
-        check_ids = criterion_checks[criterion_id]
-        checks = [
-            top_checks.get(item) or project_checks.get(item)
-            for item in check_ids
-        ]
-        integration = bool(criterion.get("integration")) or str(
-            criterion.get("verify_type", "")
-        ).lower() in {"integration", "e2e"}
-        if integration and not any(
-            isinstance(check, dict)
-            and check.get("kind") in {"integration", "e2e", "smoke"}
-            for check in checks
-        ):
-            errors.append(
-                f"integration criterion {criterion_id} requires an "
-                "integration, e2e, or smoke check"
-            )
+    (
+        project_checks,
+        required_checks,
+        config_schema_version,
+        max_parallel_checks,
+    ) = _validate_config_value(root, config, errors)
+    normalized_plan = _normalize_plan_value(
+        root,
+        plan=plan,
+        criteria_by_id=criteria_by_id,
+        project_checks=project_checks,
+        required_checks=required_checks,
+        config_schema_version=config_schema_version,
+        max_parallel_checks=max_parallel_checks,
+        errors=errors,
+    )
     if errors:
         raise EZPowersError(
             "invalid staged spec/plan:\n- " + "\n- ".join(errors)
@@ -4059,11 +4413,17 @@ def _validate_chain_staged_flow(
         "spec": spec,
         "plan": plan,
         "criteria": criteria_by_id,
-        "criterion_checks": criterion_checks,
-        "top_checks": top_checks,
+        "criterion_checks": normalized_plan["criterion_checks"],
+        "top_checks": normalized_plan["top_checks"],
         "project_checks": project_checks,
         "required_checks": required_checks,
-        "tasks": tasks,
+        "tasks": normalized_plan["tasks"],
+        "plan_schema_version": normalized_plan["plan_schema_version"],
+        "config_schema_version": config_schema_version,
+        "max_parallel_checks": max_parallel_checks,
+        "task_waves": normalized_plan["task_waves"],
+        "assurance_graph": normalized_plan["assurance_graph"],
+        "assurance_graph_sha256": normalized_plan["assurance_graph_sha256"],
     }
 
 
@@ -4615,10 +4975,34 @@ def _chain_baseline(
             _atomic_write(target, entry["data"])
         run_dir = overlay / ".ezpowers" / "baseline-evidence"
         run_dir.mkdir(parents=True, exist_ok=False)
-        results = [
-            _run_check(overlay, run_dir, "baseline", checks_by_id[check_id])
-            for check_id in ordered_ids
+        graph_bound = normalized["flow"]["plan_schema_version"] == 2
+        parallel_enabled = (
+            graph_bound
+            and normalized["flow"]["config_schema_version"] == 2
+            and normalized["flow"]["max_parallel_checks"] > 1
+        )
+        invocations = [
+            {
+                "node_id": f"check:baseline:{index}:{check_id}",
+                "task_id": "baseline",
+                "check": checks_by_id[check_id],
+            }
+            for index, check_id in enumerate(ordered_ids, 1)
         ]
+        results, _ = _execute_invocations(
+            overlay,
+            run_dir,
+            invocations,
+            max_workers=(
+                normalized["flow"]["max_parallel_checks"]
+                if parallel_enabled
+                else 1
+            ),
+            parallel_enabled=parallel_enabled,
+            phase="baseline",
+            task_wave=None,
+            include_graph_fields=graph_bound,
+        )
     by_id = {str(result["id"]): result for result in results}
     summary = [
         {
@@ -4774,6 +5158,8 @@ def _chain_run_preview(
             normalized["flow"]["project_checks"][check_id]
             for check_id in normalized["flow"]["required_checks"]
         ],
+        "assurance_graph": normalized["flow"]["assurance_graph"],
+        "assurance_graph_sha256": normalized["flow"]["assurance_graph_sha256"],
         "baseline": baseline,
         "targets": target_states,
         "installation": _installed_identity(root),
@@ -4805,6 +5191,7 @@ def _chain_run_preview(
         "limits": normalized["limits"],
         "oracles": normalized["oracles"],
         "baseline": baseline,
+        "assurance_graph_sha256": normalized["flow"]["assurance_graph_sha256"],
         "oracle_audit": audit_pointer if audited else None,
     }
     normalized["preview_sha256"] = preview_sha256
@@ -4922,8 +5309,21 @@ def _chain_run_apply_command(args: argparse.Namespace) -> int:
                 normalized["flow"]["project_checks"][check_id]
                 for check_id in normalized["flow"]["required_checks"]
             ]
+            applied_flow = _validate_flow(root, plan_entry["target"])
+            if applied_flow.errors:
+                raise EZPowersError(
+                    "applied chain flow differs from staged validation:\n- "
+                    + "\n- ".join(applied_flow.errors)
+                )
+            if (
+                applied_flow.assurance_graph_sha256
+                != normalized["flow"]["assurance_graph_sha256"]
+            ):
+                raise EZPowersError(
+                    "applied chain assurance graph differs from the approved preview"
+                )
             approval = {
-                "schema_version": SCHEMA_VERSION,
+                "schema_version": GRAPH_BOUND_SCHEMA_VERSION,
                 "run_id": normalized["run_id"],
                 "request": normalized["request"],
                 "host": normalized["host"],
@@ -4948,6 +5348,7 @@ def _chain_run_apply_command(args: argparse.Namespace) -> int:
                 ],
                 "oracles": normalized["oracles"],
                 "required_checks": required_checks,
+                "assurance_graph_sha256": applied_flow.assurance_graph_sha256,
                 "baseline": normalized["baseline"],
                 "oracle_audit": normalized["oracle_audit"],
             }
@@ -5018,6 +5419,7 @@ def _chain_run_apply_command(args: argparse.Namespace) -> int:
             "host": normalized["host"],
             "approval_path": _relative(root, approval_path),
             "approval_sha256": approval_sha256,
+            "assurance_graph_sha256": applied_flow.assurance_graph_sha256,
             "plan_path": plan_entry["target"],
             "goal_objective": objective,
             "goal_objective_sha256": objective_sha256,
@@ -5066,7 +5468,10 @@ def _chain_approval(
     except EZPowersError as exc:
         return None, [str(exc)]
     if (
-        approval.get("schema_version") != SCHEMA_VERSION
+        approval.get("schema_version") not in {
+            SCHEMA_VERSION,
+            GRAPH_BOUND_SCHEMA_VERSION,
+        }
         or approval.get("run_id") != run.get("run_id")
     ):
         return None, ["chain approval identity is invalid"]
@@ -5151,6 +5556,21 @@ def _chain_contract_reasons(
         or _sha256_file(config_path) != approval.get("config_sha256")
     ):
         reasons.append("project checks changed after feature approval")
+    graph_hash = approval.get("assurance_graph_sha256")
+    if not isinstance(graph_hash, str):
+        if run.get("status") != "CERTIFIED":
+            reasons.append(
+                "chain approval predates assurance graph binding; explicit reapproval is required"
+            )
+    else:
+        flow = _validate_flow(root, str(run.get("plan_path", "")))
+        if flow.errors:
+            reasons.extend(
+                f"approved assurance flow is invalid: {error}"
+                for error in flow.errors
+            )
+        elif flow.assurance_graph_sha256 != graph_hash:
+            reasons.append("assurance graph changed after feature approval")
     raw_files = approval.get("files")
     if not isinstance(raw_files, list) or not raw_files:
         reasons.append("chain approval has no frozen files")
@@ -5263,12 +5683,18 @@ def _chain_run_status_locked(root: pathlib.Path) -> tuple[dict[str, Any], int]:
     if _chain_refresh_run_status(root, state):
         _save_state(root, state)
         run = state["chain_run"]
+    approval, _ = _chain_approval(root, state)
     payload = {
         "status": run.get("status"),
         "run_id": run.get("run_id"),
         "host": run.get("host"),
         "loop_authority": run.get("loop_authority"),
         "approval_path": run.get("approval_path"),
+        "assurance_graph_sha256": (
+            approval.get("assurance_graph_sha256")
+            if isinstance(approval, dict)
+            else None
+        ),
         "plan_path": run.get("plan_path"),
         "counters": run.get("counters", {}),
         "gates": run.get("gates", {}),
@@ -6308,6 +6734,10 @@ def _validate_command(args: argparse.Namespace) -> int:
             "status": "PASS" if not flow.errors else "FAIL",
             "plan": flow.plan_rel or str(args.plan),
             "errors": flow.errors,
+            "assurance_graph_sha256": (
+                flow.assurance_graph_sha256 if not flow.errors else None
+            ),
+            "task_waves": flow.task_waves if not flow.errors else [],
             "activation": {
                 "requested": bool(args.activate),
                 "applied": applied,
@@ -6439,15 +6869,23 @@ def _run_check(
     run_dir: pathlib.Path,
     task_id: str,
     check: dict[str, Any],
+    *,
+    occurrence_id: str | None = None,
+    include_graph_fields: bool = False,
+    cancel_event: threading.Event | None = None,
+    process_registry: set[subprocess.Popen[Any]] | None = None,
+    registry_lock: threading.Lock | None = None,
 ) -> dict[str, Any]:
     safe_task = re.sub(r"[^A-Za-z0-9._-]+", "-", task_id) or "project"
     safe_check = re.sub(r"[^A-Za-z0-9._-]+", "-", check["id"]) or "check"
-    identity = _sha256_bytes(f"{task_id}\0{check['id']}".encode("utf-8"))[:12]
+    identity_source = occurrence_id or f"{task_id}\0{check['id']}"
+    identity = _sha256_bytes(identity_source.encode("utf-8"))[:12]
     prefix = run_dir / f"{safe_task}--{safe_check}--{identity}"
     stdout_path = pathlib.Path(f"{prefix}.stdout.log")
     stderr_path = pathlib.Path(f"{prefix}.stderr.log")
     cwd = _contained_path(root, check["cwd"], label=f"check {check['id']} cwd", must_exist=True, directory=True)
     started = time.monotonic()
+    started_at = _utc_now()
     timed_out = False
     spawn_error = ""
     exit_code = 127
@@ -6464,19 +6902,41 @@ def _run_check(
             kwargs["start_new_session"] = True
         try:
             process = subprocess.Popen(check["argv"], **kwargs)
+            if process_registry is not None and registry_lock is not None:
+                with registry_lock:
+                    process_registry.add(process)
             try:
-                exit_code = process.wait(timeout=check["timeout_seconds"])
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                _kill_process_tree(process)
-                with contextlib.suppress(Exception):
-                    process.wait(timeout=5)
-                exit_code = 124
+                deadline = time.monotonic() + check["timeout_seconds"]
+                while True:
+                    if cancel_event is not None and cancel_event.is_set():
+                        spawn_error = "check execution cancelled"
+                        _kill_process_tree(process)
+                        with contextlib.suppress(Exception):
+                            process.wait(timeout=5)
+                        exit_code = 130
+                        break
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        timed_out = True
+                        _kill_process_tree(process)
+                        with contextlib.suppress(Exception):
+                            process.wait(timeout=5)
+                        exit_code = 124
+                        break
+                    try:
+                        exit_code = process.wait(timeout=min(0.1, remaining))
+                        break
+                    except subprocess.TimeoutExpired:
+                        continue
+            finally:
+                if process_registry is not None and registry_lock is not None:
+                    with registry_lock:
+                        process_registry.discard(process)
         except (OSError, ValueError) as exc:
             spawn_error = str(exc)
             stderr.write((spawn_error + "\n").encode("utf-8", "replace"))
     duration_ms = int((time.monotonic() - started) * 1000)
-    return {
+    result = {
         "id": check["id"],
         "argv": check["argv"],
         "cwd": check["cwd"],
@@ -6492,6 +6952,158 @@ def _run_check(
         "stdout_sha256": _sha256_file(stdout_path),
         "stderr_sha256": _sha256_file(stderr_path),
     }
+    if include_graph_fields:
+        result.update(
+            {
+                "node_id": occurrence_id,
+                "started_at": started_at,
+                "finished_at": _utc_now(),
+            }
+        )
+    return result
+
+
+def _invocation_locks(invocation: dict[str, Any]) -> set[str]:
+    check = invocation["check"]
+    locks = {f"check-id.{check['id']}"}
+    locks.update(
+        f"resource.{item}"
+        for item in check["concurrency"]["resource_locks"]
+    )
+    return locks
+
+
+def _invocation_batches(
+    invocations: list[dict[str, Any]],
+    *,
+    max_workers: int,
+    parallel_enabled: bool,
+) -> list[list[dict[str, Any]]]:
+    pending = list(invocations)
+    batches: list[list[dict[str, Any]]] = []
+    while pending:
+        first = pending.pop(0)
+        first_safe = bool(first["check"]["concurrency"]["safe"])
+        if not parallel_enabled or max_workers <= 1 or not first_safe:
+            batches.append([first])
+            continue
+        batch = [first]
+        held_locks = _invocation_locks(first)
+        while pending and len(batch) < max_workers:
+            candidate = pending[0]
+            if not bool(candidate["check"]["concurrency"]["safe"]):
+                break
+            candidate_locks = _invocation_locks(candidate)
+            if held_locks.intersection(candidate_locks):
+                break
+            pending.pop(0)
+            batch.append(candidate)
+            held_locks.update(candidate_locks)
+        batches.append(batch)
+    return batches
+
+
+def _execute_invocations(
+    root: pathlib.Path,
+    run_dir: pathlib.Path,
+    invocations: list[dict[str, Any]],
+    *,
+    max_workers: int,
+    parallel_enabled: bool,
+    phase: str,
+    task_wave: int | None,
+    include_graph_fields: bool,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Execute ready checks while keeping results in declaration order."""
+    if not invocations:
+        return [], []
+    cancel_event = threading.Event()
+    registry_lock = threading.Lock()
+    process_registry: set[subprocess.Popen[Any]] = set()
+    results_by_node: dict[str, dict[str, Any]] = {}
+    execution_waves: list[dict[str, Any]] = []
+    try:
+        for batch_index, batch in enumerate(
+            _invocation_batches(
+                invocations,
+                max_workers=max_workers,
+                parallel_enabled=parallel_enabled,
+            )
+        ):
+            wave_started = _utc_now()
+            if len(batch) == 1:
+                invocation = batch[0]
+                results_by_node[invocation["node_id"]] = _run_check(
+                    root,
+                    run_dir,
+                    invocation["task_id"],
+                    invocation["check"],
+                    occurrence_id=invocation["node_id"],
+                    include_graph_fields=include_graph_fields,
+                    cancel_event=cancel_event,
+                    process_registry=process_registry,
+                    registry_lock=registry_lock,
+                )
+            else:
+                executor = concurrent.futures.ThreadPoolExecutor(
+                    max_workers=len(batch),
+                    thread_name_prefix="ezpowers-check",
+                )
+                futures: dict[str, concurrent.futures.Future[dict[str, Any]]] = {}
+                try:
+                    futures = {
+                        invocation["node_id"]: executor.submit(
+                            _run_check,
+                            root,
+                            run_dir,
+                            invocation["task_id"],
+                            invocation["check"],
+                            occurrence_id=invocation["node_id"],
+                            include_graph_fields=include_graph_fields,
+                            cancel_event=cancel_event,
+                            process_registry=process_registry,
+                            registry_lock=registry_lock,
+                        )
+                        for invocation in batch
+                    }
+                    for invocation in batch:
+                        results_by_node[invocation["node_id"]] = futures[
+                            invocation["node_id"]
+                        ].result()
+                except BaseException:
+                    cancel_event.set()
+                    with registry_lock:
+                        active = list(process_registry)
+                    for process in active:
+                        _kill_process_tree(process)
+                    for future in futures.values():
+                        future.cancel()
+                    executor.shutdown(wait=True, cancel_futures=True)
+                    raise
+                else:
+                    executor.shutdown(wait=True)
+            execution_waves.append(
+                {
+                    "phase": phase,
+                    "task_wave": task_wave,
+                    "batch": batch_index,
+                    "node_ids": [item["node_id"] for item in batch],
+                    "parallel": len(batch) > 1,
+                    "started_at": wave_started,
+                    "finished_at": _utc_now(),
+                }
+            )
+    except BaseException:
+        cancel_event.set()
+        with registry_lock:
+            active = list(process_registry)
+        for process in active:
+            _kill_process_tree(process)
+        raise
+    return (
+        [results_by_node[item["node_id"]] for item in invocations],
+        execution_waves,
+    )
 
 
 def _evidence_run_id() -> str:
@@ -6576,19 +7188,100 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
     run_dir = root / EVIDENCE_RELATIVE_PATH / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
     started_at = _utc_now()
-    task_results: list[dict[str, Any]] = []
+    graph_bound = flow.plan_schema_version == 2
+    parallel_enabled = (
+        graph_bound
+        and flow.config_schema_version == 2
+        and flow.max_parallel_checks > 1
+    )
+    effective_workers = flow.max_parallel_checks if parallel_enabled else 1
+    task_results_by_id: dict[str, dict[str, Any]] = {
+        str(task["id"]): {
+            "id": task["id"],
+            "criteria": task["criteria"],
+            "checks": [],
+            **(
+                {"depends_on": list(task.get("depends_on", []))}
+                if graph_bound
+                else {}
+            ),
+        }
+        for task in selected
+    }
+    execution_waves: list[dict[str, Any]] = []
     reasons: list[str] = []
-    for task in selected:
-        checks = [_run_check(root, run_dir, task["id"], check) for check in task["checks"]]
-        if any(check["status"] != "PASS" for check in checks):
-            reasons.append(f"task {task['id']} verification failed")
-        task_results.append({"id": task["id"], "criteria": task["criteria"], "checks": checks})
+    task_groups: list[tuple[int | None, list[dict[str, Any]]]] = []
+    if args.task:
+        task_groups.append((None, selected))
+    else:
+        selected_by_id = {str(task["id"]): task for task in selected}
+        for wave_index, task_ids in enumerate(flow.task_waves):
+            wave_tasks = [
+                selected_by_id[task_id]
+                for task_id in task_ids
+                if task_id in selected_by_id
+            ]
+            if wave_tasks:
+                task_groups.append((wave_index, wave_tasks))
+    for wave_index, wave_tasks in task_groups:
+        invocations: list[dict[str, Any]] = []
+        for task in wave_tasks:
+            for check_index, check in enumerate(task["checks"], 1):
+                invocations.append(
+                    {
+                        "node_id": _task_check_node_id(
+                            str(task["id"]),
+                            check_index,
+                            str(check["id"]),
+                        ),
+                        "task_id": str(task["id"]),
+                        "check": check,
+                    }
+                )
+        check_results, wave_records = _execute_invocations(
+            root,
+            run_dir,
+            invocations,
+            max_workers=effective_workers,
+            parallel_enabled=parallel_enabled,
+            phase="task",
+            task_wave=wave_index,
+            include_graph_fields=graph_bound,
+        )
+        execution_waves.extend(wave_records)
+        for invocation, check_result in zip(invocations, check_results):
+            task_results_by_id[invocation["task_id"]]["checks"].append(
+                check_result
+            )
+    task_results = [
+        task_results_by_id[str(task["id"])] for task in selected
+    ]
+    for task_result in task_results:
+        if any(check["status"] != "PASS" for check in task_result["checks"]):
+            reasons.append(f"task {task_result['id']} verification failed")
 
     project_results: list[dict[str, Any]] = []
     if args.all_checks:
-        for check_id in flow.required_checks:
-            result = _run_check(root, run_dir, "project", flow.project_checks[check_id])
-            project_results.append(result)
+        project_invocations = [
+            {
+                "node_id": _project_check_node_id(index, check_id),
+                "task_id": "project",
+                "check": flow.project_checks[check_id],
+            }
+            for index, check_id in enumerate(flow.required_checks, 1)
+        ]
+        project_results, project_waves = _execute_invocations(
+            root,
+            run_dir,
+            project_invocations,
+            max_workers=effective_workers,
+            parallel_enabled=parallel_enabled,
+            phase="required",
+            task_wave=None,
+            include_graph_fields=graph_bound,
+        )
+        execution_waves.extend(project_waves)
+        for check_id, result in zip(flow.required_checks, project_results):
             if result["status"] != "PASS":
                 reasons.append(f"required project check {check_id} failed")
 
@@ -6629,11 +7322,23 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
             "approval_path": chain_run.get("approval_path"),
             "approval_sha256": chain_run.get("approval_sha256"),
             "chain_sha256": chain_approval.get("chain_sha256"),
+            **(
+                {
+                    "assurance_graph_sha256": chain_approval.get(
+                        "assurance_graph_sha256"
+                    )
+                }
+                if isinstance(
+                    chain_approval.get("assurance_graph_sha256"),
+                    str,
+                )
+                else {}
+            ),
         }
 
     result_path = run_dir / "result.json"
     result: dict[str, Any] = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": GRAPH_BOUND_SCHEMA_VERSION if graph_bound else SCHEMA_VERSION,
         "run_id": run_id,
         "status": "PASS" if not reasons else "FAIL",
         "scope": scope,
@@ -6653,6 +7358,23 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
         "reasons": reasons,
         "evidence_path": _log_relative(root, result_path),
     }
+    if graph_bound:
+        result["assurance_graph"] = flow.assurance_graph
+        result["assurance_graph_sha256"] = flow.assurance_graph_sha256
+        result["execution"] = {
+            "max_parallel_checks": effective_workers,
+            "waves": execution_waves,
+        }
+        if workspace_before["fingerprint"] != workspace_after["fingerprint"]:
+            result["parallel_workspace_mutation_candidates"] = sorted(
+                {
+                    node_id
+                    for wave in execution_waves
+                    if wave["parallel"]
+                    for node_id in wave["node_ids"]
+                }
+            )
+            result["workspace_mutation_causality"] = "not-proven"
     if chain_binding is not None:
         result["chain"] = chain_binding
     result_bytes = _json_bytes(result)
@@ -6760,13 +7482,23 @@ def _inventory_reasons(
             reasons.append(
                 f"evidence inventory mismatch: criteria changed for task {expected_task_id}"
             )
+        if (
+            flow.plan_schema_version == 2
+            and recorded_task.get("depends_on") != expected_task.get("depends_on", [])
+        ):
+            reasons.append(
+                f"evidence inventory mismatch: dependencies changed for task {expected_task_id}"
+            )
         recorded_checks = recorded_task.get("checks")
         if not isinstance(recorded_checks, list) or len(recorded_checks) != len(expected_task["checks"]):
             reasons.append(
                 f"evidence inventory mismatch: check count changed for task {expected_task_id}"
             )
             continue
-        for expected_check, recorded_check in zip(expected_task["checks"], recorded_checks):
+        for check_index, (expected_check, recorded_check) in enumerate(
+            zip(expected_task["checks"], recorded_checks),
+            1,
+        ):
             if not isinstance(recorded_check, dict):
                 reasons.append(
                     f"evidence inventory mismatch: invalid check for task {expected_task_id}"
@@ -6777,6 +7509,19 @@ def _inventory_reasons(
                     f"evidence inventory mismatch: metadata changed for check "
                     f"{expected_check['id']} in task {expected_task_id}"
                 )
+            if (
+                flow.plan_schema_version == 2
+                and recorded_check.get("node_id")
+                != _task_check_node_id(
+                    str(expected_task_id),
+                    check_index,
+                    str(expected_check["id"]),
+                )
+            ):
+                reasons.append(
+                    f"evidence inventory mismatch: occurrence changed for check "
+                    f"{expected_check['id']} in task {expected_task_id}"
+                )
 
     recorded_project = evidence.get("project_checks")
     if not isinstance(recorded_project, list) or len(recorded_project) != len(expected_project):
@@ -6785,13 +7530,143 @@ def _inventory_reasons(
         else:
             reasons.append("evidence inventory mismatch: task evidence must not contain project checks")
     else:
-        for expected_check, recorded_check in zip(expected_project, recorded_project):
+        for check_index, (expected_check, recorded_check) in enumerate(
+            zip(expected_project, recorded_project),
+            1,
+        ):
             if not isinstance(recorded_check, dict) or any(
                 recorded_check.get(field) != expected_check.get(field) for field in fields
             ):
                 reasons.append(
                     f"evidence inventory mismatch: required check {expected_check['id']} changed"
                 )
+            elif (
+                flow.plan_schema_version == 2
+                and recorded_check.get("node_id")
+                != _project_check_node_id(
+                    check_index,
+                    str(expected_check["id"]),
+                )
+            ):
+                reasons.append(
+                    f"evidence inventory mismatch: required check occurrence "
+                    f"{expected_check['id']} changed"
+                )
+    return reasons
+
+
+def _execution_reasons(
+    flow: Flow,
+    evidence: dict[str, Any],
+    *,
+    task_id: str | None,
+) -> list[str]:
+    if flow.plan_schema_version != 2:
+        return []
+    reasons: list[str] = []
+    execution = evidence.get("execution")
+    if not isinstance(execution, dict):
+        return ["evidence execution trace is missing"]
+    expected_max = (
+        flow.max_parallel_checks if flow.config_schema_version == 2 else 1
+    )
+    if execution.get("max_parallel_checks") != expected_max:
+        reasons.append("evidence execution worker cap changed")
+    raw_waves = execution.get("waves")
+    if not isinstance(raw_waves, list):
+        return reasons + ["evidence execution waves must be an array"]
+
+    task_by_id = {str(task["id"]): task for task in flow.tasks}
+    expected_task_nodes: list[str] = []
+    node_task_wave: dict[str, int | None] = {}
+    if task_id is not None:
+        task = task_by_id.get(task_id)
+        if task is not None:
+            for index, check in enumerate(task["checks"], 1):
+                node_id = _task_check_node_id(task_id, index, str(check["id"]))
+                expected_task_nodes.append(node_id)
+                node_task_wave[node_id] = None
+    else:
+        for wave_index, task_ids in enumerate(flow.task_waves):
+            for current_task_id in task_ids:
+                task = task_by_id[current_task_id]
+                for index, check in enumerate(task["checks"], 1):
+                    node_id = _task_check_node_id(
+                        current_task_id,
+                        index,
+                        str(check["id"]),
+                    )
+                    expected_task_nodes.append(node_id)
+                    node_task_wave[node_id] = wave_index
+    expected_project_nodes = (
+        [
+            _project_check_node_id(index, check_id)
+            for index, check_id in enumerate(flow.required_checks, 1)
+        ]
+        if task_id is None
+        else []
+    )
+    node_contract = {
+        str(node["id"]): node
+        for node in flow.assurance_graph["nodes"]
+        if node.get("type") == "check"
+    }
+    observed_task_nodes: list[str] = []
+    observed_project_nodes: list[str] = []
+    saw_required = False
+    for index, raw_wave in enumerate(raw_waves):
+        if not isinstance(raw_wave, dict):
+            reasons.append(f"evidence execution wave {index} is invalid")
+            continue
+        phase = raw_wave.get("phase")
+        node_ids = raw_wave.get("node_ids")
+        if (
+            phase not in {"task", "required"}
+            or not isinstance(node_ids, list)
+            or not node_ids
+            or any(not isinstance(item, str) for item in node_ids)
+        ):
+            reasons.append(f"evidence execution wave {index} has invalid nodes")
+            continue
+        if phase == "required":
+            saw_required = True
+            observed_project_nodes.extend(node_ids)
+            if raw_wave.get("task_wave") is not None:
+                reasons.append("required execution wave must not name a task wave")
+        else:
+            if saw_required:
+                reasons.append("task execution occurred after the required-check phase")
+            observed_task_nodes.extend(node_ids)
+            expected_wave_values = {node_task_wave.get(node_id) for node_id in node_ids}
+            if expected_wave_values != {raw_wave.get("task_wave")}:
+                reasons.append("task execution wave does not match plan dependencies")
+        if raw_wave.get("parallel") is not (len(node_ids) > 1):
+            reasons.append(f"evidence execution wave {index} parallel marker is invalid")
+        if len(node_ids) > expected_max:
+            reasons.append(f"evidence execution wave {index} exceeds the worker cap")
+        held: set[str] = set()
+        for node_id in node_ids:
+            contract = node_contract.get(node_id)
+            if contract is None:
+                reasons.append(f"evidence execution contains unknown check node: {node_id}")
+                continue
+            if len(node_ids) > 1 and contract.get("safe") is not True:
+                reasons.append(f"unsafe check overlapped in execution wave: {node_id}")
+            locks = {str(contract.get("implicit_lock"))}
+            locks.update(
+                f"resource.{item}"
+                for item in contract.get("resource_locks", [])
+            )
+            if held.intersection(locks):
+                reasons.append(f"conflicting checks overlapped in execution wave: {node_id}")
+            held.update(locks)
+        for field in ("started_at", "finished_at"):
+            if not isinstance(raw_wave.get(field), str) or not raw_wave[field]:
+                reasons.append(f"evidence execution wave {index} has no {field}")
+    if observed_task_nodes != expected_task_nodes:
+        reasons.append("evidence execution task occurrence order changed")
+    if observed_project_nodes != expected_project_nodes:
+        reasons.append("evidence execution required occurrence order changed")
     return reasons
 
 
@@ -6802,6 +7677,7 @@ def _current_bindings(
     bindings: dict[str, Any] = {
         "plan_path": flow.plan_rel,
         "spec_path": _relative(root, flow.spec_path),
+        "assurance_graph_sha256": flow.assurance_graph_sha256,
     }
     reasons: list[str] = []
     try:
@@ -6858,8 +7734,25 @@ def _pointer_freshness(
         evidence = _read_json(evidence_path)
     except EZPowersError as exc:
         return False, [f"evidence tamper detected: {exc}"], None, actual_hash, evidence_path
-    if evidence.get("schema_version") != SCHEMA_VERSION:
+    expected_schema_version = (
+        GRAPH_BOUND_SCHEMA_VERSION
+        if flow.plan_schema_version == 2
+        else SCHEMA_VERSION
+    )
+    if evidence.get("schema_version") != expected_schema_version:
         reasons.append("evidence schema_version is unsupported")
+    if flow.plan_schema_version == 2:
+        recorded_graph = evidence.get("assurance_graph")
+        recorded_graph_sha256 = evidence.get("assurance_graph_sha256")
+        if not isinstance(recorded_graph, dict):
+            reasons.append("evidence assurance graph is missing")
+        else:
+            if _sha256_bytes(_json_bytes(recorded_graph)) != recorded_graph_sha256:
+                reasons.append("evidence assurance graph hash mismatch")
+            if recorded_graph != flow.assurance_graph:
+                reasons.append("assurance graph changed after verification")
+        if recorded_graph_sha256 != flow.assurance_graph_sha256:
+            reasons.append("evidence belongs to a different assurance graph")
     if evidence.get("evidence_path") != canonical_evidence_path:
         reasons.append("evidence self path does not match the state pointer")
     if evidence.get("run_id") != evidence_path.parent.name:
@@ -6916,6 +7809,19 @@ def _pointer_freshness(
                     if isinstance(chain_approval, dict)
                     else None
                 ),
+                **(
+                    {
+                        "assurance_graph_sha256": chain_approval.get(
+                            "assurance_graph_sha256"
+                        )
+                    }
+                    if isinstance(chain_approval, dict)
+                    and isinstance(
+                        chain_approval.get("assurance_graph_sha256"),
+                        str,
+                    )
+                    else {}
+                ),
             }
             if evidence.get("chain") != expected_chain:
                 reasons.append(
@@ -6924,6 +7830,7 @@ def _pointer_freshness(
     except EZPowersError as exc:
         reasons.append(f"harness-chain state is invalid: {exc}")
     reasons.extend(_inventory_reasons(flow, evidence, task_id=task_id))
+    reasons.extend(_execution_reasons(flow, evidence, task_id=task_id))
     if "workspace" in current:
         recorded_workspace = evidence.get("workspace", {})
         if (
@@ -6944,6 +7851,13 @@ def _pointer_freshness(
             or check.get("spawn_error") != ""
         ):
             reasons.append(f"check is not a recorded PASS: {check.get('id', '?')}")
+        if flow.plan_schema_version == 2:
+            for field in ("node_id", "started_at", "finished_at"):
+                if not isinstance(check.get(field), str) or not check[field]:
+                    reasons.append(
+                        f"check occurrence metadata is missing: "
+                        f"{check.get('id', '?')} {field}"
+                    )
         for stream_name in ("stdout", "stderr"):
             relative_name = check.get(f"{stream_name}_log")
             expected = check.get(f"{stream_name}_sha256")
@@ -7205,7 +8119,11 @@ def _certify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int
     }
     if fresh and evidence is not None and validated_evidence_path is not None:
         certificate = {
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": (
+                GRAPH_BOUND_SCHEMA_VERSION
+                if flow.plan_schema_version == 2
+                else SCHEMA_VERSION
+            ),
             "status": "PASS",
             "plan_path": flow.plan_rel,
             "plan_sha256": evidence["plan_sha256"],
@@ -7218,6 +8136,8 @@ def _certify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int
             "evidence_sha256": evidence_hash,
             "certified_at": _utc_now(),
         }
+        if flow.plan_schema_version == 2:
+            certificate["assurance_graph_sha256"] = flow.assurance_graph_sha256
         if chain_approval is not None:
             certificate["chain"] = evidence.get("chain")
             certificate["gates"] = chain_gates
@@ -7251,7 +8171,250 @@ def _certify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int
     return 0 if fresh else 1
 
 
-def _status_payload(root: pathlib.Path) -> tuple[dict[str, Any], int]:
+def _assurance_runtime_view(
+    flow: Flow,
+    state: dict[str, Any],
+    core: dict[str, Any],
+    evidence: dict[str, Any] | None,
+    evidence_hash: str,
+) -> dict[str, Any]:
+    states: dict[str, str] = {
+        str(node["id"]): "PENDING"
+        for node in flow.assurance_graph["nodes"]
+    }
+    task_checks: dict[str, list[str]] = {
+        str(task["id"]): [
+            _task_check_node_id(str(task["id"]), index, str(check["id"]))
+            for index, check in enumerate(task["checks"], 1)
+        ]
+        for task in flow.tasks
+    }
+    if isinstance(evidence, dict):
+        for task in evidence.get("tasks", []):
+            if not isinstance(task, dict):
+                continue
+            task_id = str(task.get("id", ""))
+            for index, check in enumerate(task.get("checks", []), 1):
+                if not isinstance(check, dict):
+                    continue
+                node_id = check.get("node_id")
+                if not isinstance(node_id, str):
+                    node_id = _task_check_node_id(
+                        task_id,
+                        index,
+                        str(check.get("id", "")),
+                    )
+                if node_id in states:
+                    states[node_id] = str(check.get("status") or "UNKNOWN")
+        for index, check in enumerate(evidence.get("project_checks", []), 1):
+            if not isinstance(check, dict):
+                continue
+            node_id = check.get("node_id")
+            if not isinstance(node_id, str):
+                node_id = _project_check_node_id(
+                    index,
+                    str(check.get("id", "")),
+                )
+            if node_id in states:
+                states[node_id] = str(check.get("status") or "UNKNOWN")
+
+    for task in flow.tasks:
+        task_id = str(task["id"])
+        check_states = [states[node_id] for node_id in task_checks[task_id]]
+        if any(value == "FAIL" for value in check_states):
+            task_state = "FAIL"
+        elif check_states and all(value == "PASS" for value in check_states):
+            task_state = "PASS"
+        else:
+            task_state = "PENDING"
+        states[f"task:{task_id}"] = task_state
+        for criterion_id in task["criteria"]:
+            states[f"criterion:{criterion_id}"] = task_state
+
+    if core.get("fresh") is True:
+        states["evidence:all"] = "PASS"
+    elif isinstance(evidence, dict):
+        states["evidence:all"] = (
+            "FAIL" if evidence.get("status") == "FAIL" else "STALE"
+        )
+    else:
+        states["evidence:all"] = "MISSING"
+
+    run = state.get("chain_run")
+    chain_matches = (
+        isinstance(run, dict) and run.get("plan_path") == flow.plan_rel
+    )
+    if chain_matches:
+        gates = run.get("gates", {})
+        code_review = gates.get("code-review") if isinstance(gates, dict) else None
+        qa = gates.get("adversarial-qa") if isinstance(gates, dict) else None
+        states["review:code-review"] = (
+            "PASS"
+            if isinstance(code_review, dict)
+            and code_review.get("subject_sha256") == evidence_hash
+            and code_review.get("verdict") == "PASS"
+            else "BLOCKED"
+        )
+        if run.get("requires_qa"):
+            states["review:adversarial-qa"] = (
+                "PASS"
+                if isinstance(qa, dict)
+                and qa.get("subject_sha256") == evidence_hash
+                and qa.get("verdict") == "PASS"
+                else "BLOCKED"
+            )
+        else:
+            states["review:adversarial-qa"] = "NOT_REQUIRED"
+    else:
+        states["review:code-review"] = "NOT_REQUIRED"
+        states["review:adversarial-qa"] = "NOT_REQUIRED"
+    states["certificate:completion"] = (
+        "PASS"
+        if core.get("status") == "CERTIFIED"
+        else ("READY" if core.get("status") == "READY" else "BLOCKED")
+    )
+
+    blocking_paths: list[dict[str, Any]] = []
+    task_by_id = {str(task["id"]): task for task in flow.tasks}
+    for node in flow.assurance_graph["nodes"]:
+        node_id = str(node["id"])
+        if node.get("type") != "check" or states[node_id] == "PASS":
+            continue
+        if node.get("phase") == "task":
+            parts = node_id.split(":", 5)
+            task_id = parts[2] if len(parts) > 2 else ""
+            task = task_by_id.get(task_id)
+            criterion_id = (
+                str(task["criteria"][0])
+                if isinstance(task, dict) and task.get("criteria")
+                else None
+            )
+            path = []
+            if criterion_id is not None:
+                path.append(f"criterion:{criterion_id}")
+            path.extend(
+                [
+                    f"task:{task_id}",
+                    node_id,
+                    "evidence:all",
+                    "certificate:completion",
+                ]
+            )
+        else:
+            path = [node_id, "evidence:all", "certificate:completion"]
+        blocking_paths.append(
+            {
+                "reason": f"check occurrence is {states[node_id]}",
+                "path": path,
+                "causality": "not-proven",
+            }
+        )
+    if states["evidence:all"] == "PASS" and chain_matches:
+        for review_id in ("review:code-review", "review:adversarial-qa"):
+            if states[review_id] == "BLOCKED":
+                blocking_paths.append(
+                    {
+                        "reason": f"{review_id} is required for this chain",
+                        "path": [
+                            "evidence:all",
+                            review_id,
+                            "certificate:completion",
+                        ],
+                        "causality": "not-proven",
+                    }
+                )
+    if (
+        not blocking_paths
+        and states["certificate:completion"] != "PASS"
+    ):
+        reason = (
+            str(core.get("reasons", ["completion is not certified"])[0])
+            if core.get("reasons")
+            else "completion is not certified"
+        )
+        blocking_paths.append(
+            {
+                "reason": reason,
+                "path": ["evidence:all", "certificate:completion"],
+                "causality": "not-proven",
+            }
+        )
+    blocking_paths.sort(
+        key=lambda item: (tuple(item["path"]), str(item["reason"]))
+    )
+    return {
+        "node_states": [
+            {"id": node_id, "status": states[node_id]}
+            for node_id in sorted(states)
+        ],
+        "blocking_paths": blocking_paths,
+        "primary_blocker": blocking_paths[0] if blocking_paths else None,
+    }
+
+
+def _trace_payload(root: pathlib.Path, plan_argument: str) -> tuple[dict[str, Any], int]:
+    flow = _validate_flow(root, plan_argument)
+    if flow.errors:
+        return {
+            "status": "FAIL",
+            "plan": str(plan_argument),
+            "errors": flow.errors,
+            "blocking_paths": [],
+        }, 2
+    try:
+        state = _load_state(root)
+    except EZPowersError as exc:
+        return {
+            "status": "FAIL",
+            "plan": flow.plan_rel,
+            "errors": [str(exc)],
+            "blocking_paths": [],
+        }, 2
+    core, _ = _status_payload(root, include_graph_summary=False)
+    evidence: dict[str, Any] | None = None
+    evidence_hash = ""
+    if state.get("active_plan") == flow.plan_rel:
+        _, _, evidence, evidence_hash, _ = _freshness(
+            root,
+            flow,
+            state=state,
+        )
+    else:
+        core = {
+            "status": "INACTIVE",
+            "fresh": False,
+            "certified": False,
+            "reasons": ["plan is not the active resume target"],
+        }
+    runtime_view = _assurance_runtime_view(
+        flow,
+        state,
+        core,
+        evidence,
+        evidence_hash,
+    )
+    return {
+        "status": "PASS",
+        "plan": flow.plan_rel,
+        "completion_status": core.get("status"),
+        "assurance_graph_sha256": flow.assurance_graph_sha256,
+        "graph": flow.assurance_graph,
+        **runtime_view,
+    }, 0
+
+
+def _trace_command(args: argparse.Namespace) -> int:
+    root = _runtime_project_root()
+    payload, code = _trace_payload(root, args.plan)
+    _emit(payload, args.json)
+    return code
+
+
+def _status_payload(
+    root: pathlib.Path,
+    *,
+    include_graph_summary: bool = True,
+) -> tuple[dict[str, Any], int]:
     try:
         state = _load_state(root)
     except EZPowersError as exc:
@@ -7326,6 +8489,12 @@ def _status_payload(root: pathlib.Path) -> tuple[dict[str, Any], int]:
                     and evidence is not None
                     and certificate_pointer.get("evidence_sha256") == evidence_hash
                     and certificate.get("status") == "PASS"
+                    and certificate.get("schema_version")
+                    == (
+                        GRAPH_BOUND_SCHEMA_VERSION
+                        if flow.plan_schema_version == 2
+                        else SCHEMA_VERSION
+                    )
                     and certificate.get("plan_path") == evidence.get("plan_path")
                     and certificate.get("plan_sha256") == evidence.get("plan_sha256")
                     and certificate.get("spec_path") == evidence.get("spec_path")
@@ -7335,6 +8504,12 @@ def _status_payload(root: pathlib.Path) -> tuple[dict[str, Any], int]:
                     and certificate.get("workspace") == evidence.get("workspace")
                     and certificate.get("evidence_path") == evidence.get("evidence_path")
                     and certificate.get("evidence_sha256") == evidence_hash
+                    and (
+                        flow.plan_schema_version != 2
+                        or certificate.get("assurance_graph_sha256")
+                        == evidence.get("assurance_graph_sha256")
+                        == flow.assurance_graph_sha256
+                    )
                 )
                 chain_certificate_valid = True
                 if (
@@ -7368,7 +8543,7 @@ def _status_payload(root: pathlib.Path) -> tuple[dict[str, Any], int]:
             reasons.append("certificate pointer is invalid")
     elif fresh and certificate_pointer is not None:
         reasons.append("certificate pointer is invalid")
-    return {
+    payload = {
         "status": "CERTIFIED" if fresh and certified else ("READY" if fresh else "STALE"),
         "fresh": fresh,
         "certified": certified,
@@ -7376,7 +8551,18 @@ def _status_payload(root: pathlib.Path) -> tuple[dict[str, Any], int]:
         "reasons": reasons,
         "task_evidence": task_evidence,
         "orphan_task_evidence": orphan_task_evidence,
-    }, 0
+    }
+    if include_graph_summary:
+        view = _assurance_runtime_view(
+            flow,
+            state,
+            payload,
+            evidence,
+            evidence_hash,
+        )
+        payload["assurance_graph_sha256"] = flow.assurance_graph_sha256
+        payload["primary_blocker"] = view["primary_blocker"]
+    return payload, 0
 
 
 def _status_command(args: argparse.Namespace) -> int:
@@ -7641,6 +8827,14 @@ def _parser() -> argparse.ArgumentParser:
     )
     validate.add_argument("--json", action="store_true")
     validate.set_defaults(handler=_validate_command)
+
+    trace = subparsers.add_parser(
+        "trace",
+        help="Show the derived assurance graph and current blocking paths",
+    )
+    trace.add_argument("--plan", required=True)
+    trace.add_argument("--json", action="store_true")
+    trace.set_defaults(handler=_trace_command)
 
     status = subparsers.add_parser("status", help="Show current evidence freshness")
     status.add_argument("--json", action="store_true")

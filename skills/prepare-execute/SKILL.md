@@ -1,6 +1,6 @@
 ---
 name: prepare-execute
-description: Use when a valid EZPowers feature spec must be mapped into an ordered implementation plan with exact project-local checks and complete criterion coverage. Not for implementing the plan.
+description: Use when a valid EZPowers feature spec must be mapped into a dependency-valid implementation plan with exact project-local checks and complete criterion coverage. Not for implementing the plan.
 disable-model-invocation: true
 ---
 
@@ -34,7 +34,9 @@ dependencies, expected files, constraints, prerequisites, non-goals, and risks
 in Markdown. Carry settled architecture paths and constraints as inputs; do
 not add a tail-end task that merely makes documentation resemble the code.
 Add exactly one managed JSON block using the canonical plan
-contract. Map every criterion exactly once and bind it to real named or inline
+contract. New plans use schema v2, give every task an explicit `depends_on`
+array, and declare check concurrency only when independence has reproducible
+evidence; unproven checks remain unsafe barriers. Map every criterion exactly once and bind it to real named or inline
 project checks. Preserve frontend, accessibility, integration, and visual
 oracles; missing tooling becomes an explicit prerequisite. For UI work,
 include code-to-DESIGN.md alignment and `check-project`. Reuse the exact
@@ -46,10 +48,11 @@ Run:
 
 ```text
 python .ezpowers/ezpowers.py validate --plan <plan-path> --json
+python .ezpowers/ezpowers.py trace --plan <plan-path> --json
 ```
 
-Missing, duplicate, unknown, or weakened coverage is blocking. Report the plan
-path, task order, exact criterion coverage, configured and plan-local checks,
+Missing, duplicate, unknown, cyclic, or weakened coverage is blocking. Report the plan
+path, topological task waves, assurance-graph hash, exact criterion coverage, configured and plan-local checks,
 including required `ezpowers.docs` and applicable `ezpowers.design` checks when
 documentation is ready, and unresolved prerequisites. Continue to `execute`
 only with a valid plan.

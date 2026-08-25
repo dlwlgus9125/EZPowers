@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "version": "5.6.0",
+  "version": "5.7.0",
   "no_synthesis": true,
   "runtime": {
     "source": "scripts/ezpowers.py",
     "target": ".ezpowers/ezpowers.py",
-    "sha256": "9fd79d5ef1f4ef97b8f049942818123d83422a249ab60337aae9b353eb9a4bd4"
+    "sha256": "5446ae56c77e73b45a5bb41a4d06db007d89e2088872d240d4650f8bd79f61b1"
   },
   "tools": [
     {
@@ -31,7 +31,7 @@
         {
           "source": "skills/setup/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "5d30313840722f6866fd7d2855befdc10c22552039db38878cdc0ed1436ed4fa"
+          "sha256": "fa84b15f8c7ced80b7358fbbde52a7495cfc78341150463108f6bc6cfc42d598"
         },
         {
           "source": "skills/setup/agents/project-openai.yaml",
@@ -166,12 +166,12 @@
         {
           "source": "skills/prepare-execute/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "6debe73d918c642f8c50ca3b614ab4b35f8b425d0783822a44d01b90858d6bc7"
+          "sha256": "6470945c668da1eb57c0f1d0b28dd2204bcfd1c44b0752b4eec680d38a767fd8"
         },
         {
           "source": "skills/prepare-execute/agents/project-openai.yaml",
           "path": "agents/openai.yaml",
-          "sha256": "9a8187c64c1f7b4282973a6dbf52037282b691f6061efa7bb759dc973e9e7c64"
+          "sha256": "5f779bfae49e638490d662a424eacd54adc453c159c97a6143eb627f7004054b"
         }
       ]
     },
@@ -181,12 +181,12 @@
         {
           "source": "skills/execute/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "0f9df93ee9a40308a9119371e26e34d86d4569ee0d8eb4de2f6c2e4fe9a13d22"
+          "sha256": "453953da750f536127fc54873075b3af90534122b606f46a791615c2db71477d"
         },
         {
           "source": "skills/execute/agents/project-openai.yaml",
           "path": "agents/openai.yaml",
-          "sha256": "bfe33f450b6330c8591b793f3ae5f19fcf904f76fc2386b2e2a61ecea1f865a4"
+          "sha256": "4b4025f5f1b2c6026b9eb64ca1861436d353ea14148f2c3bb60e8c64608f88d7"
         }
       ]
     },
@@ -226,12 +226,12 @@
         {
           "source": "skills/harness-chain/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "44c9435dbbbcdf5cb54ecd415c38c817723acb3b246980cc445f0f76ccb58deb"
+          "sha256": "0a662a250d8b2c3c80808c6d6055fbb4dc8e8b0f1af6aa61d341e6446e15004b"
         },
         {
           "source": "skills/harness-chain/agents/project-openai.yaml",
           "path": "agents/openai.yaml",
-          "sha256": "f3303189505113560d9b97343379921ea7d28acdd15d70435bf40a7ca9b8ea22"
+          "sha256": "f1cdb17aa27ddc523e1057f72d6c52d4d1012d6a5b4a521e5e004cf325b5fc53"
         }
       ]
     }
@@ -240,7 +240,7 @@
     {
       "source": "docs/reference/setup-contract.md",
       "target": ".ezpowers/contracts/setup-contract.md",
-      "sha256": "4368ece04080421a79198683f2449e76c52a181b856f2a0af2869a169d03b6bd"
+      "sha256": "92de2d7e26ce2bf0bbdf6a25f627d30fa23ee5fe9489c52b6398054290229a1d"
     },
     {
       "source": "docs/reference/design-architecture-contract.md",
@@ -255,22 +255,22 @@
     {
       "source": "docs/reference/spec-contract.md",
       "target": ".ezpowers/contracts/spec-contract.md",
-      "sha256": "45a80d3c694d8177063a68890ef4b93d169ed60482804da38d92a45b694b9f9b"
+      "sha256": "332707ae68cc46341984d7c4d845a5b2026b6032383656b4fd4d19b53c3f2ada"
     },
     {
       "source": "docs/reference/plan-contract.md",
       "target": ".ezpowers/contracts/plan-contract.md",
-      "sha256": "3a8df5880264f35d6a5b5058ff834e60e364d57461ea4ed7423a54f431486abd"
+      "sha256": "bfe28a04d934314829692a989bbed79697e2cc55915db272a55bf99dbc61ab0c"
     },
     {
       "source": "docs/reference/verification-contract.md",
       "target": ".ezpowers/contracts/verification-contract.md",
-      "sha256": "535d8ad38d9933d203ef3a02197d42339d37990b793788b565ebc9f5c023486b"
+      "sha256": "d108ace2a4b1f2d5c011e95a386ec730ae0e30af284dce3e0616dc0f62d24f93"
     },
     {
       "source": "docs/reference/documentation-contract.md",
       "target": ".ezpowers/contracts/documentation-contract.md",
-      "sha256": "05030a4fe7a0da5c9a3cf6c0d9ea6d654ff50f1db74de15048c4c31e7949d89a"
+      "sha256": "ef42ce5233c82b8f97e712c6d44f0648bb0c28b6183393d0a3660664425b4f97"
     },
     {
       "source": "docs/reference/wiki-contract.md",
@@ -280,7 +280,7 @@
     {
       "source": "docs/reference/harness-chain-contract.md",
       "target": ".ezpowers/contracts/harness-chain-contract.md",
-      "sha256": "336d893b9a316c4974ce71d07cc2ce4c7d1719302c5bb074f11f6d7ff53d4139"
+      "sha256": "4779e58f538c3093ad5efd26e0e6e2509ea5a6325dd2fea030457a39955cf2c4"
     },
     {
       "source": "docs/reference/engineering-practices-contract.md",

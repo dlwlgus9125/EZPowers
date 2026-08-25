@@ -2,12 +2,15 @@
 
 ## Current State
 
-EZPowers v5.6.0 project kit and plugin candidate are present in the working tree
-on `main`. F21 and F22 are complete; F19 remains the release blocker because
-its live dual-host diagnosis probe still needs external host access. The
-candidate
-preserves the host-native verification core, documentation graph, local wiki,
-explicit harness chain, and Plan Mode-aware clarification while adding a
+EZPowers v5.7.0 project kit and plugin candidate are present in the working tree
+on `main`. F23 is complete. F19 is explicitly deferred because its semantic
+dual-host diagnosis probe still needs external access; it is not included in
+the v5.7 completion claim. The candidate preserves the host-native verification
+core, documentation graph, local wiki, explicit harness chain, and Plan
+Mode-aware clarification while adding a derived evidence-gated assurance
+graph, compatible plan/config v2 contracts, graph-bound evidence and chain
+approvals, a log-free `trace` surface, and bounded opt-in parallel checks. It
+also retains the
 maintainable paired frontend design contract, retaining the context-efficient
 evidence explanation skill, tightening diagnosis around an exact-reproduction
 gate, adding a portable architecture artifact lifecycle, and retaining the
@@ -17,6 +20,12 @@ stays FAIL when copied unedited, chain hooks that degrade to a fail-safe no-op
 instead of exit 2 on unreadable runtime state, and `PENDING_LOOP` activation
 blocks counted against `total_iterations`):
 
+- a typed criterion-to-task-to-check-to-evidence-to-review-to-certificate view
+  derived from existing authorities, with stable task waves and graph hashes
+  but no second executor, agent router, or mutable task state machine;
+- per-check safety declarations, resource and implicit same-check locks,
+  unsafe global barriers, complete declaration-order evidence, and required
+  project checks after task waves;
 - repository analysis and an adaptive Markdown graph rooted at canonical
   `AGENTS.md`, exact `CLAUDE.md` import, and `docs/INDEX.md`;
 - an existing-first canonical architecture artifact, conventional root
@@ -96,21 +105,57 @@ force product rework until a configured limit becomes terminal.
 - `F20`: context-efficient evidence explanations.
 - `F21`: maintainable paired `DESIGN.md` frontend contract.
 - `F22`: portable architecture artifact lifecycle.
+- `F23`: evidence-gated assurance graph and safe parallel verification.
 
-## In-Progress Item
+## Deferred Item
 
 - `F19`: exact-reproduction-gated `diagnose`. The skill, contract, metadata,
-  deterministic receipts, and opt-in dual-host probe are implemented. Release
-  completion is waiting on an authenticated Claude call and a Codex host where
-  the isolated fixture can execute its authoritative Python command inside the
-  configured workspace sandbox.
+  deterministic receipts, and opt-in dual-host probe are implemented. Its
+  semantic completion remains deferred until an authenticated Claude call and
+  a Codex host can execute the authoritative isolated-fixture command. No v5.7
+  assurance-graph result is presented as evidence for that separate probe.
 
-The v5.6 project kit installs thirteen project skills, eleven canonical
+The v5.7 project kit installs thirteen project skills, eleven canonical
 contracts, and three deterministic tools. The plugin exposes fourteen skills,
 including the project skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+v5.7.0 evidence-gated assurance graph verification on 2026-08-25:
+
+- `python -m unittest discover -s tests`: 188 tests passed in 968.000 seconds.
+- Focused suites passed: 10 assurance-graph tests in 101.122 seconds, all 24
+  harness-chain tests in 472.839 seconds, 12 workflow-surface tests in 0.065
+  seconds, 10 Codex discovery tests in 2.733 seconds, and 8 repository-gate
+  tests in 4.549 seconds.
+- Controlled fixture benchmark, three matched runs: serial median 1.445024
+  seconds, parallel median 0.403820 seconds, 72.05% improvement, identical full
+  output hashes, and all checks PASS.
+- Current allowlisted repository benchmark (`repo-check`, `kit-manifest`, and
+  file-only `plugin-files`), three matched runs: serial median 2.344398 seconds,
+  parallel median 1.488881 seconds, 36.49% improvement, equivalent process
+  outcomes, and all checks PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File
+  scripts/check-repo.ps1`: PASS. Its obsolete-reference scan retains every
+  legacy regex behind a required literal prefilter and dedicated regression
+  coverage.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File
+  scripts/harness-runtime-smoke.ps1`: PASS for a real v5.7 install, inactive
+  trace, graph-bound verify/certify, and workspace-stale flow.
+- `python scripts/verify-harness-kit.py`: v5.7 manifest valid with thirteen
+  project skills, eleven contracts, and three tools.
+- `python scripts/plugin_smoke.py --host both`: file surfaces matched; Claude
+  2.1.238 accepted both manifests; Codex 0.149.0 loaded standalone
+  deep-interview plus all project and namespaced skills with matching prompts.
+- `design-md.py lint`, `design-md.py check-project`, and
+  `frontend-visual-readiness.py --mode check`: PASS. The existing 86 token
+  values and root guide mapping were preserved; the optional official CLI
+  remains `NOT_INSTALLED` and the absent visual-tool lanes remain advisory.
+- The Graph Engineering paper is used as a survey/position framework, not as
+  an upstream runtime or proof of EZPowers performance. Broader dynamic agent
+  teams, model routing, reviewer fleets, and autonomous evolution remain
+  deferred or rejected by ADR 0007.
 
 v5.6.0 portable architecture artifact lifecycle verification on 2026-08-09:
 

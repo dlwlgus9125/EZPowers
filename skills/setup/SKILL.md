@@ -63,7 +63,10 @@ are `none`. Before configuring Claude features require Claude Code 2.1.217 or
 newer; before configuring Codex features require Codex CLI 0.145.0 or newer.
 
 Update `.ezpowers/config.json` with only confirmed project checks, using the
-canonical exact-argv schema. Preserve unknown user fields. Pre-v5
+canonical exact-argv schema. New installations use config schema v2 with a
+bounded worker cap; existing v1 config is preserved across explicit refresh
+and remains serial until the user deliberately authors v2 safety contracts.
+Never infer `concurrency.safe` from a command name. Preserve unknown user fields. Pre-v5
 `.harness/` and `phases/` content is retired: leave it byte-for-byte untouched,
 do not inspect it as configuration, and do not translate it. Never overwrite a
 managed file after the installer reports a conflict.
