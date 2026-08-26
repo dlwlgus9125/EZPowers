@@ -8,6 +8,7 @@ import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import re
+import subprocess
 
 
 VERSION = "5.7.0"
@@ -43,14 +44,6 @@ CONTRACT_TARGETS = {
 HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def safe_relative(value: object) -> bool:
     if not isinstance(value, str) or not value:
         return False
@@ -75,8 +68,40 @@ def source_entries(manifest: dict) -> list[dict]:
     return entries
 
 
+def git_eol_errors(repo_root: Path, source_names: list[str]) -> list[str]:
+    if not (repo_root / ".git").exists() or not source_names:
+        return []
+    try:
+        result = subprocess.run(
+            ["git", "check-attr", "eol", "--", *source_names],
+            cwd=repo_root,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        return [f"cannot verify Git eol attributes: {exc}"]
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "no output"
+        return [f"cannot verify Git eol attributes: {detail}"]
+
+    attributes: dict[str, str] = {}
+    for line in result.stdout.splitlines():
+        parts = line.rsplit(": ", 2)
+        if len(parts) != 3 or parts[1] != "eol":
+            return [f"cannot parse Git eol attribute output: {line!r}"]
+        attributes[parts[0]] = parts[2]
+    return [
+        f"Git eol attribute must be lf: {source_name} "
+        f"(found {attributes.get(source_name, 'missing')})"
+        for source_name in source_names
+        if attributes.get(source_name) != "lf"
+    ]
+
+
 def stamp(repo_root: Path, manifest_path: Path) -> None:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    sources: list[tuple[dict, str, Path]] = []
     for item in source_entries(manifest):
         source_name = item.get("source")
         if not safe_relative(source_name):
@@ -84,7 +109,20 @@ def stamp(repo_root: Path, manifest_path: Path) -> None:
         source = repo_root / source_name
         if not source.is_file():
             raise SystemExit(f"ERROR: cannot stamp missing source: {source_name}")
-        item["sha256"] = sha256(source)
+        sources.append((item, source_name, source))
+    attribute_errors = git_eol_errors(
+        repo_root,
+        [source_name for _, source_name, _ in sources],
+    )
+    if attribute_errors:
+        raise SystemExit("\n".join(f"ERROR: {error}" for error in attribute_errors))
+    for item, source_name, source in sources:
+        data = source.read_bytes()
+        if b"\r" in data:
+            raise SystemExit(
+                f"ERROR: cannot stamp source with non-LF line endings: {source_name}"
+            )
+        item["sha256"] = hashlib.sha256(data).hexdigest()
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -174,8 +212,17 @@ def validate(repo_root: Path, manifest_path: Path) -> list[str]:
             "architecture-review-report.py, and design-md.py under .ezpowers/tools"
         )
 
+    entries = source_entries(manifest)
+    safe_source_names = [
+        source_name
+        for item in entries
+        if isinstance((source_name := item.get("source")), str)
+        and safe_relative(source_name)
+    ]
+    errors.extend(git_eol_errors(repo_root, safe_source_names))
+
     seen_sources: set[str] = set()
-    for item in source_entries(manifest):
+    for item in entries:
         source_name = item.get("source")
         if not safe_relative(source_name):
             errors.append(f"unsafe source path: {source_name!r}")
@@ -188,9 +235,12 @@ def validate(repo_root: Path, manifest_path: Path) -> list[str]:
             errors.append(f"missing source file: {source_name}")
             continue
         expected = item.get("sha256")
+        data = source.read_bytes()
+        if b"\r" in data:
+            errors.append(f"source must use LF-only line endings: {source_name}")
         if not isinstance(expected, str) or HASH_RE.fullmatch(expected) is None:
             errors.append(f"missing or invalid sha256: {source_name}")
-        elif sha256(source) != expected:
+        elif hashlib.sha256(data).hexdigest() != expected:
             errors.append(f"sha256 mismatch: {source_name}")
 
     return errors

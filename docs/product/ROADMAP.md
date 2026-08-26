@@ -1,6 +1,6 @@
 # EZPowers Roadmap
 
-## Current: v5.7.0 core / plugin
+## Current: v5.7.0 core / v5.7.1 plugin
 
 - Derive one typed criterion-to-task-to-check-to-evidence-to-review-to-
   certificate assurance graph from existing authorities; do not create a

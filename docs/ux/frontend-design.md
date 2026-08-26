@@ -226,8 +226,8 @@ Content freshness is bound to the canonical sources:
 - `project-kit/v5.7.0/manifest.json` for plugin/project inventory.
 
 When those sources change, maintainers must review both this artifact and the
-HTML guide. The HTML presents the v5.7.0 project kit and plugin catalog rather
-than claiming automatic synchronization.
+HTML guide. The HTML presents the v5.7.0 project kit and v5.7.1 plugin catalog
+rather than claiming automatic synchronization.
 
 ## Unresolved questions
 

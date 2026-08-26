@@ -2,9 +2,9 @@
 
 ## Current State
 
-EZPowers v5.7.0 project kit and plugin candidate are present in the working tree
-on `main`. F23 is complete. F19 is explicitly deferred because its semantic
-dual-host diagnosis probe still needs external access; it is not included in
+EZPowers v5.7.0 project kit and v5.7.1 packaging-fix plugin are present in the
+working tree on `main`. F23 is complete. F19 is explicitly deferred because
+its semantic dual-host diagnosis probe still needs external access; it is not included in
 the v5.7 completion claim. The candidate preserves the host-native verification
 core, documentation graph, local wiki, explicit harness chain, and Plan
 Mode-aware clarification while adding a derived evidence-gated assurance
@@ -121,6 +121,37 @@ including the project skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+v5.7.1 checkout-stable distribution repair verification on 2026-08-26:
+
+- The `deep-interview` source was reproduced with mixed CRLF/LF working-tree
+  bytes hashing to `d30619...`, while the Git-distributed LF bytes hashed to
+  `679537...`; this was the exact manifest mismatch reported during setup.
+- `.gitattributes` now forces LF checkout bytes for tracked text. Manifest
+  stamping and validation reject carriage returns, require `eol=lf` for every
+  managed source in a Git worktree, and hash the exact bytes that ship.
+- Four distribution regression tests pass: non-LF validation rejection,
+  non-LF stamping rejection, exact current source hashes, and Git attribute
+  coverage for every manifest source.
+- `python -m unittest discover -s tests`: 192 tests passed in 1037.123 seconds.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File
+  scripts/check-repo.ps1`: PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File
+  scripts/harness-runtime-smoke.ps1`: PASS for real v5.7 install, trace,
+  graph-bound verify/certify, and workspace-stale flow.
+- `python scripts/verify-harness-kit.py`: v5.7.0 manifest valid.
+- `python scripts/plugin_smoke.py --host both`: Claude 2.1.238 accepted both
+  manifests; Codex 0.149.1 loaded all project and namespaced skills with
+  matching prompts in isolation.
+- Three-run fixture benchmark: serial median 1.442207 seconds, parallel median
+  0.393966 seconds, 72.68% improvement, identical full output hashes.
+- Three-run project benchmark: serial median 2.606988 seconds, parallel median
+  1.629522 seconds, 37.49% improvement, equivalent process outcomes.
+- The prospective committed Git ZIP validates its manifest and installs the
+  5.7.0 project kit with 103 managed files into a fresh Git project.
+- There is no architecture impact or project-kit version change. Plugin 5.7.1
+  distributes the corrected, same-version 5.7.0 kit so existing projects can
+  repair it explicitly with `setup --refresh`.
 
 v5.7.0 evidence-gated assurance graph verification on 2026-08-25:
 

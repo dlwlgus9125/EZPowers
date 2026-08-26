@@ -46,7 +46,7 @@
         {
           "source": "skills/deep-interview/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "d30619eb5d61108ce838a6618e2fecc36c87a092f5add3758c85818dbb82e67c"
+          "sha256": "6795372b17f27fe8dfb1e92d95c0d594b104649e220498a390fc3d85fc853c44"
         },
         {
           "source": "skills/deep-interview/agents/project-openai.yaml",
