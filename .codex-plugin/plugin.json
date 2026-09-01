@@ -1,7 +1,7 @@
 {
   "name": "ezpowers",
-  "version": "5.7.1+codex.20260826074447",
-  "description": "Repository documentation, maintained architecture and DESIGN.md systems, evidence-grounded explanations, assurance-traced verification, verified harness chains, and resume support for Claude Code and Codex.",
+  "version": "5.8.0+codex.20260901075542",
+  "description": "Profile-aware software and planning-artifact workflows with repository documentation, assurance-traced verification, verified harness chains, and resume support for Claude Code and Codex.",
   "author": {
     "name": "dlwlgus9125",
     "email": "dlwlgus9125@users.noreply.github.com"
@@ -28,14 +28,15 @@
     "unattended",
     "deterministic-verification",
     "assurance-graph",
+    "planning-artifacts",
     "evidence",
     "resume"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "EZPowers",
-    "shortDescription": "Repository docs, assurance traces, verified chains, and evidence.",
-    "longDescription": "EZPowers keeps repository documentation, maintained architecture and DESIGN.md systems, local session knowledge, project-specific intent, dependency-valid plans, assurance traces, verification commands, approved harness chains, completion evidence, and resume state consistent across Claude Code and Codex. Its retained skills are ezpowers:setup, ezpowers:deep-interview, ezpowers:explain-with-evidence, ezpowers:diagnose, ezpowers:codebase-design, ezpowers:improve-codebase-architecture, ezpowers:design-architecture, ezpowers:spec, ezpowers:prepare-execute, ezpowers:execute, ezpowers:frontend-design, ezpowers:wiki, ezpowers:harness-chain, and ezpowers:hud. Native host features remain responsible for coding, subagents, worktrees, sandboxing, and general retry behavior.",
+    "shortDescription": "Profile-aware docs, deliverables, assurance traces, and verified chains.",
+    "longDescription": "EZPowers keeps software or planning-artifact project profiles, repository documentation, maintained architecture and DESIGN.md systems, local session knowledge, project-specific intent, dependency-valid plans, assurance traces, exact verification commands, approved harness chains, completion evidence, and resume state consistent across Claude Code and Codex. Planning projects bind arbitrary binary/text inputs, logical multi-file deliverables, and per-deliverable artifact review without adding format-specific validators. Its retained skills are ezpowers:setup, ezpowers:deep-interview, ezpowers:explain-with-evidence, ezpowers:diagnose, ezpowers:codebase-design, ezpowers:improve-codebase-architecture, ezpowers:design-architecture, ezpowers:spec, ezpowers:prepare-execute, ezpowers:execute, ezpowers:frontend-design, ezpowers:wiki, ezpowers:harness-chain, and ezpowers:hud. Native host features remain responsible for coding, subagents, worktrees, sandboxing, and general retry behavior.",
     "developerName": "dlwlgus9125",
     "category": "Productivity",
     "capabilities": [
@@ -47,7 +48,7 @@
     "privacyPolicyURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/PRIVACY.md",
     "termsOfServiceURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/TERMS.md",
     "defaultPrompt": [
-      "$ezpowers:setup Install the project-local EZPowers workflow and verification kit.",
+      "$ezpowers:setup Select the software or planning profile and install the project-local EZPowers workflow and verification kit.",
       "$ezpowers:deep-interview Clarify this request, surface consequential blind spots, and, if Plan Mode is already active, continue planning after confirmation.",
       "$ezpowers:harness-chain Configure or run this project's approved verified harness chain."
     ],

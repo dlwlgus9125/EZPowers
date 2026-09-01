@@ -7,8 +7,9 @@ status: active
 # Architecture
 
 EZPowers is a thin, dual-host project workflow plus a deterministic,
-project-local verification runtime. It does not replace Claude Code or Codex as
-the execution host.
+project-local verification runtime. It supports software projects and
+planning-artifact projects without replacing Claude Code or Codex as the
+execution host.
 
 ## System Context And Product Boundary
 
@@ -21,7 +22,8 @@ must remain stable across hosts and sessions:
 - paired frontend UX and nearest DESIGN.md contracts with pinned offline
   profiles and deterministic mapping/diff validation;
 - one managed JSON contract in each feature spec and plan, with compatible
-  plan-v2 dependency declarations for new work;
+  plan-v2 dependency declarations for software work and fail-closed plan-v3
+  input/deliverable declarations for planning work;
 - project-specific checks represented as exact argument arrays;
 - a deterministic assurance graph derived from criteria, tasks, check
   occurrences, evidence, independent chain review, and certification;
@@ -39,6 +41,16 @@ run concurrently under resource locks, while legacy plans/configuration and
 all unmarked checks remain serial. The optional chain composes the existing
 artifacts and verdict; the selected host still performs every implementation
 action.
+
+Project configuration selects one policy adapter at a stable profile seam.
+Config v1 and v2 imply the unchanged `software` adapter. Config v3 names
+`software` or `planning`; planning requires plan v3. Both adapters use the
+same exact-command scheduler, evidence store, freshness checks, state lock,
+certificate core, and host hooks. The policy controls only profile-specific
+validation, assurance nodes, review gates, rubrics, and rework terminology.
+This keeps legacy graph bytes and code-review behavior stable while allowing a
+planning project to treat repository-contained regular files such as Markdown
+and workbooks as its product.
 
 ## Distribution And Installation
 
@@ -88,6 +100,13 @@ setup
   -> .ezpowers verify --all
   -> .ezpowers certify
 
+planning profile
+  -> declare byte-hashed inputs and logical multi-file deliverables
+  -> map every criterion to both a task check and one deliverable
+  -> produce/rework artifacts with host-native facilities
+  -> verify exact project-owned checks and declared-file freshness
+  -> ordinary host review OR bound artifact-review in harness-chain
+
 explicit harness-chain
   -> project questions + hash-bound config apply
   -> staged spec/plan/oracle + isolated baseline
@@ -95,7 +114,8 @@ explicit harness-chain
   -> one feature approval
   -> one native Codex goal OR one Claude Stop loop
   -> implement/rework + verify --all
-  -> bound code review + conditional adversarial QA
+  -> bound code review (software) OR artifact review (planning)
+  -> conditional adversarial QA
   -> certify or terminal verdict
 ```
 
@@ -153,6 +173,24 @@ resume state. Codex Stop observes its native goal; Claude Stop supplies
 continuation. The runtime never assigns implementation tasks or chooses a
 review model.
 
+Planning inputs are named project-relative regular files whose bytes are
+hashed directly, including files ignored by Git. Logical deliverables own one
+or more unique output paths and the acceptance criteria they realise. A
+deliverable declares direct review or project-owned read-only inspection
+checks; EZPowers does not infer formats or ship Markdown, spreadsheet, image,
+or business-domain validators. Input hashes are part of the planning assurance
+graph and chain approval. Output hashes are recorded in verification evidence
+and certificates, so outputs remain mutable during implementation but any
+post-verification change becomes stale.
+
+Planning harness-chain certification replaces the mandatory code-review gate
+with one bound `artifact-review` gate. Its structured receipt contains a
+verdict and concrete observations for every declared deliverable; all must
+pass. Deterministic checks and independent artifact review are complementary:
+checks observe automatable structure, calculations, references, or rendering,
+while the reviewer owns semantic completeness and cross-file judgement.
+Conditional adversarial QA and the existing hard limits remain unchanged.
+
 Documentation bootstrap is orthogonal to feature planning. Setup analyzes
 repository evidence, stages whole-file Markdown proposals, and presents a
 hash-bound preview. Apply preserves unmanaged or edited files unless explicit
@@ -173,7 +211,10 @@ The runtime normalizes ordinary and staged-chain plans through the same
 validation core. It derives a typed, versioned assurance graph rather than
 persisting a second source of truth. Plan v2 requires explicit task
 dependencies and rejects missing targets, duplicates, self-dependencies, and
-cycles. `trace` exposes the stable graph hash, topological task waves, current
+cycles. Planning plan v3 retains those rules and additionally validates named
+inputs, logical deliverables, criterion coverage, direct/inspected review
+sources, safe contained paths, and disjoint frozen and mutable files. `trace`
+exposes the stable graph hash, topological task waves, current
 node states, and candidate blocking paths without exposing command output or
 prompts. Dependency paths narrow investigation; they are not represented as
 proof of causality.
@@ -200,6 +241,8 @@ for resume guidance but cannot promote the all-scope completion verdict.
 - Observable feature claims: the spec managed JSON block.
 - Task coverage and exact commands: the plan managed JSON block plus named
   checks in `.ezpowers/config.json`.
+- Project product semantics: config `project_profile`; for planning, plan-v3
+  `inputs` and `deliverables`.
 - Assurance relationships and blocker paths: the deterministic graph derived
   from the current plan, config, evidence, chain receipts, and certificate;
   its topology is not a separately editable artifact.
@@ -221,6 +264,8 @@ for resume guidance but cannot promote the all-scope completion verdict.
 - Evidence and freshness rules: `docs/reference/verification-contract.md`.
 - Assurance-graph and concurrency decision:
   `docs/decisions/0007-evidence-gated-assurance-graph.md`.
+- Project profile and artifact-assurance decision:
+  `docs/decisions/0008-project-profile-artifact-assurance.md`.
 
 Human-readable Markdown may explain these contracts but must not duplicate or
 override the managed JSON values.

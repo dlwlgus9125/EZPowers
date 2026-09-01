@@ -6,8 +6,8 @@ disable-model-invocation: true
 
 # Setup
 
-Install a self-contained project kit, record the target project's real
-completion checks, and optionally bootstrap a repository-evidenced
+Install a self-contained project kit, select the target project's product
+profile, record its real completion checks, and optionally bootstrap a repository-evidenced
 documentation graph. Do not create product code, select host models, configure
 a global HUD, or add an external executor.
 
@@ -40,8 +40,15 @@ or completion condition that cannot be established from the repository.
 For a new installation, run the plugin copy:
 
 ```text
-python <plugin-root>/scripts/ezpowers.py install --project-root <project>
+python <plugin-root>/scripts/ezpowers.py install --project-root <project> --project-profile <software|planning>
 ```
+
+Choose `software` when the repository's product is executable software.
+Choose `planning` when its declared product is a set of planning artifacts,
+including multi-file Markdown, spreadsheets, or other binary/text files. A
+planning repository may still contain validator scripts; file extension alone
+does not choose the profile. Omission remains compatible software behavior,
+but new interactive setup must make the choice explicit.
 
 When an installed project must be upgraded from a newer plugin distribution,
 run the plugin copy explicitly with refresh:
@@ -56,6 +63,16 @@ For a same-version repair from the already installed local kit, run:
 python .ezpowers/ezpowers.py install --project-root <project> --refresh
 ```
 
+Change an existing project only with an explicit profile option; this does not
+imply a kit refresh:
+
+```text
+python .ezpowers/ezpowers.py install --project-root <project> --project-profile <software|planning>
+```
+
+An actual profile change clears completion pointers and makes a nonterminal
+chain require a new approval. Omitted refreshes preserve the selected profile.
+
 Add `--enable-hooks claude`, `codex`, or `both` only after explicit user
 approval. Add `--enable-wiki-hooks claude`, `codex`, or `both` only after a
 separate explicit approval for allowlisted SessionEnd capture. Both defaults
@@ -63,9 +80,11 @@ are `none`. Before configuring Claude features require Claude Code 2.1.217 or
 newer; before configuring Codex features require Codex CLI 0.145.0 or newer.
 
 Update `.ezpowers/config.json` with only confirmed project checks, using the
-canonical exact-argv schema. New installations use config schema v2 with a
-bounded worker cap; existing v1 config is preserved across explicit refresh
-and remains serial until the user deliberately authors v2 safety contracts.
+canonical exact-argv schema. Software installations retain config schema v2
+with a bounded worker cap. Planning installations use fail-closed config
+schema v3 with `project_profile: planning`; explicit migration back to
+software retains schema v3 with `project_profile: software`. Existing v1/v2
+software config is preserved across refresh and remains compatible.
 Never infer `concurrency.safe` from a command name. Preserve unknown user fields. Pre-v5
 `.harness/` and `phases/` content is retired: leave it byte-for-byte untouched,
 do not inspect it as configuration, and do not translate it. Never overwrite a
@@ -119,7 +138,8 @@ Treat Git-root mismatch, missing runtime, manifest or ledger hash drift,
 host-copy drift, invalid config, documentation lint failure, unsupported
 Python, and managed-file conflict as setup failure.
 
-Report installed and preserved paths, configured/required checks, host
+Report the selected project profile, installed and preserved paths,
+configured/required checks, host
 prerequisite results, documentation graph status and backups, completion-hook
 choice, wiki-capture choice, ledger path, and unresolved completion criteria. Use
 `deep-interview` only when material ambiguity or a plausible consequential

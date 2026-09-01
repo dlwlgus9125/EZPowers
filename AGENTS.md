@@ -21,7 +21,7 @@ evidence before conversation memory.
 ## Current Workflow
 
 ```text
-setup -> documentation preview/apply/lint
+setup (select software or planning profile) -> documentation preview/apply/lint
       -> deep-interview (when the request is ambiguous or has a plausible
                          consequential blind spot)
       -> design-architecture (when technical boundaries are unsettled)
@@ -64,6 +64,9 @@ Roles are intentionally narrow:
 - `prepare-execute`: criterion coverage and exact project checks.
 - `execute`: host-native implementation followed by local verify/certify.
 - `setup --refresh`: installation repair; there is no separate reset skill.
+- `setup --project-profile software|planning`: first-install selection or an
+  explicit project-level profile switch; omission preserves legacy software
+  behavior and refresh never changes the profile implicitly.
 - `setup --refresh-docs`: explicit repository re-analysis and conflict-safe
   documentation staging; it is a skill workflow flag, not an installer flag.
 - `wiki`: local knowledge query, capture, promotion, and pruning; candidates
@@ -127,7 +130,7 @@ has explicitly approved a design-contract change.
 - Local supporting knowledge: `.ezpowers/wiki/`
 - Resume/evidence pointer: `.ezpowers/state.json`
 - Runtime: `scripts/ezpowers.py`
-- Distribution manifest: `project-kit/v5.7.0/manifest.json`
+- Distribution manifest: `project-kit/v5.8.0/manifest.json`
 - Specs and plans: `docs/specs/`, `docs/plans/`
 - Canonical contracts: `docs/reference/*-contract.md`
 - Product state: `PROGRESS.md`, `feature_list.json`
@@ -151,11 +154,13 @@ python scripts/verify-harness-kit.py
 python scripts/plugin_smoke.py --host both
 ```
 
-For a v5.7 release candidate, also run both three-run scheduler measurements:
+For a v5.8 release candidate, also run both three-run scheduler measurements
+and the five-run interleaved software compatibility measurement:
 
 ```powershell
 python scripts/benchmark_parallel_verification.py --mode fixture --runs 3 --minimum-improvement 30
 python scripts/benchmark_parallel_verification.py --mode project --runs 3 --minimum-improvement 30
+python scripts/benchmark_software_profile.py --baseline-ref 08f9f84d24c59ec130dd6b3bf26555503910cbab --runs 5 --maximum-regression 5
 ```
 
 Completion requires applicable command output and a clean final diff review,

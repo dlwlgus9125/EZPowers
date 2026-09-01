@@ -34,11 +34,14 @@ from typing import Any, Iterable, Iterator
 
 
 SCHEMA_VERSION = 1
-PLAN_SCHEMA_VERSIONS = {1, 2}
-CONFIG_SCHEMA_VERSIONS = {1, 2}
+PLANNING_SCHEMA_VERSION = 3
+PLAN_SCHEMA_VERSIONS = {1, 2, PLANNING_SCHEMA_VERSION}
+CONFIG_SCHEMA_VERSIONS = {1, 2, PLANNING_SCHEMA_VERSION}
 ASSURANCE_GRAPH_SCHEMA_VERSION = 1
+PLANNING_ASSURANCE_GRAPH_SCHEMA_VERSION = 2
 GRAPH_BOUND_SCHEMA_VERSION = 2
-KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.7.0/manifest.json")
+PLANNING_EVIDENCE_SCHEMA_VERSION = 3
+KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.8.0/manifest.json")
 CONFIG_RELATIVE_PATH = pathlib.Path(".ezpowers/config.json")
 STATE_RELATIVE_PATH = pathlib.Path(".ezpowers/state.json")
 LEDGER_RELATIVE_PATH = pathlib.Path(".ezpowers/ledger.json")
@@ -118,6 +121,7 @@ CHAIN_RISKS = {
 CHAIN_QA_RISKS = {"user_facing", "integration", "regression_risk"}
 CHAIN_GATE_KINDS = {
     "oracle-audit",
+    "artifact-review",
     "code-review",
     "adversarial-qa",
     "blocker-review",
@@ -172,6 +176,40 @@ class InstallConflict(EZPowersError):
     """A managed target contains user-owned changes."""
 
 
+@dataclass(frozen=True)
+class ProjectProfilePolicy:
+    """Profile variation hidden from the shared execution/evidence core."""
+
+    name: str
+    plan_schema_versions: frozenset[int]
+    primary_review_kind: str
+    assurance_graph_schema_version: int
+    chain_bundle_schema_version: int
+    chain_approval_schema_version: int
+
+
+SOFTWARE_PROFILE = ProjectProfilePolicy(
+    name="software",
+    plan_schema_versions=frozenset({1, 2}),
+    primary_review_kind="code-review",
+    assurance_graph_schema_version=ASSURANCE_GRAPH_SCHEMA_VERSION,
+    chain_bundle_schema_version=SCHEMA_VERSION,
+    chain_approval_schema_version=GRAPH_BOUND_SCHEMA_VERSION,
+)
+PLANNING_PROFILE = ProjectProfilePolicy(
+    name="planning",
+    plan_schema_versions=frozenset({PLANNING_SCHEMA_VERSION}),
+    primary_review_kind="artifact-review",
+    assurance_graph_schema_version=PLANNING_ASSURANCE_GRAPH_SCHEMA_VERSION,
+    chain_bundle_schema_version=2,
+    chain_approval_schema_version=PLANNING_SCHEMA_VERSION,
+)
+PROJECT_PROFILE_POLICIES = {
+    SOFTWARE_PROFILE.name: SOFTWARE_PROFILE,
+    PLANNING_PROFILE.name: PLANNING_PROFILE,
+}
+
+
 @dataclass
 class Flow:
     root: pathlib.Path
@@ -180,8 +218,11 @@ class Flow:
     spec_path: pathlib.Path
     config_path: pathlib.Path
     config: dict[str, Any]
+    profile: ProjectProfilePolicy
     spec: dict[str, Any]
     plan: dict[str, Any]
+    inputs: list[dict[str, Any]]
+    deliverables: list[dict[str, Any]]
     tasks: list[dict[str, Any]]
     project_checks: dict[str, dict[str, Any]]
     required_checks: list[str]
@@ -192,6 +233,16 @@ class Flow:
     assurance_graph: dict[str, Any]
     assurance_graph_sha256: str
     errors: list[str]
+
+
+def _flow_graph_bound(flow: Flow) -> bool:
+    return flow.plan_schema_version >= 2
+
+
+def _flow_evidence_schema_version(flow: Flow) -> int:
+    if flow.profile.name == "planning":
+        return PLANNING_EVIDENCE_SCHEMA_VERSION
+    return GRAPH_BOUND_SCHEMA_VERSION if _flow_graph_bound(flow) else SCHEMA_VERSION
 
 
 def _utc_now() -> str:
@@ -639,18 +690,70 @@ def _installed_identity(root: pathlib.Path) -> dict[str, Any]:
     }
 
 
-def _prepare_config(project_root: pathlib.Path) -> dict[str, Any] | None:
+def _prepare_config(
+    project_root: pathlib.Path,
+    requested_profile: str | None,
+) -> tuple[dict[str, Any] | None, bool]:
     config_path = project_root / CONFIG_RELATIVE_PATH
-    if config_path.exists():
-        _read_json(config_path)
-        return None
-    return {
-        "schema_version": 2,
-        "project_name": project_root.name,
-        "verification": {"max_parallel_checks": 4},
-        "checks": {},
-        "required_checks": [],
-    }
+    if not config_path.exists():
+        config: dict[str, Any] = {
+            "schema_version": 2,
+            "project_name": project_root.name,
+            "verification": {"max_parallel_checks": 4},
+            "checks": {},
+            "required_checks": [],
+        }
+        if requested_profile == PLANNING_PROFILE.name:
+            config["schema_version"] = PLANNING_SCHEMA_VERSION
+            config["project_profile"] = PLANNING_PROFILE.name
+        return config, False
+
+    current = _read_json(config_path)
+    errors: list[str] = []
+    _, _, _, _, current_profile = _validate_config_value(
+        project_root,
+        current,
+        errors,
+    )
+    if errors:
+        raise EZPowersError(
+            "invalid .ezpowers/config.json:\n- " + "\n- ".join(errors)
+        )
+    if requested_profile is None or requested_profile == current_profile.name:
+        return None, False
+
+    updated = dict(current)
+    updated["schema_version"] = PLANNING_SCHEMA_VERSION
+    updated["project_profile"] = requested_profile
+    if "verification" not in updated:
+        updated["verification"] = {"max_parallel_checks": 1}
+    return updated, True
+
+
+def _invalidate_profile_transition(
+    project_root: pathlib.Path,
+    *,
+    requested_profile: str,
+) -> None:
+    state_path = project_root / STATE_RELATIVE_PATH
+    if not state_path.is_file():
+        return
+    state = _load_state(project_root)
+    state["latest_evidence"] = {"all": None, "tasks": {}}
+    state["latest_certificate"] = None
+    run = state.get("chain_run")
+    if (
+        isinstance(run, dict)
+        and run.get("status") not in CHAIN_TERMINAL_STATUSES
+    ):
+        _chain_mark_reapproval(
+            state,
+            [
+                "project profile changed to "
+                f"{requested_profile}; explicit chain reapproval is required"
+            ],
+        )
+    _save_state(project_root, state)
 
 
 def _owned_hook(entry: Any, host: str, feature: str) -> bool:
@@ -1129,14 +1232,21 @@ def _install_locked(args: argparse.Namespace, project_root: pathlib.Path) -> int
         for relative_name, data in desired.items()
     }
 
-    config_value = _prepare_config(project_root)
+    config_value, profile_changed = _prepare_config(
+        project_root,
+        args.project_profile,
+    )
     config_candidate = (
         config_value
         if config_value is not None
         else _read_json(project_root / CONFIG_RELATIVE_PATH)
     )
     config_errors: list[str] = []
-    _validate_config_value(project_root, config_candidate, config_errors)
+    _, _, _, _, selected_profile = _validate_config_value(
+        project_root,
+        config_candidate,
+        config_errors,
+    )
     if config_errors:
         raise EZPowersError(
             "invalid .ezpowers/config.json:\n- " + "\n- ".join(config_errors)
@@ -1192,11 +1302,21 @@ def _install_locked(args: argparse.Namespace, project_root: pathlib.Path) -> int
             )
         for path, data in hook_updates:
             _atomic_write(path, data)
+        if config_value is not None:
+            _write_json(project_root / CONFIG_RELATIVE_PATH, config_value)
+        if profile_changed:
+            _invalidate_profile_transition(
+                project_root,
+                requested_profile=str(args.project_profile),
+            )
         installed_version = str(ledger.get("version") or "unknown")
-        print(
+        message = (
             f"EZPowers project kit already installed ({installed_version}); "
             "use --refresh to update or repair it"
         )
+        if selected_profile.name == PLANNING_PROFILE.name:
+            message += f"; project profile: {selected_profile.name}"
+        print(message)
         return 0
 
     conflicts: list[str] = []
@@ -1243,6 +1363,11 @@ def _install_locked(args: argparse.Namespace, project_root: pathlib.Path) -> int
         _write_json(project_root / CONFIG_RELATIVE_PATH, config_value)
     if not state_path.exists():
         _save_state(project_root, _default_state())
+    elif profile_changed:
+        _invalidate_profile_transition(
+            project_root,
+            requested_profile=str(args.project_profile),
+        )
     for path, data in hook_updates:
         _atomic_write(path, data)
 
@@ -1261,7 +1386,10 @@ def _install_locked(args: argparse.Namespace, project_root: pathlib.Path) -> int
     }
     _write_json(ledger_path, new_ledger)
     verb = "refreshed" if args.refresh else "installed"
-    print(f"EZPowers project kit {verb}: {manifest['version']} ({len(desired)} managed files)")
+    message = f"EZPowers project kit {verb}: {manifest['version']} ({len(desired)} managed files)"
+    if selected_profile.name == PLANNING_PROFILE.name:
+        message += f"; project profile: {selected_profile.name}"
+    print(message)
     return 0
 
 
@@ -3402,16 +3530,33 @@ def _validate_config_value(
     root: pathlib.Path,
     config: dict[str, Any],
     errors: list[str],
-) -> tuple[dict[str, dict[str, Any]], list[str], int, int]:
+) -> tuple[
+    dict[str, dict[str, Any]],
+    list[str],
+    int,
+    int,
+    ProjectProfilePolicy,
+]:
     raw_version = config.get("schema_version")
     if raw_version not in CONFIG_SCHEMA_VERSIONS:
-        errors.append("config schema_version must be 1 or 2")
+        errors.append("config schema_version must be 1, 2, or 3")
     config_version = raw_version if raw_version in CONFIG_SCHEMA_VERSIONS else 1
+    profile = SOFTWARE_PROFILE
+    raw_profile = config.get("project_profile")
+    if config_version == PLANNING_SCHEMA_VERSION:
+        if raw_profile not in PROJECT_PROFILE_POLICIES:
+            errors.append("config.project_profile must be software or planning for schema_version 3")
+        else:
+            profile = PROJECT_PROFILE_POLICIES[str(raw_profile)]
+    elif "project_profile" in config:
+        errors.append("config.project_profile requires schema_version 3")
     max_parallel_checks = 1
-    if config_version == 2:
+    if config_version >= 2:
         verification = config.get("verification")
         if not isinstance(verification, dict):
-            errors.append("config.verification must be an object for schema_version 2")
+            errors.append(
+                f"config.verification must be an object for schema_version {config_version}"
+            )
         else:
             unknown = set(verification) - {"max_parallel_checks"}
             if unknown:
@@ -3431,7 +3576,7 @@ def _validate_config_value(
             else:
                 max_parallel_checks = raw_max
     elif "verification" in config:
-        errors.append("config.verification requires schema_version 2")
+        errors.append("config.verification requires schema_version 2 or 3")
     project_checks: dict[str, dict[str, Any]] = {}
     raw_project_checks = config.get("checks", {})
     if not isinstance(raw_project_checks, dict):
@@ -3444,7 +3589,7 @@ def _validate_config_value(
             root=root,
             label=f"config.checks.{check_id}",
             errors=errors,
-            allow_concurrency=config_version == 2,
+            allow_concurrency=config_version >= 2,
         )
         if normalized:
             project_checks[str(check_id)] = normalized
@@ -3464,6 +3609,7 @@ def _validate_config_value(
         list(required_checks),
         int(config_version),
         int(max_parallel_checks),
+        profile,
     )
 
 
@@ -3538,6 +3684,269 @@ def _topological_task_waves(
     return waves
 
 
+def _planning_artifact_path(
+    root: pathlib.Path,
+    value: Any,
+    *,
+    label: str,
+    must_exist: bool,
+) -> tuple[str, pathlib.Path] | None:
+    if not isinstance(value, str) or not value or not _is_project_relative_text(value):
+        raise EZPowersError(f"{label} must be a project-relative file path")
+    normalized = pathlib.PurePosixPath(value.replace("\\", "/"))
+    if (
+        normalized.is_absolute()
+        or not normalized.parts
+        or ".." in normalized.parts
+        or normalized.parts[0] in {".git", ".ezpowers"}
+    ):
+        raise EZPowersError(f"{label} must be a safe project product path: {value}")
+    canonical = normalized.as_posix()
+    path = _safe_target(root, canonical, label)
+    if must_exist and not path.exists():
+        raise EZPowersError(f"{label} does not exist: {canonical}")
+    if path.exists() and (path.is_symlink() or not path.is_file()):
+        raise EZPowersError(f"{label} must be a regular non-symlink file: {canonical}")
+    return canonical, path
+
+
+def _planning_path_key(path: pathlib.Path) -> str:
+    value = str(path.resolve(strict=False))
+    return os.path.normcase(value) if os.name == "nt" else value
+
+
+def _normalize_planning_artifacts(
+    root: pathlib.Path,
+    *,
+    plan: dict[str, Any],
+    profile: ProjectProfilePolicy,
+    plan_schema_version: int,
+    criteria_by_id: dict[str, dict[str, Any]],
+    tasks: list[dict[str, Any]],
+    project_checks: dict[str, dict[str, Any]],
+    top_checks: dict[str, dict[str, Any]],
+    errors: list[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if profile.name != "planning" or plan_schema_version != PLANNING_SCHEMA_VERSION:
+        for field in ("inputs", "deliverables"):
+            if field in plan:
+                errors.append(f"plan.{field} requires the planning profile and schema_version 3")
+        return [], []
+
+    raw_inputs = plan.get("inputs")
+    if not isinstance(raw_inputs, list):
+        errors.append("planning plan.inputs must be an array")
+        raw_inputs = []
+    inputs: list[dict[str, Any]] = []
+    input_ids: set[str] = set()
+    input_paths: dict[str, str] = {}
+    input_path_keys: set[str] = set()
+    for index, raw in enumerate(raw_inputs):
+        label = f"plan.inputs[{index}]"
+        if not isinstance(raw, dict) or set(raw) != {"id", "path"}:
+            errors.append(f"{label} must contain exactly id and path")
+            continue
+        input_id = raw.get("id")
+        if (
+            not isinstance(input_id, str)
+            or not ID_RE.fullmatch(input_id)
+            or input_id in input_ids
+        ):
+            errors.append(f"invalid or duplicate planning input id: {input_id!r}")
+            continue
+        input_ids.add(input_id)
+        try:
+            parsed = _planning_artifact_path(
+                root,
+                raw.get("path"),
+                label=f"{label}.path",
+                must_exist=True,
+            )
+            assert parsed is not None
+            path_name, path = parsed
+        except EZPowersError as exc:
+            errors.append(str(exc))
+            continue
+        path_key = _planning_path_key(path)
+        if path_key in input_path_keys:
+            errors.append(f"duplicate planning input path: {path_name}")
+            continue
+        input_path_keys.add(path_key)
+        input_paths[input_id] = path_key
+        try:
+            digest = _sha256_file(path)
+        except OSError as exc:
+            errors.append(f"cannot hash planning input {path_name}: {exc}")
+            continue
+        inputs.append({"id": input_id, "path": path_name, "sha256": digest})
+
+    raw_deliverables = plan.get("deliverables")
+    if not isinstance(raw_deliverables, list) or not raw_deliverables:
+        errors.append("planning plan.deliverables must be a non-empty array")
+        raw_deliverables = []
+    deliverables: list[dict[str, Any]] = []
+    deliverable_ids: set[str] = set()
+    output_path_keys: set[str] = set()
+    criterion_counts = {criterion_id: 0 for criterion_id in criteria_by_id}
+    referenced_inputs: set[str] = set()
+    known_named_checks = set(project_checks) | set(top_checks)
+    task_check_criteria: dict[str, set[str]] = {}
+    for task in tasks:
+        for check in task.get("checks", []):
+            task_check_criteria.setdefault(str(check["id"]), set()).update(
+                str(item) for item in task.get("criteria", [])
+            )
+
+    for index, raw in enumerate(raw_deliverables):
+        label = f"plan.deliverables[{index}]"
+        required_fields = {"id", "paths", "criteria", "input_ids", "review"}
+        if not isinstance(raw, dict) or set(raw) != required_fields:
+            errors.append(
+                f"{label} must contain exactly id, paths, criteria, input_ids, and review"
+            )
+            continue
+        deliverable_id = raw.get("id")
+        if (
+            not isinstance(deliverable_id, str)
+            or not ID_RE.fullmatch(deliverable_id)
+            or deliverable_id in deliverable_ids
+        ):
+            errors.append(f"invalid or duplicate deliverable id: {deliverable_id!r}")
+            continue
+        deliverable_ids.add(deliverable_id)
+
+        raw_paths = raw.get("paths")
+        if (
+            not isinstance(raw_paths, list)
+            or not raw_paths
+            or any(not isinstance(item, str) for item in raw_paths)
+            or len(set(raw_paths)) != len(raw_paths)
+        ):
+            errors.append(f"deliverable {deliverable_id} paths must be a unique non-empty string array")
+            raw_paths = []
+        paths: list[str] = []
+        for path_index, raw_path in enumerate(raw_paths):
+            try:
+                parsed = _planning_artifact_path(
+                    root,
+                    raw_path,
+                    label=f"deliverable {deliverable_id} path {path_index}",
+                    must_exist=False,
+                )
+                assert parsed is not None
+                path_name, path = parsed
+            except EZPowersError as exc:
+                errors.append(str(exc))
+                continue
+            path_key = _planning_path_key(path)
+            if path_key in output_path_keys:
+                errors.append(f"duplicate deliverable output path: {path_name}")
+                continue
+            if path_key in input_path_keys:
+                errors.append(f"planning input and deliverable output paths overlap: {path_name}")
+                continue
+            output_path_keys.add(path_key)
+            paths.append(path_name)
+
+        raw_criteria = raw.get("criteria")
+        if (
+            not isinstance(raw_criteria, list)
+            or not raw_criteria
+            or any(not isinstance(item, str) for item in raw_criteria)
+            or len(set(raw_criteria)) != len(raw_criteria)
+        ):
+            errors.append(
+                f"deliverable {deliverable_id} criteria must be a unique non-empty string array"
+            )
+            raw_criteria = []
+        criteria: list[str] = []
+        for criterion_id in raw_criteria:
+            if criterion_id not in criteria_by_id:
+                errors.append(
+                    f"deliverable {deliverable_id} references unknown criterion: {criterion_id}"
+                )
+                continue
+            criterion_counts[criterion_id] += 1
+            criteria.append(criterion_id)
+
+        raw_input_ids = raw.get("input_ids")
+        if (
+            not isinstance(raw_input_ids, list)
+            or any(not isinstance(item, str) for item in raw_input_ids)
+            or len(set(raw_input_ids)) != len(raw_input_ids)
+        ):
+            errors.append(f"deliverable {deliverable_id} input_ids must be a unique string array")
+            raw_input_ids = []
+        normalized_input_ids: list[str] = []
+        for input_id in raw_input_ids:
+            if input_id not in input_ids:
+                errors.append(
+                    f"deliverable {deliverable_id} references unknown input: {input_id}"
+                )
+                continue
+            referenced_inputs.add(input_id)
+            normalized_input_ids.append(input_id)
+
+        raw_review = raw.get("review")
+        review_mode = "direct"
+        review_checks: list[str] = []
+        if not isinstance(raw_review, dict) or set(raw_review) != {"mode", "checks"}:
+            errors.append(
+                f"deliverable {deliverable_id} review must contain exactly mode and checks"
+            )
+        else:
+            review_mode = str(raw_review.get("mode", ""))
+            raw_review_checks = raw_review.get("checks")
+            if review_mode not in {"direct", "inspected"}:
+                errors.append(
+                    f"deliverable {deliverable_id} review.mode must be direct or inspected"
+                )
+            if (
+                not isinstance(raw_review_checks, list)
+                or any(not isinstance(item, str) for item in raw_review_checks)
+                or len(set(raw_review_checks)) != len(raw_review_checks)
+            ):
+                errors.append(
+                    f"deliverable {deliverable_id} review.checks must be a unique string array"
+                )
+                raw_review_checks = []
+            if review_mode == "direct" and raw_review_checks:
+                errors.append(f"direct deliverable {deliverable_id} must not declare review checks")
+            if review_mode == "inspected" and not raw_review_checks:
+                errors.append(f"inspected deliverable {deliverable_id} requires review checks")
+            for check_id in raw_review_checks:
+                if check_id not in known_named_checks:
+                    errors.append(
+                        f"deliverable {deliverable_id} references unknown review check: {check_id}"
+                    )
+                    continue
+                if not task_check_criteria.get(check_id, set()).intersection(criteria):
+                    errors.append(
+                        f"deliverable {deliverable_id} review check {check_id} is not used by a task covering that deliverable"
+                    )
+                    continue
+                review_checks.append(check_id)
+
+        deliverables.append(
+            {
+                "id": deliverable_id,
+                "paths": paths,
+                "criteria": criteria,
+                "input_ids": normalized_input_ids,
+                "review": {"mode": review_mode, "checks": review_checks},
+            }
+        )
+
+    for criterion_id, count in criterion_counts.items():
+        if count != 1:
+            errors.append(
+                f"criterion must be mapped to exactly one deliverable: {criterion_id}"
+            )
+    for input_id in sorted(input_ids - referenced_inputs):
+        errors.append(f"planning input is not referenced by any deliverable: {input_id}")
+    return inputs, deliverables
+
+
 def _build_assurance_graph(
     *,
     criteria_by_id: dict[str, dict[str, Any]],
@@ -3548,10 +3957,13 @@ def _build_assurance_graph(
     plan_schema_version: int,
     config_schema_version: int,
     max_parallel_checks: int,
+    profile: ProjectProfilePolicy,
+    inputs: list[dict[str, Any]],
+    deliverables: list[dict[str, Any]],
 ) -> tuple[dict[str, Any], str]:
     effective_max = (
         max_parallel_checks
-        if plan_schema_version == 2 and config_schema_version == 2
+        if plan_schema_version >= 2 and config_schema_version >= 2
         else 1
     )
     nodes: list[dict[str, Any]] = []
@@ -3641,11 +4053,89 @@ def _build_assurance_graph(
                 "relation": "produces",
             }
         )
+    primary_review_id = f"review:{profile.primary_review_kind}"
+    if profile.name == "planning":
+        task_by_criterion: dict[str, str] = {}
+        check_nodes: dict[tuple[str, str], list[str]] = {}
+        for task in tasks:
+            task_id = str(task["id"])
+            for criterion_id in task["criteria"]:
+                task_by_criterion[str(criterion_id)] = task_id
+            for index, check in enumerate(task["checks"], 1):
+                check_nodes.setdefault((task_id, str(check["id"])), []).append(
+                    _task_check_node_id(task_id, index, str(check["id"]))
+                )
+        for entry in inputs:
+            nodes.append(
+                {
+                    "id": f"input:{entry['id']}",
+                    "type": "input",
+                    "path": entry["path"],
+                    "sha256": entry["sha256"],
+                }
+            )
+        for deliverable in deliverables:
+            deliverable_node = f"deliverable:{deliverable['id']}"
+            nodes.append(
+                {
+                    "id": deliverable_node,
+                    "type": "deliverable",
+                    "paths": list(deliverable["paths"]),
+                    "review_mode": deliverable["review"]["mode"],
+                    "inspection_checks": list(deliverable["review"]["checks"]),
+                }
+            )
+            for criterion_id in deliverable["criteria"]:
+                edges.append(
+                    {
+                        "source": f"criterion:{criterion_id}",
+                        "target": deliverable_node,
+                        "relation": "realized_in",
+                    }
+                )
+            producer_ids = {
+                task_by_criterion[criterion_id]
+                for criterion_id in deliverable["criteria"]
+                if criterion_id in task_by_criterion
+            }
+            for task_id in sorted(producer_ids):
+                edges.append(
+                    {
+                        "source": f"task:{task_id}",
+                        "target": deliverable_node,
+                        "relation": "produces",
+                    }
+                )
+                for check_id in deliverable["review"]["checks"]:
+                    for node_id in check_nodes.get((task_id, check_id), []):
+                        edges.append(
+                            {
+                                "source": deliverable_node,
+                                "target": node_id,
+                                "relation": "inspected_by",
+                            }
+                        )
+            for input_id in deliverable["input_ids"]:
+                edges.append(
+                    {
+                        "source": f"input:{input_id}",
+                        "target": deliverable_node,
+                        "relation": "informs",
+                    }
+                )
+            edges.append(
+                {
+                    "source": deliverable_node,
+                    "target": primary_review_id,
+                    "relation": "reviewed_by",
+                }
+            )
+
     nodes.extend(
         [
             {"id": "evidence:all", "type": "evidence"},
             {
-                "id": "review:code-review",
+                "id": primary_review_id,
                 "type": "independent_review",
                 "required_in": "harness-chain",
             },
@@ -3661,7 +4151,7 @@ def _build_assurance_graph(
         [
             {
                 "source": "evidence:all",
-                "target": "review:code-review",
+                "target": primary_review_id,
                 "relation": "reviewed_by",
             },
             {
@@ -3675,7 +4165,7 @@ def _build_assurance_graph(
                 "relation": "required_for",
             },
             {
-                "source": "review:code-review",
+                "source": primary_review_id,
                 "target": "certificate:completion",
                 "relation": "gates_chain",
             },
@@ -3687,7 +4177,7 @@ def _build_assurance_graph(
         ]
     )
     graph = {
-        "schema_version": ASSURANCE_GRAPH_SCHEMA_VERSION,
+        "schema_version": profile.assurance_graph_schema_version,
         "plan_schema_version": plan_schema_version,
         "config_schema_version": config_schema_version,
         "execution": {
@@ -3705,6 +4195,8 @@ def _build_assurance_graph(
             ),
         ),
     }
+    if profile.name == "planning":
+        graph["project_profile"] = profile.name
     return graph, _sha256_bytes(_json_bytes(graph))
 
 
@@ -3717,12 +4209,18 @@ def _normalize_plan_value(
     required_checks: list[str],
     config_schema_version: int,
     max_parallel_checks: int,
+    profile: ProjectProfilePolicy,
     errors: list[str],
 ) -> dict[str, Any]:
     raw_version = plan.get("schema_version")
     if raw_version not in PLAN_SCHEMA_VERSIONS:
-        errors.append("plan schema_version must be 1 or 2")
+        errors.append("plan schema_version must be 1, 2, or 3")
     plan_schema_version = raw_version if raw_version in PLAN_SCHEMA_VERSIONS else 1
+    if plan_schema_version not in profile.plan_schema_versions:
+        allowed = ", ".join(str(item) for item in sorted(profile.plan_schema_versions))
+        errors.append(
+            f"project profile {profile.name} requires plan schema_version {allowed}"
+        )
 
     top_checks: dict[str, dict[str, Any]] = {}
     raw_top_checks = plan.get("checks", {})
@@ -3741,7 +4239,7 @@ def _normalize_plan_value(
             root=root,
             label=f"plan.checks.{name}",
             errors=errors,
-            allow_concurrency=plan_schema_version == 2,
+            allow_concurrency=plan_schema_version >= 2,
         )
         if normalized:
             top_checks[name] = normalized
@@ -3771,8 +4269,10 @@ def _normalize_plan_value(
         if not ID_RE.fullmatch(task_id) or task_id in task_ids:
             errors.append(f"invalid or duplicate task id: {task_id!r}")
         task_ids.add(task_id)
-        if plan_schema_version == 2 and "depends_on" not in raw_task:
-            errors.append(f"task {task_id or index} depends_on is required for schema_version 2")
+        if plan_schema_version >= 2 and "depends_on" not in raw_task:
+            errors.append(
+                f"task {task_id or index} depends_on is required for schema_version {plan_schema_version}"
+            )
         if plan_schema_version == 1 and "depends_on" in raw_task:
             errors.append(f"task {task_id or index} depends_on requires schema_version 2")
         raw_dependencies = raw_task.get("depends_on", [])
@@ -3834,7 +4334,7 @@ def _normalize_plan_value(
                 root=root,
                 label=f"task {task_id} check {check_id or check_index}",
                 errors=errors,
-                allow_concurrency=plan_schema_version == 2,
+                allow_concurrency=plan_schema_version >= 2,
             )
             if normalized:
                 normalized_checks.append(normalized)
@@ -3874,6 +4374,17 @@ def _normalize_plan_value(
                 f"integration criterion {criterion_id} requires an integration, e2e, or smoke check"
             )
 
+    inputs, deliverables = _normalize_planning_artifacts(
+        root,
+        plan=plan,
+        profile=profile,
+        plan_schema_version=int(plan_schema_version),
+        criteria_by_id=criteria_by_id,
+        tasks=tasks,
+        project_checks=project_checks,
+        top_checks=top_checks,
+        errors=errors,
+    )
     task_waves = _topological_task_waves(
         tasks,
         errors,
@@ -3888,11 +4399,16 @@ def _normalize_plan_value(
         plan_schema_version=int(plan_schema_version),
         config_schema_version=config_schema_version,
         max_parallel_checks=max_parallel_checks,
+        profile=profile,
+        inputs=inputs,
+        deliverables=deliverables,
     )
     return {
         "plan_schema_version": int(plan_schema_version),
         "top_checks": top_checks,
         "tasks": tasks,
+        "inputs": inputs,
+        "deliverables": deliverables,
         "criterion_checks": criterion_checks,
         "task_waves": task_waves,
         "assurance_graph": graph,
@@ -3922,6 +4438,7 @@ def _validate_flow(root: pathlib.Path, plan_argument: str | pathlib.Path) -> Flo
         required_checks,
         config_schema_version,
         max_parallel_checks,
+        profile,
     ) = _validate_config_value(root, config, errors)
     if plan_path.is_file():
         try:
@@ -3951,6 +4468,7 @@ def _validate_flow(root: pathlib.Path, plan_argument: str | pathlib.Path) -> Flo
         required_checks=required_checks,
         config_schema_version=config_schema_version,
         max_parallel_checks=max_parallel_checks,
+        profile=profile,
         errors=errors,
     )
 
@@ -3965,8 +4483,11 @@ def _validate_flow(root: pathlib.Path, plan_argument: str | pathlib.Path) -> Flo
         spec_path=spec_path,
         config_path=config_path,
         config=config,
+        profile=profile,
         spec=spec,
         plan=plan,
+        inputs=normalized_plan["inputs"],
+        deliverables=normalized_plan["deliverables"],
         tasks=normalized_plan["tasks"],
         project_checks=project_checks,
         required_checks=list(required_checks),
@@ -4394,6 +4915,7 @@ def _validate_chain_staged_flow(
         required_checks,
         config_schema_version,
         max_parallel_checks,
+        profile,
     ) = _validate_config_value(root, config, errors)
     normalized_plan = _normalize_plan_value(
         root,
@@ -4403,6 +4925,7 @@ def _validate_chain_staged_flow(
         required_checks=required_checks,
         config_schema_version=config_schema_version,
         max_parallel_checks=max_parallel_checks,
+        profile=profile,
         errors=errors,
     )
     if errors:
@@ -4418,6 +4941,10 @@ def _validate_chain_staged_flow(
         "project_checks": project_checks,
         "required_checks": required_checks,
         "tasks": normalized_plan["tasks"],
+        "inputs": normalized_plan["inputs"],
+        "deliverables": normalized_plan["deliverables"],
+        "project_profile": profile.name,
+        "profile_policy": profile,
         "plan_schema_version": normalized_plan["plan_schema_version"],
         "config_schema_version": config_schema_version,
         "max_parallel_checks": max_parallel_checks,
@@ -4436,8 +4963,31 @@ def _load_chain_run_bundle(
         bundle_argument,
         label="chain run bundle",
     )
-    if manifest.get("schema_version") != SCHEMA_VERSION:
-        raise EZPowersError("chain run bundle schema_version must be 1")
+    config_errors: list[str] = []
+    _, _, _, _, configured_profile = _validate_config_value(
+        root,
+        _read_json(root / CONFIG_RELATIVE_PATH),
+        config_errors,
+    )
+    if config_errors:
+        raise EZPowersError(
+            "invalid .ezpowers/config.json:\n- " + "\n- ".join(config_errors)
+        )
+    if manifest.get("schema_version") != configured_profile.chain_bundle_schema_version:
+        raise EZPowersError(
+            "chain run bundle schema_version must be "
+            f"{configured_profile.chain_bundle_schema_version} for the "
+            f"{configured_profile.name} profile"
+        )
+    if configured_profile.name == "planning":
+        if manifest.get("project_profile") != configured_profile.name:
+            raise EZPowersError(
+                "planning chain run bundle project_profile must be planning"
+            )
+    elif "project_profile" in manifest:
+        raise EZPowersError(
+            "chain run bundle project_profile requires the planning profile"
+        )
     run_id = manifest.get("run_id")
     if not isinstance(run_id, str) or not ID_RE.fullmatch(run_id):
         raise EZPowersError("chain run_id must be a valid identifier")
@@ -4584,6 +5134,10 @@ def _load_chain_run_bundle(
         spec_target=spec_entry["target"],
         plan_path=plan_entry["source_path"],
     )
+    if flow["project_profile"] != configured_profile.name:
+        raise EZPowersError(
+            "staged chain flow profile differs from project configuration"
+        )
     design_context = flow["spec"].get("design_context")
     design_entries = [item for item in files if item["role"] == "design-system"]
     frontend_entries = [item for item in files if item["role"] == "frontend-design"]
@@ -4825,8 +5379,13 @@ def _load_chain_run_bundle(
             or boundary.strip().lower()
             in CHAIN_NON_OBSERVABLE_BOUNDARIES
         ):
+            boundary_kind = (
+                "project-check or artifact-inspection"
+                if configured_profile.name == "planning"
+                else "runtime"
+            )
             raise EZPowersError(
-                f"oracle {oracle_id} must name an observable runtime boundary"
+                f"oracle {oracle_id} must name an observable {boundary_kind} boundary"
             )
         baseline = raw.get("baseline")
         if baseline not in {"fail", "pass"}:
@@ -4907,7 +5466,9 @@ def _load_chain_run_bundle(
         effective_limits[name] = raw
 
     return bundle, {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": configured_profile.chain_bundle_schema_version,
+        "project_profile": configured_profile.name,
+        "profile_policy": configured_profile,
         "run_id": run_id,
         "request": request.strip(),
         "host": host,
@@ -4975,10 +5536,10 @@ def _chain_baseline(
             _atomic_write(target, entry["data"])
         run_dir = overlay / ".ezpowers" / "baseline-evidence"
         run_dir.mkdir(parents=True, exist_ok=False)
-        graph_bound = normalized["flow"]["plan_schema_version"] == 2
+        graph_bound = normalized["flow"]["plan_schema_version"] >= 2
         parallel_enabled = (
             graph_bound
-            and normalized["flow"]["config_schema_version"] == 2
+            and normalized["flow"]["config_schema_version"] >= 2
             and normalized["flow"]["max_parallel_checks"] > 1
         )
         invocations = [
@@ -5128,7 +5689,7 @@ def _chain_run_preview(
         actions.append({"path": entry["target"], "action": action})
     config_path = root / CONFIG_RELATIVE_PATH
     token_payload = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": normalized["schema_version"],
         "run_id": normalized["run_id"],
         "request": normalized["request"],
         "host": normalized["host"],
@@ -5164,6 +5725,10 @@ def _chain_run_preview(
         "targets": target_states,
         "installation": _installed_identity(root),
     }
+    if normalized["project_profile"] == "planning":
+        token_payload["project_profile"] = normalized["project_profile"]
+        token_payload["inputs"] = normalized["flow"]["inputs"]
+        token_payload["deliverables"] = normalized["flow"]["deliverables"]
     preview_sha256 = _sha256_bytes(_json_bytes(token_payload))
     state = _load_state(root)
     audit, audit_pointer = _chain_load_receipt(
@@ -5194,6 +5759,10 @@ def _chain_run_preview(
         "assurance_graph_sha256": normalized["flow"]["assurance_graph_sha256"],
         "oracle_audit": audit_pointer if audited else None,
     }
+    if normalized["project_profile"] == "planning":
+        payload["project_profile"] = normalized["project_profile"]
+        payload["inputs"] = normalized["flow"]["inputs"]
+        payload["deliverables"] = normalized["flow"]["deliverables"]
     normalized["preview_sha256"] = preview_sha256
     normalized["baseline"] = baseline
     normalized["oracle_audit"] = audit_pointer
@@ -5212,10 +5781,12 @@ def _chain_goal_objective(
     approval_path: str,
     approval_sha256: str,
     plan_path: str,
+    project_profile: str = "software",
 ) -> str:
+    action = "Produce the declared planning deliverables from" if project_profile == "planning" else "Implement"
     return (
         f"Complete EZPowers harness-chain run {run_id}. Treat "
-        f"{approval_path} ({approval_sha256}) as frozen. Implement "
+        f"{approval_path} ({approval_sha256}) as frozen. {action} "
         f"{plan_path} without weakening its acceptance oracle. Continue until "
         "python .ezpowers/ezpowers.py chain run status --json reports "
         "CERTIFIED, or stop only for the runtime's terminal "
@@ -5323,7 +5894,7 @@ def _chain_run_apply_command(args: argparse.Namespace) -> int:
                     "applied chain assurance graph differs from the approved preview"
                 )
             approval = {
-                "schema_version": GRAPH_BOUND_SCHEMA_VERSION,
+                "schema_version": normalized["profile_policy"].chain_approval_schema_version,
                 "run_id": normalized["run_id"],
                 "request": normalized["request"],
                 "host": normalized["host"],
@@ -5352,6 +5923,10 @@ def _chain_run_apply_command(args: argparse.Namespace) -> int:
                 "baseline": normalized["baseline"],
                 "oracle_audit": normalized["oracle_audit"],
             }
+            if normalized["project_profile"] == "planning":
+                approval["project_profile"] = normalized["project_profile"]
+                approval["inputs"] = normalized["flow"]["inputs"]
+                approval["deliverables"] = normalized["flow"]["deliverables"]
             _write_json(approval_path, approval)
             approval_sha256 = _sha256_file(approval_path)
             objective = _chain_goal_objective(
@@ -5359,6 +5934,7 @@ def _chain_run_apply_command(args: argparse.Namespace) -> int:
                 _relative(root, approval_path),
                 approval_sha256,
                 plan_entry["target"],
+                normalized["project_profile"],
             )
             objective_sha256 = _sha256_bytes(objective.encode("utf-8"))
 
@@ -5376,6 +5952,7 @@ def _chain_run_apply_command(args: argparse.Namespace) -> int:
                 "approval_sha256": approval_sha256,
                 "plan_path": plan_entry["target"],
                 "spec_path": spec_entry["target"],
+                "project_profile": normalized["project_profile"],
                 "goal_objective_sha256": objective_sha256,
                 "limits": normalized["limits"],
                 "risk_classes": normalized["risk_classes"],
@@ -5390,7 +5967,7 @@ def _chain_run_apply_command(args: argparse.Namespace) -> int:
                 },
                 "last_failure_signature": None,
                 "gates": {
-                    "code-review": None,
+                    normalized["profile_policy"].primary_review_kind: None,
                     "adversarial-qa": None,
                     "blocker-review": None,
                 },
@@ -5432,6 +6009,8 @@ def _chain_run_apply_command(args: argparse.Namespace) -> int:
                 _relative(root, backup_root) if backup_root.exists() else None
             ),
         }
+        if normalized["project_profile"] == "planning":
+            result["project_profile"] = normalized["project_profile"]
         _emit(result, args.json)
         return 0
 
@@ -5467,14 +6046,25 @@ def _chain_approval(
         approval = _read_json(path)
     except EZPowersError as exc:
         return None, [str(exc)]
+    profile_name = run.get("project_profile", SOFTWARE_PROFILE.name)
+    profile = PROJECT_PROFILE_POLICIES.get(str(profile_name))
+    if profile is None:
+        return None, ["chain run project profile is invalid"]
+    allowed_schemas = (
+        {SCHEMA_VERSION, GRAPH_BOUND_SCHEMA_VERSION}
+        if profile.name == SOFTWARE_PROFILE.name
+        else {profile.chain_approval_schema_version}
+    )
     if (
-        approval.get("schema_version") not in {
-            SCHEMA_VERSION,
-            GRAPH_BOUND_SCHEMA_VERSION,
-        }
+        approval.get("schema_version") not in allowed_schemas
         or approval.get("run_id") != run.get("run_id")
     ):
         return None, ["chain approval identity is invalid"]
+    if profile.name == PLANNING_PROFILE.name:
+        if approval.get("project_profile") != profile.name:
+            return None, ["planning chain approval profile is invalid"]
+    elif "project_profile" in approval:
+        return None, ["software chain approval contains a planning-only profile field"]
     return approval, []
 
 
@@ -5502,6 +6092,14 @@ def _chain_contract_reasons(
             reasons.append(
                 f"chain run {run_key} differs from the frozen approval"
             )
+    profile_name = str(run.get("project_profile", SOFTWARE_PROFILE.name))
+    profile = PROJECT_PROFILE_POLICIES.get(profile_name)
+    if profile is None:
+        reasons.append("chain run project profile is invalid")
+        profile = SOFTWARE_PROFILE
+    if profile.name == PLANNING_PROFILE.name:
+        if approval.get("project_profile") != profile.name:
+            reasons.append("chain approval project profile changed")
     try:
         chain, chain_sha256 = _load_chain_value(root)
         if chain_sha256 != approval.get("chain_sha256"):
@@ -5545,6 +6143,7 @@ def _chain_contract_reasons(
         str(run.get("approval_path")),
         str(run.get("approval_sha256")),
         str(run.get("plan_path")),
+        profile.name,
     )
     if run.get("goal_objective_sha256") != _sha256_bytes(
         expected_objective.encode("utf-8")
@@ -5571,6 +6170,13 @@ def _chain_contract_reasons(
             )
         elif flow.assurance_graph_sha256 != graph_hash:
             reasons.append("assurance graph changed after feature approval")
+        elif flow.profile.name != profile.name:
+            reasons.append("approved plan profile changed after feature approval")
+        elif profile.name == PLANNING_PROFILE.name:
+            if approval.get("inputs") != flow.inputs:
+                reasons.append("frozen planning inputs changed after feature approval")
+            if approval.get("deliverables") != flow.deliverables:
+                reasons.append("planning deliverable contract changed after feature approval")
     raw_files = approval.get("files")
     if not isinstance(raw_files, list) or not raw_files:
         reasons.append("chain approval has no frozen files")
@@ -5658,11 +6264,18 @@ def _chain_next_action(state: dict[str, Any]) -> str:
     ):
         return "Implement the approved plan, then run verify --all."
     gates = run.get("gates", {})
+    profile = PROJECT_PROFILE_POLICIES.get(
+        str(run.get("project_profile", SOFTWARE_PROFILE.name)),
+        SOFTWARE_PROFILE,
+    )
     if not isinstance(gates, dict) or not isinstance(
-        gates.get("code-review"),
+        gates.get(profile.primary_review_kind),
         dict,
     ):
-        return "Begin a fresh independent code-review gate."
+        return (
+            "Begin a fresh independent "
+            f"{profile.primary_review_kind} gate."
+        )
     if run.get("requires_qa") and not isinstance(
         gates.get("adversarial-qa"),
         dict,
@@ -5701,6 +6314,8 @@ def _chain_run_status_locked(root: pathlib.Path) -> tuple[dict[str, Any], int]:
         "terminal_reason": run.get("terminal_reason"),
         "next_action": _chain_next_action(state),
     }
+    if run.get("project_profile") == PLANNING_PROFILE.name:
+        payload["project_profile"] = PLANNING_PROFILE.name
     return payload, 0
 
 
@@ -5838,19 +6453,26 @@ def _chain_require_product_rework(
     *,
     workspace: dict[str, Any],
     reason: str,
+    failed_deliverables: dict[str, list[dict[str, str]]] | None = None,
 ) -> None:
     run["rework_required"] = {
         "reason": reason,
         "workspace": workspace,
         "required_at": _utc_now(),
     }
+    if failed_deliverables is not None:
+        run["rework_required"]["failed_deliverables"] = failed_deliverables
     latest = run.get("latest_verification")
     if isinstance(latest, dict) and latest.get("status") == "PASS":
         latest["status"] = "REWORK_REQUIRED"
         latest["invalidated_reason"] = reason
     gates = run.get("gates")
     if isinstance(gates, dict):
-        gates["code-review"] = None
+        profile = PROJECT_PROFILE_POLICIES.get(
+            str(run.get("project_profile", SOFTWARE_PROFILE.name)),
+            SOFTWARE_PROFILE,
+        )
+        gates[profile.primary_review_kind] = None
         gates["adversarial-qa"] = None
 
 
@@ -5860,6 +6482,33 @@ def _chain_rework_observed(
 ) -> tuple[bool, str | None]:
     required = run.get("rework_required")
     if not isinstance(required, dict):
+        return True, None
+    failed_deliverables = required.get("failed_deliverables")
+    if isinstance(failed_deliverables, dict):
+        plan_path = run.get("plan_path")
+        if not isinstance(plan_path, str):
+            return False, "planning rework state has no active plan"
+        flow = _validate_flow(root, plan_path)
+        if flow.errors or flow.profile.name != PLANNING_PROFILE.name:
+            return False, "planning rework cannot validate the active deliverable contract"
+        try:
+            current_snapshot = _planning_artifact_snapshot(root, flow)
+        except (EZPowersError, OSError) as exc:
+            return False, f"planning rework artifacts are not ready: {exc}"
+        current = _planning_failed_deliverable_hashes(
+            current_snapshot,
+            failed_deliverables,
+        )
+        unchanged = [
+            deliverable_id
+            for deliverable_id, before in failed_deliverables.items()
+            if current.get(deliverable_id) == before
+        ]
+        if unchanged:
+            return False, (
+                "every failed logical deliverable must change bytes before "
+                "another all-scope verification: " + ", ".join(sorted(unchanged))
+            )
         return True, None
     previous = required.get("workspace")
     if (
@@ -5995,6 +6644,105 @@ def _chain_gate_subject(
     return evidence_hash, approval
 
 
+def _chain_artifact_review_contract(
+    root: pathlib.Path,
+    state: dict[str, Any],
+    run: dict[str, Any],
+    subject_sha256: str,
+) -> list[dict[str, Any]]:
+    plan_path = run.get("plan_path")
+    if not isinstance(plan_path, str):
+        raise EZPowersError("artifact-review chain run has no plan")
+    flow = _validate_flow(root, plan_path)
+    if flow.errors or flow.profile.name != PLANNING_PROFILE.name:
+        raise EZPowersError("artifact-review requires a valid planning plan")
+    fresh, reasons, evidence, evidence_hash, _ = _freshness(
+        root,
+        flow,
+        state=state,
+    )
+    if (
+        not fresh
+        or not isinstance(evidence, dict)
+        or evidence_hash != subject_sha256
+    ):
+        raise EZPowersError(
+            "artifact-review requires the latest fresh planning evidence: "
+            + "; ".join(reasons)
+        )
+    artifact_entries = {
+        str(entry.get("id")): entry
+        for entry in evidence.get("artifacts", {}).get("deliverables", [])
+        if isinstance(entry, dict)
+    }
+    check_results = list(_iter_check_results(evidence))
+    contract: list[dict[str, Any]] = []
+    for deliverable in flow.deliverables:
+        deliverable_id = str(deliverable["id"])
+        sources: list[dict[str, Any]] = []
+        if deliverable["review"]["mode"] == "direct":
+            artifact_entry = artifact_entries.get(deliverable_id, {})
+            by_path = {
+                str(item.get("path")): item
+                for item in artifact_entry.get("paths", [])
+                if isinstance(item, dict)
+            }
+            for path_name in deliverable["paths"]:
+                artifact = by_path.get(str(path_name))
+                if not isinstance(artifact, dict):
+                    raise EZPowersError(
+                        f"artifact-review evidence is missing {deliverable_id}: {path_name}"
+                    )
+                sources.append(
+                    {
+                        "id": f"artifact:{path_name}",
+                        "kind": "artifact",
+                        "path": path_name,
+                        "sha256": artifact.get("sha256"),
+                    }
+                )
+        else:
+            for check_id in deliverable["review"]["checks"]:
+                matched = [
+                    result
+                    for result in check_results
+                    if result.get("id") == check_id
+                    and result.get("status") == "PASS"
+                ]
+                if not matched:
+                    raise EZPowersError(
+                        f"artifact-review evidence has no PASS result for inspection check {check_id}"
+                    )
+                for result in matched:
+                    node_id = result.get("node_id")
+                    if not isinstance(node_id, str) or not node_id:
+                        raise EZPowersError(
+                            f"artifact-review inspection check {check_id} has no graph occurrence"
+                        )
+                    sources.append(
+                        {
+                            "id": f"inspection:{node_id}",
+                            "kind": "inspection",
+                            "check_id": check_id,
+                            "node_id": node_id,
+                            "stdout_log": result.get("stdout_log"),
+                            "stdout_sha256": result.get("stdout_sha256"),
+                            "stderr_log": result.get("stderr_log"),
+                            "stderr_sha256": result.get("stderr_sha256"),
+                        }
+                    )
+        contract.append(
+            {
+                "id": deliverable_id,
+                "mode": deliverable["review"]["mode"],
+                "paths": list(deliverable["paths"]),
+                "sources": sources,
+                "required_source_ids": [source["id"] for source in sources],
+            }
+        )
+    return contract
+
+
 def _chain_gate_begin_command(args: argparse.Namespace) -> int:
     root = _runtime_project_root()
     with _runtime_lock(root):
@@ -6004,6 +6752,20 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
         if requested is not None and not re.fullmatch(r"[0-9a-f]{64}", requested):
             raise EZPowersError("--subject-sha256 must be 64 lowercase hex characters")
         state = _load_state(root)
+        active_run = state.get("chain_run")
+        if (
+            args.kind in {"code-review", "artifact-review"}
+            and isinstance(active_run, dict)
+        ):
+            profile = PROJECT_PROFILE_POLICIES.get(
+                str(active_run.get("project_profile", SOFTWARE_PROFILE.name)),
+                SOFTWARE_PROFILE,
+            )
+            if args.kind != profile.primary_review_kind:
+                raise EZPowersError(
+                    f"{profile.name} chain requires {profile.primary_review_kind}, "
+                    f"not {args.kind}"
+                )
         subject, approval = _chain_gate_subject(
             root,
             state,
@@ -6053,6 +6815,16 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
                     "subject_sha256": subject,
                     "bound_agent_id": pending.get("bound_agent_id"),
                 }
+                if args.kind == "artifact-review":
+                    payload["deliverables"] = [
+                        {
+                            "id": item.get("id"),
+                            "mode": item.get("mode"),
+                            "review_sources": item.get("sources", []),
+                        }
+                        for item in pending.get("artifact_review", [])
+                        if isinstance(item, dict)
+                    ]
                 _emit(payload, args.json)
                 return 0
             raise EZPowersError(
@@ -6075,7 +6847,7 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
                 raise EZPowersError(str(run["terminal_reason"]))
 
         challenge_id = uuid.uuid4().hex
-        state["chain_gates"]["pending"] = {
+        pending_value: dict[str, Any] = {
             "schema_version": SCHEMA_VERSION,
             "challenge_id": challenge_id,
             "kind": args.kind,
@@ -6105,6 +6877,17 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
             "bound_agent_type": None,
             "created_at": _utc_now(),
         }
+        if args.kind == "artifact-review":
+            if not isinstance(run, dict):
+                raise EZPowersError("artifact-review requires an active chain run")
+            pending_value["schema_version"] = GRAPH_BOUND_SCHEMA_VERSION
+            pending_value["artifact_review"] = _chain_artifact_review_contract(
+                root,
+                state,
+                run,
+                subject,
+            )
+        state["chain_gates"]["pending"] = pending_value
         _save_state(root, state)
         payload = {
             "status": "PENDING_REVIEWER",
@@ -6116,6 +6899,15 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
                 "that subagent and accept only its structured terminal receipt."
             ),
         }
+        if args.kind == "artifact-review":
+            payload["deliverables"] = [
+                {
+                    "id": item["id"],
+                    "mode": item["mode"],
+                    "review_sources": item["sources"],
+                }
+                for item in pending_value["artifact_review"]
+            ]
     _emit(payload, args.json)
     return 0
 
@@ -6131,30 +6923,62 @@ def _chain_gate_rubric(pending: dict[str, Any]) -> str:
         "worktree (logs, screenshots, scratch output); any workspace change "
         "invalidates your receipt at certification."
     )
-    receipt = (
-        "Your terminal message must contain exactly one gate marker: the "
-        "line <!-- ezpowers:gate:start -->, then one ```json fenced code "
-        "block, then the line <!-- ezpowers:gate:end -->. The fenced JSON "
-        "object must contain exactly the keys schema_version (always 1), "
-        "challenge_id, verdict (PASS, FAIL, or BLOCKED), blocking_findings, "
-        "and observations - no extra keys. Both arrays hold non-empty "
-        "strings and observations must contain at least one entry. A PASS "
-        "receipt must have an empty blocking_findings array; a FAIL or "
-        "BLOCKED receipt must name at least one blocking finding. Edit the "
-        "template below into your real result; an unedited copy stays "
-        "FAIL:\n"
-        "<!-- ezpowers:gate:start -->\n"
-        "```json\n"
-        "{\n"
-        '  "schema_version": 1,\n'
-        f'  "challenge_id": "{challenge_id}",\n'
-        '  "verdict": "FAIL",\n'
-        '  "blocking_findings": ["<the exact blocking defect>"],\n'
-        '  "observations": ["<one concrete observation>"]\n'
-        "}\n"
-        "```\n"
-        "<!-- ezpowers:gate:end -->"
-    )
+    if kind == "artifact-review":
+        artifact_contract = pending.get("artifact_review", [])
+        template = {
+            "schema_version": GRAPH_BOUND_SCHEMA_VERSION,
+            "challenge_id": challenge_id,
+            "deliverables": [
+                {
+                    "id": item.get("id"),
+                    "verdict": "FAIL",
+                    "blocking_findings": ["<the exact blocking defect>"],
+                    "observations": ["<one concrete observation>"],
+                    "reviewed_sources": list(item.get("required_source_ids", [])),
+                }
+                for item in artifact_contract
+                if isinstance(item, dict)
+            ],
+        }
+        receipt = (
+            "Your terminal message must contain exactly one gate marker with "
+            "one JSON block. The top-level object must contain exactly "
+            "schema_version (2), challenge_id, and deliverables. Preserve the "
+            "declared deliverable order. Each deliverable must contain exactly "
+            "id, verdict (PASS or FAIL), blocking_findings, observations, and "
+            "reviewed_sources. reviewed_sources must contain every required "
+            "source ID for that deliverable and no others. PASS requires no "
+            "blocking findings; FAIL requires at least one. Edit this template:\n"
+            "<!-- ezpowers:gate:start -->\n```json\n"
+            + json.dumps(template, ensure_ascii=False, indent=2)
+            + "\n```\n<!-- ezpowers:gate:end -->\n\nReview-source contract:\n"
+            + json.dumps(artifact_contract, ensure_ascii=False, indent=2)
+        )
+    else:
+        receipt = (
+            "Your terminal message must contain exactly one gate marker: the "
+            "line <!-- ezpowers:gate:start -->, then one ```json fenced code "
+            "block, then the line <!-- ezpowers:gate:end -->. The fenced JSON "
+            "object must contain exactly the keys schema_version (always 1), "
+            "challenge_id, verdict (PASS, FAIL, or BLOCKED), blocking_findings, "
+            "and observations - no extra keys. Both arrays hold non-empty "
+            "strings and observations must contain at least one entry. A PASS "
+            "receipt must have an empty blocking_findings array; a FAIL or "
+            "BLOCKED receipt must name at least one blocking finding. Edit the "
+            "template below into your real result; an unedited copy stays "
+            "FAIL:\n"
+            "<!-- ezpowers:gate:start -->\n"
+            "```json\n"
+            "{\n"
+            '  "schema_version": 1,\n'
+            f'  "challenge_id": "{challenge_id}",\n'
+            '  "verdict": "FAIL",\n'
+            '  "blocking_findings": ["<the exact blocking defect>"],\n'
+            '  "observations": ["<one concrete observation>"]\n'
+            "}\n"
+            "```\n"
+            "<!-- ezpowers:gate:end -->"
+        )
     rubrics = {
         "oracle-audit": (
             "Audit whether every acceptance criterion has an observable "
@@ -6166,6 +6990,13 @@ def _chain_gate_rubric(pending: dict[str, Any]) -> str:
             "Review the diff and fresh evidence for correctness, regressions, "
             "security, maintainability, and any weakening or bypass of the "
             "frozen acceptance contract."
+        ),
+        "artifact-review": (
+            "Review each declared logical deliverable against its frozen "
+            "criteria and inputs. Use only the bound direct artifact bytes or "
+            "project-owned inspection logs listed for that deliverable. Return "
+            "a separate verdict for every deliverable; do not infer a PASS "
+            "from file presence or a check exit code alone."
         ),
         "adversarial-qa": (
             "Exercise realistic negative, boundary, integration, and user "
@@ -6229,7 +7060,12 @@ def _chain_bound_subagent_start(
     }
 
 
-def _chain_gate_marker(message: Any) -> dict[str, Any]:
+def _chain_gate_marker(
+    message: Any,
+    pending: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if pending is None:
+        pending = {}
     if not isinstance(message, str):
         raise EZPowersError("bound reviewer returned no terminal message")
     pattern = re.compile(
@@ -6247,6 +7083,86 @@ def _chain_gate_marker(message: Any) -> dict[str, Any]:
         value = json.loads(matches[0])
     except json.JSONDecodeError as exc:
         raise EZPowersError(f"bound reviewer gate JSON is invalid: {exc}") from exc
+    if pending.get("kind") == "artifact-review":
+        if not isinstance(value, dict) or set(value) != {
+            "schema_version",
+            "challenge_id",
+            "deliverables",
+        }:
+            raise EZPowersError("bound artifact-review receipt has an invalid shape")
+        if value.get("schema_version") != GRAPH_BOUND_SCHEMA_VERSION:
+            raise EZPowersError("bound artifact-review schema_version must be 2")
+        raw_results = value.get("deliverables")
+        contract = pending.get("artifact_review")
+        if not isinstance(raw_results, list) or not isinstance(contract, list):
+            raise EZPowersError("bound artifact-review deliverables must be an array")
+        if len(raw_results) != len(contract):
+            raise EZPowersError("bound artifact-review must cover every deliverable")
+        normalized_results: list[dict[str, Any]] = []
+        for index, (raw, expected) in enumerate(zip(raw_results, contract)):
+            if not isinstance(raw, dict) or set(raw) != {
+                "id",
+                "verdict",
+                "blocking_findings",
+                "observations",
+                "reviewed_sources",
+            }:
+                raise EZPowersError(
+                    f"bound artifact-review deliverables[{index}] has an invalid shape"
+                )
+            if raw.get("id") != expected.get("id"):
+                raise EZPowersError(
+                    "bound artifact-review deliverable identity or order changed"
+                )
+            verdict = raw.get("verdict")
+            findings = raw.get("blocking_findings")
+            observations = raw.get("observations")
+            reviewed_sources = raw.get("reviewed_sources")
+            if verdict not in {"PASS", "FAIL"}:
+                raise EZPowersError("artifact-review verdict must be PASS or FAIL")
+            if (
+                not isinstance(findings, list)
+                or any(not isinstance(item, str) or not item.strip() for item in findings)
+                or not isinstance(observations, list)
+                or not observations
+                or any(not isinstance(item, str) or not item.strip() for item in observations)
+                or reviewed_sources != expected.get("required_source_ids")
+            ):
+                raise EZPowersError(
+                    f"artifact-review {raw.get('id')} findings, observations, or reviewed_sources are invalid"
+                )
+            if verdict == "PASS" and findings:
+                raise EZPowersError("artifact-review PASS cannot contain blocking findings")
+            if verdict == "FAIL" and not findings:
+                raise EZPowersError("artifact-review FAIL requires a blocking finding")
+            normalized_results.append(
+                {
+                    "id": raw["id"],
+                    "verdict": verdict,
+                    "blocking_findings": [item.strip() for item in findings],
+                    "observations": [item.strip() for item in observations],
+                    "reviewed_sources": list(reviewed_sources),
+                }
+            )
+        failed = [item for item in normalized_results if item["verdict"] != "PASS"]
+        return {
+            "schema_version": GRAPH_BOUND_SCHEMA_VERSION,
+            "challenge_id": value.get("challenge_id"),
+            "verdict": "FAIL" if failed else "PASS",
+            "blocking_findings": [
+                f"{item['id']}: {finding}"
+                for item in failed
+                for finding in item["blocking_findings"]
+            ],
+            "observations": [
+                f"{item['id']}: {observation}"
+                for item in normalized_results
+                for observation in item["observations"]
+            ],
+            "deliverables": normalized_results,
+            "failed_deliverable_ids": [item["id"] for item in failed],
+        }
+
     if not isinstance(value, dict) or set(value) != {
         "schema_version",
         "challenge_id",
@@ -6331,7 +7247,10 @@ def _chain_bound_subagent_stop(
     ):
         return {}
     try:
-        marker = _chain_gate_marker(event.get("last_assistant_message"))
+        marker = _chain_gate_marker(
+            event.get("last_assistant_message"),
+            pending,
+        )
         if marker.get("challenge_id") != pending.get("challenge_id"):
             raise EZPowersError("bound reviewer challenge_id does not match")
         if (
@@ -6344,8 +7263,26 @@ def _chain_bound_subagent_stop(
             workspace = _workspace_snapshot(root)
         except EZPowersError:
             workspace = None
+        artifact_snapshot: dict[str, Any] | None = None
+        if pending.get("kind") == "artifact-review":
+            run_for_artifacts = state.get("chain_run")
+            plan_path = (
+                run_for_artifacts.get("plan_path")
+                if isinstance(run_for_artifacts, dict)
+                else None
+            )
+            if not isinstance(plan_path, str):
+                raise EZPowersError("artifact-review run has no active plan")
+            artifact_flow = _validate_flow(root, plan_path)
+            if artifact_flow.errors:
+                raise EZPowersError("artifact-review plan changed during review")
+            artifact_snapshot = _planning_artifact_snapshot(root, artifact_flow)
         receipt = {
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": (
+                GRAPH_BOUND_SCHEMA_VERSION
+                if pending.get("kind") == "artifact-review"
+                else SCHEMA_VERSION
+            ),
             "challenge_id": pending["challenge_id"],
             "kind": pending["kind"],
             "subject_sha256": pending["subject_sha256"],
@@ -6362,6 +7299,10 @@ def _chain_bound_subagent_stop(
             "workspace": workspace,
             "completed_at": _utc_now(),
         }
+        if pending.get("kind") == "artifact-review":
+            receipt["deliverables"] = marker["deliverables"]
+            receipt["review_sources"] = pending.get("artifact_review")
+            receipt["artifacts"] = artifact_snapshot
         pointer = _chain_gate_receipt_pointer(root, receipt)
         key = _chain_receipt_key(
             str(receipt["kind"]),
@@ -6386,7 +7327,7 @@ def _chain_bound_subagent_stop(
             if verdict == "PASS" and kind in gates:
                 gates[kind] = pointer
                 _chain_clear_failure_repeat(run)
-            elif kind in {"code-review", "adversarial-qa"}:
+            elif kind in {"code-review", "artifact-review", "adversarial-qa"}:
                 failure_workspace = receipt.get("workspace")
                 if not isinstance(failure_workspace, dict):
                     failure_workspace = _workspace_snapshot(root)
@@ -6396,6 +7337,14 @@ def _chain_bound_subagent_stop(
                     reason=(
                         f"{kind} returned {verdict}: "
                         + "; ".join(receipt["blocking_findings"])
+                    ),
+                    failed_deliverables=(
+                        _planning_failed_deliverable_hashes(
+                            artifact_snapshot or {},
+                            marker.get("failed_deliverable_ids", []),
+                        )
+                        if kind == "artifact-review"
+                        else None
                     ),
                 )
                 if kind == "adversarial-qa":
@@ -6486,6 +7435,9 @@ def _chain_frozen_paths(
         paths.add(str(run["approval_path"]))
     if isinstance(approval, dict):
         for raw in approval.get("files", []):
+            if isinstance(raw, dict) and isinstance(raw.get("path"), str):
+                paths.add(raw["path"])
+        for raw in approval.get("inputs", []):
             if isinstance(raw, dict) and isinstance(raw.get("path"), str):
                 paths.add(raw["path"])
     return {item.replace("\\", "/") for item in paths}
@@ -6841,6 +7793,53 @@ def _workspace_snapshot(root: pathlib.Path) -> dict[str, Any]:
     return {**parts, "fingerprint": _sha256_bytes(canonical)}
 
 
+def _planning_artifact_snapshot(root: pathlib.Path, flow: Flow) -> dict[str, Any]:
+    if flow.profile.name != "planning":
+        return {}
+    inputs: list[dict[str, Any]] = []
+    for entry in flow.inputs:
+        parsed = _planning_artifact_path(
+            root,
+            entry["path"],
+            label=f"planning input {entry['id']}",
+            must_exist=True,
+        )
+        assert parsed is not None
+        path_name, path = parsed
+        inputs.append(
+            {"id": entry["id"], "path": path_name, "sha256": _sha256_file(path)}
+        )
+    deliverables: list[dict[str, Any]] = []
+    for deliverable in flow.deliverables:
+        paths: list[dict[str, str]] = []
+        for path_name in deliverable["paths"]:
+            parsed = _planning_artifact_path(
+                root,
+                path_name,
+                label=f"deliverable {deliverable['id']}",
+                must_exist=True,
+            )
+            assert parsed is not None
+            canonical, path = parsed
+            paths.append({"path": canonical, "sha256": _sha256_file(path)})
+        deliverables.append({"id": deliverable["id"], "paths": paths})
+    value = {"inputs": inputs, "deliverables": deliverables}
+    value["sha256"] = _sha256_bytes(_json_bytes(value))
+    return value
+
+
+def _planning_failed_deliverable_hashes(
+    artifact_snapshot: dict[str, Any],
+    deliverable_ids: Iterable[str],
+) -> dict[str, list[dict[str, str]]]:
+    selected = set(deliverable_ids)
+    return {
+        str(entry["id"]): list(entry.get("paths", []))
+        for entry in artifact_snapshot.get("deliverables", [])
+        if isinstance(entry, dict) and entry.get("id") in selected
+    }
+
+
 def _kill_process_tree(process: subprocess.Popen[Any]) -> None:
     if process.poll() is not None:
         return
@@ -7123,6 +8122,21 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
         payload = {"status": "FAIL", "errors": flow.errors, "tasks": [], "reasons": flow.errors}
         _emit(payload, args.json)
         return 2
+    artifacts_before: dict[str, Any] | None = None
+    if flow.profile.name == "planning":
+        try:
+            artifacts_before = _planning_artifact_snapshot(root, flow)
+        except (EZPowersError, OSError) as exc:
+            reason = f"planning artifacts are not ready for verification: {exc}"
+            payload = {
+                "status": "FAIL",
+                "errors": [reason],
+                "tasks": [],
+                "reasons": [reason],
+                "project_profile": flow.profile.name,
+            }
+            _emit(payload, args.json)
+            return 2
     selected = flow.tasks
     scope = "all"
     if args.task:
@@ -7188,10 +8202,10 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
     run_dir = root / EVIDENCE_RELATIVE_PATH / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
     started_at = _utc_now()
-    graph_bound = flow.plan_schema_version == 2
+    graph_bound = _flow_graph_bound(flow)
     parallel_enabled = (
         graph_bound
-        and flow.config_schema_version == 2
+        and flow.config_schema_version >= 2
         and flow.max_parallel_checks > 1
     )
     effective_workers = flow.max_parallel_checks if parallel_enabled else 1
@@ -7286,6 +8300,14 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
                 reasons.append(f"required project check {check_id} failed")
 
     workspace_after = _workspace_snapshot(root)
+    artifacts_after: dict[str, Any] | None = None
+    if flow.profile.name == "planning":
+        try:
+            artifacts_after = _planning_artifact_snapshot(root, flow)
+        except (EZPowersError, OSError) as exc:
+            reasons.append(f"planning artifacts changed during verification: {exc}")
+        if artifacts_before != artifacts_after:
+            reasons.append("declared planning artifacts changed during verification")
     plan_hash_after = _sha256_file(flow.plan_path)
     spec_hash_after = _sha256_file(flow.spec_path)
     config_hash_after = _sha256_file(flow.config_path)
@@ -7338,7 +8360,7 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
 
     result_path = run_dir / "result.json"
     result: dict[str, Any] = {
-        "schema_version": GRAPH_BOUND_SCHEMA_VERSION if graph_bound else SCHEMA_VERSION,
+        "schema_version": _flow_evidence_schema_version(flow),
         "run_id": run_id,
         "status": "PASS" if not reasons else "FAIL",
         "scope": scope,
@@ -7375,6 +8397,10 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
                 }
             )
             result["workspace_mutation_causality"] = "not-proven"
+    if flow.profile.name == "planning":
+        result["project_profile"] = flow.profile.name
+        result["artifacts"] = artifacts_after
+        result["artifacts_before"] = artifacts_before
     if chain_binding is not None:
         result["chain"] = chain_binding
     result_bytes = _json_bytes(result)
@@ -7397,7 +8423,7 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
             }
             gates = chain_run.get("gates")
             if isinstance(gates, dict):
-                gates["code-review"] = None
+                gates[flow.profile.primary_review_kind] = None
                 gates["adversarial-qa"] = None
         if result["status"] == "PASS" and args.all_checks:
             _chain_clear_failure_repeat(chain_run)
@@ -7483,7 +8509,7 @@ def _inventory_reasons(
                 f"evidence inventory mismatch: criteria changed for task {expected_task_id}"
             )
         if (
-            flow.plan_schema_version == 2
+            _flow_graph_bound(flow)
             and recorded_task.get("depends_on") != expected_task.get("depends_on", [])
         ):
             reasons.append(
@@ -7510,7 +8536,7 @@ def _inventory_reasons(
                     f"{expected_check['id']} in task {expected_task_id}"
                 )
             if (
-                flow.plan_schema_version == 2
+                _flow_graph_bound(flow)
                 and recorded_check.get("node_id")
                 != _task_check_node_id(
                     str(expected_task_id),
@@ -7541,7 +8567,7 @@ def _inventory_reasons(
                     f"evidence inventory mismatch: required check {expected_check['id']} changed"
                 )
             elif (
-                flow.plan_schema_version == 2
+                _flow_graph_bound(flow)
                 and recorded_check.get("node_id")
                 != _project_check_node_id(
                     check_index,
@@ -7561,14 +8587,14 @@ def _execution_reasons(
     *,
     task_id: str | None,
 ) -> list[str]:
-    if flow.plan_schema_version != 2:
+    if not _flow_graph_bound(flow):
         return []
     reasons: list[str] = []
     execution = evidence.get("execution")
     if not isinstance(execution, dict):
         return ["evidence execution trace is missing"]
     expected_max = (
-        flow.max_parallel_checks if flow.config_schema_version == 2 else 1
+        flow.max_parallel_checks if flow.config_schema_version >= 2 else 1
     )
     if execution.get("max_parallel_checks") != expected_max:
         reasons.append("evidence execution worker cap changed")
@@ -7694,6 +8720,12 @@ def _current_bindings(
         bindings["workspace"] = _workspace_snapshot(root)
     except EZPowersError as exc:
         reasons.append(str(exc))
+    if flow.profile.name == "planning":
+        bindings["project_profile"] = flow.profile.name
+        try:
+            bindings["artifacts"] = _planning_artifact_snapshot(root, flow)
+        except (EZPowersError, OSError) as exc:
+            reasons.append(f"planning artifact freshness failed: {exc}")
     return bindings, reasons
 
 
@@ -7735,13 +8767,11 @@ def _pointer_freshness(
     except EZPowersError as exc:
         return False, [f"evidence tamper detected: {exc}"], None, actual_hash, evidence_path
     expected_schema_version = (
-        GRAPH_BOUND_SCHEMA_VERSION
-        if flow.plan_schema_version == 2
-        else SCHEMA_VERSION
+        _flow_evidence_schema_version(flow)
     )
     if evidence.get("schema_version") != expected_schema_version:
         reasons.append("evidence schema_version is unsupported")
-    if flow.plan_schema_version == 2:
+    if _flow_graph_bound(flow):
         recorded_graph = evidence.get("assurance_graph")
         recorded_graph_sha256 = evidence.get("assurance_graph_sha256")
         if not isinstance(recorded_graph, dict):
@@ -7753,6 +8783,14 @@ def _pointer_freshness(
                 reasons.append("assurance graph changed after verification")
         if recorded_graph_sha256 != flow.assurance_graph_sha256:
             reasons.append("evidence belongs to a different assurance graph")
+    if flow.profile.name == "planning":
+        if evidence.get("project_profile") != flow.profile.name:
+            reasons.append("evidence belongs to a different project profile")
+        current_artifacts = bindings[0].get("artifacts")
+        if current_artifacts is not None and evidence.get("artifacts") != current_artifacts:
+            reasons.append("declared planning artifacts changed after verification")
+        if evidence.get("artifacts_before") != evidence.get("artifacts"):
+            reasons.append("declared planning artifacts changed during recorded verification")
     if evidence.get("evidence_path") != canonical_evidence_path:
         reasons.append("evidence self path does not match the state pointer")
     if evidence.get("run_id") != evidence_path.parent.name:
@@ -7851,7 +8889,7 @@ def _pointer_freshness(
             or check.get("spawn_error") != ""
         ):
             reasons.append(f"check is not a recorded PASS: {check.get('id', '?')}")
-        if flow.plan_schema_version == 2:
+        if _flow_graph_bound(flow):
             for field in ("node_id", "started_at", "finished_at"):
                 if not isinstance(check.get(field), str) or not check[field]:
                     reasons.append(
@@ -7987,7 +9025,11 @@ def _chain_certification_gates(
     run = state.get("chain_run")
     if not isinstance(run, dict):
         return {}, []
-    required = ["code-review"]
+    profile = PROJECT_PROFILE_POLICIES.get(
+        str(run.get("project_profile", SOFTWARE_PROFILE.name)),
+        SOFTWARE_PROFILE,
+    )
+    required = [profile.primary_review_kind]
     if run.get("requires_qa"):
         required.append("adversarial-qa")
     bindings: dict[str, Any] = {}
@@ -8052,6 +9094,37 @@ def _chain_certification_gates(
         ):
             reasons.append(f"workspace changed before the {kind} receipt")
             continue
+        if kind == "artifact-review":
+            try:
+                expected_sources = _chain_artifact_review_contract(
+                    root,
+                    state,
+                    run,
+                    evidence_hash,
+                )
+            except EZPowersError as exc:
+                reasons.append(f"artifact-review source binding is invalid: {exc}")
+                continue
+            expected_ids = [item["id"] for item in expected_sources]
+            reviewed = receipt.get("deliverables")
+            if (
+                receipt.get("schema_version") != GRAPH_BOUND_SCHEMA_VERSION
+                or not isinstance(reviewed, list)
+                or [item.get("id") for item in reviewed if isinstance(item, dict)]
+                != expected_ids
+                or any(
+                    not isinstance(item, dict)
+                    or item.get("verdict") != "PASS"
+                    or item.get("blocking_findings") != []
+                    for item in reviewed
+                )
+                or receipt.get("review_sources") != expected_sources
+                or receipt.get("artifacts") != evidence.get("artifacts")
+            ):
+                reasons.append(
+                    "artifact-review receipt does not approve every bound deliverable and source"
+                )
+                continue
         bindings[kind] = pointer
     return bindings, reasons
 
@@ -8120,9 +9193,7 @@ def _certify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int
     if fresh and evidence is not None and validated_evidence_path is not None:
         certificate = {
             "schema_version": (
-                GRAPH_BOUND_SCHEMA_VERSION
-                if flow.plan_schema_version == 2
-                else SCHEMA_VERSION
+                _flow_evidence_schema_version(flow)
             ),
             "status": "PASS",
             "plan_path": flow.plan_rel,
@@ -8136,8 +9207,11 @@ def _certify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int
             "evidence_sha256": evidence_hash,
             "certified_at": _utc_now(),
         }
-        if flow.plan_schema_version == 2:
+        if _flow_graph_bound(flow):
             certificate["assurance_graph_sha256"] = flow.assurance_graph_sha256
+        if flow.profile.name == "planning":
+            certificate["project_profile"] = flow.profile.name
+            certificate["artifacts"] = evidence["artifacts"]
         if chain_approval is not None:
             certificate["chain"] = evidence.get("chain")
             certificate["gates"] = chain_gates
@@ -8231,6 +9305,27 @@ def _assurance_runtime_view(
         for criterion_id in task["criteria"]:
             states[f"criterion:{criterion_id}"] = task_state
 
+    if flow.profile.name == PLANNING_PROFILE.name:
+        artifact_state = (
+            "PASS"
+            if core.get("fresh") is True
+            else "STALE"
+            if isinstance(evidence, dict)
+            else "MISSING"
+        )
+        for entry in flow.inputs:
+            states[f"input:{entry['id']}"] = artifact_state
+        for deliverable in flow.deliverables:
+            criterion_states = [
+                states.get(f"criterion:{criterion_id}", "PENDING")
+                for criterion_id in deliverable["criteria"]
+            ]
+            states[f"deliverable:{deliverable['id']}"] = (
+                "FAIL"
+                if any(value == "FAIL" for value in criterion_states)
+                else artifact_state
+            )
+
     if core.get("fresh") is True:
         states["evidence:all"] = "PASS"
     elif isinstance(evidence, dict):
@@ -8244,15 +9339,20 @@ def _assurance_runtime_view(
     chain_matches = (
         isinstance(run, dict) and run.get("plan_path") == flow.plan_rel
     )
+    primary_review_id = f"review:{flow.profile.primary_review_kind}"
     if chain_matches:
         gates = run.get("gates", {})
-        code_review = gates.get("code-review") if isinstance(gates, dict) else None
+        primary_review = (
+            gates.get(flow.profile.primary_review_kind)
+            if isinstance(gates, dict)
+            else None
+        )
         qa = gates.get("adversarial-qa") if isinstance(gates, dict) else None
-        states["review:code-review"] = (
+        states[primary_review_id] = (
             "PASS"
-            if isinstance(code_review, dict)
-            and code_review.get("subject_sha256") == evidence_hash
-            and code_review.get("verdict") == "PASS"
+            if isinstance(primary_review, dict)
+            and primary_review.get("subject_sha256") == evidence_hash
+            and primary_review.get("verdict") == "PASS"
             else "BLOCKED"
         )
         if run.get("requires_qa"):
@@ -8266,7 +9366,7 @@ def _assurance_runtime_view(
         else:
             states["review:adversarial-qa"] = "NOT_REQUIRED"
     else:
-        states["review:code-review"] = "NOT_REQUIRED"
+        states[primary_review_id] = "NOT_REQUIRED"
         states["review:adversarial-qa"] = "NOT_REQUIRED"
     states["certificate:completion"] = (
         "PASS"
@@ -8310,7 +9410,7 @@ def _assurance_runtime_view(
             }
         )
     if states["evidence:all"] == "PASS" and chain_matches:
-        for review_id in ("review:code-review", "review:adversarial-qa"):
+        for review_id in (primary_review_id, "review:adversarial-qa"):
             if states[review_id] == "BLOCKED":
                 blocking_paths.append(
                     {
@@ -8393,14 +9493,17 @@ def _trace_payload(root: pathlib.Path, plan_argument: str) -> tuple[dict[str, An
         evidence,
         evidence_hash,
     )
-    return {
+    payload = {
         "status": "PASS",
         "plan": flow.plan_rel,
         "completion_status": core.get("status"),
         "assurance_graph_sha256": flow.assurance_graph_sha256,
         "graph": flow.assurance_graph,
         **runtime_view,
-    }, 0
+    }
+    if flow.profile.name == PLANNING_PROFILE.name:
+        payload["project_profile"] = flow.profile.name
+    return payload, 0
 
 
 def _trace_command(args: argparse.Namespace) -> int:
@@ -8432,7 +9535,7 @@ def _status_payload(
                 "reasons": [str(exc)],
             }, 2
         config_errors: list[str] = []
-        _validate_config_value(root, config, config_errors)
+        _, _, _, _, profile = _validate_config_value(root, config, config_errors)
         if config_errors:
             return {
                 "status": "FAIL",
@@ -8440,12 +9543,15 @@ def _status_payload(
                 "active_plan": None,
                 "reasons": config_errors,
             }, 2
-        return {
+        payload = {
             "status": "UNCONFIGURED",
             "fresh": False,
             "active_plan": None,
             "reasons": ["no active plan"],
-        }, 0
+        }
+        if profile.name == PLANNING_PROFILE.name:
+            payload["project_profile"] = profile.name
+        return payload, 0
     flow = _validate_flow(root, active)
     if flow.errors:
         return {
@@ -8490,11 +9596,7 @@ def _status_payload(
                     and certificate_pointer.get("evidence_sha256") == evidence_hash
                     and certificate.get("status") == "PASS"
                     and certificate.get("schema_version")
-                    == (
-                        GRAPH_BOUND_SCHEMA_VERSION
-                        if flow.plan_schema_version == 2
-                        else SCHEMA_VERSION
-                    )
+                    == _flow_evidence_schema_version(flow)
                     and certificate.get("plan_path") == evidence.get("plan_path")
                     and certificate.get("plan_sha256") == evidence.get("plan_sha256")
                     and certificate.get("spec_path") == evidence.get("spec_path")
@@ -8505,10 +9607,20 @@ def _status_payload(
                     and certificate.get("evidence_path") == evidence.get("evidence_path")
                     and certificate.get("evidence_sha256") == evidence_hash
                     and (
-                        flow.plan_schema_version != 2
+                        not _flow_graph_bound(flow)
                         or certificate.get("assurance_graph_sha256")
                         == evidence.get("assurance_graph_sha256")
                         == flow.assurance_graph_sha256
+                    )
+                    and (
+                        flow.profile.name != PLANNING_PROFILE.name
+                        or (
+                            certificate.get("project_profile")
+                            == evidence.get("project_profile")
+                            == flow.profile.name
+                            and certificate.get("artifacts")
+                            == evidence.get("artifacts")
+                        )
                     )
                 )
                 chain_certificate_valid = True
@@ -8552,6 +9664,11 @@ def _status_payload(
         "task_evidence": task_evidence,
         "orphan_task_evidence": orphan_task_evidence,
     }
+    if flow.profile.name == PLANNING_PROFILE.name:
+        payload["project_profile"] = flow.profile.name
+        payload["artifacts"] = (
+            evidence.get("artifacts") if isinstance(evidence, dict) else None
+        )
     if include_graph_summary:
         view = _assurance_runtime_view(
             flow,
@@ -8611,6 +9728,14 @@ def _parser() -> argparse.ArgumentParser:
     install = subparsers.add_parser("install", help="Install or refresh the project-local kit")
     install.add_argument("--project-root", required=True)
     install.add_argument("--refresh", action="store_true")
+    install.add_argument(
+        "--project-profile",
+        choices=tuple(sorted(PROJECT_PROFILE_POLICIES)),
+        help=(
+            "Select the project profile on first setup or explicitly switch "
+            "an existing project; omitted projects retain software behavior"
+        ),
+    )
     install.add_argument("--enable-hooks", choices=("none", "claude", "codex", "both"), default="none")
     install.add_argument(
         "--enable-wiki-hooks",

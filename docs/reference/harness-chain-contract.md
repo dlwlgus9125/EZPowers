@@ -56,6 +56,13 @@ safe Markdown files with role `architecture`; when it is not selected, that
 role is absent. The files are already-settled architecture inputs, not a
 license to invent boundaries during implementation.
 
+The project config fixes the profile for the whole run. Software uses bundle
+schema v1 and plan v1/v2. Planning uses bundle schema v2 with
+`project_profile: planning` and plan v3. Planning inputs stay at their real
+project paths and may be arbitrary binary or text files; staged `files` remain
+UTF-8 acceptance adapters and managed documents. Planning outputs are logical
+multi-file deliverables declared by the plan, not staged acceptance files.
+
 Every criterion must be covered exactly once by an oracle. Every oracle names
 its observable boundary, positive case, negative case, exact mapped checks,
 artifact paths, and expected current baseline. Source-presence, string,
@@ -72,6 +79,8 @@ requires the declared baseline result. Preview identity binds:
 - current chain and project-check hashes;
 - exact required check argv;
 - baseline result and installed-kit identity.
+- for planning, the frozen input path/byte inventory and logical deliverable
+  contract, including direct or inspected review sources.
 
 Preview is `REVIEW_REQUIRED` until a bound independent `oracle-audit` receipt
 passes for that exact hash. Any input change creates a new hash.
@@ -82,8 +91,10 @@ cycling independent reviewers over unchanged evidence is not a retry path.
 Apply requires one explicit approval for a `READY` preview. Replaced files
 require approved `--force` and are backed up. Apply writes the staged files and
 immutable `.ezpowers/approvals/<run-id>.json`, clears old completion pointers,
-and enters `PENDING_LOOP`. New approvals use schema v2 and bind the assurance
-graph derived by the same normalizer used for ordinary plans.
+and enters `PENDING_LOOP`. New software approvals use schema v2. Planning
+approvals use schema v3 and also bind the project profile, byte-hashed inputs,
+and logical deliverable contract. Both bind the assurance graph derived by the
+same normalizer used for ordinary plans.
 
 ## One host-native loop
 
@@ -119,6 +130,7 @@ The feature approval freezes by path and SHA-256:
   work;
 - every acceptance-oracle file;
 - approval identity.
+- for planning, every declared input path and SHA-256.
 
 PreToolUse denies obvious writes to these paths, but the authoritative check
 is a fresh hash comparison before verification, review, and certification.
@@ -128,11 +140,13 @@ required. On explicit kit refresh, a nonterminal legacy approval that predates
 the graph binding also becomes `NEEDS_REAPPROVAL`; the runtime never invents a
 hash for an approval the user did not inspect.
 
-Product source is not frozen and is expected to change during implementation.
+Software product source is not frozen and is expected to change during
+implementation. Planning deliverable output paths are likewise mutable until
+verification; their exact bytes become evidence only after real checks pass.
 
 ## Independent gates
 
-`oracle-audit`, `code-review`, `adversarial-qa`, and `blocker-review` use
+`oracle-audit`, `code-review`, `artifact-review`, `adversarial-qa`, and `blocker-review` use
 challenge IDs. `SubagentStart` binds one real host-native subagent ID, host
 session, agent type, kind, and subject. Only that bound agent's SubagentStop
 message can create a receipt.
@@ -146,18 +160,32 @@ requires at least one. Main-agent prose, an unbound agent,
 malformed JSON, reused challenges, manually edited files, or receipts whose
 hash sidecar/pointer differs are not valid review evidence.
 
-Code review and adversarial QA bind the exact latest fresh all-scope evidence
-SHA-256. New verification invalidates their usefulness. Adversarial QA is
+Software uses `code-review` as its mandatory primary gate. Planning replaces
+that gate with `artifact-review`. Its terminal marker uses schema v2 and
+contains exactly `schema_version`, `challenge_id`, and ordered `deliverables`.
+Every deliverable entry contains exactly its ID, `PASS` or `FAIL`, findings,
+non-empty observations, and all required `reviewed_sources`. Direct sources
+bind declared output path/bytes; inspected sources bind the exact PASS check
+occurrence and stdout/stderr log hashes. The runtime derives the single gate
+verdict only after every declared deliverable has a valid result.
+
+Code review, artifact review, and adversarial QA bind the exact latest fresh
+all-scope evidence SHA-256. New verification invalidates their usefulness. Adversarial QA is
 mandatory for approved user-facing, integration, or regression risks and for
 configured project triggers. `BLOCKED` is accepted only from a
 `blocker-review`.
 
-A valid code-review or adversarial-QA `FAIL` clears product-gate pointers,
+A valid code-review, artifact-review, or adversarial-QA `FAIL` clears product-gate pointers,
 invalidates the latest chain PASS, and stores the reviewed workspace
 fingerprint. Another product review is unavailable until repository content
 changes and a new all-scope verification passes. A structured-receipt format
 error is different: the same bound reviewer must correct the same challenge
 without editing the repository.
+
+Artifact-review failure additionally stores the exact byte inventory of every
+failed logical deliverable. Another all-scope verification is rejected until
+each failed group changes bytes; a change to unrelated repository content or
+only a subset of failed groups is not product rework.
 
 Independent review does not replace deterministic checks. Deterministic checks
 do not replace independent review.
@@ -187,21 +215,24 @@ Evidence includes the run ID, approval path and hash, chain hash, and graph
 hash. Staged plan validation, isolated baseline checks, ordinary verification,
 and certification use the shared plan/config normalizer. A plan-v2 baseline
 may overlap only the explicitly safe oracle checks under the same resource-lock
-and worker-cap rules; version-1 baselines remain serial. Any
-all-scope verification invalidates older code-review and QA pointers. On FAIL,
+and worker-cap rules; version-1 baselines remain serial. Planning v3 uses the
+same scheduler and binds its artifact inventory. Any all-scope verification
+invalidates the older profile-primary-review and QA pointers. On FAIL,
 the product must be reworked and real checks rerun; changing the oracle or
 check is reapproval, not rework.
 
 The failed workspace fingerprint is durable state. Another all-scope
 verification against identical repository content is rejected and counts as
 a validation failure; task-scoped diagnostic checks cannot clear this
-requirement. A content change permits verification but does not itself prove
-the fix—the exact checks must still pass.
+requirement. For planning artifact-review failure, every failed logical group
+must change bytes even when Git ignores it. A qualifying content change permits
+verification but does not itself prove the fix—the exact checks must still pass.
 
 Certification requires:
 
 - fresh all-scope PASS evidence bound to the active approval;
-- a fresh independent code-review PASS receipt for that evidence;
+- a fresh independent code-review PASS receipt for software, or a complete
+  per-deliverable artifact-review PASS receipt for planning;
 - a fresh adversarial-QA PASS receipt when required;
 - unchanged frozen contract, current workspace, installation, logs, sidecars,
   pointers, and exact check inventory.

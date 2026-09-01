@@ -66,11 +66,50 @@ one managed block.
 
 The block markers occur exactly once and contain one fenced JSON object.
 
+Planning-profile projects use schema v3 and add an artifact contract:
+
+```json
+{
+  "schema_version": 3,
+  "spec": "docs/specs/planning-example.md",
+  "inputs": [
+    {"id": "source-workbook", "path": "inputs/source.xlsx"}
+  ],
+  "deliverables": [
+    {
+      "id": "launch-package",
+      "paths": ["deliverables/launch-plan.md", "deliverables/budget.xlsx"],
+      "criteria": ["AC-1", "AC-2"],
+      "input_ids": ["source-workbook"],
+      "review": {"mode": "inspected", "checks": ["inspect-budget"]}
+    }
+  ],
+  "checks": {
+    "inspect-budget": {
+      "argv": ["python", "scripts/inspect_budget.py", "deliverables/budget.xlsx"],
+      "cwd": ".",
+      "timeout_seconds": 120,
+      "kind": "integration",
+      "concurrency": {"safe": false, "resource_locks": []}
+    }
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "depends_on": [],
+      "criteria": ["AC-1", "AC-2"],
+      "checks": ["inspect-budget"]
+    }
+  ]
+}
+```
+
 ## Plan Rules
 
-- `schema_version` is `1` or `2`. Version 1 is a compatibility contract: it
+- `schema_version` is `1`, `2`, or `3`. Version 1 is a compatibility contract: it
   has no dependency or concurrency fields and always executes serially.
-  Newly authored plans use version 2.
+  Newly authored software plans use version 2. Planning-profile plans require
+  version 3. A plan cannot override the project profile.
 - `spec` is a contained project-relative path to a valid managed spec;
   absolute POSIX or Windows paths and drive-prefixed paths are invalid.
 - `tasks` is a non-empty array with unique IDs that follow the same 1-64
@@ -91,6 +130,30 @@ The block markers occur exactly once and contain one fenced JSON object.
 - Check IDs do not collide across config, plan, and inline checks.
 - A criterion with `integration: true` is mapped to at least one
   `integration`, `e2e`, or `smoke` check.
+
+### Planning Artifact Rules
+
+- `inputs` is an array of unique `{id, path}` objects. Each path names an
+  existing project-relative regular non-symlink file. Inputs are byte-hashed;
+  there is no UTF-8 or extension requirement.
+- `deliverables` is a non-empty array of unique logical groups. Every group has
+  one or more explicit output file paths, one or more criteria, an `input_ids`
+  array, and a review contract. A group may own multiple files.
+- Every criterion belongs to exactly one task, at least one real check, and
+  exactly one deliverable. Every input is referenced by a deliverable.
+- Input and output paths are unique and disjoint after canonical resolution.
+  Absolute paths, traversal, `.git`, `.ezpowers`, directories, globs, missing
+  inputs, and symlinks fail validation. Output files may be absent while the
+  plan is being prepared but must exist before verification.
+- `review.mode: direct` requires an empty `checks` array and exposes the
+  declared output bytes to the bound artifact reviewer.
+- `review.mode: inspected` requires one or more named project/config checks.
+  Each named check must be used by a task covering that deliverable's criteria
+  and must inspect read-only. Its exact stdout/stderr logs become the allowed
+  review sources.
+- EZPowers supplies no built-in Markdown/XLSX parser or format whitelist. The
+  project owns validators and their dependencies; the runtime owns exact argv,
+  execution, logs, hashes, freshness, and certification.
 
 Named checks in `.ezpowers/config.json` provide stable project commands.
 Plan-local checks are appropriate for feature-specific filters or oracles.
@@ -124,7 +187,7 @@ remain exact.
 - `timeout_seconds` is an integer from 1 through 86400.
 - `kind` is `build`, `custom`, `e2e`, `integration`, `lint`, `security`,
   `smoke`, `static`, `test`, `typecheck`, or `visual`.
-- `concurrency` is available only in plan/config schema v2. `safe` is a
+- `concurrency` is available only in plan/config schema v2 or v3. `safe` is a
   boolean and `resource_locks` is a duplicate-free array of stable identifiers.
   Missing `concurrency`, or `safe: false`, is a global execution barrier. The
   runtime also adds an implicit same-check lock to every occurrence. Mark a

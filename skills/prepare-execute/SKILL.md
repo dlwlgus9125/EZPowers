@@ -34,7 +34,8 @@ dependencies, expected files, constraints, prerequisites, non-goals, and risks
 in Markdown. Carry settled architecture paths and constraints as inputs; do
 not add a tail-end task that merely makes documentation resemble the code.
 Add exactly one managed JSON block using the canonical plan
-contract. New plans use schema v2, give every task an explicit `depends_on`
+contract. New software plans use schema v2 and new planning-profile plans use
+schema v3. Both give every task an explicit `depends_on`
 array, and declare check concurrency only when independence has reproducible
 evidence; unproven checks remain unsafe barriers. Map every criterion exactly once and bind it to real named or inline
 project checks. Preserve frontend, accessibility, integration, and visual
@@ -43,6 +44,15 @@ include code-to-DESIGN.md alignment and `check-project`. Reuse the exact
 required `ezpowers.design` check when registered; otherwise add it as a
 plan-local static check. Add the pinned official CLI command only when that
 package is already installed locally, always with `npx --no-install`.
+
+For the planning profile, declare every existing source artifact in `inputs`
+and map every criterion to exactly one logical `deliverable`. A deliverable
+may own multiple explicit file paths. Use `direct` review for directly
+inspectable bytes and `inspected` review only with named project-owned,
+read-only checks that expose the artifact through deterministic logs. Do not
+add a format whitelist, directory/glob artifact, built-in spreadsheet parser,
+or hidden external action. The project owns validator dependencies; EZPowers
+owns their exact argv and resulting evidence.
 
 Run:
 

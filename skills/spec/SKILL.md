@@ -40,6 +40,9 @@ Add exactly one managed JSON block using the canonical spec contract. Every
 criterion must be binary, observable, host-independent, and traceable to one
 requirement. Mark real boundary-crossing behavior as integration evidence and
 include failure criteria when rejection behavior is part of the requirement.
+For a planning-profile project, state the observable business or artifact
+outcome without prescribing a file-format parser; `prepare-execute` maps each
+criterion to both one logical deliverable and a real project-owned check.
 Every new spec records `design_context`: UI work names the broad frontend
 artifact and all mapped `DESIGN.md` files; non-UI work records `required:
 false` with a reason. Do not treat a legacy spec's missing field as a template

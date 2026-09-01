@@ -17,6 +17,12 @@ New plans can also expose a deterministic assurance graph and safely overlap a
 measured subset of independent check processes without scheduling host
 implementation work.
 
+Each project selects one product profile. The legacy `software` profile keeps
+the existing source/check/review path. The `planning` profile treats explicit
+Markdown, spreadsheet, and other binary/text files as the product, while
+project-owned scripts remain exact-command validators rather than making the
+repository a software-profile project.
+
 ## User Outcome
 
 A user can install EZPowers into a project, bootstrap a repository-evidenced
@@ -36,6 +42,12 @@ review-to-certificate relationships, a stable graph hash, topological waves,
 and candidate blocking paths. Legacy plans remain serial. Only checks with an
 explicit, evidence-backed safety contract may overlap, and exact results retain
 declaration order and the existing freshness rules.
+
+For planning plan-v3 work, the user can name existing byte inputs, group one
+or more output files into logical deliverables, choose direct or inspected
+review sources, and receive evidence that binds every declared byte even when
+Git ignores the file. A planning chain reviews every logical deliverable and
+cannot retry a failed group until its bytes actually change.
 
 For product-code work, the user can also request evidence-first diagnosis and
 fix completion, focused module/interface design, or an explicit broad
@@ -64,6 +76,8 @@ EZPowers owns:
 - local wiki structure, deterministic CJK keyword/tag search, promotion
   bindings, and opt-in allowlisted capture;
 - project-local spec and plan schemas;
+- project-profile policy, planning input/deliverable contracts, and exact
+  artifact byte inventories without format-specific validators;
 - the deterministic assurance graph derived from current authoritative
   artifacts, without a second editable graph source;
 - check argv, working directories, kinds, and timeouts;
@@ -130,6 +144,9 @@ dependencies never assign implementation work or select an agent.
   stable hash and non-causal blocking paths without logs or prompts.
 - Config/plan v1 remains readable, unmodified, and serial; config/plan v2 may
   overlap only explicitly safe, lock-compatible checks within its worker cap.
+- Planning config/plan v3 fails closed, maps every criterion to exactly one
+  logical deliverable and a real check, and binds before/after input/output
+  bytes in graph-v2 evidence and schema-v3 certificates.
 - Plan-v2 evidence and certificates, plus new feature-chain approvals, bind
   the assurance graph; a nonterminal legacy approval without that binding
   requires explicit reapproval after refresh.
@@ -139,8 +156,9 @@ dependencies never assign implementation work or select an agent.
 - Only fresh, complete, untampered all-scope evidence certifies completion.
 - Harness chains are explicit-only and use one continuation authority: a
   native Codex goal or a Claude Stop loop, never both.
-- A chain cannot certify without a real baseline, a bound independent code
-  review, conditional adversarial QA, and unchanged frozen inputs.
+- A chain cannot certify without a real baseline, its profile-specific bound
+  independent review (`code-review` or per-deliverable `artifact-review`),
+  conditional adversarial QA, and unchanged frozen inputs.
 - A failure that reaches an approved limit is terminal immediately; no extra
   pass is granted to rationalize continuation.
 - Removed orchestration concepts have no live reference or advertised flow.

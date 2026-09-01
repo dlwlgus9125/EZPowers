@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="EZPowers v5.7.1 플러그인의 14개 스킬을 언제, 어떤 순서로, Claude Code와 Codex에서 어떻게 사용하는지 설명하는 한국어 가이드">
+  <meta name="description" content="EZPowers v5.8.0 플러그인의 14개 스킬과 software/planning 프로필을 언제, 어떤 순서로 사용하는지 설명하는 한국어 가이드">
   <meta name="color-scheme" content="light dark">
   <title>EZPowers Skill Atlas — 스킬 사용 가이드</title>
   <script>
@@ -2698,7 +2698,7 @@
         <span class="brand-mark" aria-hidden="true">EZ</span>
         <span class="brand-copy">
           <strong>Skill Atlas</strong>
-          <span>EZPowers v5.7</span>
+          <span>EZPowers v5.8</span>
         </span>
       </a>
 
@@ -2726,7 +2726,7 @@
           실제 동작 기준:
           <a href="../AGENTS.md">AGENTS.md</a>,
           <a href="reference/codex-plugin-discovery.md">호스트 호출 계약</a>,
-          <a href="../project-kit/v5.7.0/manifest.json">v5.7 매니페스트</a>
+          <a href="../project-kit/v5.8.0/manifest.json">v5.8 매니페스트</a>
         </p>
       </div>
     </aside>
@@ -2735,7 +2735,7 @@
       <div class="mobile-bar">
         <a class="mobile-brand" href="#overview">
           <span class="brand-mark" aria-hidden="true">EZ</span>
-          <span>Skill Atlas · v5.7</span>
+          <span>Skill Atlas · v5.8</span>
         </a>
         <div class="control-group">
           <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
@@ -2752,7 +2752,7 @@
 
       <section class="section hero" id="overview" aria-labelledby="hero-title">
         <div class="hero-topline">
-          <span class="hero-edition">Verified workflow · plugin v5.7.1</span>
+          <span class="hero-edition">Verified workflow · plugin v5.8.0</span>
           <div class="control-group">
             <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
               <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true">
@@ -3146,8 +3146,8 @@
                 <span class="badge">plugin + project</span>
               </div>
               <p class="skill-purpose">
-                저장소에 자체 포함형 EZPowers 키트를 설치·갱신·복구하고,
-                실제 프로젝트 검사와 선택적 문서 그래프를 구성합니다.
+                software 또는 planning 프로젝트 프로필을 선택하고 자체 포함형
+                EZPowers 키트, 실제 검사, 선택적 문서 그래프를 구성합니다.
               </p>
               <dl class="fact-list">
                 <div class="fact"><dt>언제</dt><dd>최초 설치, 버전 갱신, 설치 손상 복구, 문서 부트스트랩/재분석</dd></div>
@@ -3167,7 +3167,8 @@
               <div class="detail-body">
                 <ol>
                   <li>저장소 근거에서 Python 3.10+, 실제 검사 명령, 문서 권한을 확인합니다.</li>
-                  <li>새 설치 또는 <code>--refresh</code>로 키트를 복사하고 충돌을 보존합니다.</li>
+                  <li>새 설치에서 제품이 실행 소프트웨어인지 기획 산출물 묶음인지 프로필을 명시합니다.</li>
+                  <li><code>--project-profile</code> 전환과 <code>--refresh</code>는 독립적이며 생략 시 기존 프로필을 보존합니다.</li>
                   <li>문서는 스테이징 → 해시 미리보기 → 승인 → 적용 → lint 순서입니다.</li>
                   <li><code>--refresh-docs</code>는 스킬 워크플로 플래그이며 런타임 installer 플래그가 아닙니다.</li>
                   <li>완료 훅과 wiki SessionEnd 캡처는 서로 별개이며 각각 명시적 승인이 필요합니다.</li>
@@ -3543,7 +3544,7 @@
               </div>
               <p class="skill-purpose">
                 유효한 스펙의 모든 기준을 한 번씩만 다루는 작은 구현 계획으로 바꾸고,
-                plan v2의 명시적 의존성·예상 파일·정확한 프로젝트 검사를 결합합니다.
+                software plan v2 또는 planning plan v3의 명시적 의존성·산출물·정확한 검사를 결합합니다.
               </p>
               <dl class="fact-list">
                 <div class="fact"><dt>언제</dt><dd>스펙이 유효하고 구현 전에 criterion coverage와 검사 명령을 확정할 때</dd></div>
@@ -3563,6 +3564,7 @@
               <div class="detail-body">
                 <ul>
                   <li>모든 수락 기준은 정확히 한 작업에 매핑되어야 합니다.</li>
+                  <li>planning 프로필에서는 각 기준을 정확히 한 논리 산출물과 실제 검사에도 연결합니다.</li>
                   <li>모든 새 작업은 <code>depends_on</code>을 명시하며 누락·자기참조·순환 의존성은 차단됩니다.</li>
                   <li>검사의 병렬 안전성이 재현되지 않았다면 <code>safe: false</code> 장벽으로 둡니다.</li>
                   <li>프런트엔드·접근성·통합·시각 오라클을 보존합니다.</li>
@@ -3878,7 +3880,7 @@
               <li class="chain-step">
                 <span class="chain-step-number">03</span>
                 <strong>기능 계약 스테이징</strong>
-                <p>확정 요청, spec, plan, positive/negative oracle과 risk를 한 bundle에 둡니다.</p>
+                <p>프로필, 확정 요청, spec, plan, positive/negative oracle과 risk를 한 bundle에 둡니다.</p>
               </li>
               <li class="chain-step">
                 <span class="chain-step-number">04</span>
@@ -3898,7 +3900,7 @@
               <li class="chain-step">
                 <span class="chain-step-number">07</span>
                 <strong>Verify · review · QA · certify</strong>
-                <p>실제 전체 검사와 바인딩된 독립 리뷰, 조건부 QA를 통과해야 인증됩니다.</p>
+                <p>software는 code-review, planning은 산출물별 artifact-review와 실제 전체 검사·조건부 QA를 통과해야 합니다.</p>
               </li>
             </ol>
 
@@ -4036,7 +4038,7 @@
         <div>
           <strong>EZPowers Skill Atlas</strong>
           <p>
-            v5.7.0 프로젝트 키트와 v5.7.1 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
+            v5.8.0 프로젝트 키트와 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
             동작이 바뀌면 <code>skills/*/SKILL.md</code>, 호출 계약, 프로젝트 매니페스트와 함께 이 문서를 갱신하세요.
             시각 토큰과 재사용 컴포넌트 규칙은 루트 <code>DESIGN.md</code>를 먼저 갱신한 뒤 이 구현에 반영하세요.
           </p>

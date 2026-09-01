@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate or stamp the self-contained EZPowers v5.7 project-kit manifest."""
+"""Validate or stamp the self-contained EZPowers v5.8 project-kit manifest."""
 
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ import re
 import subprocess
 
 
-VERSION = "5.7.0"
-MANIFEST = "project-kit/v5.7.0/manifest.json"
+VERSION = "5.8.0"
+MANIFEST = "project-kit/v5.8.0/manifest.json"
 PROJECT_SKILLS = {
     "codebase-design",
     "setup",
@@ -263,7 +263,7 @@ def main() -> int:
         for error in errors:
             print(f"ERROR: {error}")
         return 1
-    print("EZPowers v5.7 project kit manifest valid")
+    print("EZPowers v5.8 project kit manifest valid")
     return 0
 
 

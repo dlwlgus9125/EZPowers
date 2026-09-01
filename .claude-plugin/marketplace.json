@@ -8,8 +8,8 @@
   "plugins": [
     {
       "name": "ezpowers",
-      "description": "Repository documentation, maintained architecture and DESIGN.md systems, evidence-grounded explanations, assurance-traced verification, verified harness chains, and resume support for Claude Code and Codex.",
-      "version": "5.7.1",
+      "description": "Profile-aware software and planning-artifact workflows with repository documentation, assurance-traced verification, verified harness chains, and resume support for Claude Code and Codex.",
+      "version": "5.8.0",
       "source": "./",
       "author": {
         "name": "dlwlgus9125",

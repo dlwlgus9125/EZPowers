@@ -2,15 +2,18 @@
 
 ## Current State
 
-EZPowers v5.7.0 project kit and v5.7.1 packaging-fix plugin are present in the
-working tree on `main`. F23 is complete. F19 is explicitly deferred because
+EZPowers v5.8.0 project kit and plugin are present in the working tree on
+`main`. F24 is complete. F19 is explicitly deferred because
 its semantic dual-host diagnosis probe still needs external access; it is not included in
-the v5.7 completion claim. The candidate preserves the host-native verification
+the v5.8 completion claim. The candidate preserves the host-native verification
 core, documentation graph, local wiki, explicit harness chain, and Plan
 Mode-aware clarification while adding a derived evidence-gated assurance
 graph, compatible plan/config v2 contracts, graph-bound evidence and chain
 approvals, a log-free `trace` surface, and bounded opt-in parallel checks. It
-also retains the
+It now also adds a project-level planning-artifact profile with fail-closed
+config/plan v3, byte-hashed inputs, logical multi-file deliverables,
+project-owned exact validators, and independent per-deliverable artifact
+review while leaving omitted and legacy profiles on the software path. It retains the
 maintainable paired frontend design contract, retaining the context-efficient
 evidence explanation skill, tightening diagnosis around an exact-reproduction
 gate, adding a portable architecture artifact lifecycle, and retaining the
@@ -23,6 +26,17 @@ blocks counted against `total_iterations`):
 - a typed criterion-to-task-to-check-to-evidence-to-review-to-certificate view
   derived from existing authorities, with stable task waves and graph hashes
   but no second executor, agent router, or mutable task state machine;
+- an explicit `software` or `planning` project profile selected at setup and
+  changed only by explicit migration, with legacy v1/v2 projects continuing
+  to mean software and refresh preserving the current choice;
+- planning config/plan v3 contracts that bind named binary inputs, logical
+  deliverable groups, one deliverable per criterion, actual project checks,
+  and direct or project-inspected review sources without a file-format
+  whitelist or built-in Markdown/XLSX validator;
+- planning verification and certification that bind declared bytes even when
+  Git ignores them, reject missing or check-mutated outputs, and require one
+  independent artifact-review PASS per logical deliverable plus conditional
+  QA in an explicitly approved chain;
 - per-check safety declarations, resource and implicit same-check locks,
   unsafe global barriers, complete declaration-order evidence, and required
   project checks after task waves;
@@ -106,21 +120,62 @@ force product rework until a configured limit becomes terminal.
 - `F21`: maintainable paired `DESIGN.md` frontend contract.
 - `F22`: portable architecture artifact lifecycle.
 - `F23`: evidence-gated assurance graph and safe parallel verification.
+- `F24`: planning-artifact project profile and artifact assurance.
 
 ## Deferred Item
 
 - `F19`: exact-reproduction-gated `diagnose`. The skill, contract, metadata,
   deterministic receipts, and opt-in dual-host probe are implemented. Its
   semantic completion remains deferred until an authenticated Claude call and
-  a Codex host can execute the authoritative isolated-fixture command. No v5.7
-  assurance-graph result is presented as evidence for that separate probe.
+  a Codex host can execute the authoritative isolated-fixture command. No v5.8
+  planning-profile result is presented as evidence for that separate probe.
 
-The v5.7 project kit installs thirteen project skills, eleven canonical
+The v5.8 project kit installs thirteen project skills, eleven canonical
 contracts, and three deterministic tools. The plugin exposes fourteen skills,
 including the project skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+v5.8.0 planning-artifact project profile verification on 2026-09-01:
+
+- `python -m unittest discover -s tests`: 198 tests passed in 1094.580
+  seconds. The focused planning-profile module passed all five setup,
+  fail-closed contract, binary/ignored artifact, mutation, and staged-chain
+  scenarios in 83.144 seconds.
+- `python scripts/ezpowers.py validate --plan
+  docs/plans/f24-planning-profile.md --json`: PASS with five dependency waves
+  and assurance graph `70ad1b165f49cbf58a2ca8d45a6763bf291f405b310d1843bc0a17b7b180835d`.
+- Five interleaved, 100-iteration baseline/candidate software measurements
+  produced equivalent validation and inactive-trace JSON: baseline median
+  8.709611 seconds, candidate median 9.048048 seconds, 3.89 percent
+  regression against the five percent limit. A shorter 20-iteration probe
+  had one 7.39 percent outlier; increasing the default sampling budget made
+  the same release command stable without weakening its threshold.
+- Three-run fixture scheduler benchmark: serial median 1.442627 seconds,
+  parallel median 0.394478 seconds, 72.66 percent improvement, identical full
+  output hashes, and every check PASS.
+- Three-run project scheduler benchmark: serial median 2.471742 seconds,
+  parallel median 1.617395 seconds, 34.56 percent improvement, equivalent
+  process outcomes, and every check PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File
+  scripts/check-repo.ps1`: PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File
+  scripts/harness-runtime-smoke.ps1`: PASS for a real v5.8 install, trace,
+  verify, certify, and stale flow.
+- `python scripts/verify-harness-kit.py`: v5.8.0 manifest valid with thirteen
+  project skills, eleven contracts, and three tools.
+- `python scripts/plugin_smoke.py --host both`: file surfaces matched; Claude
+  2.1.238 accepted the plugin and marketplace manifests; Codex 0.152.0 loaded
+  standalone deep-interview plus every project and namespaced plugin skill
+  with matching prompts in isolation.
+- Manual final diff review confirmed that `ProjectProfilePolicy` contains the
+  variation at the normalizer and independent-review seams; the exact-command
+  scheduler, evidence/freshness/certification core, host adapters, catalog
+  counts, and omitted legacy software behavior remain shared. That review also
+  found and restored the existing wiki-refresh PASS payload before release;
+  its real installed CLI regression test and all nine adjacent docs/wiki tests
+  pass.
 
 v5.7.1 checkout-stable distribution repair verification on 2026-08-26:
 

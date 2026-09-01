@@ -1,6 +1,6 @@
 interface:
   display_name: "Prepare Execute"
-  short_description: "Map criteria to dependency-valid tasks and checks"
-  default_prompt: "Use $ezpowers:prepare-execute to map this valid spec into a dependency-valid, assurance-traced plan."
+  short_description: "Map criteria to tasks, checks, and deliverables"
+  default_prompt: "Use $ezpowers:prepare-execute to map this valid spec into a profile-aware, assurance-traced plan."
 policy:
   allow_implicit_invocation: false

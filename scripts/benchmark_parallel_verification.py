@@ -57,7 +57,7 @@ def project_checks(runtime: dict[str, Any]) -> list[dict[str, Any]]:
     config_path = REPO_ROOT / ".ezpowers" / "config.json"
     config = json.loads(config_path.read_text(encoding="utf-8"))
     errors: list[str] = []
-    checks, required, version, _ = runtime["_validate_config_value"](
+    checks, required, version, _, _ = runtime["_validate_config_value"](
         REPO_ROOT,
         config,
         errors,

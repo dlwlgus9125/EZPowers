@@ -3,7 +3,7 @@
 > Claude Code와 Codex가 같은 저장소 증거로 작업의 **완료 여부**를
 > 판단하도록 만드는 프로젝트 로컬 워크플로 플러그인입니다.
 
-**Plugin v5.7.1 · Project kit v5.7.0 · Python 3.10+ · MIT**
+**Plugin v5.8.0 · Project kit v5.8.0 · Python 3.10+ · MIT**
 
 [빠른 시작](#빠른-시작) · [워크플로](#기본-워크플로) ·
 [스킬 목록](#스킬-목록) · [업데이트](#업데이트) ·
@@ -121,7 +121,7 @@ preview/apply/lint 순서로 진행되며, 관리되지 않은 기존 문서는 
 ## 기본 워크플로
 
 ```text
-setup -> documentation preview/apply/lint
+setup (software | planning profile) -> documentation preview/apply/lint
       -> deep-interview       (요청이 모호하거나 중요한 사각지대가 의심될 때)
       -> design-architecture  (기술 경계가 미정일 때)
       -> spec -> prepare-execute -> execute

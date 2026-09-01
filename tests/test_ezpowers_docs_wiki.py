@@ -770,6 +770,29 @@ class DocumentationRuntimeTests(unittest.TestCase):
 
 
 class WikiRuntimeTests(unittest.TestCase):
+    def test_refresh_returns_the_rebuilt_index_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = Project(pathlib.Path(temp_dir))
+            installed = project.install()
+            self.assertEqual(0, installed.returncode, installed.stdout + installed.stderr)
+
+            refreshed = run_cli(
+                project.runtime,
+                "wiki",
+                "refresh",
+                "--json",
+                cwd=project.root,
+            )
+            self.assertEqual(0, refreshed.returncode, refreshed.stdout + refreshed.stderr)
+            self.assertEqual(
+                {
+                    "status": "PASS",
+                    "page_count": 0,
+                    "index": ".ezpowers/wiki/index.md",
+                },
+                json.loads(refreshed.stdout),
+            )
+
     def test_cjk_query_promotion_and_backup_first_prune(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             project = Project(pathlib.Path(temp_dir))

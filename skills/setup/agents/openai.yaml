@@ -1,6 +1,6 @@
 interface:
   display_name: "Setup"
-  short_description: "Install workflow, checks, and repository docs"
-  default_prompt: "Use $ezpowers:setup to install or refresh EZPowers and its repository documentation."
+  short_description: "Select a profile and install checks and repository docs"
+  default_prompt: "Use $ezpowers:setup to select the software or planning profile and install or refresh EZPowers."
 policy:
   allow_implicit_invocation: false

@@ -11,7 +11,7 @@ import unittest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 VERIFIER_PATH = REPO_ROOT / "scripts" / "verify-harness-kit.py"
-MANIFEST_PATH = REPO_ROOT / "project-kit" / "v5.7.0" / "manifest.json"
+MANIFEST_PATH = REPO_ROOT / "project-kit" / "v5.8.0" / "manifest.json"
 
 
 def load_verifier():
@@ -30,13 +30,13 @@ def write_runtime_manifest(root: pathlib.Path, source_bytes: bytes) -> pathlib.P
     source = root / "scripts" / "ezpowers.py"
     source.parent.mkdir(parents=True)
     source.write_bytes(source_bytes)
-    manifest_path = root / "project-kit" / "v5.7.0" / "manifest.json"
+    manifest_path = root / "project-kit" / "v5.8.0" / "manifest.json"
     manifest_path.parent.mkdir(parents=True)
     manifest_path.write_text(
         json.dumps(
             {
                 "schema_version": 1,
-                "version": "5.7.0",
+                "version": "5.8.0",
                 "no_synthesis": True,
                 "runtime": {
                     "source": "scripts/ezpowers.py",

@@ -1,6 +1,6 @@
 # Setup Contract
 
-This contract defines installation of the self-contained v5.7 project kit.
+This contract defines installation of the self-contained v5.8 project kit.
 `setup` configures deterministic project checks and may stage the
 repository-aware documentation workflow defined by
 `documentation-contract.md`; it does not configure an external executor or
@@ -37,8 +37,15 @@ those files untouched.
 For a new project:
 
 ```text
-python <plugin-root>/scripts/ezpowers.py install --project-root <project>
+python <plugin-root>/scripts/ezpowers.py install --project-root <project> --project-profile <software|planning>
 ```
+
+Setup chooses a project-level product profile. `software` is for repositories
+whose declared product is executable software. `planning` is for repositories
+whose declared product is one or more planning artifacts, including arbitrary
+binary or text formats; validator scripts may still live beside those
+artifacts. The choice is not inferred from file extensions. Omitting the flag
+retains legacy software behavior for compatibility.
 
 For an installed project upgraded from the current plugin distribution:
 
@@ -56,6 +63,17 @@ For a same-version repair from the installed kit:
 ```text
 python .ezpowers/ezpowers.py install --project-root <project> --refresh
 ```
+
+An existing project changes profile only through an explicit invocation:
+
+```text
+python .ezpowers/ezpowers.py install --project-root <project> --project-profile <software|planning>
+```
+
+Profile switching does not require or imply `--refresh`. An actual switch
+preserves checks and unknown user fields, clears evidence/certificate pointers,
+and moves a nonterminal harness chain to `NEEDS_REAPPROVAL`. Omitted installs
+and refreshes preserve the current profile.
 
 Add `--enable-hooks claude`, `codex`, or `both` only after the user explicitly
 requests project completion hooks. Add `--enable-wiki-hooks claude`, `codex`,
@@ -123,9 +141,9 @@ missing skill, contract, runtime, or tool from prompt text.
 Unknown fields in user-owned configuration are preserved. Refresh is repair,
 not authority to overwrite a customized managed file.
 
-## Config Schema
+## Config Schema And Project Profile
 
-New `.ezpowers/config.json` files use schema version 2:
+New software `.ezpowers/config.json` files retain schema version 2:
 
 ```json
 {
@@ -149,12 +167,32 @@ New `.ezpowers/config.json` files use schema version 2:
 ```
 
 `verification.max_parallel_checks` is an integer from 1 through 32. Check
-concurrency is an explicit v2 contract governed by `plan-contract.md` and
+concurrency is an explicit v2/v3 contract governed by `plan-contract.md` and
 `verification-contract.md`; missing or false safety is a global barrier.
 Existing schema-v1 config is still valid, is never rewritten by refresh, and
 always executes serially. Moving an existing project to v2 is a deliberate
 configuration edit with project-specific safety evidence, not an installer
 migration.
+
+Planning configuration uses fail-closed schema version 3:
+
+```json
+{
+  "schema_version": 3,
+  "project_name": "planning-example",
+  "project_profile": "planning",
+  "verification": {"max_parallel_checks": 4},
+  "checks": {},
+  "required_checks": []
+}
+```
+
+Schema v3 requires `project_profile` to be exactly `software` or `planning`.
+Config v1/v2 has implicit `software` behavior and rejects that field. Planning
+requires plan schema v3; software accepts only plan v1/v2 even when an
+explicitly migrated software config remains at config v3. This version split
+makes older runtimes reject planning contracts instead of silently treating
+them as software.
 
 Check IDs are 1-64 characters, start with a letter, and contain only letters,
 digits, `.`, `_`, or `-`. `argv` is a non-empty string array executed without

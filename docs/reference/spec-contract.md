@@ -2,7 +2,7 @@
 
 This contract defines the host-independent feature acceptance artifact. A spec
 states observable claims; it does not choose an execution host, assign agents,
-or embed commands. Spec schema remains version 1 in v5.7; the assurance graph
+or embed commands. Spec schema remains version 1 in v5.8; the assurance graph
 is derived later from this criterion set plus the selected plan and config.
 
 ## Preflight
@@ -101,6 +101,12 @@ Include negative criteria when rejection or failure behavior is part of the
 requirement. Do not put shell commands or host execution policy in the block.
 `prepare-execute` binds criteria to exact project checks without weakening the
 claims.
+
+For a planning-profile project, criteria describe observable artifact or
+business outcomes without embedding a Markdown, spreadsheet, or other format
+parser. The plan must later map each criterion both to an executable
+project-owned check and exactly one logical deliverable. The spec does not
+choose direct versus inspected review or enumerate input/output paths.
 
 ## Frontend Criteria
 

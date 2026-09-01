@@ -1,6 +1,19 @@
 # EZPowers Roadmap
 
-## Current: v5.7.0 core / v5.7.1 plugin
+## Current: v5.8.0 core and plugin
+
+- Select one project-level `software` or `planning` profile at setup and allow
+  only explicit later migration without coupling profile changes to refresh.
+- Preserve config/plan v1/v2 software behavior while making planning config/
+  plan v3 fail closed on older or mismatched runtimes.
+- Bind arbitrary binary/text inputs, multi-file logical deliverables, exact
+  criterion/check coverage, and direct or project-inspected review sources.
+- Hash declared inputs and outputs independently of Git ignore state and reject
+  missing, symlinked, or verification-mutated artifacts.
+- Require per-deliverable `artifact-review` for planning chains while retaining
+  `code-review` for software and conditional adversarial QA for both.
+- Preserve software validation/trace outputs and hold median regression to at
+  most 5% across five interleaved baseline/candidate runs.
 
 - Derive one typed criterion-to-task-to-check-to-evidence-to-review-to-
   certificate assurance graph from existing authorities; do not create a
@@ -67,14 +80,14 @@
   second architecture state machine.
 - Keep one exact catalog: fourteen plugin skills, thirteen project skills, and
   separate namespaced versus project-local Codex prompt metadata.
-- Upgrade existing pre-v5.7 installations only through explicit
+- Upgrade existing pre-v5.8 installations only through explicit
   `setup --refresh`;
   preserve customized managed files and fail atomically on conflicts.
 
 ## Later, only with demonstrated demand
 
 - Complete F19's authenticated live Claude and sandbox-capable Codex diagnose
-  probes when both external host environments are available; v5.7 does not
+  probes when both external host environments are available; v5.8 does not
   claim those deferred probes.
 
 - Real visual-baseline generation and visual-diff execution behind the current
@@ -90,5 +103,5 @@
 Model routing, bundled reviewer fleets, generic host-independent retries,
 host-independent implementation task graphs, phase conversion, and an
 external executor are not roadmap items; supported hosts already own those
-execution concerns. The v5.7 assurance graph is a derived verification view,
-not an exception to that boundary.
+execution concerns. The profile-aware assurance graph is a derived
+verification view, not an exception to that boundary.

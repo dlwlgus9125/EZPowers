@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-08-25T04:35:18Z",
+  "updated_at": "2026-09-01T08:01:34Z",
   "features": [
     {
       "id": "F11",
@@ -329,6 +329,38 @@
         "tests/test_harness_chain.py",
         "tests/test_repo_check.py",
         "project-kit/v5.7.0/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
+      ]
+    },
+    {
+      "id": "F24",
+      "title": "Planning-artifact project profile",
+      "status": "complete",
+      "success_criteria": [
+        "Existing software config and plan v1/v2 behavior, graph hashes, code-review gates, check order, evidence, and public validation results remain compatible",
+        "Setup explicitly selects or migrates a project-level software or planning profile, preserves it on refresh, and invalidates stale completion and active-chain approval on change",
+        "Planning config and plan v3 fail closed and model byte-hashed inputs, logical multi-file deliverables, exact criterion coverage, and direct or inspected review sources without a format whitelist",
+        "Planning verification binds every declared input and output byte hash, including Git-ignored files, while project-owned exact checks reject missing or mutated deliverables",
+        "Planning trace, evidence, certificates, approvals, freshness, and assurance nodes bind the profile, artifacts, commands, and inspection logs without weakening tamper rules",
+        "The explicit planning harness chain freezes binary inputs and certifies only after every logical deliverable receives a bound artifact-review PASS plus conditional QA",
+        "A failed artifact review requires byte changes in every failed logical deliverable and a fresh all-scope PASS before review can repeat",
+        "The v5.8 contracts, skills, guide, manifests, product state, project kit, and Claude and Codex discovery surfaces expose the same profile behavior without new validators, executors, or catalog entries",
+        "Five interleaved baseline and candidate runs preserve equivalent software outputs within five percent median regression while both scheduler benchmarks retain at least thirty percent improvement"
+      ],
+      "evidence": [
+        "docs/specs/f24-planning-profile.md",
+        "docs/plans/f24-planning-profile.md",
+        "docs/decisions/0008-project-profile-artifact-assurance.md",
+        "docs/reference/architecture.md",
+        "docs/reference/plan-contract.md",
+        "docs/reference/verification-contract.md",
+        "docs/reference/harness-chain-contract.md",
+        "scripts/ezpowers.py",
+        "scripts/benchmark_software_profile.py",
+        "tests/test_planning_profile.py",
+        "tests/test_harness_chain.py",
+        "project-kit/v5.8.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]

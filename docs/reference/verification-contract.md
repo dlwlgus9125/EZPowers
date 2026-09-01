@@ -48,6 +48,13 @@ target. Switching plans invalidates all evidence and certificate pointers but
 does not delete their immutable files; activating the already-active plan does
 not rewrite state. `verify` also activates the plan it actually runs.
 
+Project-profile validation is fail-closed. Config v1/v2 implies `software` and
+accepts only plan v1/v2. Config v3 requires an explicit `software` or
+`planning` profile; planning accepts only plan v3, while explicit software
+continues to accept only v1/v2. Planning validation additionally checks safe
+byte inputs, logical deliverables, exact input/criterion mappings, disjoint
+paths, and direct or inspected review sources.
+
 Validation is fail-closed. Missing files, duplicate markers or IDs, malformed
 JSON, unknown references, path traversal, invalid timeouts, check collisions,
 unmapped criteria, no-op commands, shell control syntax, PowerShell encoded or
@@ -82,11 +89,12 @@ text or an implementer report.
 
 ### Versioned safe concurrency
 
-Config schema v2 requires `verification.max_parallel_checks` from 1 through
-32. Check concurrency is opt-in on each plan/config-v2 check. A safe check
-holds its declared `resource_locks` plus an implicit lock derived from the
-check ID. Checks in the same ready task wave may overlap only when every check
-is safe, their locks are disjoint, and the worker cap is not exceeded. An
+Config schema v2 or v3 requires `verification.max_parallel_checks` from 1
+through 32. Check concurrency is opt-in on each plan/config schema-v2/v3
+check. A safe check holds its declared `resource_locks` plus an implicit lock
+derived from the check ID. Checks in the same ready task wave may overlap only
+when every check is safe, their locks are disjoint, and the worker cap is not
+exceeded. An
 unmarked or `safe: false` check is a global barrier. Plan or config v1 forces a
 worker cap of one regardless of other input.
 
@@ -126,6 +134,14 @@ fingerprint. Generated build or test output should be reproducibly cleaned,
 ignored by Git, or placed in already ignored paths. A workspace, plan, or
 config change during verification fails the run.
 
+For the planning profile, every declared input and deliverable output must be
+an existing regular non-symlink file before any check starts. The runtime
+captures their bytes before and after the run and rejects a missing file,
+changed path inventory, or any input/output byte mutation even when Git ignores
+the path. Planning checks are therefore read-only validators; they do not
+generate or normalize the deliverable during `verify`. The same exact-command
+rules apply to Markdown, XLSX, and every other format without a built-in parser.
+
 ## Evidence Record
 
 Each run creates an immutable candidate directory under:
@@ -148,6 +164,13 @@ worker cap. Repeated references to one named check remain distinct
 occurrences with distinct logs while the implicit same-check lock prevents
 overlap. Plan-v1 evidence remains schema v1 and retains the existing serial
 shape.
+
+Planning plan-v3 results use evidence schema v3 and assurance-graph schema v2.
+The graph adds typed input and logical-deliverable nodes plus their criterion,
+producer, inspection, input, and artifact-review relations. The result records
+`project_profile: planning`, the complete before/after input and output path/
+SHA-256 inventory, and one aggregate artifact-inventory hash. These fields are
+part of the evidence bytes and do not replace real check results or logs.
 
 For a matching chain run, the result additionally binds the chain run ID,
 approval path and SHA-256, and chain configuration SHA-256. That binding is
@@ -186,6 +209,9 @@ An all-scope result is fresh only when all of these hold:
   graph derived from the current plan/config, every occurrence ID is exact,
   and execution waves obey task waves, phase order, locks, barriers, and the
   worker cap;
+- for planning plan v3, the current profile and graph-v2 hash agree, every
+  declared input/output byte hash equals the evidence inventory, and recorded
+  artifact before/after inventories are identical;
 - plan and spec paths and current SHA-256 values agree;
 - current config SHA-256 agrees;
 - the current installed manifest, ledger, runtime, and managed files agree with
@@ -226,15 +252,18 @@ python .ezpowers/ezpowers.py status --json
 evidence and stores its pointer. The certificate binds the plan, config, spec,
 installed-kit identity, workspace, canonical evidence path, and evidence
 SHA-256. A plan-v2 certificate uses schema v2 and also binds the assurance
-graph SHA-256. The selected plan must already be active through explicit activation
+graph SHA-256. A planning certificate uses schema v3 and additionally binds
+the planning profile and full artifact inventory. The selected plan must already be active through explicit activation
 or verification; certification never changes the resume target or clears a
 different plan's pointers. Its state pointer must resolve to the canonical `certificate.json`
 next to that exact evidence result and match the certificate hash. It never
 executes missing checks or upgrades a stale result.
 
-For a matching RUNNING chain, certification additionally requires a bound
-independent `code-review` PASS receipt for the exact evidence hash and a bound
-`adversarial-qa` PASS receipt when the approved risks or triggers require it.
+For a matching RUNNING chain, certification additionally requires the
+profile's bound primary-review PASS receipt for the exact evidence hash:
+`code-review` for software or per-deliverable `artifact-review` for planning.
+It also requires a bound `adversarial-qa` PASS receipt when the approved risks
+or triggers require it.
 Those receipt pointers and the chain binding are written into the certificate.
 Success changes chain state to `CERTIFIED`. Missing review cannot be replaced
 by implementer prose; a terminal chain cannot be certified by another attempt.

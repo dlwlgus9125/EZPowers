@@ -1,6 +1,6 @@
 ---
 name: harness-chain
-description: Use only when the user explicitly asks to configure or run the project-local EZPowers harness chain for unattended, evidence-gated feature work. Not for ordinary execute runs, generic planning, or silently adding orchestration to a project.
+description: Use only when the user explicitly asks to configure or run the project-local EZPowers harness chain for unattended, evidence-gated software or planning-deliverable work. Not for ordinary execute runs, generic planning, or silently adding orchestration to a project.
 disable-model-invocation: true
 ---
 
@@ -16,6 +16,8 @@ Read `AGENTS.md`, current Git state, `.ezpowers/config.json`, and
 `.ezpowers/contracts/harness-chain-contract.md` first. Read
 `.ezpowers/contracts/engineering-practices-contract.md` before diagnosing a
 product failure or changing a product-code boundary. Preserve user changes.
+Read the configured `project_profile` before staging a feature; it determines
+the plan/bundle schema and mandatory independent-review gate.
 Never install a plugin, change global host configuration, select reviewer
 models, invent an external executor, or add a second task/phase state machine.
 
@@ -119,7 +121,8 @@ Create settled spec and plan data using their installed contracts. Create at
 least one acceptance-oracle file. Each criterion must map exactly once to an
 oracle that names:
 
-- an observable runtime boundary;
+- an observable runtime boundary for software, or project-check/artifact-
+  inspection boundary for planning deliverables;
 - a positive and negative case;
 - the exact plan checks that exercise it;
 - whether the current implementation is expected to `fail` or `pass`.
@@ -127,7 +130,9 @@ oracle that names:
 Do not use source presence, test names, model assertions, self-mocks, or
 prose-only checks as acceptance proof.
 
-New staged plans use schema v2 with explicit `depends_on`. Concurrency remains
+New staged software plans use schema v2; planning-profile plans use schema v3
+with byte inputs, logical deliverables, and direct/inspected review sources.
+Both use explicit `depends_on`. Concurrency remains
 per-check opt-in: the baseline and later verification may overlap a check only
 when its independence and resource locks are already justified. The preview
 shows the derived assurance-graph hash, and the approval freezes it; this graph
@@ -169,6 +174,13 @@ Place the spec, plan, oracle files, and `bundle.json` under one
   ]
 }
 ```
+
+The example above is the software bundle schema v1. A planning run uses bundle
+schema v2 and adds `"project_profile": "planning"`. Its binary or text
+`plan.inputs` remain in the project and are hashed directly; do not copy them
+into the staged UTF-8 `files` array. Planning outputs are explicit
+`plan.deliverables` paths and remain mutable until verification. The preview
+must show the frozen input inventory and logical deliverable contract.
 
 Feature `limit_overrides` may lower, never raise, project limits.
 The architecture role contains one or more safe Markdown artifacts exactly
@@ -223,6 +235,8 @@ When preview is `READY`, show the user:
 - baseline result, risks, QA requirement, and hard limits;
 - preview hash and any forced replacement/backup requirement;
 - assurance-graph hash and topological task waves;
+- selected project profile and, for planning, frozen inputs, deliverable
+  groups, and direct/inspected review sources;
 - that approval starts an unattended loop until `CERTIFIED`,
   `NEEDS_REAPPROVAL`, `BLOCKED`, or `FAILED`.
 
@@ -255,9 +269,10 @@ missing capability.
 
 ### 5. Implement until the runtime verdict
 
-Edit product code with host-native tools. The approved spec, plan, oracle,
+Edit the declared product with host-native tools. The approved spec, plan, oracle,
 applicable architecture and frontend/DESIGN.md files, project checks, chain
-config, assurance graph, and approval are frozen. If any changes, stop normal work at
+config, assurance graph, approval, and planning inputs are frozen. Planning
+deliverable outputs are the mutable product. If frozen material changes, stop normal work at
 `NEEDS_REAPPROVAL`; do not
 repair hashes or silently thaw it.
 
@@ -285,11 +300,24 @@ the rework requirement, and a failing task-scoped run still spends the same
 validation and identical-failure budget as an all-scope failure; read the
 recorded logs before replaying a failing check.
 
-After a fresh PASS, run an independent code review bound to that evidence:
+After a fresh PASS, run the profile's independent review bound to that
+evidence. Software uses:
 
 ```text
 python .ezpowers/ezpowers.py chain gate begin --kind code-review --subject-sha256 <evidence-sha256> --json
 ```
+
+Planning uses:
+
+```text
+python .ezpowers/ezpowers.py chain gate begin --kind artifact-review --subject-sha256 <evidence-sha256> --json
+```
+
+The injected planning rubric lists every deliverable and its allowed direct
+artifact or inspection-log source IDs. The bound reviewer must return one
+schema-v2 result per deliverable. A failed artifact review requires an actual
+byte change in every failed logical group plus a new all-scope PASS; changing
+only an unrelated source or one of several failed groups is insufficient.
 
 If the approved risks require QA, likewise run:
 
@@ -314,7 +342,7 @@ Stop only at a runtime terminal verdict. `CERTIFIED` is success. Report the
 approval, evidence, review receipt, QA receipt when required, certificate
 hashes, command exits, changes, and remaining limitations.
 
-After an explicit v5.7 refresh, a nonterminal legacy approval without an
+After an explicit v5.8 refresh, a nonterminal legacy approval without an
 assurance-graph hash is intentionally terminal at `NEEDS_REAPPROVAL`. Start a
 new preview, oracle audit, and approval; never synthesize the missing binding.
 

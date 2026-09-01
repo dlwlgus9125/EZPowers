@@ -17,6 +17,10 @@ Read repository instructions, the selected spec and plan, architecture and
 frontend-design artifacts, every `DESIGN.md` named by the spec's
 `design_context`, current Git state, `.ezpowers/config.json`, and
 `.ezpowers/contracts/verification-contract.md`.
+When the config selects the planning profile, also read the plan's declared
+inputs, logical deliverables, and direct/inspected review sources. Treat input
+bytes as immutable acceptance material and output paths as the product to
+create or revise.
 Read `.ezpowers/contracts/engineering-practices-contract.md` before diagnosing
 a nontrivial failure or implementing a planned product-code boundary change.
 When `.ezpowers/docs.json` exists, read the registered documentation graph and
@@ -56,6 +60,10 @@ feedback, not completion evidence; only a full `verify --all` run can become
 the certification candidate. Plan-v2 verification may overlap only checks
 whose own contract is explicitly safe and lock-compatible; do not add a safety
 declaration merely to accelerate the current run.
+Planning validators are likewise read-only during verification: produce the
+deliverable before `verify`, and never let a check rewrite, normalize, or
+repair declared input/output bytes. Git-ignored deliverables are still bound
+by their own SHA-256 inventory.
 
 ## Verify and certify
 
