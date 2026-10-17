@@ -10,8 +10,18 @@ honest seam.
 
 ## Load and scope
 
-Read `.ezpowers/contracts/engineering-practices-contract.md` when installed, or
-the same contract under the EZPowers plugin's `docs/reference/` directory.
+Resolve `engineering-practices-contract.md` from `.ezpowers/contracts/` when
+installed, or the EZPowers plugin's `docs/reference/` directory. Locate its
+level-two headings first, then read only these sections, each up to the next
+level-two heading:
+
+- **Shared authority boundary**
+- **Invocation and role separation**
+- **Deep-module design**
+
+Read each selected section as a separate range so intervening sections stay
+out of context.
+
 Read repository instructions, current Git state, the affected callers and
 tests, `CONTEXT.md` when present, and applicable ADRs.
 

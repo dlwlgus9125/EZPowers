@@ -96,7 +96,7 @@
         {
           "source": "skills/codebase-design/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "36e593abc9614e1943b79fb2a45b55fbc14482b564cf40f13535bdbe972d0a07"
+          "sha256": "ecd5a59c610175805474127e09a652423541272c131f1ea1556718517eafcef3"
         },
         {
           "source": "skills/codebase-design/agents/project-openai.yaml",

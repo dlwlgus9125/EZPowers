@@ -2,7 +2,7 @@
 
 ## Current State
 
-EZPowers v5.8.0 project kit and plugin are present in the working tree on
+EZPowers v5.8.1 plugin and v5.8.0 project kit are present in the working tree on
 `main`. F24 is complete. F19 is explicitly deferred because
 its semantic dual-host diagnosis probe still needs external access; it is not included in
 the v5.8 completion claim. The candidate preserves the host-native verification
@@ -136,6 +136,62 @@ including the project skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+v5.8.1 plugin release validation on 2026-10-17:
+
+- Claude plugin and marketplace versions are `5.8.1`; Codex is
+  `5.8.1+codex.20261017061321`, so the published skill change has a new cache
+  identity on both hosts. The project kit remains `5.8.0` with the updated
+  `codebase-design` hash. Architecture impact: none.
+- The 198-test pass below covers the skill change. After the release metadata
+  update, `python -m unittest tests.test_codex_plugin_discovery
+  tests.test_v5_workflow_surface` passed all 22 tests in 9.426 seconds.
+- Repository checks, kit hash validation, real install/trace/verify/certify/
+  stale smoke, and isolated discovery on Claude 2.1.289 and Codex 0.162.1
+  passed again for the new plugin versions.
+- Three-run scheduler measurements passed: fixture median 1.395513 seconds
+  serial versus 0.376104 parallel (73.05 percent improvement, identical
+  output hashes); project median 2.273007 versus 1.431833 (37.01 percent
+  improvement, equivalent process outcomes). Every check passed.
+- Five interleaved, 100-iteration software compatibility runs against
+  `08f9f84d24c59ec130dd6b3bf26555503910cbab` produced equivalent validation
+  and trace JSON. Baseline median was 8.048207 seconds; candidate median was
+  7.984559 seconds, a -0.79 percent regression against the 5 percent limit.
+- Existing update commands in `README.md` apply. Installed project copies
+  still require explicit setup refresh. The behavioral limitations below
+  remain unchanged; discovery success does not establish Codex model behavior.
+
+Focused codebase-design reference loading on 2026-10-17:
+
+- `codebase-design` now locates contract headings and reads only the shared
+  authority, invocation/role, and deep-module sections, using separate ranges
+  across intervening sections. Installed-project and plugin fallback paths
+  remain supported. Architecture impact: none; runtime, public interfaces,
+  report schema, authority boundaries, catalog, and version are unchanged.
+- In isolated Claude 2.1.289 runs with the same Order intake request, the
+  original skill read the full 1,503-word engineering contract. The final
+  candidate read its heading inventory and only lines 60-92 and 138-154:
+  301 words of contract sections, excluding diagnosis and report bodies.
+  Both responses compared three interface options, preserved entry-point
+  compatibility, and discussed migration and surviving tests without edits.
+  This is a sampled behavior check, not a latency or total-token benchmark.
+- Three unchanged architecture-scan baselines respected an accepted ADR with
+  no new evidence (zero candidates), surfaced concrete policy drift with its
+  ADR tradeoff and smaller fix (one temporary report), and returned zero
+  candidates for an already-deepened scope. No ADR-filter rule was added.
+- Codex 0.162.1's isolated behavioral run rejected read-only `Get-Content`
+  commands before fixture inspection. Its zero process exit is not a semantic
+  PASS; Codex behavior remains unverified. This does not close deferred F19.
+- All six retained baseline/final fixture runs preserved their Git status.
+  Temporary transcripts and `evaluation-summary.json` are under
+  `%TEMP%/ezpowers-skill-check-o_357w37/`; the summary SHA-256 is
+  `3f94eade58f3e1766a7339a2350f250874b8f69d707dde2fa028a2231a9a1284`.
+- Skill validation and `python scripts/verify-harness-kit.py` passed with the
+  updated skill hash. Runtime smoke passed the real v5.8 install, trace,
+  verify, certify, and stale flow. Plugin smoke passed both file surfaces,
+  Claude 2.1.289 manifest validation, and Codex 0.162.1 isolated discovery.
+- `python -m unittest discover -s tests`: 198 tests passed in 900.073 seconds
+  with exit code 0. The PowerShell repository gate passed too.
 
 v5.8.0 planning-artifact project profile verification on 2026-09-01:
 
