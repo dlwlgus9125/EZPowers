@@ -77,11 +77,22 @@ each question and before stopping, it checks both stated gaps and
 context-specific blind spots; only plausible candidates that could materially
 change the request become questions. The shared contract is one consequential
 question per turn and a confirmed request in the current conversation, not
-identical question UI capabilities. In an already active Plan Mode, its final
-confirmation resumes that same host-native planning process. The confirmed
-request is the source of truth for clarified user intent, so planning does not
-repeat settled product questions. This continuation invokes no other skill,
-creates no project artifact, and authorizes no implementation.
+identical question UI capabilities. Its final question offers confirm and
+proceed, correct, or confirm and finish with the summary. Ordinary-mode proceed
+ends the interview and resumes the host's work on the clarified request,
+including implementation and verification when requested. In Plan Mode, that
+choice is explicitly confirm and continue planning; it authorizes no
+implementation, even if the mode later changes. The confirmed request remains
+the source of truth, with no repeated product questions or second continuation
+approval. The interview writes no files and dispatches no companion workflow;
+subsequent approved work follows the host's project instructions and permissions.
+
+Use only a question surface callable in the current mode, with the same choices
+in plain text as the fallback. Do not switch modes merely to obtain a question
+UI. Wait for a submitted answer, including with asynchronous tools; preselection,
+silence, and agreement with the wording alone do not authorize execution.
+Correction returns to clarification, while summary-only and stop requests end
+without work.
 
 ## Project Installation
 

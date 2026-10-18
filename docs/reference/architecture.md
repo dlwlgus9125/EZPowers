@@ -119,13 +119,25 @@ explicit harness-chain
   -> certify or terminal verdict
 ```
 
-`deep-interview` remains session-only. It checks stated gaps and performs a
-context-specific internal blind-spot pass, exposing only plausible candidates
-that could materially change the request. When invoked inside an already
-active Plan Mode, explicit confirmation returns the clarified intent to that
-same host mode so planning can finish without a second command. It does not
-invoke `design-architecture`, `spec`, or an execution workflow, and it grants
-no implementation authority.
+`deep-interview` keeps clarification in the current conversation. It checks
+stated gaps and performs a context-specific internal blind-spot pass, exposing
+only plausible candidates that could materially change the request. Its final
+question combines request confirmation with a choice to proceed, correct, or
+finish with the summary. In ordinary mode, choosing to proceed ends the
+interview and authorizes the host to carry out the clarified request, including
+implementation and verification when requested. In Plan Mode, the proceed
+choice explicitly continues planning only; it never becomes implementation
+approval if the mode later changes. The host resumes without another command
+or continuation question and without repeating settled product decisions.
+
+The interview itself writes no artifact and dispatches no downstream workflow.
+After an ordinary-mode proceed choice, the host owns the work under its normal
+project instructions and permissions; the skill does not require a companion
+workflow or introduce an executor, approval record, or runtime state. Correction
+returns to clarification, and summary-only or early-stop requests end without
+execution. Both hosts use a callable native question surface or the same
+choices in plain text; preselection, silence, and agreement with the wording
+alone do not authorize work.
 
 `explain-with-evidence` is an implicit presentation discipline around
 user-facing explanations and result reports. It infers language from the

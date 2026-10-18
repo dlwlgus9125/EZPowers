@@ -1,6 +1,6 @@
 {
   "name": "ezpowers",
-  "version": "5.8.1+codex.20261017061321",
+  "version": "5.8.2+codex.20261018014830",
   "description": "Profile-aware software and planning-artifact workflows with repository documentation, assurance-traced verification, verified harness chains, and resume support for Claude Code and Codex.",
   "author": {
     "name": "dlwlgus9125",
@@ -49,7 +49,7 @@
     "termsOfServiceURL": "https://github.com/dlwlgus9125/EZPowers/blob/main/TERMS.md",
     "defaultPrompt": [
       "$ezpowers:setup Select the software or planning profile and install the project-local EZPowers workflow and verification kit.",
-      "$ezpowers:deep-interview Clarify this request, surface consequential blind spots, and, if Plan Mode is already active, continue planning after confirmation.",
+      "$ezpowers:deep-interview Clarify this request and surface consequential blind spots; offer to proceed, correct, or finish with the summary. If I choose to proceed, carry out the request in ordinary mode or continue planning in Plan Mode.",
       "$ezpowers:harness-chain Configure or run this project's approved verified harness chain."
     ],
     "brandColor": "#2563EB"

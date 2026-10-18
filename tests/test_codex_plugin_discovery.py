@@ -43,9 +43,9 @@ class PluginDiscoveryTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual("5.8.1", claude["version"])
-        self.assertEqual("5.8.1", marketplace["plugins"][0]["version"])
-        self.assertRegex(codex["version"], r"^5\.8\.1\+codex\.[0-9]{14}$")
+        self.assertEqual("5.8.2", claude["version"])
+        self.assertEqual("5.8.2", marketplace["plugins"][0]["version"])
+        self.assertRegex(codex["version"], r"^5\.8\.2\+codex\.[0-9]{14}$")
         self.assertEqual(1, codex["version"].count("+codex."))
         self.assertEqual("ezpowers-dev", codex_marketplace["name"])
         self.assertEqual("ezpowers", codex_marketplace["plugins"][0]["name"])
@@ -83,7 +83,10 @@ class PluginDiscoveryTests(unittest.TestCase):
             prompt for prompt in prompts if "$ezpowers:deep-interview" in prompt
         )
         self.assertIn("Plan Mode", deep_interview_prompt)
-        self.assertIn("continue planning after confirmation", deep_interview_prompt)
+        self.assertIn("continue planning in Plan Mode", deep_interview_prompt)
+        self.assertIn("If I choose to proceed", deep_interview_prompt)
+        self.assertIn("ordinary mode", deep_interview_prompt)
+        self.assertIn("proceed, correct, or finish with the summary", deep_interview_prompt)
         self.assertIn("consequential blind spots", deep_interview_prompt)
 
     def test_smoke_cli_validates_both_hosts_without_installing(self):

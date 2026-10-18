@@ -41,9 +41,12 @@ Roles are intentionally narrow:
 
 - `deep-interview`: session-only clarification that resolves stated ambiguity
   and plausible consequential blind spots before rewriting the request; it
-  does not review artifacts, write files, or invoke another workflow. After
-  explicit confirmation, an already active Plan Mode resumes host-native
-  planning without granting implementation authority.
+  does not review artifacts, write files during the interview, or dispatch
+  another workflow. Its final choice confirms and proceeds, corrects, or ends
+  with the summary. Ordinary-mode proceed authorizes the host to perform the
+  clarified request; Plan Mode proceed continues planning only. Neither needs
+  another continuation question, and planning confirmation never becomes
+  implementation approval when the mode changes.
 - `explain-with-evidence`: implicit presentation guidance for user-facing
   explanations and result reports. It matches the user's active conversational
   language, omits unsupported narrative stages, and never reshapes fixed

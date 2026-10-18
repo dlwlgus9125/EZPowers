@@ -27,9 +27,9 @@ repository a software-profile project.
 
 A user can install EZPowers into a project, bootstrap a repository-evidenced
 Markdown graph, optionally retain allowlisted local session knowledge, clarify
-vague intent, continue an already active host-native Plan Mode from the
-confirmed request, write confirmed intent as traceable acceptance criteria,
-map those criteria to real project checks, implement with either supported
+vague intent, choose to perform the confirmed request or continue an already
+active host-native Plan Mode, write confirmed intent as traceable acceptance
+criteria, map those criteria to real project checks, implement with either supported
 host, and receive the same pass/fail completion verdict from repository
 evidence. A new session can navigate project authority and determine what is
 fresh without trusting conversation memory. User-facing explanations and
@@ -114,9 +114,13 @@ dependencies never assign implementation work or select an agent.
   the latest substantive user message, omit unsupported narrative stages, and
   preserve fixed schemas and exact completion states.
 - `deep-interview` always performs an internal, context-specific blind-spot
-  pass but asks only about plausible consequential candidates, then a
-  confirmed request resumes an already active Plan Mode without invoking
-  another workflow, writing an artifact, or authorizing implementation.
+  pass but asks only about plausible consequential candidates, then offers
+  confirm and proceed, correct, or confirm and finish with the summary.
+  Ordinary-mode proceed resumes host work on the confirmed request through
+  relevant verification; Plan Mode proceed continues planning only. The
+  interview neither writes artifacts nor dispatches another workflow, and neither
+  continuation requires a second command or approval. Planning confirmation,
+  silence, and content agreement alone do not authorize implementation.
 - Every diagnosis observes the user's exact symptom red and minimises it
   before hypotheses, root-cause claims, or product-behavior edits. If exact
   red is unavailable, the host requests the specific missing access, capture,

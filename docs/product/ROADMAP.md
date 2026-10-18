@@ -56,9 +56,10 @@
   tool into a unique temporary offline HTML report.
 - Enforce Claude Code 2.1.217 and Codex CLI 0.145.0 before host-specific
   project hook writes, and treat all pre-v5 workflow input as retired.
-- Resume an already active Plan Mode after a user confirms the
-  `deep-interview` request, while preserving its session-only, no-artifact,
-  no-implementation boundary everywhere else.
+- End `deep-interview` with a single choice to confirm and proceed, correct,
+  or confirm and finish with the summary. Ordinary-mode proceed resumes host
+  work through relevant verification; Plan Mode proceed continues planning
+  only. Clarification remains in the conversation without artifact creation.
 - Make `deep-interview` distinguish stated ambiguity from plausible
   consequential blind spots, challenge framing only when material, and avoid
   ritual questions for requests that are already settled.

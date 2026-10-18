@@ -75,7 +75,7 @@ REMOVED_COMPONENTS = frozenset(
     }
 )
 
-CODEX_VERSION_RE = re.compile(r"^5\.8\.1\+codex\.[0-9]{14}$")
+CODEX_VERSION_RE = re.compile(r"^5\.8\.2\+codex\.[0-9]{14}$")
 SKILL_REFERENCE_RE = re.compile(r"\$ezpowers:([a-z0-9-]+)")
 HOST_MIN_VERSIONS = {
     "claude": (2, 1, 217),
@@ -401,7 +401,7 @@ def _validate_claude_manifest(repo_root: Path, errors: list[str]) -> None:
         return
 
     _check(manifest.get("name") == "ezpowers", "Claude plugin name must be ezpowers", errors)
-    _check(manifest.get("version") == "5.8.1", "Claude plugin version must be 5.8.1", errors)
+    _check(manifest.get("version") == "5.8.2", "Claude plugin version must be 5.8.2", errors)
     _check(bool(manifest.get("description")), "Claude plugin description is required", errors)
     _check(isinstance(manifest.get("author"), dict), "Claude plugin author must be an object", errors)
     for forbidden in ("agents", "commands", "hooks"):
@@ -433,7 +433,7 @@ def _validate_codex_manifest(repo_root: Path, errors: list[str]) -> None:
     version = manifest.get("version")
     _check(
         isinstance(version, str) and CODEX_VERSION_RE.fullmatch(version) is not None,
-        "Codex version must be 5.8.1 with exactly one timestamped +codex suffix",
+        "Codex version must be 5.8.2 with exactly one timestamped +codex suffix",
         errors,
     )
     _check(manifest.get("skills") == "./skills/", "Codex skills root must be ./skills/", errors)
@@ -470,9 +470,11 @@ def _validate_codex_manifest(repo_root: Path, errors: list[str]) -> None:
                 "",
             )
             _check(
-                "Plan Mode" in deep_interview_prompt
-                and "continue planning after confirmation" in deep_interview_prompt,
-                "Codex deep-interview prompt must advertise Plan Mode continuation",
+                "continue planning in Plan Mode" in deep_interview_prompt
+                and "If I choose to proceed" in deep_interview_prompt
+                and "ordinary mode" in deep_interview_prompt
+                and "proceed, correct, or finish with the summary" in deep_interview_prompt,
+                "Codex deep-interview prompt must advertise the mode-aware proceed choice",
                 errors,
             )
             _check(

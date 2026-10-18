@@ -2,7 +2,7 @@
 
 ## Current State
 
-EZPowers v5.8.1 plugin and v5.8.0 project kit are present in the working tree on
+EZPowers v5.8.2 plugin and v5.8.0 project kit are present in the working tree on
 `main`. F24 is complete. F19 is explicitly deferred because
 its semantic dual-host diagnosis probe still needs external access; it is not included in
 the v5.8 completion claim. The candidate preserves the host-native verification
@@ -63,8 +63,10 @@ blocks counted against `total_iterations`):
   certification;
 - a session-only `deep-interview` that separates stated gaps from an always-run
   internal blind-spot pass, exposes only plausible consequential candidates,
-  challenges framing when material, avoids ritual questions, and resumes an
-  already active Plan Mode without artifacts or implementation authority;
+  challenges framing when material, avoids ritual questions, and ends with a
+  proceed, correct, or summary-only choice; ordinary-mode proceed resumes host
+  work through relevant verification, while Plan Mode proceed continues
+  planning only and never authorizes implementation;
 - an implicit 374-word `explain-with-evidence` presentation skill that follows
   the latest substantive user language, uses only observed narrative stages,
   keeps fixed artifacts and exact verdicts unchanged, and ships its pinned
@@ -136,6 +138,78 @@ including the project skills plus the
 plugin-only global `hud` utility.
 
 ## Verification Evidence
+
+v5.8.2 plugin release validation on 2026-10-18:
+
+- Claude plugin and marketplace versions are `5.8.2`; Codex is
+  `5.8.2+codex.20261018014830`, giving both hosts a new update/cache identity
+  for the deep-interview continuation change. The project kit remains `5.8.0`
+  with the updated skill and project prompt hashes. Installed global plugins
+  and project copies were not refreshed.
+- The 198-test full rerun and live conversation evidence below cover the
+  behavior change. After release metadata updates, all 22 discovery and
+  workflow-surface tests passed in 2.499 seconds. Repository checks, kit
+  validation, real install/trace/verify/certify/stale smoke, and isolated plugin
+  loading on Claude 2.1.289 and Codex 0.162.1 passed for the new versions.
+- Three-run scheduler measurements passed: fixture median 1.378398 seconds
+  serial versus 0.372037 parallel (73.01 percent improvement, identical
+  output hashes); project median 2.220805 versus 1.442026 (35.07 percent
+  improvement, equivalent process outcomes). Every check passed.
+- Five interleaved, 100-iteration software compatibility runs against
+  `08f9f84d24c59ec130dd6b3bf26555503910cbab` produced equivalent validation
+  and trace JSON. Baseline median was 7.939873 seconds; candidate median was
+  7.928399 seconds, a -0.14 percent regression against the 5 percent limit.
+- Existing marketplace update commands in `README.md` apply. Codex's
+  ordinary-mode file execution remains unverified under the observed CLI
+  policy, and F19 remains deferred. Discovery and release checks do not
+  substitute for those behavioral results.
+
+Ordinary-mode deep-interview continuation on 2026-10-17:
+
+- The 997-word skill now combines request confirmation with proceed, correct,
+  or summary-only completion. Ordinary-mode proceed resumes host work through
+  relevant verification; Plan Mode proceed remains planning-only, including
+  after a later mode change. The canonical architecture was updated first to
+  describe this control-flow boundary. No runtime API, schema, executor, or
+  persistent approval state was added.
+- Plugin and project invocation metadata, current guidance, product state, and
+  the Korean guide match the choice contract. The v5.8.0 kit hashes were
+  restamped; plugin and kit versions are unchanged, and installed global
+  plugins were not refreshed.
+- The 22 focused workflow/discovery tests and UTF-8 skill validation passed.
+  Repository checks, kit validation, the real install/trace/verify/certify/stale
+  smoke, guide design-contract validation, and isolated plugin discovery on
+  Claude 2.1.289 and Codex 0.162.1 passed.
+- `python -m unittest discover -s tests` passed all 198 tests in 961.916
+  seconds on the full rerun. The initial 1139.853-second run had one failure:
+  `test_chain_hook_is_fail_safe_on_corrupt_state` returned exit 1 with empty
+  stdout/stderr. That same test then passed four isolated runs (one run plus
+  three repeated runs) and the full rerun. Its initial failure was not
+  reproduced or explained; no runtime patch or test relaxation was made.
+- Six Claude fixtures and five Codex fixtures exercised actual conversations.
+  All fixture bytes stayed unchanged before proceeding and for summary-only
+  or content-only agreement. Corrections were reflected in a new confirmation.
+  Claude's two-turn exact-command case created only `greeting.txt` and ran the
+  existing checker to PASS without another continuation question. Earlier
+  compound-shell attempts exceeded the fixture's narrow checker allowlist;
+  the successful case kept that allowlist and ran the checker as its own
+  command. Independent byte checks also passed for the earlier Claude output
+  and corrected `welcome` output; those checks are not attributed to the host.
+- Codex's real Plan Mode presented one native structured question with all
+  three choices, then returned a native final plan with no project writes.
+  Its file-inspection call did not return, and the final plan disclosed that
+  evidence gap. Claude's native Plan Mode likewise continued planning without
+  project writes, but created its host-owned `~/.claude/plans/` file. These
+  observations do not imply identical host storage or question capabilities.
+- Codex ordinary-mode conversations accepted the proceed choice, corrections,
+  summary-only completion, and content-only agreement. However, its CLI
+  rejected file reads and execution with `blocked by policy`; ordinary-mode
+  file creation and verification remain unverified. A zero CLI exit or plugin
+  discovery PASS is not a semantic completion result and does not close F19.
+- Fixture transcripts, byte checks, and the audited `evaluation-summary.json`
+  are retained under `%TEMP%/ezpowers-interview-check-cidzthev/`. The summary
+  SHA-256 is
+  `9c8d8b9f1f5f2649f161522501b351df0f28500e16b099c90227ff447a98db4e`.
 
 v5.8.1 plugin release validation on 2026-10-17:
 

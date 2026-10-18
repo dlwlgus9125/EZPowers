@@ -1,6 +1,6 @@
 ---
 name: deep-interview
-description: Use when a user's request is vague, underspecified, solution-shaped, or explicitly asks for deep-interview, requirement clarification, "grill me", or "그릴미". Turn it into a concise, confirmed, decision-ready request by resolving stated ambiguity and plausible consequential blind spots; when Plan Mode is already active, resume host-native planning after confirmation. Not for reviewing an existing spec, design, or plan, writing artifacts, or small concrete edits whose outcome, scope, constraints, and completion criteria are already settled.
+description: Use when a user's request is vague, underspecified, solution-shaped, or explicitly asks for deep-interview, requirement clarification, "grill me", or "그릴미". Resolve stated ambiguity and consequential blind spots into a confirmed, decision-ready request, then offer to proceed, correct, or finish with the summary. Proceed resumes host work in ordinary mode or planning in active Plan Mode. Not for reviewing artifacts or small concrete edits whose scope and success are already settled.
 ---
 
 # Deep Interview
@@ -11,28 +11,24 @@ turning the conversation into an exhaustive audit or specification.
 
 ## Keep it session-only
 
-Keep the interview and its result in the current conversation. Do not create or
-update `CONTEXT.md`, ADRs, briefs, specs, plans, or any other file. Do not assume
-that any companion skill, workflow, runtime, contract, or project artifact
-exists. Do not invoke or hand off to another skill or workflow. Outside Plan
-Mode, stop after confirmation; a later explicit request may use the result.
-Resuming an already active Plan Mode is continuation of the same host mode, not
-a handoff.
+Keep clarification in the current conversation. Do not create or update files
+during the interview. Do not assume that any companion skill, workflow,
+runtime, contract, or project artifact exists. The interview does not dispatch
+another skill or workflow. After a proceed choice, the interview ends and the
+host resumes the approved work under its current mode, project instructions,
+and permissions.
 
 ## Build a grounded provisional request
 
-1. For an existing project or artifact, inspect enough evidence to answer
-   factual questions. Separate discoverable facts from user choices, never ask
-   the user to rediscover facts, and cite the path, symbol, or behavior when it
-   materially motivates a question.
-2. Maintain a provisional request covering the desired outcome, affected
-   people or systems, current problem, scope and non-goals, constraints, and
-   observable success only as relevant. Treat it as a falsifiable hypothesis,
-   not as a user decision.
-3. Separate the desired outcome from any proposed means. Determine whether the
-   means is a required constraint or a tentative approach. Challenge the
-   framing only when evidence or a credible consequence makes that distinction
-   material; then offer the strongest alternative or tradeoff.
+1. Inspect project or artifact evidence before factual questions. Separate
+   discoverable facts from user choices; cite relevant paths, symbols, or
+   behavior rather than asking the user to rediscover facts.
+2. Maintain a provisional request covering relevant outcomes, people, systems,
+   problems, scope, non-goals, constraints, and observable success. Treat it as
+   a falsifiable hypothesis, not a user decision.
+3. Separate outcomes from proposed means. Determine whether the means is
+   required or tentative. Challenge framing only when evidence or credible
+   consequences make it material; offer the strongest alternative or tradeoff.
 
 ## Run two silent passes
 
@@ -75,52 +71,59 @@ pass is mandatory; an external blind-spot question is not.
    an example, counterexample, hidden assumption, boundary, tradeoff, simplest
    useful version, or reframing.
 
-Do not calculate or report a numerical ambiguity or risk score. Do not expose
+Do not report a numerical ambiguity or risk score. Do not expose
 the candidate list or ask the user to perform the analysis. Do not implement or
-write artifacts during the interview. Use the host's native structured question
-surface when callable and appropriate; otherwise ask one plain-text question.
+write artifacts during the interview. Use a native structured question surface
+when callable; otherwise ask one plain-text question.
 
 ## Stop and confirm
 
-Stop asking when all of the following are true:
+Stop asking when:
 
-- the request can be rewritten without inventing a user preference;
-- neither pass finds a material explicit gap or a plausible consequential
-  unresolved blind spot;
-- all independently useful parts of a multi-part request have been checked.
+- rewriting requires no invented user preference;
+- neither pass finds a material gap or plausible consequential blind spot;
+- all independently useful parts of the request have been checked.
 
-Present **Clarified request** in the user's language as a self-contained
-replacement for the original. Preserve the user's intent and voice. Include
-only the settled request and material assumptions, non-goals, constraints, or
-success signals needed to act; omit the transcript and rejected alternatives
-unless their absence would mislead.
+Present **Clarified request** as a self-contained replacement in the user's
+language and voice. Include settled intent and material assumptions, non-goals,
+constraints, and success signals; omit the transcript and irrelevant rejected
+alternatives.
 
-Ask the user to confirm or correct it. When Plan Mode is active, say in that
-same question that confirmation will continue planning. Use the host's native
-structured question surface when callable, with context-appropriate equivalents
-of **Confirm and continue planning** (recommended) and **Correct**; do not add a
-second continuation question. The interview is complete only after explicit
-confirmation.
+Ask one question combining confirmation and continuation, with these choices
+in the user's language:
 
-## Resume active Plan Mode
+- **Confirm and proceed** (recommended): in ordinary mode, carry out the
+  clarified request, including implementation and verification when requested.
+- **Correct**: revise the request and obtain confirmation again.
+- **Confirm and finish with summary**: retain the confirmed request and stop.
 
-After explicit confirmation, continue only if the host remains in Plan Mode:
+In Plan Mode, replace the first choice with **Confirm and continue planning**
+and explicitly state that it continues planning only. Use a native structured
+question surface callable in the current mode, otherwise present the same
+choices in one plain-text question. Do not switch modes to obtain a question UI.
+Wait for the submitted answer, including with asynchronous question tools.
+Preselection, silence, and agreement with the wording alone are not permission
+to proceed; clarify the action if needed. The interview is complete only after
+explicit confirmation. Respect an explicit summary-only or stop request.
 
-1. Treat **Clarified request** as the source of truth for clarified user intent.
-   Carry its goal, audience, scope, constraints, non-goals, assumptions, and
-   observable success into the plan.
-2. Immediately resume the host's native planning process without another
-   command, skill invocation, or permission question. Do not repeat settled
-   product questions; inspect facts and ask only unresolved implementation
-   decisions.
-3. Produce the native final plan if decision-complete; otherwise keep planning
-   rather than ending with an interview-only summary.
-4. Stay within the host's current Plan Mode. Do not invoke or hand off to any
-   skill or workflow, create a project artifact, or start implementation.
+## Continue according to the choice
 
-If the user corrects the request, revise it and obtain confirmation again. If
-the user ends the interview early, provide the best current clarified request
-and mark only the material unresolved points. If the user asks to stop or Plan
-Mode is no longer active, preserve the ordinary session-only behavior. Never
-claim full clarification, create an artifact, or suggest an automatic next
-step in those cases.
+Treat **Clarified request** as the source of truth for clarified user intent,
+carrying its scope, constraints, assumptions, and success criteria forward.
+Do not repeat settled product questions.
+
+- **Ordinary-mode proceed:** end the interview and immediately resume the
+  host's normal work on the request through completion and relevant checks.
+  Do not end with only a summary or require another command; do not add a
+  second continuation question after approval. Subsequent work may write files
+  within the approved request; it does not require a particular companion
+  workflow or grant broader permissions.
+- **Plan-mode proceed:** immediately resume the host's native planning process.
+  Produce the native final plan when decision-complete, otherwise resolve only
+  remaining implementation decisions. Do not start implementation. If Plan
+  Mode is no longer active, its planning confirmation still does not authorize
+  implementation; any later execution needs its own user authorization.
+- **Correction or finish:** correction returns to clarification without work;
+  summary-only ends without execution. If the user ends the interview early,
+  provide the best current request, mark material unresolved points, and stop
+  without claiming full clarification or taking a next step.

@@ -70,9 +70,11 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             "plain-text question",
             "Do not create or update",
             "Confirm and continue planning",
+            "Confirm and proceed",
+            "Confirm and finish with summary",
             "do not add a second continuation question",
             "source of truth for clarified user intent",
-            "Immediately resume the host's native planning process",
+            "immediately resume the host's native planning process",
             "Do not repeat settled product questions",
             "native final plan",
             "Plan Mode is no longer active",
@@ -125,6 +127,9 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             self.assertIn("consequential blind spots", metadata)
             self.assertIn("continue planning", metadata)
             self.assertIn("Plan Mode", metadata)
+            self.assertIn("If I choose to proceed", metadata)
+            self.assertIn("ordinary mode", metadata)
+            self.assertIn("proceed, correct, or finish with the summary", metadata)
             self.assertNotIn("stress-test", metadata)
 
         manifest = json.loads(
@@ -554,9 +559,9 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.8.1")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.8.1")
-        self.assertTrue(codex["version"].startswith("5.8.1+codex."))
+        self.assertEqual(claude["version"], "5.8.2")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.8.2")
+        self.assertTrue(codex["version"].startswith("5.8.2+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)

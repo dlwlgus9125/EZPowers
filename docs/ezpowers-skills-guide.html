@@ -3196,8 +3196,8 @@
               </p>
               <dl class="fact-list">
                 <div class="fact"><dt>언제</dt><dd>대상·범위·성공이 모호하거나 숨은 전제와 후속 영향을 점검해야 할 때</dd></div>
-                <div class="fact"><dt>결과</dt><dd>현재 대화 안의 <strong>Clarified request</strong>와 사용자 확인</dd></div>
-                <div class="fact"><dt>안 함</dt><dd>인터뷰 중 파일·스펙 작성, 기존 산출물 리뷰, 일반 모드의 자동 진행</dd></div>
+                <div class="fact"><dt>결과</dt><dd>현재 대화 안의 <strong>Clarified request</strong>와 진행·수정·정리만 종료 선택</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>인터뷰 중 파일·스펙 작성, 기존 산출물 리뷰, 진행 선택 없는 실행</dd></div>
               </dl>
               <div class="command-stack">
                 <div class="command-label"><span>Plugin invocation</span><span class="scope-note">요청 문장과 함께</span></div>
@@ -3216,8 +3216,10 @@
                   <li>매 턴 정확히 하나의 중요한 질문만 묻습니다.</li>
                   <li>이미 충분히 결정된 요청에는 의례적인 사각지대 질문을 만들지 않습니다.</li>
                   <li>요청을 다시 쓸 때 사용자 선호를 새로 발명할 필요가 없어야 합니다.</li>
-                  <li>마지막 요청은 사용자가 명시적으로 확인하거나 수정해야 완성됩니다.</li>
-                  <li>이미 Plan Mode라면 확인 뒤 같은 계획 대화를 이어가며, 확정된 의도는 다시 묻지 않습니다.</li>
+                  <li>마지막에 이 내용으로 진행·내용 수정·정리만 하고 종료 중 하나를 선택합니다.</li>
+                  <li>일반 모드에서 진행하면 별도 명령이나 재확인 없이 요청 수행과 필요한 검증까지 이어갑니다.</li>
+                  <li>Plan Mode에서는 확인하고 계획 계속을 선택하며, 구현 승인으로 확대하지 않습니다.</li>
+                  <li>현재 모드에서 질문 도구를 쓸 수 없으면 같은 선택지를 텍스트로 보여줍니다. 내용 동의나 미응답만으로 실행하지 않습니다.</li>
                 </ul>
               </div>
             </details>
@@ -3787,8 +3789,8 @@
             <p class="recipe-intro">해결책보다 원하는 결과가 불분명하면 먼저 대화 안에서 요청을 확정합니다.</p>
             <ol class="recipe-path">
               <li><span class="recipe-dot">1</span><span class="recipe-copy"><strong>deep-interview</strong><span>한 질문씩 범위·성공·비목표 명확화</span></span></li>
-              <li><span class="recipe-dot">2</span><span class="recipe-copy"><strong>사용자 확인</strong><span>Clarified request를 확인하거나 수정</span></span></li>
-              <li><span class="recipe-dot">3</span><span class="recipe-copy"><strong>계획 또는 spec</strong><span>Plan Mode면 계획을 계속하고, 일반 모드에서는 필요할 때 spec을 별도 호출</span></span></li>
+              <li><span class="recipe-dot">2</span><span class="recipe-copy"><strong>확인과 다음 행동 선택</strong><span>이 내용으로 진행·내용 수정·정리만 하고 종료</span></span></li>
+              <li><span class="recipe-dot">3</span><span class="recipe-copy"><strong>선택한 작업 계속</strong><span>진행하면 일반 모드에서는 요청 수행·검증, Plan Mode에서는 계획 수립 계속</span></span></li>
             </ol>
           </article>
 
@@ -3980,9 +3982,9 @@
           <details>
             <summary>deep-interview가 끝나면 spec 파일을 자동으로 만들어 주나요?</summary>
             <div class="faq-answer">
-              <p>아닙니다. 인터뷰는 현재 대화 안에서 확인된 요청만 만듭니다.
-                파일을 쓰거나 다음 스킬로 자동 handoff하지 않습니다. 다만 이미 Plan Mode라면
-                확인된 요청을 바탕으로 같은 호스트의 계획 수립을 계속하며, 필요하면 사용자가 spec을 별도로 호출합니다.</p>
+              <p>인터뷰 자체는 현재 대화 안에서 요청을 정리하고 파일을 쓰거나 다음 스킬을 자동 호출하지 않습니다.
+                마지막에 이 내용으로 진행을 선택하면 일반 모드에서는 같은 호스트가 확정된 요청을 수행하고 검증합니다.
+                Plan Mode에서는 계획 수립만 계속합니다. 내용 수정이나 정리만 하고 종료도 선택할 수 있습니다.</p>
             </div>
           </details>
           <details>
