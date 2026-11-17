@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-10-17T14:22:35Z",
+  "updated_at": "2026-11-17T05:34:10Z",
   "features": [
     {
       "id": "F11",
@@ -361,6 +361,39 @@
         "scripts/benchmark_software_profile.py",
         "tests/test_planning_profile.py",
         "tests/test_harness_chain.py",
+        "project-kit/v5.8.0/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
+      ]
+    },
+    {
+      "id": "F25",
+      "title": "Plugin-only explicit teach skill",
+      "status": "complete",
+      "success_criteria": [
+        "Teach is explicit-only on both hosts: Claude disables model invocation and Codex disables implicit invocation, with a namespaced plugin prompt and no project-local metadata variant",
+        "Teach is plugin-only: the v5.8.0 project-kit manifest, verifier inventory, runtime, and installed project trees contain no teach files, and no manifest hash changes",
+        "The skill treats the invoking directory as the teaching workspace, keeps its own directory read-only, loads four format references from it, never fetches upstream content at runtime, and asks for read access instead of improvising a format it cannot read",
+        "Before its first write inside a Git worktree whose root contains .ezpowers, the skill stops, explains the stale-evidence risk, and continues there only after an explicit user choice",
+        "Teach adds no documentation-graph, wiki, spec, plan, verification, certification, retry, or workflow authority",
+        "A pinned upstream commit, complete MIT notice, and adaptation notice ship beside the skill outside model context, and ADR 0009 records the bounded role, maintenance owner, and deterministic validation required by ADR 0004 and the roadmap",
+        "F25 supersedes only the plugin catalog count: the v5.9.0 plugin exposes fifteen skills while the v5.8.0 project kit still installs thirteen project skills, eleven contracts, and three tools",
+        "Deterministic tests validate the exact inventory, invocation policy, provenance, reference files, project-install absence, Korean guide coverage, manifest parity, and isolated host discovery"
+      ],
+      "evidence": [
+        "skills/teach/SKILL.md",
+        "skills/teach/LICENSE",
+        "skills/teach/agents/openai.yaml",
+        "skills/teach/references/mission-format.md",
+        "skills/teach/references/resources-format.md",
+        "skills/teach/references/learning-record-format.md",
+        "skills/teach/references/glossary-format.md",
+        "docs/decisions/0009-plugin-only-teach-skill.md",
+        "scripts/check_repo.py",
+        "scripts/plugin_smoke.py",
+        "tests/test_v5_workflow_surface.py",
+        "tests/test_ezpowers_runtime.py",
+        "tests/test_codex_plugin_discovery.py",
         "project-kit/v5.8.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"

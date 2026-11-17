@@ -3,7 +3,7 @@
 > Claude Code와 Codex가 같은 저장소 증거로 작업의 **완료 여부**를
 > 판단하도록 만드는 프로젝트 로컬 워크플로 플러그인입니다.
 
-**Plugin v5.8.2 · Project kit v5.8.0 · Python 3.10+ · MIT**
+**Plugin v5.9.0 · Project kit v5.8.0 · Python 3.10+ · MIT**
 
 [빠른 시작](#빠른-시작) · [워크플로](#기본-워크플로) ·
 [스킬 목록](#스킬-목록) · [업데이트](#업데이트) ·
@@ -98,7 +98,7 @@ preview/apply/lint 순서로 진행되며, 관리되지 않은 기존 문서는 
 
 | 계층 | 역할 | 포함 범위 |
 | --- | --- | --- |
-| EZPowers 플러그인 | 어느 저장소에서든 namespaced 스킬 제공 | 14개 스킬, 플러그인 메타데이터 |
+| EZPowers 플러그인 | 어느 저장소에서든 namespaced 스킬 제공 | 15개 스킬, 플러그인 메타데이터 |
 | 프로젝트 로컬 키트 | 저장소가 독립적으로 검증·재개 가능하게 함 | 13개 스킬, 11개 계약, 런타임, 3개 도구 |
 
 프로젝트 키트가 설치되면 핵심 파일은 다음 위치에 생깁니다.
@@ -117,6 +117,8 @@ preview/apply/lint 순서로 진행되며, 관리되지 않은 기존 문서는 
 ```
 
 `hud`는 전역 Codex UI 설정을 다루므로 프로젝트 키트에는 설치되지 않습니다.
+`teach`도 프로젝트 완료 판정과 무관한 학습 유틸리티라 플러그인 전용이며
+프로젝트 키트에 설치되지 않습니다.
 
 ## 기본 워크플로
 
@@ -180,6 +182,7 @@ harness-chain configure
 | `wiki` | 로컬 지식을 저장·검색·승격·정리할 때 | 보조 기억만 관리; 저장소 근거나 완료 권한을 대체하지 않음 |
 | `harness-chain` | 승인된 기능을 한도 내에서 무인 실행할 때 | 독립 oracle/review/QA와 terminal limit을 결합; 명시 호출 전에는 비활성 |
 | `hud` | 전역 Codex model·usage statusline을 관리할 때 | plugin-only 전역 유틸리티; 프로젝트 harness와 분리 |
+| `teach` | 한 주제를 여러 세션에 걸쳐 배우고 싶을 때 | plugin-only 명시 호출 학습 유틸리티; 호출한 폴더에 mission·자료·수업·학습 기록을 유지하며 EZPowers 프로젝트 안에서는 쓰기 전에 경고 |
 
 ### `diagnose`의 완료 기준
 
@@ -315,7 +318,7 @@ python scripts/plugin_smoke.py --host both --live-diagnose
 - [Frontend design 및 DESIGN.md 계약](docs/reference/frontend-design-contract.md)
 - [핀 고정 DESIGN.md 프로필](docs/reference/design-md-profile.json)
 - [Claude Code와 Codex 플러그인 동작 차이](docs/reference/codex-plugin-discovery.md)
-- [14개 스킬 한국어 가이드](docs/ezpowers-skills-guide.html)
+- [15개 스킬 한국어 가이드](docs/ezpowers-skills-guide.html)
 
 호스트 자체의 플러그인 관리 방식은
 [Claude Code 플러그인 문서](https://code.claude.com/docs/en/discover-plugins)와
@@ -327,4 +330,5 @@ python scripts/plugin_smoke.py --host both --live-diagnose
 [MIT License](LICENSE) © 2026 MannerLee.
 `explain-with-evidence`에는 별도로 표시된
 [Apache-2.0 원문·수정 고지](skills/explain-with-evidence/LICENSE)가
-동봉됩니다.
+동봉됩니다. `teach`에는 Matt Pocock 원본의
+[MIT 원문·수정 고지](skills/teach/LICENSE)가 동봉됩니다.

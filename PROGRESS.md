@@ -2,10 +2,10 @@
 
 ## Current State
 
-EZPowers v5.8.2 plugin and v5.8.0 project kit are present in the working tree on
-`main`. F24 is complete. F19 is explicitly deferred because
+EZPowers v5.9.0 plugin and v5.8.0 project kit are present in the working tree on
+`main`. F24 and F25 are complete. F19 is explicitly deferred because
 its semantic dual-host diagnosis probe still needs external access; it is not included in
-the v5.8 completion claim. The candidate preserves the host-native verification
+the v5.8 kit or v5.9 plugin completion claim. The candidate preserves the host-native verification
 core, documentation graph, local wiki, explicit harness chain, and Plan
 Mode-aware clarification while adding a derived evidence-gated assurance
 graph, compatible plan/config v2 contracts, graph-bound evidence and chain
@@ -83,7 +83,12 @@ blocks counted against `total_iterations`):
   design until selection, and emits input/source/report hashes in a temporary
   schema-v2 offline report that never becomes repository documentation or
   completion evidence;
-- an exact fourteen-skill plugin and thirteen-skill project catalog with distinct
+- an explicit, plugin-only `teach` learning utility adapted from a pinned MIT
+  upstream skill, which keeps one topic's mission, resources, lessons, and
+  learning records in the directory the user invokes it in, warns before
+  writing inside an EZPowers-managed project, is never installed into a
+  project kit, and adds no workflow, verification, or completion authority;
+- an exact fifteen-skill plugin and thirteen-skill project catalog with distinct
   namespaced and project-local Codex prompt metadata;
 - clean retirement of pre-v5 workflow input plus Claude 2.1.217 and Codex
   0.145.0 minimums before host-specific writes.
@@ -123,6 +128,7 @@ force product rework until a configured limit becomes terminal.
 - `F22`: portable architecture artifact lifecycle.
 - `F23`: evidence-gated assurance graph and safe parallel verification.
 - `F24`: planning-artifact project profile and artifact assurance.
+- `F25`: plugin-only explicit `teach` learning skill.
 
 ## Deferred Item
 
@@ -133,11 +139,52 @@ force product rework until a configured limit becomes terminal.
   planning-profile result is presented as evidence for that separate probe.
 
 The v5.8 project kit installs thirteen project skills, eleven canonical
-contracts, and three deterministic tools. The plugin exposes fourteen skills,
-including the project skills plus the
-plugin-only global `hud` utility.
+contracts, and three deterministic tools. The plugin exposes fifteen skills:
+the project skills plus the plugin-only global `hud` utility and the
+plugin-only `teach` learning skill.
 
 ## Verification Evidence
+
+v5.9.0 plugin-only teach skill release validation on 2026-11-17:
+
+- Claude plugin and marketplace versions are `5.9.0`; Codex is
+  `5.9.0+codex.20261117052124`. The project kit remains `5.8.0` with unchanged
+  manifest hashes: `git diff -- project-kit/` is empty. Installed global
+  plugins and project copies were not refreshed.
+- The 199-test full run passed in 509.748 seconds in UTF-8 mode on Python
+  3.14.3. It started before one final `skills/teach/SKILL.md` sentence and its
+  test phrase were added; afterwards the 31 workflow-surface, discovery, and
+  repository-check tests passed in 3.311 seconds. Repository checks, kit
+  validation, real install/trace/verify/certify/stale smoke, and isolated
+  plugin loading on Claude 2.1.312 and Codex 0.166.0 passed for the new
+  versions, including `ezpowers:teach` in the isolated Codex `skills/list`.
+- `DESIGN.md` lint, the project design check, and the visual-readiness check
+  passed for the edited guide. A static parse found balanced tags, fifteen
+  skill cards, fifteen chooser cards, and filter counts matching the cards.
+  The guide was not rendered or inspected at the three documented viewports.
+- Three-run scheduler measurements passed: fixture median 1.194657 seconds
+  serial versus 0.309638 parallel (74.08 percent improvement, identical
+  output hashes); project median 1.218925 versus 0.795605 (34.73 percent
+  improvement, equivalent process outcomes). Every check passed.
+- Five interleaved, 100-iteration software compatibility runs against
+  `08f9f84d24c59ec130dd6b3bf26555503910cbab` produced equivalent validation
+  and trace JSON. Baseline median was 4.263937 seconds; candidate median was
+  4.286707 seconds, a 0.53 percent regression against the 5 percent limit.
+- Five Claude 2.1.312 model calls loaded the working tree with `--plugin-dir`
+  in isolated temporary directories. With no tools, `/ezpowers:teach` asked
+  for the mission before any lesson and wrote nothing. With file tools, the
+  first run could not read the skill's format reference under the headless
+  permission policy and wrote an off-format `MISSION.md`; after the skill
+  gained its do-not-improvise rule, the same command wrote no `MISSION.md`
+  and asked for read access. With read access to the skill directory,
+  `MISSION.md` followed the bundled format, files landed only in the invoking
+  directory, and the skill directory digest was unchanged. In a Git fixture
+  containing `.ezpowers/config.json`, the skill wrote nothing, explained the
+  stale-evidence risk, and asked for a dedicated directory.
+- Not exercised: Codex teaching behavior (discovery only), reference reads
+  from an installed marketplace plugin path, lesson generation, web source
+  gathering, the quiz shuffle component, opening a lesson, and the guard from
+  a subdirectory of a managed project. F19 remains deferred.
 
 v5.8.2 plugin release validation on 2026-10-18:
 

@@ -184,6 +184,8 @@ class EZPowersInstallTests(unittest.TestCase):
                 self.assertEqual(canonical.read_bytes(), codex.read_bytes())
 
             self.assertFalse((project.root / ".claude" / "skills" / "hud").exists())
+            self.assertFalse((project.root / ".claude" / "skills" / "teach").exists())
+            self.assertFalse((project.root / ".agents" / "skills" / "teach").exists())
             self.assertTrue((project.root / ".ezpowers" / "ledger.json").is_file())
             self.assertFalse((project.root / ".claude" / "settings.json").exists())
             self.assertFalse((project.root / ".codex" / "hooks.json").exists())

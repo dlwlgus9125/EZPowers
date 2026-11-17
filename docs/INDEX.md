@@ -5,7 +5,7 @@
 - [PRD](product/PRD.md): canonical product intent and responsibility boundary.
 - [Roadmap](product/ROADMAP.md): current release and deliberately deferred work.
 - [Visual skill guide](ezpowers-skills-guide.html): Korean workflow atlas with
-  host-aware invocation examples, decision paths, and all fourteen plugin
+  host-aware invocation examples, decision paths, and all fifteen plugin
   skill roles.
 
 ## Live Reference
@@ -36,6 +36,7 @@
 - [Architecture artifact lifecycle ADR](decisions/0006-architecture-artifact-lifecycle.md)
 - [Evidence-gated assurance graph ADR](decisions/0007-evidence-gated-assurance-graph.md)
 - [Project profile and artifact assurance ADR](decisions/0008-project-profile-artifact-assurance.md)
+- [Plugin-only teach skill ADR](decisions/0009-plugin-only-teach-skill.md)
 - [2026-07-24 workflow harness audit](reports/workflow-harness-audit-2026-07-24.md)
 - [2026-08-25 graph-engineering paper evaluation](reports/graph-engineering-paper-evaluation-2026-08-25.md)
 

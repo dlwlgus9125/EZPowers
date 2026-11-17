@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="EZPowers v5.8.0 플러그인의 14개 스킬과 software/planning 프로필을 언제, 어떤 순서로 사용하는지 설명하는 한국어 가이드">
+  <meta name="description" content="EZPowers v5.9.0 플러그인의 15개 스킬과 software/planning 프로필을 언제, 어떤 순서로 사용하는지 설명하는 한국어 가이드">
   <meta name="color-scheme" content="light dark">
   <title>EZPowers Skill Atlas — 스킬 사용 가이드</title>
   <script>
@@ -2698,12 +2698,12 @@
         <span class="brand-mark" aria-hidden="true">EZ</span>
         <span class="brand-copy">
           <strong>Skill Atlas</strong>
-          <span>EZPowers v5.8</span>
+          <span>EZPowers v5.9</span>
         </span>
       </a>
 
       <div class="rail-meta" aria-label="가이드 범위">
-        <span class="tiny-chip">14 plugin skills</span>
+        <span class="tiny-chip">15 plugin skills</span>
         <span class="tiny-chip">13 project skills</span>
       </div>
 
@@ -2735,7 +2735,7 @@
       <div class="mobile-bar">
         <a class="mobile-brand" href="#overview">
           <span class="brand-mark" aria-hidden="true">EZ</span>
-          <span>Skill Atlas · v5.8</span>
+          <span>Skill Atlas · v5.9</span>
         </a>
         <div class="control-group">
           <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
@@ -2752,7 +2752,7 @@
 
       <section class="section hero" id="overview" aria-labelledby="hero-title">
         <div class="hero-topline">
-          <span class="hero-edition">Verified workflow · plugin v5.8.0</span>
+          <span class="hero-edition">Verified workflow · plugin v5.9.0</span>
           <div class="control-group">
             <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
               <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true">
@@ -2848,7 +2848,7 @@
             </div>
             <div class="host-note">
               <span>
-                <strong>hud</strong>는 전역 Codex 상태 표시줄을 관리하는 플러그인 전용 스킬이라
+                <strong>hud</strong>(전역 Codex 상태 표시줄)와 <strong>teach</strong>(학습 작업공간)는 플러그인 전용 스킬이라
                 프로젝트 키트에 설치되지 않습니다. 나머지 13개 스킬은 setup 후 프로젝트 로컬 호출이 가능합니다.
               </span>
             </div>
@@ -2857,7 +2857,7 @@
 
         <div class="boundary-strip">
           <article class="boundary-mini">
-            <strong>플러그인: 14개</strong>
+            <strong>플러그인: 15개</strong>
             <p>네임스페이스를 붙여 호출합니다. setup 전에도 배포본의 스킬을 사용할 수 있습니다.</p>
           </article>
           <article class="boundary-mini">
@@ -3020,6 +3020,11 @@
             <h3>hud</h3>
             <p>프로젝트 흐름과 무관하게 전역 Codex 모델·사용량 상태 표시줄만 관리합니다.</p>
           </article>
+          <article class="orbit-card">
+            <span class="orbit-label">Learning utility</span>
+            <h3>teach</h3>
+            <p>프로젝트 흐름과 무관하게, 명시 호출한 폴더를 학습 작업공간으로 삼아 한 주제를 여러 세션에 걸쳐 가르칩니다.</p>
+          </article>
         </div>
       </section>
 
@@ -3092,6 +3097,10 @@
             <span class="choice-icon" aria-hidden="true">14</span>
             <span class="choice-copy"><strong>Codex 하단에 모델·사용량 상태 표시를 켜고 싶다</strong><code>hud</code></span>
           </a>
+          <a class="choice-card" href="#skill-teach">
+            <span class="choice-icon" aria-hidden="true">15</span>
+            <span class="choice-copy"><strong>새 주제를 여러 세션에 걸쳐 체계적으로 배우고 싶다</strong><code>teach</code></span>
+          </a>
         </div>
       </section>
 
@@ -3099,7 +3108,7 @@
         <div class="section-head">
           <div>
             <p class="section-kicker">04 · Skill catalog</p>
-            <h2 id="skills-title">14개 스킬의 역할과<br>넘지 않는 경계</h2>
+            <h2 id="skills-title">15개 스킬의 역할과<br>넘지 않는 경계</h2>
           </div>
           <p class="section-summary">
             “언제”, “결과”, “하지 않는 일”을 함께 보세요. 이름이 비슷해도
@@ -3118,16 +3127,16 @@
               <input class="skill-search" type="search" placeholder="예: UI, 모호한 요청, 인증, 로컬 지식…" autocomplete="off" data-skill-search>
               <button class="clear-search" type="button" data-clear-search aria-label="검색어 지우기">×</button>
             </label>
-            <span class="result-count" aria-live="polite" data-result-count>14개 표시</span>
+            <span class="result-count" aria-live="polite" data-result-count>15개 표시</span>
             <button class="expand-button" type="button" data-expand-all aria-pressed="false">설명 모두 펼치기</button>
           </div>
           <div class="filter-row" role="group" aria-label="스킬 범주 필터">
-            <button class="filter-button" type="button" data-filter="all" aria-pressed="true">전체 14</button>
+            <button class="filter-button" type="button" data-filter="all" aria-pressed="true">전체 15</button>
             <button class="filter-button" type="button" data-filter="foundation" aria-pressed="false">설치 1</button>
             <button class="filter-button" type="button" data-filter="design" aria-pressed="false">명확화·설계 5</button>
             <button class="filter-button" type="button" data-filter="delivery" aria-pressed="false">명세·실행 3</button>
             <button class="filter-button" type="button" data-filter="support" aria-pressed="false">진단·지식 3</button>
-            <button class="filter-button" type="button" data-filter="special" aria-pressed="false">특수 경로 2</button>
+            <button class="filter-button" type="button" data-filter="special" aria-pressed="false">특수 경로 3</button>
           </div>
         </div>
 
@@ -3750,6 +3759,50 @@
               </div>
             </details>
           </article>
+
+          <article class="skill-card" id="skill-teach" data-category="special" data-search="teach 학습 가르치기 배우기 튜터 수업 lesson mission 학습 목표 resources 자료 learning record 학습 기록 glossary 용어집 퀴즈 quiz 작업공간 workspace plugin only">
+            <div class="skill-main">
+              <div class="skill-top">
+                <div class="skill-identity">
+                  <span class="skill-number">15</span>
+                  <span class="skill-title"><h3>teach</h3><span>여러 세션에 걸친 학습 작업공간</span></span>
+                </div>
+                <a class="skill-link" href="../skills/teach/SKILL.md" aria-label="teach 원문 열기">↗</a>
+              </div>
+              <div class="skill-badges">
+                <span class="badge explicit">명시 호출</span>
+                <span class="badge global">plugin only</span>
+              </div>
+              <p class="skill-purpose">
+                호출한 폴더를 한 주제의 학습 작업공간으로 삼아, 학습 목표(mission)를 먼저 고정하고
+                검증한 자료와 누적 학습 기록을 근거로 짧은 HTML 수업을 이어 갑니다.
+              </p>
+              <dl class="fact-list">
+                <div class="fact"><dt>언제</dt><dd>새 기술·개념·도구를 한 번의 답변이 아니라 여러 세션에 걸쳐 익히고 싶을 때</dd></div>
+                <div class="fact"><dt>결과</dt><dd>작업공간의 mission, 자료 목록, 번호가 붙은 수업·학습 기록, 참조 문서, 용어집</dd></div>
+                <div class="fact"><dt>안 함</dt><dd>프로젝트 키트 설치, 암묵 호출, spec·plan·검증·인증 대체, 확인 없는 mission 변경</dd></div>
+              </dl>
+              <div class="command-stack">
+                <div class="command-label"><span>Plugin invocation</span><span class="scope-note">전용 학습 폴더에서 실행</span></div>
+                <div class="code-pill">
+                  <code data-skill-command="teach" data-scope="plugin">$ezpowers:teach</code>
+                  <button class="copy-button" type="button" data-copy-command>복사</button>
+                </div>
+              </div>
+            </div>
+            <details>
+              <summary>작업공간 파일과 경계</summary>
+              <div class="detail-body">
+                <ul>
+                  <li><code>MISSION.md</code>가 비어 있으면 수업보다 먼저 왜 배우는지를 묻고, 사용자 확인 뒤에만 바꿉니다.</li>
+                  <li><code>RESOURCES.md</code>의 신뢰할 수 있는 자료를 근거로 가르치며, 확인하지 못한 주장은 출처가 있는 것처럼 쓰지 않습니다.</li>
+                  <li><code>lessons/</code>의 수업은 <code>assets/</code>의 공용 컴포넌트를 재사용하고, 퀴즈는 렌더할 때 보기 순서를 섞습니다.</li>
+                  <li><code>learning-records/</code>와 <code>GLOSSARY.md</code>가 다음 세션이 현재 수준에서 이어지게 합니다.</li>
+                  <li>EZPowers가 설치된 프로젝트 안에서는 수업 파일이 완료 증거를 stale로 만들므로, 쓰기 전에 경고하고 전용 폴더를 묻습니다.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
         </div>
 
         <div class="empty-results" data-empty-results>
@@ -4040,7 +4093,7 @@
         <div>
           <strong>EZPowers Skill Atlas</strong>
           <p>
-            v5.8.0 프로젝트 키트와 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
+            v5.8.0 프로젝트 키트와 v5.9.0 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
             동작이 바뀌면 <code>skills/*/SKILL.md</code>, 호출 계약, 프로젝트 매니페스트와 함께 이 문서를 갱신하세요.
             시각 토큰과 재사용 컴포넌트 규칙은 루트 <code>DESIGN.md</code>를 먼저 갱신한 뒤 이 구현에 반영하세요.
           </p>

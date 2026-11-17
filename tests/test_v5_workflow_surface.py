@@ -20,6 +20,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             "execute",
             "frontend-design",
             "hud",
+            "teach",
             "wiki",
             "harness-chain",
             "improve-codebase-architecture",
@@ -30,7 +31,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             self.assertTrue((REPO_ROOT / "skills" / name / "SKILL.md").is_file())
             self.assertTrue((REPO_ROOT / "skills" / name / "agents" / "openai.yaml").is_file())
             self.assertEqual(
-                name != "hud",
+                name not in {"hud", "teach"},
                 (
                     REPO_ROOT
                     / "skills"
@@ -484,6 +485,54 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             {item["path"] for item in entry["files"]},
         )
 
+    def test_teach_is_explicit_plugin_only_with_pinned_mit_provenance(self) -> None:
+        skill_root = REPO_ROOT / "skills" / "teach"
+        skill = (skill_root / "SKILL.md").read_text(encoding="utf-8")
+        normalized = " ".join(skill.split())
+        metadata = (skill_root / "agents" / "openai.yaml").read_text(encoding="utf-8")
+        self.assertIn("disable-model-invocation: true", skill)
+        self.assertIn("allow_implicit_invocation: false", metadata)
+        self.assertIn("$ezpowers:teach", metadata)
+        self.assertFalse((skill_root / "agents" / "project-openai.yaml").exists())
+
+        for phrase in (
+            "`<skill-root>` is the directory containing this `SKILL.md`",
+            "Never write a workspace file under `<skill-root>`",
+            "never fetch an upstream file at runtime",
+            "do not improvise its format",
+            "If that root contains a `.ezpowers/` directory",
+            "make its completion evidence stale",
+            "only when the user explicitly chooses it",
+            "must shuffle the answer options in the browser",
+            "adds no workflow transition, verification, completion authority",
+        ):
+            self.assertIn(phrase, normalized)
+
+        references = {
+            "mission-format.md",
+            "resources-format.md",
+            "learning-record-format.md",
+            "glossary-format.md",
+        }
+        self.assertEqual(
+            references,
+            {path.name for path in (skill_root / "references").iterdir()},
+        )
+        for name in references:
+            self.assertIn(f"<skill-root>/references/{name}", skill)
+
+        license_text = (skill_root / "LICENSE").read_text(encoding="utf-8")
+        self.assertIn("5863806dd4e15c63174bee4e7515a4256792ecfa", license_text)
+        self.assertIn("MIT License", license_text)
+        self.assertIn("Copyright (c) 2026 Matt Pocock", license_text)
+
+        manifest_text = (
+            REPO_ROOT / "project-kit" / "v5.8.0" / "manifest.json"
+        ).read_text(encoding="utf-8")
+        manifest = json.loads(manifest_text)
+        self.assertNotIn("teach", {entry["name"] for entry in manifest["skills"]})
+        self.assertNotIn("skills/teach/", manifest_text)
+
     def test_assurance_graph_release_contracts_share_the_bounded_decision(self) -> None:
         plan_contract = (
             REPO_ROOT / "docs" / "reference" / "plan-contract.md"
@@ -549,8 +598,8 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         for name in expected:
             self.assertIn(f'id="skill-{name}"', guide)
             self.assertIn(f"../skills/{name}/SKILL.md", guide)
-        self.assertEqual(14, guide.count('class="skill-card"'))
-        self.assertIn("14 plugin skills", guide)
+        self.assertEqual(15, guide.count('class="skill-card"'))
+        self.assertIn("15 plugin skills", guide)
         self.assertIn("13 project skills", guide)
         self.assertIn("../project-kit/v5.8.0/manifest.json", guide)
         self.assertNotIn("v5.2.0/manifest.json", guide)
@@ -559,9 +608,9 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.8.2")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.8.2")
-        self.assertTrue(codex["version"].startswith("5.8.2+codex."))
+        self.assertEqual(claude["version"], "5.9.0")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.9.0")
+        self.assertTrue(codex["version"].startswith("5.9.0+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)

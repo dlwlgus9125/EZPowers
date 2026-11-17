@@ -54,7 +54,7 @@ and workbooks as its product.
 
 ## Distribution And Installation
 
-The plugin repository contains the fourteen retained skills and the Claude and
+The plugin repository contains the fifteen retained skills and the Claude and
 Codex manifests. `setup` installs the project kit into the target repository:
 
 ```text
@@ -84,6 +84,10 @@ Thirteen skills are installed in a project, including
 `hud` is
 intentionally excluded from the project kit. It is a plugin-only, global Codex
 opt-in described in `docs/reference/codex-hud.md`.
+`teach` is likewise plugin-only: an explicit learning utility whose mission,
+resources, lessons, and learning records live in the directory the user
+invokes it in, outside the project kit, documentation graph, wiki, and
+completion evidence.
 
 ## Workflow And Data Flow
 
@@ -278,6 +282,8 @@ for resume guidance but cannot promote the all-scope completion verdict.
   `docs/decisions/0007-evidence-gated-assurance-graph.md`.
 - Project profile and artifact-assurance decision:
   `docs/decisions/0008-project-profile-artifact-assurance.md`.
+- Plugin-only learning-skill catalog decision:
+  `docs/decisions/0009-plugin-only-teach-skill.md`.
 
 Human-readable Markdown may explain these contracts but must not duplicate or
 override the managed JSON values.

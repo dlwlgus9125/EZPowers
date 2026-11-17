@@ -36,9 +36,10 @@ PLUGIN_SKILLS = frozenset(
         "improve-codebase-architecture",
         "wiki",
         "harness-chain",
+        "teach",
     }
 )
-PROJECT_SKILLS = PLUGIN_SKILLS - {"hud"}
+PROJECT_SKILLS = PLUGIN_SKILLS - {"hud", "teach"}
 # Kept as a compatibility alias for callers that import the repository validator.
 RETAINED_SKILLS = PLUGIN_SKILLS
 
@@ -52,6 +53,7 @@ EXPLICIT_ONLY_SKILLS = frozenset(
         "hud",
         "harness-chain",
         "improve-codebase-architecture",
+        "teach",
     }
 )
 
@@ -75,7 +77,7 @@ REMOVED_COMPONENTS = frozenset(
     }
 )
 
-CODEX_VERSION_RE = re.compile(r"^5\.8\.2\+codex\.[0-9]{14}$")
+CODEX_VERSION_RE = re.compile(r"^5\.9\.0\+codex\.[0-9]{14}$")
 SKILL_REFERENCE_RE = re.compile(r"\$ezpowers:([a-z0-9-]+)")
 HOST_MIN_VERSIONS = {
     "claude": (2, 1, 217),
@@ -356,7 +358,7 @@ def _validate_skill_inventory(repo_root: Path, hosts: set[str], errors: list[str
             else:
                 _check(
                     not project_policy_path.exists(),
-                    "plugin-only HUD must not be copied into project kits: "
+                    "plugin-only skill must not carry project metadata: "
                     f"{project_policy_path}",
                     errors,
                 )
@@ -401,7 +403,7 @@ def _validate_claude_manifest(repo_root: Path, errors: list[str]) -> None:
         return
 
     _check(manifest.get("name") == "ezpowers", "Claude plugin name must be ezpowers", errors)
-    _check(manifest.get("version") == "5.8.2", "Claude plugin version must be 5.8.2", errors)
+    _check(manifest.get("version") == "5.9.0", "Claude plugin version must be 5.9.0", errors)
     _check(bool(manifest.get("description")), "Claude plugin description is required", errors)
     _check(isinstance(manifest.get("author"), dict), "Claude plugin author must be an object", errors)
     for forbidden in ("agents", "commands", "hooks"):
@@ -433,7 +435,7 @@ def _validate_codex_manifest(repo_root: Path, errors: list[str]) -> None:
     version = manifest.get("version")
     _check(
         isinstance(version, str) and CODEX_VERSION_RE.fullmatch(version) is not None,
-        "Codex version must be 5.8.2 with exactly one timestamped +codex suffix",
+        "Codex version must be 5.9.0 with exactly one timestamped +codex suffix",
         errors,
     )
     _check(manifest.get("skills") == "./skills/", "Codex skills root must be ./skills/", errors)
@@ -487,7 +489,7 @@ def _validate_codex_manifest(repo_root: Path, errors: list[str]) -> None:
         described = set(re.findall(r"ezpowers:([a-z0-9-]+)", str(long_description)))
         _check(
             described == PLUGIN_SKILLS,
-            "Codex longDescription must enumerate exactly the retained fourteen skills",
+            "Codex longDescription must enumerate exactly the retained fifteen skills",
             errors,
         )
 

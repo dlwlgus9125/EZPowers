@@ -43,9 +43,9 @@ class PluginDiscoveryTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual("5.8.2", claude["version"])
-        self.assertEqual("5.8.2", marketplace["plugins"][0]["version"])
-        self.assertRegex(codex["version"], r"^5\.8\.2\+codex\.[0-9]{14}$")
+        self.assertEqual("5.9.0", claude["version"])
+        self.assertEqual("5.9.0", marketplace["plugins"][0]["version"])
+        self.assertRegex(codex["version"], r"^5\.9\.0\+codex\.[0-9]{14}$")
         self.assertEqual(1, codex["version"].count("+codex."))
         self.assertEqual("ezpowers-dev", codex_marketplace["name"])
         self.assertEqual("ezpowers", codex_marketplace["plugins"][0]["name"])

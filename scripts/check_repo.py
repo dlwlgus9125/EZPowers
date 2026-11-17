@@ -27,11 +27,12 @@ PLUGIN_SKILLS = frozenset(
         "prepare-execute",
         "setup",
         "spec",
+        "teach",
         "wiki",
         "harness-chain",
     }
 )
-PROJECT_SKILLS = PLUGIN_SKILLS - {"hud"}
+PROJECT_SKILLS = PLUGIN_SKILLS - {"hud", "teach"}
 RETAINED_SKILLS = PLUGIN_SKILLS
 EXPLICIT_ONLY_SKILLS = frozenset(
     {
@@ -43,6 +44,7 @@ EXPLICIT_ONLY_SKILLS = frozenset(
         "prepare-execute",
         "setup",
         "spec",
+        "teach",
     }
 )
 ALLOWED_SKILL_FRONTMATTER = frozenset(

@@ -12,7 +12,7 @@ other.
 
 ## Retained Plugin Surface
 
-The plugin root exposes exactly these fourteen skills:
+The plugin root exposes exactly these fifteen skills:
 
 ```text
 setup
@@ -29,6 +29,7 @@ frontend-design
 wiki
 harness-chain
 hud
+teach
 ```
 
 The plugin ships no agents and no plugin-root hooks. Coding, subagents,
@@ -47,7 +48,7 @@ worktrees, sandboxing, review, and retries remain host-native capabilities.
 
 The explicitly invoked workflow skills are `setup`,
 `improve-codebase-architecture`, `design-architecture`, `spec`,
-`prepare-execute`, `execute`, `harness-chain`, and `hud`. The skills
+`prepare-execute`, `execute`, `harness-chain`, `hud`, and `teach`. The skills
 `deep-interview`, `explain-with-evidence`, `diagnose`, `codebase-design`,
 `frontend-design`, and `wiki` may be matched implicitly from their
 descriptions. Both hosts must
@@ -60,6 +61,12 @@ omits alternatives, reversals, measurements, or chronology that were not
 actually observed. Fixed-schema artifacts and exact states such as `BLOCKED`
 or `CERTIFIED` remain byte- and meaning-preserving inputs rather than narrative
 material.
+
+`teach` is explicit-only on both hosts and exists only in the plugin namespace
+as `/ezpowers:teach` or `$ezpowers:teach`. It keeps one topic's mission,
+resources, lessons, and learning records in the directory the user invokes it
+in, warns before writing inside an EZPowers-managed project, and has no
+project-local variant, hook, or completion role.
 
 An explicit `/ezpowers:diagnose` or `$ezpowers:diagnose` invocation selects the
 fix-complete path unless the user says analysis-only or no edits. The
@@ -99,7 +106,8 @@ without work.
 `setup` copies thirteen project workflow skills to the canonical
 `.ezpowers/kit/skills/` tree and byte-identical host trees under
 `.claude/skills/` and `.agents/skills/`. `hud` is not copied because it manages
-global Codex UI rather than project completion.
+global Codex UI rather than project completion. `teach` is not copied because
+it is a learner-facing utility with no project completion role.
 
 After installation, the target project must be usable without the EZPowers
 plugin checkout. Claude and Codex discover their project-local copies through
@@ -110,7 +118,7 @@ Codex plugin and project skill names are not interchangeable. Each retained
 skill's plugin metadata invokes `$ezpowers:<name>`. The thirteen project-installed
 skills carry a distribution-only metadata variant that invokes `$<name>`; the
 manifest copies that variant to the installed metadata filename expected by
-Codex. `hud` has no project variant.
+Codex. `hud` and `teach` have no project variant.
 
 ## Ordinary Optional Completion Hooks
 
@@ -212,7 +220,7 @@ the CLIs are available it uses Claude's non-installing plugin validator,
 installs the project kit into a temporary Git worktree, installs the plugin
 from a compact temporary local marketplace under an isolated `CODEX_HOME`, and
 queries actual Codex `skills/list`. It requires all thirteen local skills and
-all fourteen namespaced plugin skills to be enabled, error-free, and paired with the
+all fifteen namespaced plugin skills to be enabled, error-free, and paired with the
 expected prompt. The implicit prompt-input probe remains a second discovery
 check. The smoke never installs, reinstalls, or edits global plugin state.
 

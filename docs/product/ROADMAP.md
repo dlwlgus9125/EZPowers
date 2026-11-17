@@ -1,6 +1,6 @@
 # EZPowers Roadmap
 
-## Current: v5.8.0 core and plugin
+## Current: v5.8.0 core / v5.9.0 plugin
 
 - Select one project-level `software` or `planning` profile at setup and allow
   only explicit later migration without coupling profile changes to refresh.
@@ -67,6 +67,11 @@
   follows the user's active conversational language, uses only observed
   alternatives and measurements, and leaves fixed artifacts and exact verdicts
   unchanged.
+- Add an explicit-only, plugin-only `teach` skill adapted from a pinned MIT
+  upstream source: one topic's mission, resources, lessons, and learning
+  records in the directory the user invokes it in, with a warning before
+  writing inside an EZPowers-managed project, no project-kit copy, and no
+  documentation, verification, or completion authority.
 - Keep the broad frontend readiness document while adding root/app-local
   `DESIGN.md` as the authoritative token and reusable-component contract.
 - Pin a selectively adapted Google design.md alpha profile and ship offline
@@ -79,7 +84,7 @@
   structural boundaries, record feature impact before implementation, and
   freeze affected artifacts in explicit harness-chain approvals without a
   second architecture state machine.
-- Keep one exact catalog: fourteen plugin skills, thirteen project skills, and
+- Keep one exact catalog: fifteen plugin skills, thirteen project skills, and
   separate namespaced versus project-local Codex prompt metadata.
 - Upgrade existing pre-v5.8 installations only through explicit
   `setup --refresh`;

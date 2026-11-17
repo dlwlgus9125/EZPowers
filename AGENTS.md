@@ -81,6 +81,10 @@ Roles are intentionally narrow:
 
 `frontend-design` is an independent advisory skill. `hud` is an explicit,
 plugin-only global Codex utility and is never installed into a project kit.
+`teach` is an explicit, plugin-only learning utility: it keeps one topic's
+mission, resources, lessons, and learning records in the directory the user
+invokes it in, is never installed into a project kit, and adds no
+documentation, verification, completion, or workflow authority.
 
 Before specifying a change to module/service boundaries, public interfaces,
 data ownership, cross-boundary flows, lifecycle, deployment, or verification
@@ -157,7 +161,7 @@ python scripts/verify-harness-kit.py
 python scripts/plugin_smoke.py --host both
 ```
 
-For a v5.8 release candidate, also run both three-run scheduler measurements
+For a v5.8 kit or v5.9 plugin release candidate, also run both three-run scheduler measurements
 and the five-run interleaved software compatibility measurement:
 
 ```powershell
