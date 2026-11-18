@@ -184,4 +184,14 @@ dependencies never assign implementation work or select an agent.
   conditional adversarial QA, and unchanged frozen inputs.
 - A failure that reaches an approved limit is terminal immediately; no extra
   pass is granted to rationalize continuation.
+- The chain's Claude adapter follows the hook payloads the host really sends:
+  the permission mode comes from the first event that reports it, `auto` is an
+  accepted unattended mode, the bound reviewer's hand-back creates the
+  receipt, and waiting for a background subagent spends no continuation
+  budget.
+- A rejected review report never opens an unbounded series of reviewers: a
+  run stops at its review limit, an oracle audit allows one replacement before
+  the preview is closed, and a finished run does not reopen an audit.
+- The frozen-file guard never blocks the runtime's own verification commands
+  and denies direct writes through every tool it inspects.
 - Removed orchestration concepts have no live reference or advertised flow.

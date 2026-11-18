@@ -123,7 +123,11 @@ has explicitly approved a design-contract change.
   prose or a bundled reviewer persona is not equivalent evidence.
 - Codex chain continuation comes only from one native goal. Claude chain
   continuation comes only from its project Stop hook. Never run both
-  authorities for one feature.
+  authorities for one feature, and never set Claude Code's native `/goal` for
+  a chain feature.
+- Chain host-adapter values (accepted permission modes, receipt source, Stop
+  deferral, guard matchers) follow the hosts' observed hook payloads. Change
+  them from a recorded live payload, not from documentation alone.
 - Do not claim identical host capabilities. Only the core EZPowers verdict is
   host-independent; hook response schemas remain thin host adapters.
 
@@ -137,7 +141,7 @@ has explicitly approved a design-contract change.
 - Local supporting knowledge: `.ezpowers/wiki/`
 - Resume/evidence pointer: `.ezpowers/state.json`
 - Runtime: `scripts/ezpowers.py`
-- Distribution manifest: `project-kit/v5.10.0/manifest.json`
+- Distribution manifest: `project-kit/v5.11.0/manifest.json`
 - Specs and plans: `docs/specs/`, `docs/plans/`
 - Canonical contracts: `docs/reference/*-contract.md`
 - Product state: `PROGRESS.md`, `feature_list.json`
@@ -164,7 +168,7 @@ python scripts/verify-harness-kit.py
 python scripts/plugin_smoke.py --host both
 ```
 
-For a v5.10 kit or plugin release candidate, also run both three-run scheduler measurements,
+For a v5.11 kit or plugin release candidate, also run both three-run scheduler measurements,
 the three-run content-bound reuse measurement, and the five-run interleaved software
 compatibility measurement:
 

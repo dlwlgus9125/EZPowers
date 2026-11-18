@@ -52,6 +52,15 @@ required `ezpowers.design` check when registered; otherwise add it as a
 plan-local static check. Add the pinned official CLI command only when that
 package is already installed locally, always with `npx --no-install`.
 
+Choose checks that can fail for the right reason. Prefer a check that observes
+behavior at a real boundary, such as an end-to-end flow, over one that only
+proves something exists. Where they fit, add a property-based check (round
+trip, invariant, idempotency, or equivalence with a naive implementation) or a
+differential check that feeds the old and new implementation the same inputs
+and names every approved difference. Order cheap deterministic checks before
+slow ones. Fix a known-flaky check before it becomes a required check. A slow
+check is a `reuse` candidate only under the correctness rules above.
+
 For the planning profile, declare every existing source artifact in `inputs`
 and map every criterion to exactly one logical `deliverable`. A deliverable
 may own multiple explicit file paths. Use `direct` review for directly

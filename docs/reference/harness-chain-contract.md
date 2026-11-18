@@ -36,12 +36,32 @@ installed hook identity and a real SessionStart session ID are recorded.
 Host trust, sandbox, login, secret, billing, and permission prompts remain host
 responsibilities; EZPowers does not bypass them.
 
+A host's hooks count as installed only when every chain event has a
+runtime-owned entry whose matcher equals the installed kit's definition. After
+`setup --refresh` to a kit that changes those definitions, status reports the
+host's hooks as missing or changed, no handshake is recorded, and a
+nonterminal run on that host becomes `NEEDS_REAPPROVAL`. Finish or abandon an
+in-flight run before refreshing; afterwards apply the chain configuration
+again, restart the host session, and approve the feature again.
+
+Claude Code does not report its permission mode on SessionStart. The runtime
+takes it from the first hook event of that session that reports one, and until
+then status says the session has not reported a mode. A mode that has not been
+observed is not treated as a changed one. Claude Code is unattended-capable in
+`auto`, `dontAsk`, or `bypassPermissions`; Codex readiness still requires
+`dontAsk` or `bypassPermissions`. In `auto` the host's classifier can deny an
+action or return to prompting after repeated blocks. That boundary stays
+host-owned; disclose it before feature approval.
+
 Readiness covers the runtime-owned project hook definitions only. Codex merges
 hooks from every active config layer and requires trust again when a
 non-managed hook hash changes; user, managed, or plugin hooks may still run.
-Claude may also enforce its own loop-safety cutoff. Resolve those host-level
-policies before leaving a run unattended. An EZPowers hard limit is a maximum,
-not a promise that a host or external service will remain available until it.
+Claude Code overrides a Stop hook after eight continuations in a row with no
+tool call between them, and chain hooks do not run in a `--bare` session.
+Resolve those host-level policies before leaving a run unattended. An EZPowers
+hard limit is a maximum, not a promise that a host or external service will
+remain available until it. No part of the Codex chain has been verified on a
+live host.
 
 ## Feature approval
 
@@ -87,7 +107,8 @@ Preview identity binds:
 
 Preview is `REVIEW_REQUIRED` until a bound independent `oracle-audit` receipt
 passes for that exact hash. Any input change creates a new hash.
-A bound audit `FAIL` makes that exact preview ineligible for another audit.
+A bound audit `FAIL` makes that exact preview ineligible for another audit, and
+so do two rejected hand-backs on one audit challenge.
 The staged acceptance contract must change and produce a new preview hash;
 cycling independent reviewers over unchanged evidence is not a retry path.
 
@@ -113,7 +134,15 @@ must match. EZPowers does not route models, translate plans into phases, own
 implementation tasks, or call an external executor.
 
 “Exactly one” means one EZPowers continuation authority for the feature; it
-does not disable organization-managed or user-owned host hooks.
+does not disable organization-managed or user-owned host hooks. Claude Code's
+native `/goal` is a session-scoped Stop hook judged by a model from the
+transcript; never combine it with the chain Stop hook for one feature.
+
+A Claude Stop that arrives while the run is `RUNNING` and a background
+subagent is still running neither blocks nor counts: the host resumes the
+session when that subagent reports. Background shells and monitors never defer
+a Stop. A reviewer that never reports therefore leaves the run waiting; the
+runtime does not time it out.
 
 After feature approval, normal product edits and retries inside the approved
 limits need no additional human approval. Host-owned permission boundaries
@@ -136,8 +165,15 @@ The feature approval freezes by path and SHA-256:
 - approval identity.
 - for planning, every declared input path and SHA-256.
 
-PreToolUse denies obvious writes to these paths, but the authoritative check
-is a fresh hash comparison before verification, review, and certification.
+PreToolUse is an early guard. It denies a file tool whose target is a frozen
+file, and a shell command that names one together with a direct mutation, an
+in-place edit, inline interpreter code, a redirection into it, or a copy onto
+it. It allows the runtime's own commands, a script or test run that names a
+frozen file, and a copy of one to another place, and it ignores text that only
+mentions one. On Claude Code it inspects `Bash`,
+`PowerShell`, `Write`, `Edit`, and `NotebookEdit`. Indirect writes pass it; the
+authoritative check is a fresh hash comparison before verification, review,
+and certification.
 Missing or changed frozen material immediately sets `NEEDS_REAPPROVAL`.
 Evidence cannot thaw it. A new preview, oracle audit, and human approval are
 required. On explicit kit refresh, a nonterminal legacy approval that predates
@@ -152,8 +188,10 @@ verification; their exact bytes become evidence only after real checks pass.
 
 `oracle-audit`, `code-review`, `artifact-review`, `adversarial-qa`, and `blocker-review` use
 challenge IDs. `SubagentStart` binds one real host-native subagent ID, host
-session, agent type, kind, and subject. Only that bound agent's SubagentStop
-message can create a receipt.
+session, agent type, kind, and subject. Only that bound agent's final report
+can create a receipt: on Claude Code the message of its SubagentHandback call
+when that carries a gate marker, otherwise its SubagentStop message. The two
+are never combined.
 
 The terminal marker contains schema version, challenge ID, `PASS`, `FAIL`, or
 allowed `BLOCKED` verdict, blocking findings, and non-empty observations. The
@@ -184,7 +222,19 @@ invalidates the latest chain PASS, and stores the reviewed workspace
 fingerprint. Another product review is unavailable until repository content
 changes and a new all-scope verification passes. A structured-receipt format
 error is different: the same bound reviewer must correct the same challenge
-without editing the repository.
+without editing the repository. A finished run left in state does not end a
+pending oracle audit, so that rule holds for every feature after the first.
+
+Claude Code does not continue a subagent that already handed its report back,
+so there a rejected hand-back releases the binding for a new reviewer on the
+same challenge instead. That replacement is bounded. Inside a run every
+rejection counts as a review failure and the approved review limit ends the
+run. Before a run nothing counts: an oracle audit allows one replacement, and
+a second rejected hand-back closes that preview exactly as a bound audit
+`FAIL` does.
+
+Chain hooks decode host input as UTF-8 and answer with ASCII-only JSON, so a
+console whose locale encoding is not UTF-8 cannot corrupt a report.
 
 Artifact-review failure additionally stores the exact byte inventory of every
 failed logical deliverable. Another all-scope verification is rejected until
@@ -267,7 +317,9 @@ though `.ezpowers/evidence/` is excluded from the product workspace hash.
 - `CERTIFIED`: fresh verification, required independent gates, and
   certificate agree.
 
-Claude Stop blocks while RUNNING and returns the next evidence-backed action.
+Claude Stop blocks while RUNNING and returns the next evidence-backed action,
+except while a background subagent is still running. A deferred Stop is not a
+continuation event and does not increment `iterations`.
 Codex Stop does not continue work because the native goal is authoritative.
 Both permit the host to stop at terminal state. A chain hook that cannot read
 runtime state degrades to a fail-safe no-op response with exit 0 instead of

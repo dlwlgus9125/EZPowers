@@ -432,12 +432,17 @@ runtime-owned ordinary Stop entry for that host.
 The shared deterministic verdict does not imply identical continuation:
 
 - Claude Stop blocks a nonterminal RUNNING stop and reports the next
-  evidence-backed action. It is that run's sole continuation authority.
+  evidence-backed action. It is that run's sole continuation authority. A Stop
+  that arrives while a background subagent is still running is a wait: it
+  neither blocks nor counts.
 - Codex continuation belongs to one native goal. Codex Stop does not continue
   a nonterminal run; at a terminal state it emits a hook-run terminal brake.
 - both hosts use SessionStart to bind installed hook identity and the current
   session, PreToolUse as a frozen-path early guard, and SubagentStart/Stop to
-  bind and record independent review challenges.
+  bind and record independent review challenges. On Claude Code the permission
+  mode is read from the first later event that reports it, and a bound
+  reviewer's report may arrive through a `SubagentHandback` tool call instead
+  of SubagentStop.
 
 Runtime hash checks, evidence freshness, receipt sidecars, and hard counters
 remain authoritative. A hook response alone cannot certify completion.
@@ -472,6 +477,8 @@ accessibility claims still require a feature-specific deterministic oracle.
 - Fresh evidence without certification is not completed work.
 - Host review, reviewer text, or an agent's DONE report does not replace
   machine evidence.
+- A host-run exercise of the application, such as Claude Code's `/verify`
+  skill, is feedback and does not replace machine evidence.
 - In a chain, main-agent review prose or an unbound reviewer does not replace a
   challenge-bound independent receipt, and a receipt does not replace checks.
 - Runtime smoke does not replace a feature-specific criterion.

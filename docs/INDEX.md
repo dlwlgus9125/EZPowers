@@ -10,7 +10,7 @@
 
 ## Live Reference
 
-- [Architecture](reference/architecture.md): v5.10 repository map, project-profile boundaries, and maintenance triggers.
+- [Architecture](reference/architecture.md): v5.11 repository map, project-profile boundaries, and maintenance triggers.
 - [Host Plugin Discovery](reference/codex-plugin-discovery.md): Claude Code and Codex discovery, invocation, hook, worktree, and sandbox differences.
 - [Setup Contract](reference/setup-contract.md): self-contained install, refresh, clean-break legacy boundary, conflicts, and optional hooks.
 - [Documentation Contract](reference/documentation-contract.md): repository analysis, adaptive Markdown graph, ownership, preview/apply, and lint.
@@ -38,6 +38,7 @@
 - [Project profile and artifact assurance ADR](decisions/0008-project-profile-artifact-assurance.md)
 - [Plugin-only teach skill ADR](decisions/0009-plugin-only-teach-skill.md)
 - [Content-bound check reuse ADR](decisions/0010-content-bound-check-reuse.md)
+- [Current-host chain adapter ADR](decisions/0011-current-host-chain-adapter.md)
 - [2026-07-24 workflow harness audit](reports/workflow-harness-audit-2026-07-24.md)
 - [2026-08-25 graph-engineering paper evaluation](reports/graph-engineering-paper-evaluation-2026-08-25.md)
 

@@ -2,30 +2,23 @@
 
 ## Current State
 
-EZPowers v5.10.0 plugin and v5.10.0 project kit are present in the working tree on
-`main`. F24, F25, and F26 are complete. F19 is explicitly deferred because
-its semantic dual-host diagnosis probe still needs external access; it is not included in
-the v5.10 kit or plugin completion claim. F26 adds opt-in content-bound check
-reuse: a check may declare the paths its outcome depends on, and while that
-content, its contract, and the installed kit are unchanged the runtime carries
-the recorded PASS instead of running the command again. Undeclared checks and
-existing projects keep executing exactly as before. The candidate preserves the host-native verification
-core, documentation graph, local wiki, explicit harness chain, and Plan
-Mode-aware clarification while adding a derived evidence-gated assurance
-graph, compatible plan/config v2 contracts, graph-bound evidence and chain
-approvals, a log-free `trace` surface, and bounded opt-in parallel checks. It
-It now also adds a project-level planning-artifact profile with fail-closed
-config/plan v3, byte-hashed inputs, logical multi-file deliverables,
-project-owned exact validators, and independent per-deliverable artifact
-review while leaving omitted and legacy profiles on the software path. It retains the
-maintainable paired frontend design contract, retaining the context-efficient
-evidence explanation skill, tightening diagnosis around an exact-reproduction
-gate, adding a portable architecture artifact lifecycle, and retaining the
-harness-chain loop hardening (a reviewer rubric whose embedded template
-matches the receipt parser exactly and
-stays FAIL when copied unedited, chain hooks that degrade to a fail-safe no-op
-instead of exit 2 on unreadable runtime state, and `PENDING_LOOP` activation
-blocks counted against `total_iterations`):
+EZPowers v5.11.0 plugin and v5.11.0 project kit are present in the working tree
+on `main`. F27 is complete. F19 remains explicitly deferred because its
+semantic dual-host diagnosis probe still needs external access; it is not part
+of the v5.11 completion claim.
+
+F27 aligns the harness chain's Claude Code host adapter with the hook payloads
+Claude Code 2.1.327 really sends, and adds the Claude Code team's verification
+practice to the workflow skills. A live probe showed that the chain could not
+reach `READY` on a real session: SessionStart carries no permission mode, the
+default `auto` mode was not accepted, a reviewer's report arrives through a
+hand-back tool call in `auto`, waiting for a background reviewer spent
+continuation budget, and the frozen-file guard denied the runtime's own
+`verify` command. The decisions are recorded in
+`docs/decisions/0011-current-host-chain-adapter.md`.
+
+The release keeps the host-native verification core, documentation graph,
+local wiki, explicit harness chain, and Plan Mode-aware clarification:
 
 - a typed criterion-to-task-to-check-to-evidence-to-review-to-certificate view
   derived from existing authorities, with stable task waves and graph hashes
@@ -71,6 +64,19 @@ blocks counted against `total_iterations`):
 - one native Codex goal or one Claude Stop loop, with real project checks,
   bound independent code review, and conditional adversarial QA before
   certification;
+- a Claude Code chain adapter that reads the permission mode from the first
+  hook event that reports it, accepts `auto`, takes the bound reviewer's
+  receipt from its hand-back call or its SubagentStop message, releases the
+  binding for a new reviewer when a handed-back report is rejected and bounds
+  that replacement, defers a Stop while a background subagent runs, decodes
+  hook input as UTF-8 whatever the console encoding is, and reports installed
+  hooks that predate the current matchers;
+- a pending oracle audit that an earlier finished run can no longer end, so a
+  rejected audit report keeps its reviewer instead of opening the audit to the
+  next one;
+- an exact frozen-file early guard shared by both hosts: file tools are judged
+  by their target, shell and PowerShell commands by write intent toward a
+  named frozen file, and the runtime's own commands always pass;
 - a session-only `deep-interview` that separates stated gaps from an always-run
   internal blind-spot pass, exposes only plausible consequential candidates,
   challenges framing when material, avoids ritual questions, and ends with a
@@ -98,6 +104,10 @@ blocks counted against `total_iterations`):
   learning records in the directory the user invokes it in, warns before
   writing inside an EZPowers-managed project, is never installed into a
   project kit, and adds no workflow, verification, or completion authority;
+- workflow guidance to exercise a change on the real running system before the
+  certification candidate, treat a flaky check as a defect, choose checks that
+  observe a real boundary, and use the host's own review, with the runtime
+  verdict still the only completion evidence;
 - an exact fifteen-skill plugin and thirteen-skill project catalog with distinct
   namespaced and project-local Codex prompt metadata;
 - clean retirement of pre-v5 workflow input plus Claude 2.1.217 and Codex
@@ -140,634 +150,208 @@ force product rework until a configured limit becomes terminal.
 - `F24`: planning-artifact project profile and artifact assurance.
 - `F25`: plugin-only explicit `teach` learning skill.
 - `F26`: opt-in content-bound check reuse.
+- `F27`: current-host chain adapter alignment and verification guidance.
 
 ## Deferred Item
 
 - `F19`: exact-reproduction-gated `diagnose`. The skill, contract, metadata,
   deterministic receipts, and opt-in dual-host probe are implemented. Its
   semantic completion remains deferred until an authenticated Claude call and
-  a Codex host can execute the authoritative isolated-fixture command. No v5.8
-  planning-profile or v5.10 reuse result is presented as evidence for that
-  separate probe.
+  a Codex host can execute the authoritative isolated-fixture command
+  (`python scripts/plugin_smoke.py --host both --live-diagnose`). Earlier
+  attempts were blocked by a logged-out Claude CLI and by the Codex CLI
+  rejecting file reads and execution under its policy. Claude model calls work
+  on this machine now and were used for the F27 probes, but the F19 probe
+  itself was not rerun. No later release result is presented as evidence for
+  it.
 
-The v5.10 project kit installs thirteen project skills, eleven canonical
+Open notes carried forward:
+
+- No part of the Codex harness chain has been run on a live host. The earlier
+  deferral stands: its terminal Stop response emits `continue`/`stopReason`,
+  and its readiness uses the mode names `dontAsk` and `bypassPermissions`. Its
+  matchers and continuation behavior were not changed in v5.11. The changes
+  that do not branch on the host apply to it too: the frozen-file guard
+  classification, taking the mode from a later event when SessionStart
+  reported none, UTF-8 hook input with ASCII answers, the code-review rubric
+  wording, the comparison of installed matchers, and a finished run no longer
+  ending a pending oracle audit.
+- `test_chain_hook_is_fail_safe_on_corrupt_state` failed once on 2026-10-17
+  with exit 1 and empty output and was never reproduced or explained. It
+  passed in every run of this release.
+- This repository's own `unit` project check has a 600-second timeout, shorter
+  than the full suite's run time, so release evidence here is the gates run
+  directly rather than an in-repository all-scope certificate.
+
+The v5.11 project kit installs thirteen project skills, eleven canonical
 contracts, and three deterministic tools. The plugin exposes fifteen skills:
 the project skills plus the plugin-only global `hud` utility and the
 plugin-only `teach` learning skill.
 
 ## Verification Evidence
 
-v5.10.0 content-bound check reuse validation on 2026-11-18:
+v5.11.0 current-host flow alignment validation on 2026-11-18 and 2026-11-19:
 
-- Claude plugin and marketplace versions are `5.10.0`; Codex is
-  `5.10.0+codex.20261118060358`. The project kit is `5.10.0` at
-  `project-kit/v5.10.0/manifest.json`; the tracked v5.8.0 manifest is
-  byte-unchanged (`git diff -- project-kit/v5.8.0/` is empty). Installed global
-  plugins and project copies were not refreshed.
-- Design order: `docs/reference/architecture.md` and ADR 0010 were written
-  first, then `docs/specs/f26-check-reuse.md` and
-  `docs/plans/f26-check-reuse.md`. `validate --spec` and `validate --plan`
-  pass with waves `[T1] [T2 T3 T4] [T5]` and assurance graph
-  `058a70494f13ce4eff1e115607c3688a37d0ea6bf9316d00c94798c8aa23c275`, the
-  same hash before and after the runtime change. The F24 plan still validates
-  with its recorded graph `70ad1b16...835d`.
-- Three characterization tests pinned the undeclared plan-v1 and plan-v2
-  evidence, certificate, and state key sets and one process start per
-  occurrence. They passed on the unmodified runtime and pass unchanged now.
-- `python -m unittest discover -s tests` in UTF-8 mode on Python 3.14.3:
-  228 tests passed in 716.131 seconds with one POSIX-only skip. An earlier
-  run of 227 tests passed in 697.896 seconds before the last test was added.
-  After the 228-test run, one step was added to each of two existing tests:
-  deleting the source run leaves a certified carried result `CERTIFIED`, and
-  a re-injected pre-approval candidate is refused by the approved-run
-  binding. Those two tests passed in 28.608 seconds. No runtime, contract, or
-  skill byte changed after the 228-test run, and the 36 workflow-surface,
-  discovery, kit, and repository-check tests and the repository gate passed
-  again after the final record edits.
-- New coverage is 24 tests in `tests/test_check_reuse.py`, two harness-chain
-  tests, two planning tests, and one phrase test. Process starts are observed
-  through a counter file outside the project, not through the reuse fields.
-  They show a carry for unchanged selected content, a commit, and an excluded
-  file; re-execution after an edited, added, removed, deleted-tracked, or
-  renamed selected file, a changed declaration, and a changed contract;
-  failure never carried and a forced failure revoking the earlier PASS; one
-  process start for a declared check with three occurrences; ineligible
-  typo, ignored-only, and symbolic-link selections executing every run;
-  task-scope and cross-plan sources; refresh and profile switch invalidating
-  candidates; six invalid-candidate cases falling back to execution; nine
-  altered reuse records and an altered certificate reported stale; an
-  unstable run leaving no key; plan-v1 flows staying inert; a copied project
-  tree not carrying; a case-only rename not carried; and an edit inside the
-  snapshot window failing the run instead of carrying.
-- Chain and planning: the reuse-declared oracle check started in the isolated
-  baseline for both previews and for apply; a PASS recorded before approval
-  was not carried into the approved run; a rework verification carried the
-  unaffected declared check while counters other than the cleared
-  identical-failure streak stayed unchanged; a declaration that omits its
-  oracle file was rejected at preview; a changed declaration ended the run at
-  `NEEDS_REAPPROVAL`; a Git-ignored deliverable or input change re-executed
-  the planning check; and a carried inspection log passed `artifact-review`
-  and certification.
-- `python scripts/benchmark_check_reuse.py --runs 3 --minimum-improvement 50`:
-  PASS through the installed CLI. Re-verification after a change to one of
-  five scopes had a median of 2.910926 seconds against 8.157862 seconds for
-  `--no-reuse`, a 64.32 percent improvement, with equal per-check outcomes,
-  identical output hashes for unaffected checks, a certified result in both
-  modes, and the same failing nodes after an injected failure. One declared
-  check referenced three times started one process with reuse and three with
-  `--no-reuse`.
-- Scheduler measurements passed: fixture median 1.193408 seconds serial versus
-  0.316485 parallel (73.48 percent improvement, identical output hashes);
-  project median 1.175328 versus 0.766041 (34.82 percent improvement,
-  equivalent process outcomes).
-- Five interleaved, 100-iteration software compatibility runs against
-  `08f9f84d24c59ec130dd6b3bf26555503910cbab` produced equivalent validation
-  and trace JSON. Baseline median was 4.223984 seconds; candidate median was
-  4.245030 seconds, a 0.5 percent regression against the 5 percent limit.
+- Claude plugin and marketplace versions are `5.11.0`; Codex is
+  `5.11.0+codex.20261118121755`. The project kit is `5.11.0` at
+  `project-kit/v5.11.0/manifest.json`, moved from the v5.10.0 directory so one
+  live manifest remains. The v5.7.0 and v5.8.0 kit manifests, which no runtime
+  or gate read, were removed; they are last present at commit `e5a4151`.
+  Installed global plugins and project copies were not refreshed.
+- Live probe before any repository edit: two `claude -p` runs of Claude Code
+  2.1.327 in a throwaway folder whose project hooks logged raw hook input, one
+  in `auto` and one in `dontAsk`. Each started one background subagent that
+  returned a gate-marker report. Observed: SessionStart input has no
+  `permission_mode` in either mode while PreToolUse, Stop, and SubagentStop
+  carry it; in `auto` the report arrives as `tool_input.message` of a
+  PreToolUse event for `SubagentHandback` carrying the subagent's `agent_id`,
+  and SubagentStop has no `last_assistant_message`; in `dontAsk` there is no
+  hand-back and `last_assistant_message` carries the report; the Stop that
+  fires while the subagent runs lists it in `background_tasks` with type
+  `subagent`, status `running`, and an `id` equal to its `agent_id`. The hook
+  logs are retained under `%TEMP%/ezpowers-f27-notes/`; their SHA-256 values
+  are `1d0dc24561717fb94b80fbce0e65967e00706f820c7910ae43c558288e5a2b8f`
+  (`auto`) and
+  `9c1fae4e51ea21ec1cfa528dbd5a481ef5bd4b6df35f32568cfc6b47b24507c6`
+  (`dontAsk`).
+- The approved plan said to drop the `auto` and hand-back changes if
+  SessionStart did not report `auto`. The probe showed that premise was wrong
+  for every mode, and the user chose to fix where the mode is read instead.
+- Design order: `docs/reference/architecture.md` and ADR 0011 were written
+  first, then `docs/specs/f27-host-flow-alignment.md` and
+  `docs/plans/f27-host-flow-alignment.md`. `validate --spec` and
+  `validate --plan` pass with waves `[T1] [T2] [T3]` and assurance graph
+  `50ccbaafc6bb40641f99c587d3f3d80eee4fde3ff42aa21ceb0e720b8722d984`, which
+  includes the tenth criterion added by the final review; before that
+  criterion the graph was `00c3b329...d149`. The F26 plan still validates with
+  graph `058a7049...c275` and the F24 plan with `70ad1b16...835d`.
+- Baseline before any edit: `python -m unittest tests.test_harness_chain` in
+  UTF-8 mode on Python 3.14.3 passed 26 tests in 248.287 seconds.
+- Eight new chain tests were added first and failed on the unmodified runtime
+  with 40 failures including subtests: the guard denied the runtime's own
+  `verify`, `certify`, `trace`, and `validate` commands, a test run, and
+  mention-only content, and allowed PowerShell, NotebookEdit, redirection, and
+  inline-interpreter writes; `auto` was not accepted; a running chain became
+  `NEEDS_REAPPROVAL` after a SessionStart without a mode; a hand-back created
+  no receipt; a Stop with a running background subagent blocked and counted;
+  the matchers lacked `fork`; and the rubric lacked the blocking/observation
+  split. All eight pass after the runtime change.
+- After the runtime change, `tests.test_harness_chain` and
+  `tests.test_planning_profile` passed 41 tests in 398.853 seconds, and after
+  the bounded-replacement change 46 tests in 477.665 seconds.
+- First full chain run on the real host (a throwaway project built with the
+  suite's own helpers, an approved `RUNNING` run, `claude -p` in `auto` with
+  the project-local skill): the session reported `auto`, the guard allowed
+  `verify --plan`, and the reviewer bound and handed back a valid PASS marker,
+  but the run ended `FAILED` at the total iteration limit. Three causes were
+  reproduced and fixed. The hook decoded UTF-8 input with the cp949 locale,
+  so one ellipsis in the report made it exit with an error before storing the
+  hand-back; replaying the logged event without UTF-8 mode gave exit 1 and no
+  stored report. A probe showed that a blocked SubagentStop is not honored
+  after a hand-back, so a rejected report now releases the binding for a new
+  reviewer. The reviewer's copy of the frozen oracle to a temporary folder was
+  denied, so a copy is now denied only onto a frozen file. Further probes
+  showed that the host waits for a slow PreToolUse hook on `SubagentHandback`
+  before SubagentStop, that an alternation matcher receives the hand-back, and
+  that a subagent's shell call can arrive as `PowerShell`.
+- Second real-host run on a fresh project from the fixed kit: `CERTIFIED`.
+  The guard allowed `verify`, the code-review gate bound one subagent, its
+  hand-back (4,242 characters, one marker) created a PASS receipt, `certify`
+  passed, and the final Stop was allowed. Every counter stayed at zero.
+- Third real-host run, driven only by the Stop hook with every chain hook
+  answer traced: the Stop that fired while a background subagent was running
+  was answered with `{}` and not counted; later Stops blocked with "Implement
+  the approved plan, then run verify --all.", "Begin a fresh independent
+  code-review gate.", and "Run certify for the fresh evidence and gate
+  receipts."; the run ended `CERTIFIED` with `iterations` 3 and no review
+  failure. Log SHA-256 values under `%TEMP%/ezpowers-f27-notes/`:
+  first run `c87d78680ca981316aff39f3a97a52660c3bbad4e434388bc5e06a5de521df5b`,
+  second `8e6086e43a3dd2da60c10d6e7d56fff6e98fc45608b969db38ccf92d6b46e47b`,
+  third (trace) `af80eb770879d3304f8e28840a1dbeb3f13f9d8886d879f6c5d3dcd90e635e1b`.
+- Final review on 2026-11-19: releasing the binding after a rejected hand-back
+  went beyond the approved plan and had no bound before a run. A comparison
+  run of the committed v5.10.0 runtime (a `git archive` of `e5a4151`) showed
+  an older defect of the same kind in every permission mode. With a finished
+  run left in state, each rejected oracle-audit receipt cleared the pending
+  gate, and four reviewers in a row each received a fresh challenge; with no
+  run in state the same reviewer was blocked and no other could bind. The
+  user chose to bound the replacement: one replacement per oracle-audit
+  challenge with the preview closed on the second rejected hand-back, the
+  approved review limit inside a run, and a finished run no longer ending a
+  pending oracle audit. Four tests were added first. The two audit tests
+  failed on the previous runtime for exactly those reasons, the two run-path
+  tests already passed, and all four pass after the change. Probe outputs
+  under `%TEMP%/ezpowers-f27-notes/`: `stale-run-head.json`
+  `088c002ab62b639b18a7399f9d241ec6227d91e650e5debc20bc5d582c88fb71` and
+  `stale-run-worktree.json`
+  `65fcbb86d3a91a68748bf7e96efa98103a8a928ae069c1c92cd21aadc128a236`.
+- Fourth and fifth real-host runs exercised the replacement inside a run. A
+  hook wrapper hid the gate marker of the first reviewer's hand-back from the
+  runtime only, so the host still delivered the reviewer's real report while
+  the runtime rejected it as it rejects a malformed receipt. In the fourth run
+  (default model) the runtime counted one review failure and released the
+  binding, but the main agent declined to start a second reviewer, naming the
+  2-dollar budget cap of the probe and the wrapper's file name, which said
+  what it did; it stopped until the iteration limit ended the run `FAILED`.
+  That run says nothing about the replacement. The fifth run used a neutrally
+  named wrapper and the `sonnet` model alias (`claude-sonnet-5-5`): the first
+  reviewer's hand-back was rejected and counted, the Stop hook answered "Begin
+  a fresh independent code-review gate.", the main agent reran
+  `chain gate begin`, a second real subagent bound to the same challenge, its
+  hand-back created the PASS receipt, and the run ended `CERTIFIED` with
+  `iterations` 4 and `review_failures` 1. Trace SHA-256 values: fourth
+  `deedbde20d26793904c008bfc620ab20539cf783815869d149dc31fd523c5ad5`, fifth
+  `0523e00fabccd85815133a9430d9945510b1af833da107ae1478f3b034b25e04`.
+- `python -m unittest discover -s tests` in UTF-8 mode on Python 3.14.3 passed
+  242 tests in 904.594 seconds with one POSIX-only skip, on the final runtime.
+  Earlier runs passed 237 tests in 829.359 seconds before the three live-run
+  fixes and 238 tests in 828.775 seconds before the bounded-replacement
+  change.
+- New coverage is thirteen tests in `tests/test_harness_chain.py` and one phrase
+  test in `tests/test_v5_workflow_surface.py`. The chain tests use payload
+  shapes recorded from the live host. The encoding test runs the hook with
+  `PYTHONUTF8=0` and a cp949 stream encoding, because the suite itself runs in
+  UTF-8 mode and would otherwise hide the defect again.
 - `scripts/check-repo.ps1`: PASS. `scripts/harness-runtime-smoke.ps1`: PASS
-  for a real v5.10 install, trace, verify, certify, stale, carry, changed-path
-  re-execution, and `--no-reuse` flow. `scripts/verify-harness-kit.py`: v5.10
-  manifest valid. `scripts/plugin_smoke.py --host both`: file surfaces
-  matched, Claude 2.1.327 accepted both manifests, and Codex 0.169.1 loaded
-  every project and namespaced skill in isolation.
+  for a real v5.11 install, trace, verify, certify, stale, and reuse flow.
+  `scripts/verify-harness-kit.py`: v5.11 manifest valid.
+  `scripts/plugin_smoke.py --host both`: file surfaces matched, Claude 2.1.327
+  accepted both manifests, and Codex 0.169.1 loaded every project and
+  namespaced skill in isolation.
+- Scheduler measurements passed on the final runtime: fixture median 1.195403
+  seconds serial versus 0.311174 parallel (73.97 percent improvement); project
+  median 1.171361 versus 0.767044 (34.52 percent improvement); equivalent
+  outcomes in both.
+- `python scripts/benchmark_check_reuse.py --runs 3 --minimum-improvement 50`:
+  PASS with a median of 2.882039 seconds against 8.144923 for a forced full
+  run, a 64.62 percent improvement, equal outcomes, and one process start for
+  a thrice-referenced declared check.
+- Five interleaved software compatibility runs against
+  `08f9f84d24c59ec130dd6b3bf26555503910cbab` produced equivalent output.
+  Baseline median was 4.216813 seconds and candidate median 4.210924 seconds,
+  a -0.14 percent regression against the 5 percent limit.
 - `DESIGN.md` lint, the project design check, and the visual-readiness check
   passed for the content-only guide edit. The guide was not rendered or
   inspected at the three documented viewports.
-- One deviation from the approved plan: a tracked file deleted from the
-  working tree is left out of the selected content instead of being recorded
-  as an `absent` entry. With the `absent` entry, committing that deletion
-  changed the reuse key although no byte on disk moved; a test reproduced it
-  and now pins both the deletion and the later commit.
-- Not exercised: the POSIX execute-bit test was skipped on Windows; macOS
-  Unicode normalization, `assume-unchanged`, `skip-worktree`, sparse
-  checkout, and submodule behavior were not run; no installed project was
-  refreshed, given declarations, or timed; the updated `execute`,
-  `prepare-execute`, `setup`, and `harness-chain` text was not run through a
-  live model on either host; discovery and release checks do not substitute
-  for those results; F19 remains deferred.
+- Not exercised: any live Codex chain step, and the shared guard on a live
+  Codex host; an interactive Claude Code session (every live run used
+  `claude -p`), a forked session, and compaction during a run; the
+  one-replacement cap of an oracle audit and the correction path after a
+  finished run, `NotebookEdit`, and an outdated-matcher project on a live host
+  (tests only); a replacement started by the default model, which declined in
+  the fourth run for reasons of the probe itself; a first reviewer that the
+  main agent continues with a message after its hand-back, which the host
+  offers and whose binding is unknown; a classifier denial or
+  pause in `auto` and the eight-continuation cutoff inside a chain; the new
+  `execute` and `prepare-execute` wording through a live model; any installed
+  project (none was refreshed); the POSIX execute-bit test, skipped on Windows;
+  in-repository `verify --all`; F19 remains deferred.
 
-v5.9.0 plugin-only teach skill release validation on 2026-11-17:
-
-- Claude plugin and marketplace versions are `5.9.0`; Codex is
-  `5.9.0+codex.20261117052124`. The project kit remains `5.8.0` with unchanged
-  manifest hashes: `git diff -- project-kit/` is empty. Installed global
-  plugins and project copies were not refreshed.
-- The 199-test full run passed in 509.748 seconds in UTF-8 mode on Python
-  3.14.3. It started before one final `skills/teach/SKILL.md` sentence and its
-  test phrase were added; afterwards the 31 workflow-surface, discovery, and
-  repository-check tests passed in 3.311 seconds. Repository checks, kit
-  validation, real install/trace/verify/certify/stale smoke, and isolated
-  plugin loading on Claude 2.1.312 and Codex 0.166.0 passed for the new
-  versions, including `ezpowers:teach` in the isolated Codex `skills/list`.
-- `DESIGN.md` lint, the project design check, and the visual-readiness check
-  passed for the edited guide. A static parse found balanced tags, fifteen
-  skill cards, fifteen chooser cards, and filter counts matching the cards.
-  The guide was not rendered or inspected at the three documented viewports.
-- Three-run scheduler measurements passed: fixture median 1.194657 seconds
-  serial versus 0.309638 parallel (74.08 percent improvement, identical
-  output hashes); project median 1.218925 versus 0.795605 (34.73 percent
-  improvement, equivalent process outcomes). Every check passed.
-- Five interleaved, 100-iteration software compatibility runs against
-  `08f9f84d24c59ec130dd6b3bf26555503910cbab` produced equivalent validation
-  and trace JSON. Baseline median was 4.263937 seconds; candidate median was
-  4.286707 seconds, a 0.53 percent regression against the 5 percent limit.
-- Five Claude 2.1.312 model calls loaded the working tree with `--plugin-dir`
-  in isolated temporary directories. With no tools, `/ezpowers:teach` asked
-  for the mission before any lesson and wrote nothing. With file tools, the
-  first run could not read the skill's format reference under the headless
-  permission policy and wrote an off-format `MISSION.md`; after the skill
-  gained its do-not-improvise rule, the same command wrote no `MISSION.md`
-  and asked for read access. With read access to the skill directory,
-  `MISSION.md` followed the bundled format, files landed only in the invoking
-  directory, and the skill directory digest was unchanged. In a Git fixture
-  containing `.ezpowers/config.json`, the skill wrote nothing, explained the
-  stale-evidence risk, and asked for a dedicated directory.
-- Not exercised: Codex teaching behavior (discovery only), reference reads
-  from an installed marketplace plugin path, lesson generation, web source
-  gathering, the quiz shuffle component, opening a lesson, and the guard from
-  a subdirectory of a managed project. F19 remains deferred.
-
-v5.8.2 plugin release validation on 2026-10-18:
-
-- Claude plugin and marketplace versions are `5.8.2`; Codex is
-  `5.8.2+codex.20261018014830`, giving both hosts a new update/cache identity
-  for the deep-interview continuation change. The project kit remains `5.8.0`
-  with the updated skill and project prompt hashes. Installed global plugins
-  and project copies were not refreshed.
-- The 198-test full rerun and live conversation evidence below cover the
-  behavior change. After release metadata updates, all 22 discovery and
-  workflow-surface tests passed in 2.499 seconds. Repository checks, kit
-  validation, real install/trace/verify/certify/stale smoke, and isolated plugin
-  loading on Claude 2.1.289 and Codex 0.162.1 passed for the new versions.
-- Three-run scheduler measurements passed: fixture median 1.378398 seconds
-  serial versus 0.372037 parallel (73.01 percent improvement, identical
-  output hashes); project median 2.220805 versus 1.442026 (35.07 percent
-  improvement, equivalent process outcomes). Every check passed.
-- Five interleaved, 100-iteration software compatibility runs against
-  `08f9f84d24c59ec130dd6b3bf26555503910cbab` produced equivalent validation
-  and trace JSON. Baseline median was 7.939873 seconds; candidate median was
-  7.928399 seconds, a -0.14 percent regression against the 5 percent limit.
-- Existing marketplace update commands in `README.md` apply. Codex's
-  ordinary-mode file execution remains unverified under the observed CLI
-  policy, and F19 remains deferred. Discovery and release checks do not
-  substitute for those behavioral results.
-
-Ordinary-mode deep-interview continuation on 2026-10-17:
-
-- The 997-word skill now combines request confirmation with proceed, correct,
-  or summary-only completion. Ordinary-mode proceed resumes host work through
-  relevant verification; Plan Mode proceed remains planning-only, including
-  after a later mode change. The canonical architecture was updated first to
-  describe this control-flow boundary. No runtime API, schema, executor, or
-  persistent approval state was added.
-- Plugin and project invocation metadata, current guidance, product state, and
-  the Korean guide match the choice contract. The v5.8.0 kit hashes were
-  restamped; plugin and kit versions are unchanged, and installed global
-  plugins were not refreshed.
-- The 22 focused workflow/discovery tests and UTF-8 skill validation passed.
-  Repository checks, kit validation, the real install/trace/verify/certify/stale
-  smoke, guide design-contract validation, and isolated plugin discovery on
-  Claude 2.1.289 and Codex 0.162.1 passed.
-- `python -m unittest discover -s tests` passed all 198 tests in 961.916
-  seconds on the full rerun. The initial 1139.853-second run had one failure:
-  `test_chain_hook_is_fail_safe_on_corrupt_state` returned exit 1 with empty
-  stdout/stderr. That same test then passed four isolated runs (one run plus
-  three repeated runs) and the full rerun. Its initial failure was not
-  reproduced or explained; no runtime patch or test relaxation was made.
-- Six Claude fixtures and five Codex fixtures exercised actual conversations.
-  All fixture bytes stayed unchanged before proceeding and for summary-only
-  or content-only agreement. Corrections were reflected in a new confirmation.
-  Claude's two-turn exact-command case created only `greeting.txt` and ran the
-  existing checker to PASS without another continuation question. Earlier
-  compound-shell attempts exceeded the fixture's narrow checker allowlist;
-  the successful case kept that allowlist and ran the checker as its own
-  command. Independent byte checks also passed for the earlier Claude output
-  and corrected `welcome` output; those checks are not attributed to the host.
-- Codex's real Plan Mode presented one native structured question with all
-  three choices, then returned a native final plan with no project writes.
-  Its file-inspection call did not return, and the final plan disclosed that
-  evidence gap. Claude's native Plan Mode likewise continued planning without
-  project writes, but created its host-owned `~/.claude/plans/` file. These
-  observations do not imply identical host storage or question capabilities.
-- Codex ordinary-mode conversations accepted the proceed choice, corrections,
-  summary-only completion, and content-only agreement. However, its CLI
-  rejected file reads and execution with `blocked by policy`; ordinary-mode
-  file creation and verification remain unverified. A zero CLI exit or plugin
-  discovery PASS is not a semantic completion result and does not close F19.
-- Fixture transcripts, byte checks, and the audited `evaluation-summary.json`
-  are retained under `%TEMP%/ezpowers-interview-check-cidzthev/`. The summary
-  SHA-256 is
-  `9c8d8b9f1f5f2649f161522501b351df0f28500e16b099c90227ff447a98db4e`.
-
-v5.8.1 plugin release validation on 2026-10-17:
-
-- Claude plugin and marketplace versions are `5.8.1`; Codex is
-  `5.8.1+codex.20261017061321`, so the published skill change has a new cache
-  identity on both hosts. The project kit remains `5.8.0` with the updated
-  `codebase-design` hash. Architecture impact: none.
-- The 198-test pass below covers the skill change. After the release metadata
-  update, `python -m unittest tests.test_codex_plugin_discovery
-  tests.test_v5_workflow_surface` passed all 22 tests in 9.426 seconds.
-- Repository checks, kit hash validation, real install/trace/verify/certify/
-  stale smoke, and isolated discovery on Claude 2.1.289 and Codex 0.162.1
-  passed again for the new plugin versions.
-- Three-run scheduler measurements passed: fixture median 1.395513 seconds
-  serial versus 0.376104 parallel (73.05 percent improvement, identical
-  output hashes); project median 2.273007 versus 1.431833 (37.01 percent
-  improvement, equivalent process outcomes). Every check passed.
-- Five interleaved, 100-iteration software compatibility runs against
-  `08f9f84d24c59ec130dd6b3bf26555503910cbab` produced equivalent validation
-  and trace JSON. Baseline median was 8.048207 seconds; candidate median was
-  7.984559 seconds, a -0.79 percent regression against the 5 percent limit.
-- Existing update commands in `README.md` apply. Installed project copies
-  still require explicit setup refresh. The behavioral limitations below
-  remain unchanged; discovery success does not establish Codex model behavior.
-
-Focused codebase-design reference loading on 2026-10-17:
-
-- `codebase-design` now locates contract headings and reads only the shared
-  authority, invocation/role, and deep-module sections, using separate ranges
-  across intervening sections. Installed-project and plugin fallback paths
-  remain supported. Architecture impact: none; runtime, public interfaces,
-  report schema, authority boundaries, catalog, and version are unchanged.
-- In isolated Claude 2.1.289 runs with the same Order intake request, the
-  original skill read the full 1,503-word engineering contract. The final
-  candidate read its heading inventory and only lines 60-92 and 138-154:
-  301 words of contract sections, excluding diagnosis and report bodies.
-  Both responses compared three interface options, preserved entry-point
-  compatibility, and discussed migration and surviving tests without edits.
-  This is a sampled behavior check, not a latency or total-token benchmark.
-- Three unchanged architecture-scan baselines respected an accepted ADR with
-  no new evidence (zero candidates), surfaced concrete policy drift with its
-  ADR tradeoff and smaller fix (one temporary report), and returned zero
-  candidates for an already-deepened scope. No ADR-filter rule was added.
-- Codex 0.162.1's isolated behavioral run rejected read-only `Get-Content`
-  commands before fixture inspection. Its zero process exit is not a semantic
-  PASS; Codex behavior remains unverified. This does not close deferred F19.
-- All six retained baseline/final fixture runs preserved their Git status.
-  Temporary transcripts and `evaluation-summary.json` are under
-  `%TEMP%/ezpowers-skill-check-o_357w37/`; the summary SHA-256 is
-  `3f94eade58f3e1766a7339a2350f250874b8f69d707dde2fa028a2231a9a1284`.
-- Skill validation and `python scripts/verify-harness-kit.py` passed with the
-  updated skill hash. Runtime smoke passed the real v5.8 install, trace,
-  verify, certify, and stale flow. Plugin smoke passed both file surfaces,
-  Claude 2.1.289 manifest validation, and Codex 0.162.1 isolated discovery.
-- `python -m unittest discover -s tests`: 198 tests passed in 900.073 seconds
-  with exit code 0. The PowerShell repository gate passed too.
-
-v5.8.0 planning-artifact project profile verification on 2026-09-01:
-
-- `python -m unittest discover -s tests`: 198 tests passed in 1094.580
-  seconds. The focused planning-profile module passed all five setup,
-  fail-closed contract, binary/ignored artifact, mutation, and staged-chain
-  scenarios in 83.144 seconds.
-- `python scripts/ezpowers.py validate --plan
-  docs/plans/f24-planning-profile.md --json`: PASS with five dependency waves
-  and assurance graph `70ad1b165f49cbf58a2ca8d45a6763bf291f405b310d1843bc0a17b7b180835d`.
-- Five interleaved, 100-iteration baseline/candidate software measurements
-  produced equivalent validation and inactive-trace JSON: baseline median
-  8.709611 seconds, candidate median 9.048048 seconds, 3.89 percent
-  regression against the five percent limit. A shorter 20-iteration probe
-  had one 7.39 percent outlier; increasing the default sampling budget made
-  the same release command stable without weakening its threshold.
-- Three-run fixture scheduler benchmark: serial median 1.442627 seconds,
-  parallel median 0.394478 seconds, 72.66 percent improvement, identical full
-  output hashes, and every check PASS.
-- Three-run project scheduler benchmark: serial median 2.471742 seconds,
-  parallel median 1.617395 seconds, 34.56 percent improvement, equivalent
-  process outcomes, and every check PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File
-  scripts/check-repo.ps1`: PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File
-  scripts/harness-runtime-smoke.ps1`: PASS for a real v5.8 install, trace,
-  verify, certify, and stale flow.
-- `python scripts/verify-harness-kit.py`: v5.8.0 manifest valid with thirteen
-  project skills, eleven contracts, and three tools.
-- `python scripts/plugin_smoke.py --host both`: file surfaces matched; Claude
-  2.1.238 accepted the plugin and marketplace manifests; Codex 0.152.0 loaded
-  standalone deep-interview plus every project and namespaced plugin skill
-  with matching prompts in isolation.
-- Manual final diff review confirmed that `ProjectProfilePolicy` contains the
-  variation at the normalizer and independent-review seams; the exact-command
-  scheduler, evidence/freshness/certification core, host adapters, catalog
-  counts, and omitted legacy software behavior remain shared. That review also
-  found and restored the existing wiki-refresh PASS payload before release;
-  its real installed CLI regression test and all nine adjacent docs/wiki tests
-  pass.
-
-v5.7.1 checkout-stable distribution repair verification on 2026-08-26:
-
-- The `deep-interview` source was reproduced with mixed CRLF/LF working-tree
-  bytes hashing to `d30619...`, while the Git-distributed LF bytes hashed to
-  `679537...`; this was the exact manifest mismatch reported during setup.
-- `.gitattributes` now forces LF checkout bytes for tracked text. Manifest
-  stamping and validation reject carriage returns, require `eol=lf` for every
-  managed source in a Git worktree, and hash the exact bytes that ship.
-- Four distribution regression tests pass: non-LF validation rejection,
-  non-LF stamping rejection, exact current source hashes, and Git attribute
-  coverage for every manifest source.
-- `python -m unittest discover -s tests`: 192 tests passed in 1037.123 seconds.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File
-  scripts/check-repo.ps1`: PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File
-  scripts/harness-runtime-smoke.ps1`: PASS for real v5.7 install, trace,
-  graph-bound verify/certify, and workspace-stale flow.
-- `python scripts/verify-harness-kit.py`: v5.7.0 manifest valid.
-- `python scripts/plugin_smoke.py --host both`: Claude 2.1.238 accepted both
-  manifests; Codex 0.149.1 loaded all project and namespaced skills with
-  matching prompts in isolation.
-- Three-run fixture benchmark: serial median 1.442207 seconds, parallel median
-  0.393966 seconds, 72.68% improvement, identical full output hashes.
-- Three-run project benchmark: serial median 2.606988 seconds, parallel median
-  1.629522 seconds, 37.49% improvement, equivalent process outcomes.
-- The prospective committed Git ZIP validates its manifest and installs the
-  5.7.0 project kit with 103 managed files into a fresh Git project.
-- There is no architecture impact or project-kit version change. Plugin 5.7.1
-  distributes the corrected, same-version 5.7.0 kit so existing projects can
-  repair it explicitly with `setup --refresh`.
-
-v5.7.0 evidence-gated assurance graph verification on 2026-08-25:
-
-- `python -m unittest discover -s tests`: 188 tests passed in 968.000 seconds.
-- Focused suites passed: 10 assurance-graph tests in 101.122 seconds, all 24
-  harness-chain tests in 472.839 seconds, 12 workflow-surface tests in 0.065
-  seconds, 10 Codex discovery tests in 2.733 seconds, and 8 repository-gate
-  tests in 4.549 seconds.
-- Controlled fixture benchmark, three matched runs: serial median 1.445024
-  seconds, parallel median 0.403820 seconds, 72.05% improvement, identical full
-  output hashes, and all checks PASS.
-- Current allowlisted repository benchmark (`repo-check`, `kit-manifest`, and
-  file-only `plugin-files`), three matched runs: serial median 2.344398 seconds,
-  parallel median 1.488881 seconds, 36.49% improvement, equivalent process
-  outcomes, and all checks PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File
-  scripts/check-repo.ps1`: PASS. Its obsolete-reference scan retains every
-  legacy regex behind a required literal prefilter and dedicated regression
-  coverage.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File
-  scripts/harness-runtime-smoke.ps1`: PASS for a real v5.7 install, inactive
-  trace, graph-bound verify/certify, and workspace-stale flow.
-- `python scripts/verify-harness-kit.py`: v5.7 manifest valid with thirteen
-  project skills, eleven contracts, and three tools.
-- `python scripts/plugin_smoke.py --host both`: file surfaces matched; Claude
-  2.1.238 accepted both manifests; Codex 0.149.0 loaded standalone
-  deep-interview plus all project and namespaced skills with matching prompts.
-- `design-md.py lint`, `design-md.py check-project`, and
-  `frontend-visual-readiness.py --mode check`: PASS. The existing 86 token
-  values and root guide mapping were preserved; the optional official CLI
-  remains `NOT_INSTALLED` and the absent visual-tool lanes remain advisory.
-- The Graph Engineering paper is used as a survey/position framework, not as
-  an upstream runtime or proof of EZPowers performance. Broader dynamic agent
-  teams, model routing, reviewer fleets, and autonomous evolution remain
-  deferred or rejected by ADR 0007.
-
-v5.6.0 portable architecture artifact lifecycle verification on 2026-08-09:
-
-- `python -m unittest discover -s tests`: 174 tests passed in 805.082
-  seconds.
-- Focused new behavior passed: the managed root `ARCHITECTURE.md` docs
-  transaction in 4.760 seconds, the selected/unselected/missing/frozen chain
-  lifecycle in 19.948 seconds, and all 11 workflow-surface tests in 0.058
-  seconds.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File
-  scripts/check-repo.ps1`: PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File
-  scripts/harness-runtime-smoke.ps1`: PASS for real install, validate, verify,
-  certify, and stale flow.
-- `python scripts/verify-harness-kit.py`: v5.6 project kit manifest valid with
-  thirteen project skills, eleven contracts, and three tools.
-- `python scripts/plugin_smoke.py --host both`: plugin files matched, Claude
-  2.1.220 accepted both manifests, and Codex 0.147.0 loaded standalone
-  deep-interview plus every project and namespaced plugin skill with matching
-  prompts.
-
-v5.5.0 maintainable `DESIGN.md` frontend contract verification on 2026-08-09:
-
-- `python -m unittest discover -s tests`: 171 tests passed in 824.082
-  seconds.
-- Focused runtime evidence passed: 7 documentation/wiki tests in 57.505
-  seconds, 33 install/verification tests in 315.737 seconds, 21 harness-chain
-  tests in 412.493 seconds, and 10 workflow-surface tests in 0.048 seconds.
-- `python scripts/design-md.py lint --file DESIGN.md --profile
-  google-alpha-0.4.0-ezpowers-1 --json`: PASS with 86 token values, zero
-  errors, zero warnings, and 64 informational orphan-token findings retained
-  for the current CSS inventory.
-- `design-md.py check-project` and `frontend-visual-readiness.py --mode check`:
-  PASS for the root mapping from `DESIGN.md` to
-  `docs/ezpowers-skills-guide.html`; project-local Storybook and screenshot
-  lanes remain honestly advisory.
-- `python scripts/check-design-md-upstream.py --json`: `CURRENT` for all four
-  watched upstream files at pinned commit
-  `9bf8eae67128b6cc55ad9bf86665767deb4c11cd`; no writes were performed.
-  The optional exact-version official CLI cross-check reported
-  `NOT_INSTALLED`, which is a non-gating state.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
-  PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
-  PASS for real install -> validate -> verify -> certify -> stale.
-- `python scripts/verify-harness-kit.py`: v5.5 project kit manifest valid with
-  thirteen project skills, eleven contracts, and three tools.
-- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
-  Claude 2.1.220 accepted the manifests, and Codex 0.147.0 loaded standalone
-  deep-interview plus all project and namespaced skills with matching prompts
-  in isolation.
-- `quick_validate.py skills/frontend-design`: PASS. The same generic validator
-  cannot parse the pre-existing EZPowers `disable-model-invocation` extension
-  on workflow skills; repository and dual-host plugin validators passed those
-  skills without removing the extension.
-
-v5.4.0 architecture-scan boundary hardening verification on 2026-07-30:
-
-- `python -m unittest discover -s tests`: 158 tests passed in 723.289
-  seconds.
-- `python -m unittest tests.test_architecture_review_report
-  tests.test_v5_workflow_surface`: 19 focused tests passed in 7.166 seconds.
-- The self-contained dual-host install and distribution-removal tests passed
-  with the skill-local report contract and renderer resolver installed
-  byte-identically for both hosts.
-- An actual two-turn Codex 0.146.0 call on the isolated Order intake fixture
-  kept the named scope, ran no tests or builds, produced a schema-v2 receipt
-  with one candidate and input/source/report hashes, deleted its temporary
-  JSON, preserved a clean Git state, stopped for candidate selection before
-  interface design, then compared two materially different seams in the
-  selected candidate's `Refactor brief`.
-- The rendered report cited all six affected/context files, excluded the
-  out-of-scope health module, contained compatibility, migration, ADR, and top
-  rationale sections, had no remote/script dependency, and its observed file
-  hash matched the receipt.
-- Claude Code 2.1.220 accepted the plugin manifest, but
-  `claude auth status` reported `loggedIn: false` and `authMethod: none`; the
-  actual `claude -p` architecture call exited 1 before returning a model
-  response. This is recorded as an external authentication blocker, not a
-  semantic pass or product failure.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
-  PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
-  PASS for real install -> validate -> verify -> certify -> stale.
-- `python scripts/verify-harness-kit.py`: v5.4 project kit manifest valid with
-  thirteen project skills, ten contracts, and two tools.
-- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
-  Claude 2.1.220 accepted the manifests, and Codex 0.146.0 loaded all project
-  and namespaced skills with matching prompts and the required architecture
-  resources in isolation.
-
-v5.4.0 context-efficient evidence explanation verification on 2026-07-27:
-
-- `python -m unittest discover -s tests`: 153 tests passed in 696.690
-  seconds.
-- `python -m unittest tests.test_v5_workflow_surface
-  tests.test_codex_plugin_discovery tests.test_repo_check`: 27 focused tests
-  passed in 7.243 seconds.
-- `quick_validate.py skills/explain-with-evidence`: skill structure valid.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
-  PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
-  PASS for real install -> validate -> verify -> certify -> stale.
-- `python scripts/verify-harness-kit.py`: v5.4 project kit manifest valid with
-  thirteen project skills, ten contracts, and two tools.
-- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
-  Claude 2.1.220 accepted the manifests, and Codex 0.145.0 loaded all project
-  and namespaced skills with matching prompts in isolation.
-- The language-selection and evidence rules are covered by deterministic
-  contract tests and actual host discovery. No live model-response probe was
-  used, so this evidence does not claim semantic output conformance from a
-  hosted model.
-
-v5.3.4 candidate harness-chain loop hardening verification on 2026-07-26:
-
-- `python -m unittest discover -s tests` (UTF-8 mode): 152 tests passed in
-  619.895 seconds, including six new chain Stop/PreToolUse/rubric-roundtrip
-  cases that pin iteration counting, the terminal iteration limit, the bounded
-  `PENDING_LOOP` block, corrupt-state fail-safe hook responses, frozen-path
-  denial, and that the injected rubric template parses as a valid receipt.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
-  PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
-  PASS for real install -> validate -> verify -> certify -> stale.
-- `python scripts/verify-harness-kit.py`: v5.3 manifest valid with refreshed
-  runtime, harness-chain skill, and harness-chain contract hashes.
-- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
-  Claude 2.1.220 accepted the manifests, and Codex 0.145.0 loaded all project
-  and namespaced skills with matching prompts in isolation.
-- Deferred by user decision (Codex does not run the harness chain): the Codex
-  chain Stop terminal response still emits `continue`/`stopReason` and chain
-  unattended detection still reads Claude permission-mode names.
-
-v5.3.3 candidate verification on 2026-07-26:
-
-- `python -m unittest discover -s tests`: 146 tests passed in 593.061 seconds.
-- `python -m unittest tests.test_codex_plugin_discovery tests.test_v5_workflow_surface`:
-  19 focused tests passed on the final candidate.
-- `quick_validate.py skills/diagnose` with UTF-8 mode: skill structure valid.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
-  PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
-  PASS for real install -> validate -> verify -> certify -> stale.
-- `python scripts/verify-harness-kit.py`: v5.3 manifest valid with refreshed
-  diagnose skill, project metadata, and engineering-contract hashes.
-- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
-  Claude 2.1.220 accepted the manifests, and Codex 0.145.0 loaded all project
-  and namespaced skills with matching prompts in isolation.
-- The real Codex diagnose call attempted `python reproduce_exact.py`, received
-  an execution-policy rejection before launch, made no product edit or
-  hypothesis, and requested the missing command/write access. This confirms
-  the no-reproduction blocker discipline but does not earn fixed-path
-  red-to-green evidence.
-- `claude auth status` reported `loggedIn: false` and `authMethod: none`, so no
-  authenticated Claude diagnose model call could run.
-
-The candidate is not release-complete until both live hosts pass the fixable
-baseline-red-before-patch case and the missing-capture no-edit case. No v5.3.3
-completion event has been appended to `harness_versions/changelog.jsonl`.
-
-Final v5.3.2 plugin patch verification on 2026-07-26:
-
-- `python -m unittest discover -s tests`: 141 tests passed in 601.146 seconds.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
-  PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
-  PASS for real install → validate → verify → certify → stale.
-- `python scripts/verify-harness-kit.py`: v5.3 manifest valid with refreshed
-  skill and metadata hashes.
-- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
-  Claude 2.1.220 accepted the plugin and marketplace manifests, and Codex
-  0.145.0 loaded all project and namespaced skills with matching prompts.
-- Independent forward-tests made an irreversible deletion request expose paid,
-  contractual, and legal-retention exceptions; challenged public customer
-  details in a general team policy; and returned a concise confirmation without
-  inventing a blind spot for an already-settled retrospective request.
-- The revised skill is 974 words versus the prior 964, while adding the
-  explicit-gap/blind-spot split, plausibility/consequence filter, and
-  no-ritual-question rule.
-
-### Previous v5.3.1 baseline
-
-Final v5.3.1 plugin patch verification on 2026-07-24:
-
-- `python -m unittest discover -s tests`: 141 tests passed.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
-  PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
-  PASS for real install → validate → verify → certify → stale.
-- `python scripts/verify-harness-kit.py`: v5.3 manifest valid with twelve
-  project skills, ten contracts, and two tools.
-- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
-  Claude 2.1.217 accepted the plugin and marketplace manifests, and Codex
-  0.145.0 loaded all twelve project and thirteen namespaced plugin skills with
-  exact prompts in isolation.
-- An isolated `diagnose` forward-test reproduced a tenant-scoped event
-  filtering failure, preserved the existing regression test, changed only
-  product code, and finished with the minimal and full fixture commands green.
-
-### Previous v5.3.0 baseline
-
-Final v5.3.0 verification on 2026-07-24:
-
-- `python -m unittest discover -s tests`: 140 tests passed.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
-  PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
-  PASS for real install → validate → verify → certify → stale.
-- `python scripts/verify-harness-kit.py`: v5.3 manifest valid with twelve
-  project skills, ten contracts, and two tools.
-- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
-  Claude 2.1.217 accepted the plugin and marketplace manifests, and Codex
-  0.145.0 loaded all twelve project and thirteen namespaced plugin skills with
-  exact prompts in isolation.
-- Renderer regression coverage passed for deterministic escaped offline HTML,
-  strict schema/path/graph validation, repository-output rejection, atomic
-  writes, and pre-existing or racing output no-overwrite behavior.
-
-### Previous v5.2.1 baseline
-
-Final v5.2.1 plugin patch verification on 2026-07-24:
-
-- `python -m unittest discover -s tests`: 134 tests passed.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-repo.ps1`:
-  PASS.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/harness-runtime-smoke.ps1`:
-  PASS for real install → validate → verify → certify → stale.
-- `python scripts/verify-harness-kit.py`: v5.2 manifest valid with nine project
-  skills and nine contracts.
-- `python scripts/plugin_smoke.py --host both`: both file surfaces passed,
-  Claude 2.1.217 accepted both manifests, and Codex 0.145.0 loaded all nine
-  project skills and all ten namespaced plugin skills enabled, error-free, and
-  with exact prompts in isolation.
-- Independent forward-tests passed: confirmation inside Plan Mode continued
-  with the highest-impact implementation question, while confirmation outside
-  Plan Mode stopped without a workflow handoff or artifact.
-- The earlier `python scripts/plugin_smoke.py --host both --live-advisory`
-  release probe remains recorded for v5.2.0: Codex executed the project-local
-  `deep-interview` behavior; Claude's loader passed but its model call was
-  externally blocked by HTTP 401 authentication with zero cost.
-- `python -m unittest tests.test_harness_chain -v`: 14 chain scenarios passed,
-  including isolated destructive-oracle defense, limit-one terminal behavior,
-  forged receipt rejection, failed-audit hash consumption, mandatory product
-  rework, same-reviewer correction, reapproval, review, QA, receipt-tamper
-  detection, certification, and post-certification staleness.
-- Documentation/wiki regression coverage includes stale previews, explicit
-  adoption, force backups, required lint, Korean search, promotion binding,
-  backup-first prune, hook idempotence/privacy, and fingerprint exclusion.
+Earlier per-release verification evidence was pruned from this file. It
+remains in `harness_versions/changelog.jsonl` (one entry per release from
+v5.2.0 through v5.10.0) and in this file's Git history, last complete at
+commit `e5a4151`. The v5.3.3 and v5.3.4 candidate records have no changelog
+entry and exist only in that Git history.
 
 ## Remaining Candidates
 
@@ -784,3 +368,36 @@ Cryptographic hashes detect accidental or partial tampering but are not an
 authenticity boundary against an attacker who can rewrite state, artifacts,
 sidecars, and hashes together. Hostile environments need repository/CI
 permissions or signing outside this local core.
+
+### Considered and declined
+
+- Stopping ordinary `execute` after three failed rounds to call a human. The
+  user declined it; ADR 0011 records the reasons.
+
+### Candidates not acted on in v5.11
+
+These were found while comparing the harness with current hosts and with the
+Claude Code team's verification practice. They were reported, not changed.
+
+- The ordinary completion Stop hook still blocks while a background subagent
+  runs, has no fail-safe wrapper, and has no observe mode or escape hatch.
+- Certification becomes stale when the certified tree is committed, because
+  the workspace fingerprint includes Git HEAD; commits carry no record of how
+  they were verified.
+- In ordinary execution nothing reports that a change edited its own checks.
+- The Codex chain path is unused by the maintainer and unverified.
+- The local wiki overlaps the hosts' own memory features.
+- Chain hooks give up on the runtime lock after one second, and no command
+  abandons a pending review gate.
+- A rejected oracle-audit receipt that arrives while another feature's run is
+  `RUNNING` is counted against that run's review limit.
+- Nothing tells the main agent that a receipt was rejected or why. In the
+  fifth live run it inferred the rejection from `review_failures` in the state
+  file; the Stop reason and the `chain gate begin` answer do not say it.
+- Outside `auto`, the same reviewer may correct a rejected oracle-audit
+  receipt any number of times before approval; only replacement by another
+  reviewer is bounded.
+- The article's "delete a flaky test and record why" conflicts with the rule
+  that a required check is never omitted.
+- The same rule is restated across many documents, so each release touches a
+  large version-coupled file set.

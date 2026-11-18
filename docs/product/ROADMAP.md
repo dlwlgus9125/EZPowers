@@ -1,6 +1,19 @@
 # EZPowers Roadmap
 
-## Current: v5.10.0 core / v5.10.0 plugin
+## Current: v5.11.0 core / v5.11.0 plugin
+
+- Align the harness chain's Claude adapter with the hook payloads Claude Code
+  really sends: read the permission mode from the first event that reports it,
+  accept `auto`, take the bound reviewer's receipt from its hand-back call, and
+  stop spending continuation budget while a background subagent runs.
+- Bound reviewer replacement after a rejected report, and stop a finished run
+  from reopening an oracle audit for another reviewer.
+- Make the frozen-file guard exact: allow the runtime's own commands and
+  script or test runs, deny direct writes through file tools, shells, and
+  PowerShell, and report installed hooks that predate the current matchers.
+- State the verification practice in the workflow skills: exercise the change
+  on the running system, treat a flaky check as a defect, prefer checks that
+  observe a real boundary, and use the host's own review.
 
 - Let a check declare the path patterns its outcome depends on and carry its
   recorded PASS while that content, its contract, and the installed kit are
@@ -99,14 +112,14 @@
   second architecture state machine.
 - Keep one exact catalog: fifteen plugin skills, thirteen project skills, and
   separate namespaced versus project-local Codex prompt metadata.
-- Upgrade existing pre-v5.10 installations only through explicit
+- Upgrade existing pre-v5.11 installations only through explicit
   `setup --refresh`;
   preserve customized managed files and fail atomically on conflicts.
 
 ## Later, only with demonstrated demand
 
 - Complete F19's authenticated live Claude and sandbox-capable Codex diagnose
-  probes when both external host environments are available; v5.10 does not
+  probes when both external host environments are available; v5.11 does not
   claim those deferred probes.
 
 - Real visual-baseline generation and visual-diff execution behind the current
@@ -123,4 +136,6 @@ Model routing, bundled reviewer fleets, generic host-independent retries,
 host-independent implementation task graphs, phase conversion, and an
 external executor are not roadmap items; supported hosts already own those
 execution concerns. The profile-aware assurance graph is a derived
-verification view, not an exception to that boundary.
+verification view, not an exception to that boundary. A rule that stops
+ordinary execution after three failed rounds was considered and declined; ADR
+0011 records why.

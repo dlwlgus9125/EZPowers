@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "version": "5.7.0",
+  "version": "5.11.0",
   "no_synthesis": true,
   "runtime": {
     "source": "scripts/ezpowers.py",
     "target": ".ezpowers/ezpowers.py",
-    "sha256": "5446ae56c77e73b45a5bb41a4d06db007d89e2088872d240d4650f8bd79f61b1"
+    "sha256": "a761e247b512a81ea6c57f5b62bfbdc639f914300cb7b43ccf3c7361915f6627"
   },
   "tools": [
     {
@@ -31,12 +31,12 @@
         {
           "source": "skills/setup/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "fa84b15f8c7ced80b7358fbbde52a7495cfc78341150463108f6bc6cfc42d598"
+          "sha256": "8464b17fdaa2f90daade97fedc3213c1e60026e50b8a1a2fa9e4eefdaf667323"
         },
         {
           "source": "skills/setup/agents/project-openai.yaml",
           "path": "agents/openai.yaml",
-          "sha256": "0db43dad716ea5bd04851ca1734ec5113e6e09342334a9f41c53c6d8627ccd5e"
+          "sha256": "5f93edc9b6d834d0200c21c27671198b51968e70d2b905991cb8e4bbdc5bc3f8"
         }
       ]
     },
@@ -46,12 +46,12 @@
         {
           "source": "skills/deep-interview/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "6795372b17f27fe8dfb1e92d95c0d594b104649e220498a390fc3d85fc853c44"
+          "sha256": "ba565f2ccf078207c31d67f6c39a4d8c78206b33593f27356d1ae03432628772"
         },
         {
           "source": "skills/deep-interview/agents/project-openai.yaml",
           "path": "agents/openai.yaml",
-          "sha256": "a1b7c84ba1e0b8935ea9105250d0c02c8d0eefc6ea353e41420a26d1bfd54bf7"
+          "sha256": "c765d8a3bb01e665a12b17f58f833ea9bdbf01cdc9b8d41d0a78dfe8591914c8"
         }
       ]
     },
@@ -96,7 +96,7 @@
         {
           "source": "skills/codebase-design/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "36e593abc9614e1943b79fb2a45b55fbc14482b564cf40f13535bdbe972d0a07"
+          "sha256": "ecd5a59c610175805474127e09a652423541272c131f1ea1556718517eafcef3"
         },
         {
           "source": "skills/codebase-design/agents/project-openai.yaml",
@@ -151,7 +151,7 @@
         {
           "source": "skills/spec/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "bc88436fcf7d1c40396796e0940cbe71d1f9aa7c7d2c8beb994b8ddae410291c"
+          "sha256": "3f0c3e726ede1e55fd9c27d67e327701de3df5796fea061c22b508fbc6a0a07f"
         },
         {
           "source": "skills/spec/agents/project-openai.yaml",
@@ -166,12 +166,12 @@
         {
           "source": "skills/prepare-execute/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "6470945c668da1eb57c0f1d0b28dd2204bcfd1c44b0752b4eec680d38a767fd8"
+          "sha256": "6e37009874f5509d919aa25fc72939a9104cea3beafede2fe167602858a5d83f"
         },
         {
           "source": "skills/prepare-execute/agents/project-openai.yaml",
           "path": "agents/openai.yaml",
-          "sha256": "5f779bfae49e638490d662a424eacd54adc453c159c97a6143eb627f7004054b"
+          "sha256": "e02c3cd6b488e32771796fd84bc06f1345c53f1423b8704dfac7eefb0f3b14ec"
         }
       ]
     },
@@ -181,7 +181,7 @@
         {
           "source": "skills/execute/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "453953da750f536127fc54873075b3af90534122b606f46a791615c2db71477d"
+          "sha256": "372a21115f39755fd0b089b7afab2cdf6916b9496df6dd4ba70420f735bf19be"
         },
         {
           "source": "skills/execute/agents/project-openai.yaml",
@@ -226,12 +226,12 @@
         {
           "source": "skills/harness-chain/SKILL.md",
           "path": "SKILL.md",
-          "sha256": "0a662a250d8b2c3c80808c6d6055fbb4dc8e8b0f1af6aa61d341e6446e15004b"
+          "sha256": "382d5a879c71967a8403efba52200314de9d50d8b84ac87ce52d43f327fa3ee1"
         },
         {
           "source": "skills/harness-chain/agents/project-openai.yaml",
           "path": "agents/openai.yaml",
-          "sha256": "f1cdb17aa27ddc523e1057f72d6c52d4d1012d6a5b4a521e5e004cf325b5fc53"
+          "sha256": "a1ee5f3eafbcd69912b72f447a16bb18dddad989a060b5a3c24eaba29c0ade50"
         }
       ]
     }
@@ -240,7 +240,7 @@
     {
       "source": "docs/reference/setup-contract.md",
       "target": ".ezpowers/contracts/setup-contract.md",
-      "sha256": "92de2d7e26ce2bf0bbdf6a25f627d30fa23ee5fe9489c52b6398054290229a1d"
+      "sha256": "356f8dc7c2420712c6d52f8bdb30f5d8310b5a6c3e4b3a2f00c531efcc83dac5"
     },
     {
       "source": "docs/reference/design-architecture-contract.md",
@@ -255,22 +255,22 @@
     {
       "source": "docs/reference/spec-contract.md",
       "target": ".ezpowers/contracts/spec-contract.md",
-      "sha256": "332707ae68cc46341984d7c4d845a5b2026b6032383656b4fd4d19b53c3f2ada"
+      "sha256": "cce0426eb93e34e888cfed6cf18bf7b6a0a0474fbdbd17944e5d90dc2cff3c1f"
     },
     {
       "source": "docs/reference/plan-contract.md",
       "target": ".ezpowers/contracts/plan-contract.md",
-      "sha256": "bfe28a04d934314829692a989bbed79697e2cc55915db272a55bf99dbc61ab0c"
+      "sha256": "006fdb38d53ee8d890cb50c343212a27c29c023174f52e16f5f66cfa1f7b3fc1"
     },
     {
       "source": "docs/reference/verification-contract.md",
       "target": ".ezpowers/contracts/verification-contract.md",
-      "sha256": "d108ace2a4b1f2d5c011e95a386ec730ae0e30af284dce3e0616dc0f62d24f93"
+      "sha256": "cafeac28cfc600007aa030ac2be3e7c8832e548d8adbc37e9b04a59a2eed0884"
     },
     {
       "source": "docs/reference/documentation-contract.md",
       "target": ".ezpowers/contracts/documentation-contract.md",
-      "sha256": "ef42ce5233c82b8f97e712c6d44f0648bb0c28b6183393d0a3660664425b4f97"
+      "sha256": "482fcbbbb10fa90f8963b1b2b663c14dec2a7d53c4d9f27dcaa54e42676582d2"
     },
     {
       "source": "docs/reference/wiki-contract.md",
@@ -280,7 +280,7 @@
     {
       "source": "docs/reference/harness-chain-contract.md",
       "target": ".ezpowers/contracts/harness-chain-contract.md",
-      "sha256": "4779e58f538c3093ad5efd26e0e6e2509ea5a6325dd2fea030457a39955cf2c4"
+      "sha256": "17c22245028f5b551f94209e4001e491ba37b1f5efda5eba8509e6528193c84f"
     },
     {
       "source": "docs/reference/engineering-practices-contract.md",

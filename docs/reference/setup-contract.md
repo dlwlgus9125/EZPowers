@@ -1,6 +1,6 @@
 # Setup Contract
 
-This contract defines installation of the self-contained v5.10 project kit.
+This contract defines installation of the self-contained v5.11 project kit.
 `setup` configures deterministic project checks and may stage the
 repository-aware documentation workflow defined by
 `documentation-contract.md`; it does not configure an external executor or
@@ -249,6 +249,10 @@ An existing non-EZPowers Stop hook conflicts with chain configuration because
 the chain requires one continuation authority. Configuring a chain replaces
 the runtime-owned ordinary completion Stop entry for that host, preserves
 unrelated non-Stop hooks, and then requires a fresh SessionStart handshake.
+A refresh never rewrites chain hooks. When a refreshed kit defines different
+hook matchers, chain status reports the host's hooks as missing or changed
+until the chain configuration is previewed and applied again and the host
+session is restarted.
 The complete approval, host asymmetry, and evidence rules are in
 `harness-chain-contract.md`.
 

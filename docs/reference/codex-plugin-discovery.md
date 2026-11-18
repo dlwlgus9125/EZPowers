@@ -172,24 +172,79 @@ The hosts deliberately differ:
   hook observes state and emits only a terminal brake; it does not create a
   second continuation loop.
 - Claude Code uses the project Stop hook as the sole chain continuation loop.
+  Claude Code's own `/goal` is a session-scoped, model-judged Stop hook and is
+  never combined with it for one feature.
+
+SessionStart records the handshake. Claude Code sends no permission mode on
+that event, so the runtime takes the mode from the first later hook event of
+the same session that reports one. Claude Code is unattended-capable in
+`auto`, `dontAsk`, or `bypassPermissions`.
 
 SubagentStart binds a host-native reviewer ID and injects a read-only rubric.
-Only that agent's SubagentStop marker can produce the hashed gate receipt.
+Only that agent's final report can produce the hashed gate receipt: on Claude
+Code the message of its `SubagentHandback` call when it has that tool (auto
+mode), otherwise its SubagentStop message.
+
+A Claude Stop that arrives while a background subagent is still running is a
+wait, not a continuation. The hook neither blocks nor counts it, and the host
+starts the next turn when the subagent reports.
+
 PreToolUse is an early guard for frozen files; runtime hash checks before
-verify/certify remain authoritative. Details are in
+verify/certify remain authoritative. The Claude matcher covers `Bash`,
+`PowerShell`, `Write`, `Edit`, `NotebookEdit`, and `SubagentHandback`; the
+Codex matcher is unchanged. The guard's classification reads only the tool
+payload and is shared by both hosts. Details are in
 `harness-chain-contract.md`.
 
 ## Official Host Evidence
 
-Verified on 2026-07-24:
+Three kinds of evidence are kept apart. A documentation statement is not a
+live observation, and neither covers a host that was not run.
+
+Live-verified on 2026-11-18 with Claude Code 2.1.327 (`claude -p`, one run in
+`auto` and one in `dontAsk`, raw hook input recorded):
+
+- SessionStart input has no `permission_mode`; PreToolUse, Stop, and
+  SubagentStop carry it.
+- In `auto` a subagent's report arrives as `tool_input.message` of a
+  PreToolUse event for `SubagentHandback` that carries the subagent's
+  `agent_id`, and SubagentStop has no `last_assistant_message`.
+- In `dontAsk` there is no hand-back and SubagentStop's
+  `last_assistant_message` carries the report.
+- A Stop that fires while a background subagent runs lists it in
+  `background_tasks` with `type` `subagent`, `status` `running`, and an `id`
+  equal to its `agent_id`.
+- A PreToolUse hook whose matcher is an alternation that includes
+  `SubagentHandback` receives the hand-back, and the host waits for that hook
+  before it fires SubagentStop.
+- A SubagentStop `decision: "block"` is not honored after a hand-back: the
+  subagent is not continued.
+- A subagent's shell call can arrive with `tool_name` `PowerShell`.
+- The hook process does not run in Python UTF-8 mode. On a Korean Windows
+  console its text streams default to cp949 while the host sends UTF-8.
+
+Doc-verified on 2026-11-18:
 
 - Claude documents project and plugin skill locations, plugin namespaces, and
   `disable-model-invocation` in
-  [Extend Claude with skills](https://code.claude.com/docs/en/slash-commands).
+  [Extend Claude with skills](https://code.claude.com/docs/en/skills).
+- Claude documents Stop's `decision` contract, the eight-consecutive
+  continuation cap, `background_tasks`, SubagentStart context injection, and
+  the `SubagentHandback` report in
+  [Hooks reference](https://code.claude.com/docs/en/hooks).
+- Claude documents `auto` as the starting mode of terminal sessions and the
+  other mode names in
+  [Permission modes](https://code.claude.com/docs/en/permission-modes).
+- Claude documents `/goal` as a session-scoped prompt-based Stop hook in
+  [Goal](https://code.claude.com/docs/en/goal).
+- Codex documents its hook events, the review required for new or changed
+  hooks, and the Stop output contract in
+  [Hooks](https://learn.chatgpt.com/docs/hooks).
+
+Carried from 2026-07-24 and not fetched again:
+
 - Claude documents plugin layout and `/plugin-name:skill-name` in
   [Create plugins](https://code.claude.com/docs/en/plugins).
-- Claude documents Stop's block-only `decision` contract in
-  [Hooks reference](https://code.claude.com/docs/en/hooks#stop).
 - Codex 0.145.0 exposes complete explicit and implicit skill inventory,
   enabled state, metadata, and load errors through the app-server
   [`skills/list`](https://github.com/openai/codex/blob/rust-v0.145.0/codex-rs/app-server/README.md#skills)
@@ -205,6 +260,19 @@ Verified on 2026-07-24:
   [subagents](https://code.claude.com/docs/en/sub-agents),
   [worktrees](https://code.claude.com/docs/en/worktrees),
   and [permissions](https://code.claude.com/docs/en/permissions) documentation.
+
+Unverified:
+
+- No part of the Codex harness chain has been run on a live host: native-goal
+  continuation, its terminal Stop response, subagent binding, and its use of
+  Claude permission-mode names. Its hook matchers and continuation behavior
+  are unchanged. The changes that do not branch on the host apply to it too:
+  the frozen-file guard classification, taking the mode from a later event
+  when SessionStart reported none, UTF-8 hook input with ASCII answers, the
+  code-review rubric wording, the comparison of installed matchers, and a
+  finished run no longer ending a pending oracle audit.
+- An interactive Claude Code session, a forked session, and compaction during
+  a run were not probed.
 
 ## Verification
 

@@ -21,6 +21,18 @@ the plan/bundle schema and mandatory independent-review gate.
 Never install a plugin, change global host configuration, select reviewer
 models, invent an external executor, or add a second task/phase state machine.
 
+## Rules that hold for the whole run
+
+- The runtime verdict is the only completion authority. Stop only at a
+  terminal verdict.
+- Frozen files stay frozen. Never weaken, skip, or replace a check, and never
+  write or relay a review receipt yourself.
+- One continuation authority per feature. On Claude Code that is the project
+  Stop hook; never set the native `/goal` for a chain feature.
+- Spawn one reviewer per challenge and let the host deliver its result. Do not
+  poll it, start a second one, or answer for it.
+- A limit that is reached is terminal. Do not attempt another pass.
+
 ## Choose one mode
 
 - If no `.ezpowers/chain.json` exists, or the user asks to configure/change the
@@ -42,6 +54,12 @@ Ask a short project-level interview that settles:
    failures, and identical repeated failures;
 5. whether the selected hosts are already in a non-interactive permission mode
    suitable for the intended unattended run.
+
+Claude Code is unattended-capable in `auto`, `dontAsk`, or `bypassPermissions`.
+A `claude -p` run needs `--permission-mode` set explicitly, and chain hooks do
+not run in a `--bare` session. In `auto` the host can still deny an action or
+return to prompting after repeated classifier blocks; disclose that before
+feature approval.
 
 Recommend the defaults unless repository evidence supports stricter values:
 
@@ -98,8 +116,16 @@ approval is mandatory. It is not approval for global configuration. A new or
 changed hook must complete a real `SessionStart` handshake; do not claim
 unattended readiness while status is `PENDING_HOST_TRUST`. Apply resets every
 prior handshake, and the hook fires only on session startup, resume, clear,
-or compact: after apply, ask the human to restart the host session or run
-`/clear`, then confirm `chain config status` reports `READY`.
+compact, or fork: after apply, ask the human to restart the host session or run
+`/clear`, then confirm `chain config status` reports `READY`. Claude Code
+reports its permission mode on tool and Stop events rather than on
+SessionStart, so status can say the session has not reported a mode until the
+first tool call after the restart.
+
+After `setup --refresh`, run `chain config status`. If it reports chain hooks as
+missing or changed, a newer runtime writes different hook matchers: preview and
+apply the same configuration again with the user's approval, then have the
+user restart the session.
 
 ## Feature run
 
@@ -219,7 +245,18 @@ ignored without an error and its receipt never registers. To confirm the
 binding, rerun the same `chain gate begin` command and check the reported
 `bound_agent_id`. Do not write the review receipt yourself, relay a
 main-agent verdict, or accept unbound output.
-After its SubagentStop receipt, rerun the same preview. Any staged or target
+Begin the gate immediately before the spawn so no other subagent binds first.
+Start the reviewer in the foreground when the host lets you choose. If it runs
+in the background, end your turn and wait: on Claude Code the Stop hook neither
+blocks nor counts while a background subagent is running, and the host resumes
+the session when it reports. Do not begin another gate, rerun verification, or
+start a second reviewer while one is bound. If a receipt is rejected and the
+same `chain gate begin` command then shows no `bound_agent_id`, the first
+reviewer could not be continued: spawn one new reviewer for that challenge.
+An oracle audit allows that once. If the replacement's report is rejected too,
+the preview is closed like a failed audit; tell the person and revise the
+staged contract. Inside a run each rejection counts toward the review limit.
+After the bound reviewer's receipt registers, rerun the same preview. Any staged or target
 change produces a different hash and requires a new audit.
 A bound audit `FAIL` consumes that exact preview hash: revise the staged
 acceptance contract before starting another audit. Do not cycle reviewers
@@ -267,6 +304,8 @@ python .ezpowers/ezpowers.py chain activate --host <host> --authority <authority
 Codex Stop is an observer and terminal brake; it must not create a second
 loop. Claude Stop may continue a nonterminal run. Never emulate either host's
 missing capability.
+Claude Code overrides a Stop hook after eight continuations in a row with no
+tool call between them. That is a host safety cutoff, not a runtime verdict.
 
 ### 5. Implement until the runtime verdict
 
@@ -350,9 +389,10 @@ Stop only at a runtime terminal verdict. `CERTIFIED` is success. Report the
 approval, evidence, review receipt, QA receipt when required, certificate
 hashes, command exits, changes, and remaining limitations.
 
-After an explicit v5.10 refresh, a nonterminal legacy approval without an
-assurance-graph hash is intentionally terminal at `NEEDS_REAPPROVAL`. Start a
-new preview, oracle audit, and approval; never synthesize the missing binding.
+After an explicit kit refresh, a nonterminal approval that predates a binding
+the refreshed runtime requires is intentionally terminal at `NEEDS_REAPPROVAL`.
+Start a new preview, oracle audit, and approval; never synthesize the missing
+binding.
 
 ## Emergency stop
 
@@ -362,7 +402,9 @@ options, in order of preference:
 - delete or rename `.ezpowers/chain.json` or the active approval file: the
   next Stop contract check marks the run `NEEDS_REAPPROVAL`, a terminal
   state, and the hook permits stopping;
-- remove the EZPowers chain hook entries from `.claude/settings.json`.
+- remove the EZPowers chain hook entries from `.claude/settings.json` or
+  `.codex/hooks.json`; on Codex also clear the native goal with the host's own
+  control.
 
 If runtime state is unreadable, the chain hook itself degrades to a fail-safe
 no-op (exit 0, empty response) instead of blocking, so a corrupt loop dies

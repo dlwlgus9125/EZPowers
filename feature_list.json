@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-11-18T06:22:47Z",
+  "updated_at": "2026-11-18T16:22:38Z",
   "features": [
     {
       "id": "F11",
@@ -20,7 +20,7 @@
         "tests/test_v5_workflow_surface.py",
         "scripts/runtime_smoke.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.7.0/manifest.json"
+        "project-kit/v5.11.0/manifest.json"
       ]
     },
     {
@@ -40,7 +40,7 @@
         "docs/reference/wiki-contract.md",
         "tests/test_ezpowers_docs_wiki.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.7.0/manifest.json"
+        "project-kit/v5.11.0/manifest.json"
       ]
     },
     {
@@ -63,7 +63,7 @@
         "skills/harness-chain/SKILL.md",
         "tests/test_harness_chain.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.7.0/manifest.json"
+        "project-kit/v5.11.0/manifest.json"
       ]
     },
     {
@@ -87,7 +87,7 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_harness_chain.py",
         "tests/test_codex_hud.py",
-        "project-kit/v5.7.0/manifest.json"
+        "project-kit/v5.11.0/manifest.json"
       ]
     },
     {
@@ -107,8 +107,9 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.8.0/manifest.json",
-        "PROGRESS.md"
+        "project-kit/v5.11.0/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
       ]
     },
     {
@@ -138,7 +139,7 @@
         "scripts/plugin_smoke.py",
         "tests/test_v5_workflow_surface.py",
         "tests/test_ezpowers_runtime.py",
-        "project-kit/v5.7.0/manifest.json"
+        "project-kit/v5.11.0/manifest.json"
       ]
     },
     {
@@ -161,7 +162,7 @@
         "docs/reference/engineering-practices-contract.md",
         "tests/test_v5_workflow_surface.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.7.0/manifest.json",
+        "project-kit/v5.11.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -185,7 +186,7 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.7.0/manifest.json",
+        "project-kit/v5.11.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -210,7 +211,7 @@
         "tests/test_v5_workflow_surface.py",
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.7.0/manifest.json",
+        "project-kit/v5.11.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -238,7 +239,7 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.7.0/manifest.json",
+        "project-kit/v5.11.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -269,7 +270,7 @@
         "tests/test_ezpowers_docs_wiki.py",
         "tests/test_ezpowers_runtime.py",
         "tests/test_harness_chain.py",
-        "project-kit/v5.7.0/manifest.json",
+        "project-kit/v5.11.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -297,7 +298,7 @@
         "scripts/ezpowers.py",
         "tests/test_ezpowers_docs_wiki.py",
         "tests/test_harness_chain.py",
-        "project-kit/v5.7.0/manifest.json",
+        "project-kit/v5.11.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -329,7 +330,7 @@
         "tests/test_assurance_graph.py",
         "tests/test_harness_chain.py",
         "tests/test_repo_check.py",
-        "project-kit/v5.7.0/manifest.json",
+        "project-kit/v5.11.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -361,7 +362,7 @@
         "scripts/benchmark_software_profile.py",
         "tests/test_planning_profile.py",
         "tests/test_harness_chain.py",
-        "project-kit/v5.8.0/manifest.json",
+        "project-kit/v5.11.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -394,7 +395,7 @@
         "tests/test_v5_workflow_surface.py",
         "tests/test_ezpowers_runtime.py",
         "tests/test_codex_plugin_discovery.py",
-        "project-kit/v5.8.0/manifest.json",
+        "project-kit/v5.11.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -426,7 +427,38 @@
         "scripts/benchmark_check_reuse.py",
         "scripts/runtime_smoke.py",
         "docs/reference/verification-contract.md",
-        "project-kit/v5.10.0/manifest.json",
+        "project-kit/v5.11.0/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
+      ]
+    },
+    {
+      "id": "F27",
+      "title": "Current-host chain adapter alignment and verification guidance",
+      "status": "complete",
+      "success_criteria": [
+        "The chain handshake takes the permission mode from the first hook event of the session that reports one, and a running chain whose session has not reported a mode is not moved to NEEDS_REAPPROVAL",
+        "Claude Code is accepted as unattended-capable in auto, dontAsk, or bypassPermissions while the Codex accepted modes are unchanged",
+        "A gate marker delivered by the bound reviewer through a SubagentHandback tool call creates the receipt even under a non-UTF-8 console encoding, another agent's or session's hand-back creates none, a rejected hand-back frees the binding for a new reviewer, and the SubagentStop message remains the fallback",
+        "Reviewer replacement is bounded: inside a run every rejected hand-back counts as a review failure and the approved review limit ends the run, before a run a second rejected hand-back closes that preview for another oracle audit, and a finished run left in state does not end a pending oracle audit",
+        "A Claude Stop during a RUNNING chain that reports a running background subagent neither blocks nor counts, while shells, monitors, PENDING_LOOP, and Codex behave as before",
+        "The frozen-file guard allows the runtime's own commands, script and test runs, copies of a frozen file to another place, and mention-only content, and denies direct writes through file tools, apply_patch headers, Bash, and PowerShell on both hosts",
+        "Chain configuration writes Claude matchers that include fork, PowerShell, NotebookEdit, and SubagentHandback, leaves Codex matchers unchanged, and reports installed hooks with an older matcher as missing or changed",
+        "The code-review rubric blocks only on defects the change introduces or exposes and records nits and pre-existing defects as observations without changing the receipt schema",
+        "The execute, prepare-execute, and harness-chain skills and the harness-chain and verification contracts state the run-the-change step, the flaky-check rule, the host review pointer, check selection guidance, and the adapter behavior",
+        "The 5.11.0 plugin, marketplace, Codex, and single project-kit manifests agree and no older kit manifest remains"
+      ],
+      "evidence": [
+        "docs/decisions/0011-current-host-chain-adapter.md",
+        "docs/specs/f27-host-flow-alignment.md",
+        "docs/plans/f27-host-flow-alignment.md",
+        "scripts/ezpowers.py",
+        "tests/test_harness_chain.py",
+        "tests/test_v5_workflow_surface.py",
+        "docs/reference/harness-chain-contract.md",
+        "docs/reference/verification-contract.md",
+        "docs/reference/codex-plugin-discovery.md",
+        "project-kit/v5.11.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]

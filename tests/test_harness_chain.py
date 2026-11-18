@@ -69,6 +69,34 @@ def managed_block(kind: str, payload: dict) -> str:
     ).strip() + "\n"
 
 
+def gate_marker(challenge: str, verdict: str = "PASS") -> str:
+    marker = {
+        "schema_version": 1,
+        "challenge_id": challenge,
+        "verdict": verdict,
+        "blocking_findings": [] if verdict == "PASS" else ["finding"],
+        "observations": ["Reviewed current subject and evidence."],
+    }
+    return (
+        "<!-- ezpowers:gate:start -->\n"
+        "```json\n"
+        f"{json.dumps(marker)}\n"
+        "```\n"
+        "<!-- ezpowers:gate:end -->"
+    )
+
+
+# The entry Claude Code 2.1.327 reports on Stop while a background subagent
+# is still running (recorded from a live session).
+RUNNING_SUBAGENT_TASK = {
+    "id": "ad86304c27aa67389",
+    "type": "subagent",
+    "status": "running",
+    "description": "Read README and report fact",
+    "agent_type": "general-purpose",
+}
+
+
 def add_ui_design_files(bundle: pathlib.Path) -> None:
     manifest_path = bundle / "bundle.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -429,6 +457,9 @@ class ChainProject:
                 "stop_hook_active": False,
             },
         )
+
+    def hook(self, host: str, event: dict) -> subprocess.CompletedProcess[str]:
+        return self.command("chain", "hook", "--host", host, input_value=event)
 
     def state_value(self) -> dict:
         return json.loads(
@@ -2255,6 +2286,962 @@ class HarnessChainTests(unittest.TestCase):
             self.assertEqual("challenge-123", receipt["challenge_id"], kind)
             self.assertTrue(receipt["blocking_findings"], kind)
             self.assertTrue(receipt["observations"], kind)
+
+    def pretool(
+        self,
+        project: ChainProject,
+        host: str,
+        tool_name: str,
+        tool_input: dict,
+    ) -> dict:
+        result = project.hook(
+            host,
+            {
+                "hook_event_name": "PreToolUse",
+                "session_id": f"{host}-session",
+                "cwd": str(project.root),
+                "permission_mode": "dontAsk",
+                "tool_name": tool_name,
+                "tool_input": tool_input,
+            },
+        )
+        project.assert_success(result)
+        return json.loads(result.stdout)
+
+    def config_status(self, project: ChainProject) -> dict:
+        result = project.command("chain", "config", "status", "--json")
+        project.assert_success(result)
+        return json.loads(result.stdout)
+
+    def reviewer_event(
+        self,
+        project: ChainProject,
+        name: str,
+        agent_id: str,
+        **fields: object,
+    ) -> dict:
+        result = project.hook(
+            "claude",
+            {
+                "hook_event_name": name,
+                "session_id": "claude-session",
+                "cwd": str(project.root),
+                "agent_id": agent_id,
+                "agent_type": "general-purpose",
+                **fields,
+            },
+        )
+        project.assert_success(result)
+        return json.loads(result.stdout)
+
+    def hand_back(self, project: ChainProject, agent_id: str, message: str) -> dict:
+        # What Claude Code sends in auto mode: the report in a tool call, then
+        # a SubagentStop without last_assistant_message.
+        self.reviewer_event(project, "SubagentStart", agent_id)
+        self.assertEqual(
+            {},
+            self.reviewer_event(
+                project,
+                "PreToolUse",
+                agent_id,
+                permission_mode="auto",
+                tool_name="SubagentHandback",
+                tool_input={"message": message},
+            ),
+        )
+        return self.reviewer_event(
+            project,
+            "SubagentStop",
+            agent_id,
+            permission_mode="auto",
+            stop_hook_active=False,
+        )
+
+    def stop_with_message(
+        self,
+        project: ChainProject,
+        agent_id: str,
+        message: str,
+    ) -> dict:
+        return self.reviewer_event(
+            project,
+            "SubagentStop",
+            agent_id,
+            last_assistant_message=message,
+            stop_hook_active=False,
+        )
+
+    def audit_preview(
+        self,
+        project: ChainProject,
+        bundle: pathlib.Path,
+    ) -> subprocess.CompletedProcess[str]:
+        return project.command(
+            "chain", "run", "preview", "--bundle", str(bundle), "--json"
+        )
+
+    def begin_gate(
+        self,
+        project: ChainProject,
+        kind: str,
+        subject: str,
+    ) -> subprocess.CompletedProcess[str]:
+        return project.command(
+            "chain",
+            "gate",
+            "begin",
+            "--kind",
+            kind,
+            "--subject-sha256",
+            subject,
+            "--json",
+        )
+
+    def pending_gate(self, project: ChainProject) -> dict | None:
+        return project.state_value()["chain_gates"]["pending"]
+
+    def second_feature_after_a_finished_run(self, project: ChainProject) -> pathlib.Path:
+        # Every feature after the first starts with a finished run in state.
+        project.configure(
+            limits={
+                "total_iterations": 2,
+                "qa_cycles": 5,
+                "validation_retries": 3,
+                "review_retries": 3,
+                "identical_error_repeats": 3,
+            }
+        )
+        project.approve_and_activate(project.write_run_bundle())
+        project.assert_success(project.stop_event())
+        project.assert_success(project.stop_event())
+        self.assertEqual("FAILED", project.state_value()["chain_run"]["status"])
+        return project.write_run_bundle(run_id="second-run")
+
+    def running_code_review(
+        self,
+        project: ChainProject,
+        *,
+        review_retries: int,
+    ) -> str:
+        project.configure(
+            limits={
+                "total_iterations": 10,
+                "qa_cycles": 5,
+                "validation_retries": 3,
+                "review_retries": review_retries,
+                "identical_error_repeats": 3,
+            }
+        )
+        value = project.approve_and_activate(project.write_run_bundle())
+        (project.root / "app.py").write_text(
+            "def value():\n    return 5\n",
+            encoding="utf-8",
+        )
+        project.assert_success(
+            project.command(
+                "verify",
+                "--plan",
+                str(project.root / value["plan_path"]),
+                "--all",
+                "--json",
+            )
+        )
+        evidence = project.state_value()["latest_evidence"]["all"]["sha256"]
+        begin = self.begin_gate(project, "code-review", evidence)
+        project.assert_success(begin)
+        return json.loads(begin.stdout)["challenge_id"]
+
+    def test_pretool_guard_allows_runtime_commands_reads_and_mentions(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            project.approve_and_activate(project.write_run_bundle())
+            plan = "docs/plans/demo-run.md"
+            absolute_plan = str(project.root / "docs" / "plans" / "demo-run.md")
+            runtime = "python .ezpowers/ezpowers.py"
+            allowed = [
+                ("Bash", {"command": f"{runtime} verify --plan {plan} --all --json"}),
+                ("Bash", {"command": f"{runtime} certify --plan {plan} --json"}),
+                ("Bash", {"command": f"{runtime} trace --plan {plan} --json"}),
+                (
+                    "Bash",
+                    {"command": f'{runtime} validate --plan "{absolute_plan}" --json'},
+                ),
+                ("Bash", {"command": "python -m unittest tests/test_demo_run.py"}),
+                ("Bash", {"command": "cat docs/specs/demo-run.md"}),
+                ("Bash", {"command": f"git diff -- {plan}"}),
+                ("Bash", {"command": f"sed -n '1,5p' {plan}"}),
+                # Copying a frozen file elsewhere writes only the copy.
+                ("Bash", {"command": "cp tests/test_demo_run.py /tmp/oracle-copy.py"}),
+                (
+                    "PowerShell",
+                    {
+                        "command": (
+                            "python .ezpowers\\ezpowers.py verify "
+                            "--plan docs\\plans\\demo-run.md --all --json"
+                        )
+                    },
+                ),
+                ("PowerShell", {"command": "Get-Content docs\\plans\\demo-run.md"}),
+                (
+                    "PowerShell",
+                    {
+                        "command": (
+                            "Copy-Item docs\\plans\\demo-run.md "
+                            "-Destination $env:TEMP\\plan-copy.md"
+                        )
+                    },
+                ),
+                ("Write", {"file_path": "notes.md", "content": f"see {plan}"}),
+                (
+                    "Edit",
+                    {
+                        "file_path": "app.py",
+                        "old_string": "4",
+                        "new_string": "5  # docs/specs/demo-run.md",
+                    },
+                ),
+                (
+                    "apply_patch",
+                    {
+                        "input": (
+                            "*** Begin Patch\n*** Update File: app.py\n"
+                            f"+# {plan}\n*** End Patch"
+                        )
+                    },
+                ),
+            ]
+            for host in ("claude", "codex"):
+                for tool_name, tool_input in allowed:
+                    with self.subTest(host=host, tool=tool_name, input=tool_input):
+                        self.assertEqual(
+                            {},
+                            self.pretool(project, host, tool_name, tool_input),
+                        )
+
+    def test_pretool_guard_denies_direct_writes_to_frozen_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            project.approve_and_activate(project.write_run_bundle())
+            plan = "docs/plans/demo-run.md"
+            absolute_plan = str(project.root / "docs" / "plans" / "demo-run.md")
+            denied = [
+                ("Write", {"file_path": "docs/specs/demo-run.md", "content": "x"}),
+                ("Write", {"file_path": absolute_plan, "content": "x"}),
+                ("Write", {"file_path": ".ezpowers/config.json", "content": "{}"}),
+                (
+                    "Edit",
+                    {
+                        "file_path": "docs/plans/../plans/demo-run.md",
+                        "old_string": "a",
+                        "new_string": "b",
+                    },
+                ),
+                (
+                    "NotebookEdit",
+                    {"notebook_path": "tests/test_demo_run.py", "new_source": "x"},
+                ),
+                (
+                    "apply_patch",
+                    {
+                        "input": (
+                            "*** Begin Patch\n"
+                            "*** Update File: docs/specs/demo-run.md\n+x\n"
+                            "*** End Patch"
+                        )
+                    },
+                ),
+                (
+                    "apply_patch",
+                    {
+                        "input": (
+                            "*** Begin Patch\n"
+                            "*** Delete File: tests/test_demo_run.py\n"
+                            "*** End Patch"
+                        )
+                    },
+                ),
+                ("Bash", {"command": f"rm {plan}"}),
+                ("Bash", {"command": "sed -i 's/5/6/' tests/test_demo_run.py"}),
+                ("Bash", {"command": "echo x > docs/specs/demo-run.md"}),
+                (
+                    "Bash",
+                    {"command": f"python3 -c \"open('{plan}','w').write('x')\""},
+                ),
+                (
+                    "Bash",
+                    {"command": f"python .ezpowers/ezpowers.py status --json > {plan}"},
+                ),
+                ("Bash", {"command": "mv docs/specs/demo-run.md /tmp/moved.md"}),
+                ("Bash", {"command": "cp /tmp/other.py tests/test_demo_run.py"}),
+                (
+                    "PowerShell",
+                    {
+                        "command": (
+                            "Copy-Item notes.md -Destination docs\\specs\\demo-run.md"
+                        )
+                    },
+                ),
+                (
+                    "PowerShell",
+                    {"command": "Set-Content -Path docs\\plans\\demo-run.md -Value 'x'"},
+                ),
+                (
+                    "PowerShell",
+                    {"command": "Remove-Item docs\\plans\\demo-run.md -Force"},
+                ),
+                ("PowerShell", {"command": "'x' > docs\\specs\\demo-run.md"}),
+                (
+                    "PowerShell",
+                    {"command": "'x' | Out-File -FilePath docs\\specs\\demo-run.md"},
+                ),
+            ]
+            for host in ("claude", "codex"):
+                for tool_name, tool_input in denied:
+                    with self.subTest(host=host, tool=tool_name, input=tool_input):
+                        response = self.pretool(project, host, tool_name, tool_input)
+                        self.assertEqual(
+                            "deny",
+                            response.get("hookSpecificOutput", {}).get(
+                                "permissionDecision"
+                            ),
+                        )
+
+    def test_permission_mode_is_read_from_the_first_event_that_reports_it(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            bundle = project.write_config_bundle()
+            preview = project.command(
+                "chain", "config", "preview", "--bundle", str(bundle), "--json"
+            )
+            project.assert_success(preview)
+            applied = project.command(
+                "chain",
+                "config",
+                "apply",
+                "--bundle",
+                str(bundle),
+                "--preview-sha256",
+                json.loads(preview.stdout)["preview_sha256"],
+                "--json",
+            )
+            project.assert_success(applied)
+            # Claude Code 2.1.327 sends no permission_mode on SessionStart.
+            project.assert_success(
+                project.hook(
+                    "claude",
+                    {
+                        "hook_event_name": "SessionStart",
+                        "session_id": "claude-session",
+                        "cwd": str(project.root),
+                        "source": "startup",
+                        "transcript_path": "session.jsonl",
+                    },
+                )
+            )
+            project.assert_success(
+                project.hook(
+                    "codex",
+                    {
+                        "hook_event_name": "SessionStart",
+                        "session_id": "codex-session",
+                        "cwd": str(project.root),
+                        "permission_mode": "dontAsk",
+                        "source": "startup",
+                    },
+                )
+            )
+            pending = self.config_status(project)
+            self.assertEqual("PENDING_HOST_TRUST", pending["status"])
+            self.assertTrue(pending["hosts"]["claude"]["handshake"])
+            self.assertIsNone(pending["hosts"]["claude"]["permission_mode"])
+            self.assertIn("has not reported", " ".join(pending["reasons"]))
+
+            def tool_event(session_id: str, mode: str) -> dict:
+                return {
+                    "hook_event_name": "PreToolUse",
+                    "session_id": session_id,
+                    "cwd": str(project.root),
+                    "permission_mode": mode,
+                    "tool_name": "Bash",
+                    "tool_input": {"command": "git status"},
+                }
+
+            project.assert_success(
+                project.hook("claude", tool_event("another-session", "auto"))
+            )
+            self.assertIsNone(
+                self.config_status(project)["hosts"]["claude"]["permission_mode"]
+            )
+            project.assert_success(
+                project.hook("claude", tool_event("claude-session", "auto"))
+            )
+            ready = self.config_status(project)
+            self.assertEqual("READY", ready["status"])
+            self.assertEqual("auto", ready["hosts"]["claude"]["permission_mode"])
+            self.assertTrue(ready["hosts"]["claude"]["unattended"])
+            project.assert_success(
+                project.hook("claude", tool_event("claude-session", "default"))
+            )
+            self.assertEqual(
+                "auto",
+                self.config_status(project)["hosts"]["claude"]["permission_mode"],
+            )
+
+            project.assert_success(
+                project.hook(
+                    "codex",
+                    {
+                        "hook_event_name": "SessionStart",
+                        "session_id": "codex-session",
+                        "cwd": str(project.root),
+                        "permission_mode": "auto",
+                        "source": "startup",
+                    },
+                )
+            )
+            codex = self.config_status(project)
+            self.assertEqual("PENDING_HOST_TRUST", codex["status"])
+            self.assertFalse(codex["hosts"]["codex"]["unattended"])
+            self.assertIn("interactive approval", " ".join(codex["reasons"]))
+
+    def test_running_chain_survives_a_session_start_without_a_permission_mode(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            project.approve_and_activate(project.write_run_bundle())
+
+            def session_start(source: str) -> None:
+                project.assert_success(
+                    project.hook(
+                        "claude",
+                        {
+                            "hook_event_name": "SessionStart",
+                            "session_id": "claude-session",
+                            "cwd": str(project.root),
+                            "source": source,
+                        },
+                    )
+                )
+
+            def stop(mode: str) -> dict:
+                result = project.hook(
+                    "claude",
+                    {
+                        "hook_event_name": "Stop",
+                        "session_id": "claude-session",
+                        "cwd": str(project.root),
+                        "permission_mode": mode,
+                        "stop_hook_active": False,
+                    },
+                )
+                project.assert_success(result)
+                return json.loads(result.stdout)
+
+            session_start("compact")
+            status = project.command("chain", "run", "status", "--json")
+            project.assert_success(status)
+            self.assertEqual("RUNNING", json.loads(status.stdout)["status"])
+            self.assertEqual("block", stop("auto").get("decision"))
+            state = project.state_value()
+            self.assertEqual("auto", state["chain_hosts"]["claude"]["permission_mode"])
+            self.assertEqual("RUNNING", state["chain_run"]["status"])
+
+            # An observed mode outside the unattended set still ends the run.
+            session_start("resume")
+            self.assertEqual({}, stop("default"))
+            self.assertEqual(
+                "NEEDS_REAPPROVAL",
+                project.state_value()["chain_run"]["status"],
+            )
+
+    def test_handback_report_creates_the_bound_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle()
+            preview = project.command(
+                "chain", "run", "preview", "--bundle", str(bundle), "--json"
+            )
+            subject = json.loads(preview.stdout)["preview_sha256"]
+            begin = project.command(
+                "chain",
+                "gate",
+                "begin",
+                "--kind",
+                "oracle-audit",
+                "--subject-sha256",
+                subject,
+                "--json",
+            )
+            project.assert_success(begin)
+            challenge = json.loads(begin.stdout)["challenge_id"]
+            reviewer = "bound-reviewer"
+            base = {"cwd": str(project.root), "permission_mode": "auto"}
+
+            def start(agent_id: str) -> None:
+                project.assert_success(
+                    project.hook(
+                        "claude",
+                        {
+                            **base,
+                            "hook_event_name": "SubagentStart",
+                            "session_id": "claude-session",
+                            "agent_id": agent_id,
+                            "agent_type": "general-purpose",
+                        },
+                    )
+                )
+
+            start(reviewer)
+
+            def handback(
+                agent_id: str,
+                message: str,
+                *,
+                session_id: str = "claude-session",
+                host: str = "claude",
+            ) -> dict:
+                result = project.hook(
+                    host,
+                    {
+                        **base,
+                        "hook_event_name": "PreToolUse",
+                        "session_id": session_id,
+                        "agent_id": agent_id,
+                        "agent_type": "general-purpose",
+                        "tool_name": "SubagentHandback",
+                        "tool_input": {"message": message},
+                    },
+                )
+                project.assert_success(result)
+                return json.loads(result.stdout)
+
+            def subagent_stop(agent_id: str) -> dict:
+                # In auto mode SubagentStop carries no last_assistant_message.
+                result = project.hook(
+                    "claude",
+                    {
+                        **base,
+                        "hook_event_name": "SubagentStop",
+                        "session_id": "claude-session",
+                        "agent_id": agent_id,
+                        "agent_type": "general-purpose",
+                        "agent_transcript_path": "agent.jsonl",
+                        "stop_hook_active": False,
+                        "background_tasks": [],
+                        "session_crons": [],
+                    },
+                )
+                project.assert_success(result)
+                return json.loads(result.stdout)
+
+            def pending_gate() -> dict:
+                return project.state_value()["chain_gates"]["pending"]
+
+            valid = gate_marker(challenge)
+            self.assertEqual({}, handback("another-agent", valid))
+            self.assertEqual({}, handback(reviewer, valid, session_id="other"))
+            self.assertEqual({}, handback(reviewer, valid, host="codex"))
+            self.assertNotIn("handback", pending_gate())
+
+            # Claude Code does not continue a subagent that already handed its
+            # report back, so a rejected report frees the binding for one new
+            # reviewer instead of blocking an agent that cannot answer.
+            self.assertEqual({}, handback(reviewer, gate_marker("wrong-challenge")))
+            self.assertIn("handback", pending_gate())
+            self.assertEqual({}, subagent_stop(reviewer))
+            released = pending_gate()
+            self.assertNotIn("handback", released)
+            self.assertIsNone(released["bound_agent_id"])
+            self.assertEqual(challenge, released["challenge_id"])
+            self.assertEqual({}, handback(reviewer, valid))
+            self.assertNotIn("handback", pending_gate())
+
+            second = "second-reviewer"
+            start(second)
+            self.assertEqual(second, pending_gate()["bound_agent_id"])
+            self.assertEqual({}, handback(second, "요약: 확인 완료 … \n" + valid))
+            self.assertEqual({}, subagent_stop(second))
+            ready = project.command(
+                "chain", "run", "preview", "--bundle", str(bundle), "--json"
+            )
+            project.assert_success(ready)
+            self.assertEqual("READY", json.loads(ready.stdout)["status"])
+
+    def test_second_rejected_handback_closes_the_audit_for_that_preview(
+        self,
+    ) -> None:
+        # Nothing counts a rejected audit report before a run exists, so the
+        # replacement reviewer is allowed once and never a third reviewer.
+        for earlier_run in (False, True):
+            with (
+                self.subTest(earlier_run=earlier_run),
+                tempfile.TemporaryDirectory() as temp_dir,
+            ):
+                project = self.make_project(pathlib.Path(temp_dir))
+                if earlier_run:
+                    bundle = self.second_feature_after_a_finished_run(project)
+                else:
+                    project.configure()
+                    bundle = project.write_run_bundle()
+                subject = json.loads(self.audit_preview(project, bundle).stdout)[
+                    "preview_sha256"
+                ]
+                begin = self.begin_gate(project, "oracle-audit", subject)
+                project.assert_success(begin)
+                challenge = json.loads(begin.stdout)["challenge_id"]
+
+                self.assertEqual({}, self.hand_back(project, "first", "No marker."))
+                released = self.pending_gate(project)
+                self.assertIsNotNone(released)
+                self.assertEqual(challenge, released["challenge_id"])
+                self.assertIsNone(released["bound_agent_id"])
+
+                self.assertEqual(
+                    {},
+                    self.hand_back(project, "second", gate_marker("wrong-challenge")),
+                )
+                self.assertIsNone(self.pending_gate(project))
+                closed = self.begin_gate(project, "oracle-audit", subject)
+                self.assertEqual(2, closed.returncode, closed.stdout + closed.stderr)
+                refusal = (closed.stdout + closed.stderr).lower()
+                self.assertIn("no valid oracle-audit receipt", refusal)
+                self.assertIn("change the staged acceptance contract", refusal)
+
+                self.assertEqual(
+                    {},
+                    self.hand_back(project, "third", gate_marker(challenge)),
+                )
+                still = self.audit_preview(project, bundle)
+                self.assertEqual(4, still.returncode, still.stdout + still.stderr)
+                self.assertEqual(
+                    "REVIEW_REQUIRED",
+                    json.loads(still.stdout)["status"],
+                )
+
+    def test_rejected_audit_receipt_keeps_its_reviewer_after_an_earlier_run_ended(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            bundle = self.second_feature_after_a_finished_run(project)
+            subject = json.loads(self.audit_preview(project, bundle).stdout)[
+                "preview_sha256"
+            ]
+            begin = self.begin_gate(project, "oracle-audit", subject)
+            project.assert_success(begin)
+            challenge = json.loads(begin.stdout)["challenge_id"]
+
+            self.reviewer_event(project, "SubagentStart", "first")
+            rejected = self.stop_with_message(
+                project,
+                "first",
+                "FAIL: the oracle is too weak.",
+            )
+            self.assertEqual("block", rejected.get("decision"))
+            self.assertIn("Correct the same challenge", rejected["reason"])
+            pending = self.pending_gate(project)
+            self.assertIsNotNone(pending)
+            self.assertEqual(challenge, pending["challenge_id"])
+            self.assertEqual("first", pending["bound_agent_id"])
+
+            # The earlier run has nothing to do with this audit: it must not
+            # reopen the challenge for a different reviewer.
+            again = self.begin_gate(project, "oracle-audit", subject)
+            project.assert_success(again)
+            self.assertEqual(challenge, json.loads(again.stdout)["challenge_id"])
+            self.assertEqual({}, self.reviewer_event(project, "SubagentStart", "second"))
+            self.assertEqual(
+                {},
+                self.stop_with_message(project, "second", gate_marker(challenge)),
+            )
+            self.assertEqual(4, self.audit_preview(project, bundle).returncode)
+
+            self.assertEqual(
+                {},
+                self.stop_with_message(project, "first", gate_marker(challenge)),
+            )
+            ready = self.audit_preview(project, bundle)
+            project.assert_success(ready)
+            self.assertEqual("READY", json.loads(ready.stdout)["status"])
+
+    def test_rejected_handback_inside_a_run_counts_and_admits_a_new_reviewer(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            challenge = self.running_code_review(project, review_retries=3)
+
+            self.assertEqual({}, self.hand_back(project, "first", "No marker."))
+            state = project.state_value()
+            self.assertEqual("RUNNING", state["chain_run"]["status"])
+            self.assertEqual(1, state["chain_run"]["counters"]["review_failures"])
+            self.assertEqual(challenge, state["chain_gates"]["pending"]["challenge_id"])
+            self.assertIsNone(state["chain_gates"]["pending"]["bound_agent_id"])
+
+            self.assertEqual(
+                {},
+                self.hand_back(project, "second", gate_marker(challenge)),
+            )
+            state = project.state_value()
+            self.assertIsNone(state["chain_gates"]["pending"])
+            self.assertEqual("RUNNING", state["chain_run"]["status"])
+            self.assertIsInstance(state["chain_run"]["gates"]["code-review"], dict)
+            self.assertEqual(1, state["chain_run"]["counters"]["review_failures"])
+
+    def test_rejected_handbacks_inside_a_run_stop_at_the_review_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            self.running_code_review(project, review_retries=2)
+
+            self.assertEqual({}, self.hand_back(project, "first", "No marker."))
+            self.assertEqual("RUNNING", project.state_value()["chain_run"]["status"])
+            self.assertEqual({}, self.hand_back(project, "second", "No marker."))
+            state = project.state_value()
+            self.assertEqual("FAILED", state["chain_run"]["status"])
+            self.assertEqual(2, state["chain_run"]["counters"]["review_failures"])
+            self.assertIn("review retries limit", state["chain_run"]["terminal_reason"])
+            self.assertIsNone(state["chain_gates"]["pending"])
+
+    def test_chain_hook_reads_utf8_input_under_a_non_utf8_console(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle()
+            preview = project.command(
+                "chain", "run", "preview", "--bundle", str(bundle), "--json"
+            )
+            subject = json.loads(preview.stdout)["preview_sha256"]
+            begin = project.command(
+                "chain",
+                "gate",
+                "begin",
+                "--kind",
+                "oracle-audit",
+                "--subject-sha256",
+                subject,
+                "--json",
+            )
+            project.assert_success(begin)
+            challenge = json.loads(begin.stdout)["challenge_id"]
+
+            # A host sends UTF-8 bytes, while the hook process runs with the
+            # console's locale encoding (cp949 on a Korean Windows machine).
+            # One ellipsis in a live reviewer's report lost its receipt.
+            environment = dict(os.environ)
+            environment["PYTHONUTF8"] = "0"
+            environment["PYTHONIOENCODING"] = "cp949"
+
+            def hook(event: dict) -> dict:
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(project.runtime),
+                        "chain",
+                        "hook",
+                        "--host",
+                        "claude",
+                    ],
+                    cwd=project.root,
+                    input=json.dumps(event, ensure_ascii=False).encode("utf-8"),
+                    capture_output=True,
+                    env=environment,
+                    timeout=45,
+                    check=False,
+                )
+                self.assertEqual(
+                    0,
+                    result.returncode,
+                    result.stderr.decode("utf-8", "replace"),
+                )
+                return json.loads(result.stdout.decode("ascii"))
+
+            base = {
+                "session_id": "claude-session",
+                "cwd": str(project.root),
+                "agent_id": "reviewer",
+                "agent_type": "general-purpose",
+            }
+            hook({**base, "hook_event_name": "SubagentStart"})
+            report = "검토 완료 … sha256 64ab876c… — PASS\n" + gate_marker(challenge)
+            self.assertEqual(
+                {},
+                hook(
+                    {
+                        **base,
+                        "hook_event_name": "PreToolUse",
+                        "permission_mode": "auto",
+                        "tool_name": "SubagentHandback",
+                        "tool_input": {"message": report},
+                    }
+                ),
+            )
+            self.assertEqual(
+                {},
+                hook(
+                    {
+                        **base,
+                        "hook_event_name": "SubagentStop",
+                        "permission_mode": "auto",
+                        "stop_hook_active": False,
+                    }
+                ),
+            )
+            ready = project.command(
+                "chain", "run", "preview", "--bundle", str(bundle), "--json"
+            )
+            project.assert_success(ready)
+            self.assertEqual("READY", json.loads(ready.stdout)["status"])
+
+    def test_stop_defers_while_a_background_subagent_is_running(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            value = project.approve(project.write_run_bundle())
+
+            def stop(host: str, tasks: object) -> dict:
+                event = {
+                    "hook_event_name": "Stop",
+                    "session_id": f"{host}-session",
+                    "cwd": str(project.root),
+                    "permission_mode": "dontAsk",
+                    "stop_hook_active": False,
+                }
+                if tasks is not None:
+                    event["background_tasks"] = tasks
+                result = project.hook(host, event)
+                project.assert_success(result)
+                return json.loads(result.stdout)
+
+            def iterations() -> int:
+                return project.state_value()["chain_run"]["counters"]["iterations"]
+
+            # PENDING_LOOP keeps its activation push whatever else is running.
+            pending = stop("claude", [RUNNING_SUBAGENT_TASK])
+            self.assertEqual("block", pending.get("decision"))
+            self.assertIn("Activate", str(pending.get("reason")))
+            self.assertEqual(1, iterations())
+
+            activated = project.command(
+                "chain",
+                "activate",
+                "--host",
+                value["host"],
+                "--authority",
+                value["loop_authority"],
+                "--objective-sha256",
+                value["goal_objective_sha256"],
+                "--json",
+            )
+            project.assert_success(activated)
+
+            self.assertEqual({}, stop("claude", [RUNNING_SUBAGENT_TASK]))
+            self.assertEqual(1, iterations())
+            self.assertEqual(
+                "RUNNING",
+                project.state_value()["chain_run"]["status"],
+            )
+
+            shell_task = {
+                "id": "task-1",
+                "type": "shell",
+                "status": "running",
+                "description": "dev server",
+                "command": "npm run dev",
+            }
+            finished = dict(RUNNING_SUBAGENT_TASK, status="completed")
+            counted = 1
+            for tasks in (None, [], [shell_task], [finished], "running"):
+                with self.subTest(tasks=tasks):
+                    self.assertEqual("block", stop("claude", tasks).get("decision"))
+                    counted += 1
+                    self.assertEqual(counted, iterations())
+
+            # Codex Stop is an observer: it keeps counting and never defers.
+            self.assertEqual({}, stop("codex", [RUNNING_SUBAGENT_TASK]))
+            self.assertEqual(counted + 1, iterations())
+
+    def test_claude_matchers_are_current_and_outdated_hooks_block_readiness(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            claude_path = project.root / ".claude" / "settings.json"
+            claude = json.loads(claude_path.read_text(encoding="utf-8"))
+            codex = json.loads(
+                (project.root / ".codex" / "hooks.json").read_text(encoding="utf-8")
+            )
+
+            def matcher(value: dict, event_name: str) -> str | None:
+                return value["hooks"][event_name][-1].get("matcher")
+
+            self.assertEqual(
+                "startup|resume|clear|compact|fork",
+                matcher(claude, "SessionStart"),
+            )
+            self.assertEqual(
+                "Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit|SubagentHandback",
+                matcher(claude, "PreToolUse"),
+            )
+            self.assertEqual(
+                "startup|resume|clear|compact",
+                matcher(codex, "SessionStart"),
+            )
+            self.assertEqual(
+                "Bash|Write|Edit|apply_patch",
+                matcher(codex, "PreToolUse"),
+            )
+            self.assertEqual("READY", self.config_status(project)["status"])
+
+            # A project configured by an older kit still carries the old matcher.
+            claude["hooks"]["PreToolUse"][-1]["matcher"] = "Bash|Write|Edit|apply_patch"
+            claude_path.write_text(json.dumps(claude, indent=2) + "\n", encoding="utf-8")
+            outdated = self.config_status(project)
+            self.assertEqual("PENDING_HOST_TRUST", outdated["status"])
+            self.assertFalse(outdated["hosts"]["claude"]["hooks_installed"])
+            self.assertTrue(outdated["hosts"]["codex"]["hooks_installed"])
+            self.assertIn("missing or changed", " ".join(outdated["reasons"]))
+
+            project.configure()
+            self.assertEqual("READY", self.config_status(project)["status"])
+
+    def test_code_review_rubric_separates_blocking_defects_from_observations(
+        self,
+    ) -> None:
+        spec = importlib.util.spec_from_file_location(
+            "ezpowers_rubric_scope_check",
+            EZPOWERS,
+        )
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        self.addCleanup(sys.modules.pop, spec.name, None)
+        spec.loader.exec_module(module)
+
+        def rubric(kind: str, **extra: str) -> str:
+            return module._chain_gate_rubric(
+                {"kind": kind, "challenge_id": "challenge-123", **extra}
+            )
+
+        code_review = rubric("code-review")
+        self.assertIn("introduces or exposes", code_review)
+        self.assertIn("Pre-existing:", code_review)
+        for kind in ("oracle-audit", "adversarial-qa", "blocker-review"):
+            self.assertNotIn("Pre-existing:", rubric(kind), kind)
+        claude = rubric("code-review", host="claude")
+        self.assertIn("SubagentHandback", claude)
+        self.assertNotIn("SubagentHandback", rubric("code-review", host="codex"))
+        self.assertEqual("FAIL", module._chain_gate_marker(claude)["verdict"])
 
 
 if __name__ == "__main__":

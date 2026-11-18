@@ -72,7 +72,21 @@ deliverable before `verify`, and never let a check rewrite, normalize, or
 repair declared input/output bytes. Git-ignored deliverables are still bound
 by their own SHA-256 inventory.
 
+Before the certification candidate, run the change: exercise the changed
+behavior on the real running system with the host's own means. On Claude Code
+use a project `verify` or `run-<name>` recipe skill when one exists, otherwise
+the bundled `/verify` or `/run` skill; on Codex perform an equivalent real run
+as the project instructions describe. Treat what you observe as feedback. It is
+never completion evidence and never replaces `verify --all` or `certify`. Do
+it before `verify --all`, because a recipe file the host records is a workspace
+change. Documentation-only and test-only changes are exempt.
+
 ## Verify and certify
+
+Review means the host's own review feature when it has one: Claude Code's
+bundled `/code-review` skill, or Codex's built-in `codex review`. Use one
+reviewer tuned through project instructions rather than stacked reviewers, and
+let a later round build on earlier findings. EZPowers supplies no reviewer.
 
 When implementation and review are complete, run:
 
@@ -93,6 +107,11 @@ the diagnosis itself never expands scope. Root cause is not a handoff point:
 continue through the source-cause patch, the original failure reproduction,
 affected checks, and cleanup. Fix the product or revise the approved spec/plan,
 then run `verify --all` again.
+
+An intermittent failure is a defect, not noise. Never rerun a check until it
+passes, add a sleep or retry, skip it, or loosen its assertion; apply the
+`diagnose` ladder, whose red signal for a flaky failure is a recorded failure
+rate.
 
 ## Resume and report
 

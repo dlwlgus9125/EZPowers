@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="EZPowers v5.10.0 플러그인의 15개 스킬과 software/planning 프로필을 언제, 어떤 순서로 사용하는지 설명하는 한국어 가이드">
+  <meta name="description" content="EZPowers v5.11.0 플러그인의 15개 스킬과 software/planning 프로필을 언제, 어떤 순서로 사용하는지 설명하는 한국어 가이드">
   <meta name="color-scheme" content="light dark">
   <title>EZPowers Skill Atlas — 스킬 사용 가이드</title>
   <script>
@@ -2698,7 +2698,7 @@
         <span class="brand-mark" aria-hidden="true">EZ</span>
         <span class="brand-copy">
           <strong>Skill Atlas</strong>
-          <span>EZPowers v5.10</span>
+          <span>EZPowers v5.11</span>
         </span>
       </a>
 
@@ -2726,7 +2726,7 @@
           실제 동작 기준:
           <a href="../AGENTS.md">AGENTS.md</a>,
           <a href="reference/codex-plugin-discovery.md">호스트 호출 계약</a>,
-          <a href="../project-kit/v5.10.0/manifest.json">v5.10 매니페스트</a>
+          <a href="../project-kit/v5.11.0/manifest.json">v5.11 매니페스트</a>
         </p>
       </div>
     </aside>
@@ -2735,7 +2735,7 @@
       <div class="mobile-bar">
         <a class="mobile-brand" href="#overview">
           <span class="brand-mark" aria-hidden="true">EZ</span>
-          <span>Skill Atlas · v5.10</span>
+          <span>Skill Atlas · v5.11</span>
         </a>
         <div class="control-group">
           <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
@@ -2752,7 +2752,7 @@
 
       <section class="section hero" id="overview" aria-labelledby="hero-title">
         <div class="hero-topline">
-          <span class="hero-edition">Verified workflow · plugin v5.10.0</span>
+          <span class="hero-edition">Verified workflow · plugin v5.11.0</span>
           <div class="control-group">
             <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
               <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true">
@@ -3580,6 +3580,7 @@
                   <li>검사의 병렬 안전성이 재현되지 않았다면 <code>safe: false</code> 장벽으로 둡니다.</li>
                   <li>프런트엔드·접근성·통합·시각 오라클을 보존합니다.</li>
                   <li>도구가 없으면 검사를 빼지 말고 명시적인 선행 작업으로 둡니다.</li>
+                  <li>존재만 확인하는 검사보다 실제 경계에서 동작을 관찰하는 검사를 고르고, 맞는 곳에는 속성 기반·차등 검사를 더합니다. 불안정한 검사는 고친 뒤에 필수 검사로 둡니다.</li>
                   <li><code>validate --plan</code>이 PASS일 때만 <code>execute</code>로 이어집니다.</li>
                 </ul>
               </div>
@@ -3622,6 +3623,7 @@
                 <ol>
                   <li><code>validate --plan &lt;path&gt; --activate</code>로 resume 대상을 명시합니다.</li>
                   <li><code>trace --plan &lt;path&gt; --json</code>으로 graph hash·task wave·차단 경로를 확인합니다.</li>
+                  <li>인증 후보를 만들기 전에 호스트의 수단으로 변경을 실제로 실행해 봅니다. 관찰은 피드백일 뿐 <code>verify --all</code>을 대신하지 않습니다.</li>
                   <li>구현·리뷰 후 <code>verify --plan &lt;path&gt; --all --json</code>을 실행합니다. <code>reuse</code>를 선언한 검사는 선언한 경로의 내용이 그대로면 이전에 실제로 실행한 PASS를 이어받고, 나머지는 모두 실행합니다.</li>
                   <li><code>certify --plan &lt;path&gt; --json</code>과 <code>status --json</code>으로 신선한 완료를 확인합니다. 이어받은 검사와 출처 실행은 인증서에 기록됩니다.</li>
                   <li>워크스페이스·계획·설정·문서가 바뀌면 이전 all-scope 결과는 완료를 대신하지 못하므로 verify를 다시 실행합니다. 모든 검사를 새로 실행하려면 <code>--no-reuse</code>를 붙입니다.</li>
@@ -3712,6 +3714,7 @@
                   <li>기능 승인 전 acceptance oracle을 현재 워크스페이스의 격리 복사본에서 증명하고 독립 감사를 받습니다.</li>
                   <li>승인 후 spec·plan·oracle·config 해시가 바뀌면 <code>NEEDS_REAPPROVAL</code>입니다.</li>
                   <li>Codex는 하나의 native goal, Claude는 하나의 Stop loop만 연속 실행 권한으로 씁니다.</li>
+                  <li>Claude Code는 <code>auto</code>, <code>dontAsk</code>, <code>bypassPermissions</code> 모드에서 시작할 수 있으며 <code>/goal</code>과 함께 쓰지 않습니다.</li>
                 </ul>
               </div>
             </details>
@@ -3966,7 +3969,7 @@
               </article>
               <article class="chain-host">
                 <strong>Claude Code: one Stop loop</strong>
-                <p>프로젝트 Stop hook이 유일한 연속 실행 권한입니다. 두 호스트의 기능이 동일하다고 가장하지 않습니다.</p>
+                <p>프로젝트 Stop hook이 유일한 연속 실행 권한입니다. 백그라운드 리뷰어를 기다리는 동안에는 반복 횟수를 쓰지 않습니다. 두 호스트의 기능이 동일하다고 가장하지 않습니다.</p>
               </article>
             </div>
 
@@ -4094,7 +4097,7 @@
         <div>
           <strong>EZPowers Skill Atlas</strong>
           <p>
-            v5.10.0 프로젝트 키트와 v5.10.0 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
+            v5.11.0 프로젝트 키트와 v5.11.0 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
             동작이 바뀌면 <code>skills/*/SKILL.md</code>, 호출 계약, 프로젝트 매니페스트와 함께 이 문서를 갱신하세요.
             시각 토큰과 재사용 컴포넌트 규칙은 루트 <code>DESIGN.md</code>를 먼저 갱신한 뒤 이 구현에 반영하세요.
           </p>

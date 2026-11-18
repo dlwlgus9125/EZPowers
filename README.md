@@ -3,7 +3,7 @@
 > Claude Code와 Codex가 같은 저장소 증거로 작업의 **완료 여부**를
 > 판단하도록 만드는 프로젝트 로컬 워크플로 플러그인입니다.
 
-**Plugin v5.10.0 · Project kit v5.10.0 · Python 3.10+ · MIT**
+**Plugin v5.11.0 · Project kit v5.11.0 · Python 3.10+ · MIT**
 
 [빠른 시작](#빠른-시작) · [워크플로](#기본-워크플로) ·
 [스킬 목록](#스킬-목록) · [업데이트](#업데이트) ·
@@ -160,6 +160,12 @@ harness-chain configure
 `harness-chain`은 기본적으로 비활성입니다. 승인된 acceptance input과 한도를
 고정하지만, 자체 코딩 에이전트나 외부 executor가 되지는 않습니다.
 
+Claude Code에서는 `auto`, `dontAsk`, `bypassPermissions` 모드에서 체인을 시작할
+수 있습니다. `auto`에서는 호스트 분류기가 동작을 거부하거나 다시 프롬프트로
+돌아갈 수 있으므로, 무인 실행이 보장되지는 않습니다. 기능 하나의 연속 실행
+권한은 프로젝트 Stop hook 하나뿐이며 Claude Code의 `/goal`과 함께 쓰지
+않습니다. Codex 쪽 체인 경로는 실제 호스트에서 검증하지 않았습니다.
+
 ## 스킬 목록
 
 플러그인 호출 형식은 Claude Code에서 `/ezpowers:<name>`, Codex에서
@@ -290,6 +296,11 @@ refresh는 manifest가 소유한 파일만 갱신합니다. 사용자가 수정�
 file이 있으면 전체 교체를 중단하고 충돌을 보고합니다. kit identity가
 바뀌므로 기존 completion evidence는 stale이 되며 검증을 다시 실행해야
 합니다.
+
+`harness-chain`을 이미 구성한 프로젝트는 refresh 뒤에 `chain config preview`와
+`chain config apply`를 다시 실행하고 호스트 세션을 재시작해야 합니다. 새
+런타임이 다른 hook matcher를 쓰기 때문이며, 진행 중이던 체인 실행은 새로
+승인해야 합니다.
 
 ## 안전 및 개인정보 경계
 

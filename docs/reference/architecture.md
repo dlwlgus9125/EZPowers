@@ -190,6 +190,15 @@ resume state. Codex Stop observes its native goal; Claude Stop supplies
 continuation. The runtime never assigns implementation tasks or chooses a
 review model.
 
+The chain's host adapter is data the runtime owns, not a second authority. It
+covers which permission modes count as unattended for a host and which hook
+event reports them, where the bound reviewer's final report is read, when a
+Claude Stop is deferred because a background subagent is still running, which
+tools the frozen-file early guard inspects, and which hook matchers a
+configured project must carry. These values follow the hosts' observed hook
+payloads. The completion verdict, the receipt schema and marker, hard limits,
+and hash checks do not move with them.
+
 Planning inputs are named project-relative regular files whose bytes are
 hashed directly, including files ignored by Git. Logical deliverables own one
 or more unique output paths and the acceptance criteria they realise. A
@@ -305,6 +314,8 @@ records; the source evidence bytes remain the authority.
   `docs/decisions/0009-plugin-only-teach-skill.md`.
 - Content-bound check reuse decision:
   `docs/decisions/0010-content-bound-check-reuse.md`.
+- Chain host-adapter alignment with the current hosts:
+  `docs/decisions/0011-current-host-chain-adapter.md`.
 
 Human-readable Markdown may explain these contracts but must not duplicate or
 override the managed JSON values.

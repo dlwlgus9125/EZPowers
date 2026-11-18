@@ -41,7 +41,7 @@ ASSURANCE_GRAPH_SCHEMA_VERSION = 1
 PLANNING_ASSURANCE_GRAPH_SCHEMA_VERSION = 2
 GRAPH_BOUND_SCHEMA_VERSION = 2
 PLANNING_EVIDENCE_SCHEMA_VERSION = 3
-KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.10.0/manifest.json")
+KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.11.0/manifest.json")
 CONFIG_RELATIVE_PATH = pathlib.Path(".ezpowers/config.json")
 STATE_RELATIVE_PATH = pathlib.Path(".ezpowers/state.json")
 LEDGER_RELATIVE_PATH = pathlib.Path(".ezpowers/ledger.json")
@@ -179,6 +179,53 @@ HOST_MIN_VERSIONS = {
     "codex": (0, 145, 0),
 }
 HOST_VERSION_RE = re.compile(r"(?<!\d)(\d+)\.(\d+)\.(\d+)(?!\d)")
+# Chain host adapter data. These follow the hook payloads the hosts send; the
+# verdict, receipt schema, limits, and hash checks do not depend on them.
+CHAIN_UNATTENDED_PERMISSION_MODES = {
+    "claude": frozenset({"auto", "dontAsk", "bypassPermissions"}),
+    "codex": frozenset({"dontAsk", "bypassPermissions"}),
+}
+CHAIN_UNATTENDED_MODE_HINT = {
+    "claude": "auto, dontAsk, or bypassPermissions",
+    "codex": "dontAsk or bypassPermissions",
+}
+CHAIN_HANDBACK_TOOL = "SubagentHandback"
+CHAIN_HANDBACK_MAX_CHARS = 262144
+CHAIN_GUARD_FILE_TARGETS = {
+    "Write": "file_path",
+    "Edit": "file_path",
+    "MultiEdit": "file_path",
+    "NotebookEdit": "notebook_path",
+}
+CHAIN_GUARD_SHELL_TOOLS = frozenset({"Bash", "PowerShell"})
+_CHAIN_GUARD_WORD = r"(?:^|[\s;&|({])"
+CHAIN_GUARD_MUTATION_RE = re.compile(
+    _CHAIN_GUARD_WORD
+    + r"(?:rm|rmdir|unlink|shred|del|erase|rd|mv|move|ren|rename|tee|truncate|"
+    r"touch|dd|remove-item|ri|move-item|mi|rename-item|rni|set-content|"
+    r"add-content|clear-content|out-file|tee-object|new-item)(?:\.exe)?(?:\s|$)"
+)
+# A copy writes only its destination, so copying a frozen file elsewhere (as a
+# reviewer does for a differential check) is allowed.
+CHAIN_GUARD_COPY = (
+    _CHAIN_GUARD_WORD
+    + r"(?:cp|copy|xcopy|robocopy|copy-item|cpi|install|ln|rsync)(?:\.exe)?\s"
+    r"(?:[^;&|\n]*\s)?"
+)
+CHAIN_GUARD_INPLACE_RE = re.compile(
+    _CHAIN_GUARD_WORD
+    + r"(?:sed|perl)(?:\.exe)?\s(?:[^;&|\n]*\s)?"
+    r"(?:-[a-z]*i[a-z]*|--in-place)(?:[\s=.]|$)"
+)
+CHAIN_GUARD_INLINE_RE = re.compile(
+    _CHAIN_GUARD_WORD
+    + r"(?:python[\d.]*|py|node|ruby|php|perl|bash|sh|zsh|pwsh|powershell|cmd)"
+    r"(?:\.exe)?\s(?:[^;&|\n]*\s)?"
+    r"(?:-c|-e|-r|--eval|-command|-encodedcommand|/c)(?:\s|$)"
+)
+CHAIN_PATCH_TARGET_RE = re.compile(
+    r"(?m)^\*\*\* (?:(?:Add|Update|Delete) File|Move to): (.+?)\s*$"
+)
 
 
 class EZPowersError(RuntimeError):
@@ -939,8 +986,15 @@ def _chain_hook_handler(project_root: pathlib.Path, host: str) -> dict[str, Any]
 
 def _chain_hook_matcher(host: str, event_name: str) -> str | None:
     if event_name == "SessionStart":
+        if host == "claude":
+            return "startup|resume|clear|compact|fork"
         return "startup|resume|clear|compact"
     if event_name == "PreToolUse":
+        if host == "claude":
+            return (
+                "Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit|"
+                + CHAIN_HANDBACK_TOOL
+            )
         return "Bash|Write|Edit|apply_patch"
     if event_name in {"SubagentStart", "SubagentStop"}:
         return ""
@@ -4938,9 +4992,16 @@ def _chain_host_hook_present(root: pathlib.Path, host: str) -> bool:
         "SubagentStop",
     ):
         entries = hooks.get(event_name)
-        if (
-            not isinstance(entries, list)
-            or not any(_command_mentions_chain_hook(item, host) for item in entries)
+        owned = [
+            item
+            for item in (entries if isinstance(entries, list) else [])
+            if _command_mentions_chain_hook(item, host)
+        ]
+        # An entry written by an older kit keeps its old matcher, so events
+        # the current runtime relies on would never reach the hook.
+        desired = _chain_hook_matcher(host, event_name) or ""
+        if not owned or any(
+            (item.get("matcher") or "") != desired for item in owned
         ):
             return False
     return True
@@ -4982,10 +5043,9 @@ def _chain_config_status_payload(root: pathlib.Path) -> tuple[dict[str, Any], in
             and isinstance(record.get("session_id"), str)
             and bool(record["session_id"])
         )
-        unattended = trusted and permission_mode in {
-            "dontAsk",
-            "bypassPermissions",
-        }
+        unattended = trusted and permission_mode in (
+            CHAIN_UNATTENDED_PERMISSION_MODES.get(host, frozenset())
+        )
         host_status[host] = {
             "hooks_installed": installed,
             "handshake": trusted,
@@ -4994,15 +5054,24 @@ def _chain_config_status_payload(root: pathlib.Path) -> tuple[dict[str, Any], in
             "session_id": record.get("session_id") if trusted else None,
         }
         if not installed:
-            reasons.append(f"{host} chain hooks are missing or changed")
+            reasons.append(
+                f"{host} chain hooks are missing or changed; rerun chain "
+                "config preview and apply"
+            )
         elif not trusted:
             reasons.append(
                 f"{host} chain hooks have not completed a trusted SessionStart handshake"
             )
+        elif permission_mode is None:
+            reasons.append(
+                f"{host} session has not reported a permission mode yet; "
+                "run one tool call in the restarted session, then check "
+                "status again"
+            )
         elif not unattended:
             reasons.append(
                 f"{host} permission mode {permission_mode!r} can pause for "
-                "interactive approval; use dontAsk or bypassPermissions "
+                f"interactive approval; use {CHAIN_UNATTENDED_MODE_HINT[host]} "
                 "before an unattended chain"
             )
     ready = not reasons
@@ -6279,8 +6348,13 @@ def _chain_contract_reasons(
                 or record.get("hook_identity") != expected
                 or not isinstance(record.get("session_id"), str)
                 or not record.get("session_id")
-                or record.get("permission_mode")
-                not in {"dontAsk", "bypassPermissions"}
+                # A mode the session has not reported yet is unknown, not
+                # changed; readiness and activation still require one.
+                or (
+                    record.get("permission_mode") is not None
+                    and record.get("permission_mode")
+                    not in CHAIN_UNATTENDED_PERMISSION_MODES.get(host, frozenset())
+                )
             ):
                 reasons.append(
                     f"{host} chain hook identity, session trust, or "
@@ -6933,14 +7007,18 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
         if args.kind == "oracle-audit":
             receipt_key = _chain_receipt_key(args.kind, subject)
             consumed = state.get("chain_gates", {}).get("consumed", {})
-            if (
-                isinstance(consumed, dict)
-                and isinstance(consumed.get(receipt_key), dict)
-            ):
+            closed = consumed.get(receipt_key) if isinstance(consumed, dict) else None
+            if isinstance(closed, dict):
                 raise EZPowersError(
-                    "the independent oracle audit failed for this exact "
-                    "preview; change the staged acceptance contract and use "
-                    "its new preview hash before another audit"
+                    (
+                        "two rejected hand-backs left no valid oracle-audit "
+                        "receipt for this exact preview"
+                        if "invalid_receipt" in closed
+                        else "the independent oracle audit failed for this "
+                        "exact preview"
+                    )
+                    + "; change the staged acceptance contract and use its "
+                    "new preview hash before another audit"
                 )
             prior_receipt, _ = _chain_load_receipt(
                 root,
@@ -7147,7 +7225,12 @@ def _chain_gate_rubric(pending: dict[str, Any]) -> str:
         "code-review": (
             "Review the diff and fresh evidence for correctness, regressions, "
             "security, maintainability, and any weakening or bypass of the "
-            "frozen acceptance contract."
+            "frozen acceptance contract. Put a finding in blocking_findings "
+            "only when this change introduces or exposes the defect, or the "
+            "defect defeats an approved criterion. Record minor points in "
+            "observations prefixed Nit: and defects that existed before this "
+            "change in observations prefixed Pre-existing:; neither fails the "
+            "review on its own."
         ),
         "artifact-review": (
             "Review each declared logical deliverable against its frozen "
@@ -7166,10 +7249,81 @@ def _chain_gate_rubric(pending: dict[str, Any]) -> str:
             "prevents progress after safe in-scope alternatives are exhausted."
         ),
     }
+    delivery = ""
+    if pending.get("host") == "claude":
+        delivery = (
+            "\n\nDeliver that marker in your final report: the message of your "
+            f"{CHAIN_HANDBACK_TOOL} call when you have that tool, otherwise "
+            "your last message."
+        )
     return (
-        f"{common}\n\n{receipt}\n\n{rubrics[str(kind)]}\n"
+        f"{common}\n\n{receipt}{delivery}\n\n{rubrics[str(kind)]}\n"
         f"Challenge: {challenge_id}"
     )
+
+
+def _chain_observe_permission_mode(
+    root: pathlib.Path,
+    state: dict[str, Any],
+    event: dict[str, Any],
+    host: str,
+) -> None:
+    # Claude Code sends no permission_mode on SessionStart, so the handshake
+    # starts without one. Take it from the first event of that session that
+    # reports it; later events never replace an observed mode.
+    record = state.get("chain_hosts", {}).get(host)
+    mode = event.get("permission_mode")
+    if (
+        isinstance(record, dict)
+        and record.get("permission_mode") is None
+        and isinstance(mode, str)
+        and mode
+        and record.get("session_id") == event.get("session_id")
+    ):
+        record["permission_mode"] = mode
+        _save_state(root, state)
+
+
+def _chain_capture_handback(
+    root: pathlib.Path,
+    state: dict[str, Any],
+    event: dict[str, Any],
+) -> None:
+    # In auto mode a Claude Code subagent delivers its final report through
+    # this tool call and SubagentStop no longer carries it. Keep the bound
+    # reviewer's latest report on the pending gate.
+    pending = state.get("chain_gates", {}).get("pending")
+    tool_input = event.get("tool_input")
+    message = tool_input.get("message") if isinstance(tool_input, dict) else None
+    agent_id = event.get("agent_id")
+    if (
+        not isinstance(pending, dict)
+        or pending.get("host") != "claude"
+        or not isinstance(agent_id, str)
+        or not agent_id
+        or pending.get("bound_agent_id") != agent_id
+        or pending.get("session_id") != event.get("session_id")
+        or not isinstance(message, str)
+        or len(message) > CHAIN_HANDBACK_MAX_CHARS
+    ):
+        return
+    pending["handback"] = {"message": message, "captured_at": _utc_now()}
+    _save_state(root, state)
+
+
+def _chain_reviewer_report(
+    pending: dict[str, Any],
+    event: dict[str, Any],
+    host: str,
+) -> Any:
+    # One source only: the hand-back when it carries a marker, otherwise the
+    # SubagentStop message. The two are never combined.
+    handback = pending.get("handback")
+    if host == "claude" and isinstance(handback, dict):
+        message = handback.get("message")
+        if isinstance(message, str) and "ezpowers:gate:start" in message:
+            return message
+    return event.get("last_assistant_message")
 
 
 def _chain_bound_subagent_start(
@@ -7406,7 +7560,7 @@ def _chain_bound_subagent_stop(
         return {}
     try:
         marker = _chain_gate_marker(
-            event.get("last_assistant_message"),
+            _chain_reviewer_report(pending, event, host),
             pending,
         )
         if marker.get("challenge_id") != pending.get("challenge_id"):
@@ -7538,7 +7692,8 @@ def _chain_bound_subagent_stop(
         return {}
     except EZPowersError as exc:
         run = state.get("chain_run")
-        if isinstance(run, dict) and run.get("status") == "RUNNING":
+        counted = isinstance(run, dict) and run.get("status") == "RUNNING"
+        if counted:
             if pending.get("kind") == "adversarial-qa":
                 counters = run.get("counters", {})
                 counters["qa_cycles"] = int(counters.get("qa_cycles", 0)) + 1
@@ -7559,14 +7714,49 @@ def _chain_bound_subagent_stop(
                     "approved QA cycle limit "
                     f"({run.get('limits', {}).get('qa_cycles')})",
                 )
+        # A rejected report must not be read again when the reviewer corrects it.
+        pending.pop("handback", None)
+        # A terminal run ends its own gates. An oracle audit judges a preview,
+        # not the run in state, so only a run that counted this rejection ends
+        # it; an earlier finished run must not reopen the audit for the next
+        # reviewer.
         terminal = (
             isinstance(run, dict)
             and run.get("status") in CHAIN_TERMINAL_STATUSES
+            and (counted or pending.get("kind") != "oracle-audit")
         )
-        if terminal:
+        # Claude Code does not continue a subagent that already handed its
+        # report back (its SubagentStop then has no last_assistant_message),
+        # so a new reviewer may take the challenge over. Inside a run every
+        # rejection is counted above. Where nothing counts, one replacement is
+        # allowed and a second unusable report closes the subject the way a
+        # failed audit does.
+        handed_back = host == "claude" and "last_assistant_message" not in event
+        exhausted = (
+            handed_back
+            and not counted
+            and not terminal
+            and pending.get("reviewer_replaced") is True
+        )
+        if exhausted:
+            state["chain_gates"]["consumed"][
+                _chain_receipt_key(
+                    str(pending.get("kind")),
+                    str(pending.get("subject_sha256")),
+                )
+            ] = {
+                "challenge_id": pending.get("challenge_id"),
+                "invalid_receipt": str(exc),
+                "closed_at": _utc_now(),
+            }
+        if terminal or exhausted:
             state["chain_gates"]["pending"] = None
+        elif handed_back:
+            for key in ("bound_agent_id", "bound_agent_type", "host", "session_id"):
+                pending[key] = None
+            pending["reviewer_replaced"] = True
         _save_state(root, state)
-        if terminal:
+        if terminal or handed_back:
             return {}
         return {
             "decision": "block",
@@ -7612,6 +7802,82 @@ def _chain_strings(value: Any) -> Iterable[str]:
             yield from _chain_strings(nested)
 
 
+def _chain_path_key(path: pathlib.Path) -> str:
+    return str(path.resolve()).replace("\\", "/").casefold()
+
+
+def _chain_frozen_targets(
+    root: pathlib.Path,
+    frozen: dict[str, str],
+    targets: Iterable[Any],
+    cwd: Any,
+) -> list[str]:
+    bases = [root]
+    if isinstance(cwd, str) and os.path.isabs(cwd):
+        bases.insert(0, pathlib.Path(cwd))
+    matched: set[str] = set()
+    for raw in targets:
+        text = raw.strip().strip("\"'") if isinstance(raw, str) else ""
+        if not text or "\0" in text:
+            continue
+        for base in bases:
+            with contextlib.suppress(OSError, ValueError):
+                key = _chain_path_key(base / text)
+                if key in frozen:
+                    matched.add(frozen[key])
+    return sorted(matched)
+
+
+def _chain_frozen_forms(frozen: dict[str, str]) -> dict[str, str]:
+    # Every spelling under which a command can name a frozen file: the
+    # project-relative path, the absolute path, and its Git Bash drive form.
+    forms: dict[str, str] = {}
+    for key, path in frozen.items():
+        forms[path.casefold()] = path
+        forms[key] = path
+        if re.match(r"[a-z]:/", key):
+            forms["/" + key[0] + key[2:]] = path
+    return forms
+
+
+def _chain_named_frozen(frozen: dict[str, str], text: str) -> set[str]:
+    lowered = text.replace("\\", "/").casefold()
+    return {
+        path
+        for form, path in _chain_frozen_forms(frozen).items()
+        if form in lowered
+    }
+
+
+def _chain_shell_write_targets(frozen: dict[str, str], command: str) -> list[str]:
+    # Deny a command that names a frozen file together with write intent: a
+    # direct mutation, an in-place edit, inline interpreter code, a
+    # redirection into the file, or a copy onto it. Running a script or test
+    # that names one, or copying it elsewhere, is allowed; the hash check
+    # before verify, review, and certify is the authority for everything this
+    # early guard does not see.
+    named = _chain_named_frozen(frozen, command)
+    if not named:
+        return []
+    lowered = command.replace("\\", "/").casefold()
+    if (
+        CHAIN_GUARD_MUTATION_RE.search(lowered)
+        or CHAIN_GUARD_INPLACE_RE.search(lowered)
+        or CHAIN_GUARD_INLINE_RE.search(lowered)
+    ):
+        return sorted(named)
+    targets: set[str] = set()
+    for form, path in _chain_frozen_forms(frozen).items():
+        target = r"[\"']?" + re.escape(form) + r"[\"']?"
+        if (
+            re.search(r">{1,2}\s*" + target, lowered)
+            or re.search(CHAIN_GUARD_COPY + r"-destination\s+" + target, lowered)
+            or re.search(CHAIN_GUARD_COPY + target + r"\s*(?:$|[;&|\n)}])", lowered)
+        ):
+            targets.add(path)
+    return sorted(targets)
+
+
 def _chain_pretool_response(
     root: pathlib.Path,
     state: dict[str, Any],
@@ -7624,26 +7890,33 @@ def _chain_pretool_response(
     ):
         return {}
     tool_name = str(event.get("tool_name", ""))
-    if tool_name not in {"Bash", "Write", "Edit", "apply_patch"}:
+    tool_input = event.get("tool_input", {})
+    frozen: dict[str, str] = {}
+    for path in _chain_frozen_paths(root, state):
+        with contextlib.suppress(OSError, ValueError):
+            frozen[_chain_path_key(root / path)] = path
+    if tool_name in CHAIN_GUARD_FILE_TARGETS:
+        # A file tool writes only its target; text it writes may name anything.
+        target = (
+            tool_input.get(CHAIN_GUARD_FILE_TARGETS[tool_name])
+            if isinstance(tool_input, dict)
+            else None
+        )
+        matched = _chain_frozen_targets(root, frozen, [target], event.get("cwd"))
+    elif tool_name == "apply_patch":
+        patch = "\n".join(_chain_strings(tool_input))
+        targets = CHAIN_PATCH_TARGET_RE.findall(patch)
+        if targets:
+            matched = _chain_frozen_targets(root, frozen, targets, event.get("cwd"))
+        else:
+            matched = sorted(_chain_named_frozen(frozen, patch))
+    elif tool_name in CHAIN_GUARD_SHELL_TOOLS:
+        command = tool_input.get("command") if isinstance(tool_input, dict) else None
+        if not isinstance(command, str):
+            command = "\n".join(_chain_strings(tool_input))
+        matched = _chain_shell_write_targets(frozen, command)
+    else:
         return {}
-    values = "\n".join(_chain_strings(event.get("tool_input", {}))).replace(
-        "\\",
-        "/",
-    )
-    lowered = values.lower()
-    if tool_name == "Bash" and not re.search(
-        r"(?:^|[\s;&|])(?:rm|mv|cp|sed|perl|python|powershell|pwsh|"
-        r"set-content|add-content|out-file|remove-item|move-item|copy-item)"
-        r"(?:\s|$)",
-        lowered,
-    ):
-        return {}
-    matched = [
-        path
-        for path in sorted(_chain_frozen_paths(root, state))
-        if path.lower() in lowered
-        or str((root / path).resolve()).replace("\\", "/").lower() in lowered
-    ]
     if not matched:
         return {}
     return {
@@ -7658,16 +7931,40 @@ def _chain_pretool_response(
     }
 
 
+def _chain_background_subagent_running(event: dict[str, Any]) -> bool:
+    tasks = event.get("background_tasks")
+    if not isinstance(tasks, list):
+        return False
+    return any(
+        isinstance(task, dict)
+        and task.get("type") == "subagent"
+        and task.get("status") == "running"
+        and isinstance(task.get("agent_type"), str)
+        and bool(task["agent_type"])
+        for task in tasks
+    )
+
+
 def _chain_stop_response(
     root: pathlib.Path,
     state: dict[str, Any],
     host: str,
+    event: dict[str, Any],
 ) -> dict[str, Any]:
     run = state.get("chain_run")
     if not isinstance(run, dict):
         return {}
     _chain_refresh_run_status(root, state)
     status = run.get("status")
+    if (
+        host == "claude"
+        and status == "RUNNING"
+        and _chain_background_subagent_running(event)
+    ):
+        # Claude Code runs subagents in the background and starts the next
+        # turn when one reports, so this Stop is a wait, not a continuation.
+        # Shells and monitors never defer: they may never end.
+        return {}
     if status in {"RUNNING", "PENDING_LOOP"}:
         counters = run.get("counters", {})
         limits = run.get("limits", {})
@@ -7702,9 +7999,12 @@ def _chain_stop_response(
 
 def _chain_hook_command(args: argparse.Namespace) -> int:
     try:
-        raw = sys.stdin.read()
+        # Hosts send UTF-8 JSON. sys.stdin's text layer would decode it with
+        # the locale encoding (cp949 on a Korean Windows console), and one
+        # non-ASCII character in a reviewer's report then breaks the event.
+        raw = sys.stdin.buffer.read().decode("utf-8-sig", errors="replace")
         event = json.loads(raw) if raw.strip() else {}
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError):
         event = {}
     if not isinstance(event, dict):
         event = {}
@@ -7738,8 +8038,16 @@ def _chain_hook_command(args: argparse.Namespace) -> int:
                         "handshake_at": _utc_now(),
                     }
                     _save_state(root, state)
-            elif event_name == "PreToolUse":
-                response = _chain_pretool_response(root, state, event)
+            else:
+                _chain_observe_permission_mode(root, state, event, args.host)
+            if event_name == "PreToolUse":
+                if (
+                    args.host == "claude"
+                    and event.get("tool_name") == CHAIN_HANDBACK_TOOL
+                ):
+                    _chain_capture_handback(root, state, event)
+                else:
+                    response = _chain_pretool_response(root, state, event)
             elif event_name == "SubagentStart":
                 response = _chain_bound_subagent_start(
                     root,
@@ -7755,7 +8063,7 @@ def _chain_hook_command(args: argparse.Namespace) -> int:
                     args.host,
                 )
             elif event_name == "Stop":
-                response = _chain_stop_response(root, state, args.host)
+                response = _chain_stop_response(root, state, args.host, event)
     except EZPowersError as exc:
         # A chain hook must never exit 2: on Stop that blocks stopping
         # forever, and on PreToolUse it denies every matched tool call.
@@ -7764,7 +8072,8 @@ def _chain_hook_command(args: argparse.Namespace) -> int:
         # verify, gates, and certification.
         response = {}
         print(f"EZPowers chain hook fail-safe no-op: {exc}", file=sys.stderr)
-    print(json.dumps(response, ensure_ascii=False))
+    # ASCII-only JSON survives any console encoding on the way back.
+    print(json.dumps(response))
     return 0
 
 
