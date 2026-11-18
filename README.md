@@ -3,7 +3,7 @@
 > Claude Code와 Codex가 같은 저장소 증거로 작업의 **완료 여부**를
 > 판단하도록 만드는 프로젝트 로컬 워크플로 플러그인입니다.
 
-**Plugin v5.9.0 · Project kit v5.8.0 · Python 3.10+ · MIT**
+**Plugin v5.10.0 · Project kit v5.10.0 · Python 3.10+ · MIT**
 
 [빠른 시작](#빠른-시작) · [워크플로](#기본-워크플로) ·
 [스킬 목록](#스킬-목록) · [업데이트](#업데이트) ·
@@ -228,6 +228,34 @@ python .ezpowers/ezpowers.py status --json
 
 인증 후 코드, 계획, 설정, 설치 키트 또는 작업 트리가 바뀌면 이전 증거는
 자동으로 stale이 됩니다.
+
+### 영향받은 check만 다시 실행하기
+
+check 계약에 `reuse`를 선언하면 `verify`가 그 check를 매번 다시 실행하지
+않습니다. 선언한 경로의 내용, check 계약, 설치된 키트가 그대로인 동안에는
+이전에 실제로 실행해 얻은 PASS를 이어받습니다.
+
+```json
+"reuse": {"paths": ["server/**", "tools/check_api.py"], "exclude": ["**/*.md"]}
+```
+
+- 선언은 선택 사항입니다. 선언이 없는 check와 plan v1 흐름은 지금처럼 매번
+  실행합니다.
+- `verify --all` 결과에는 여전히 모든 check 항목이 들어갑니다. 이어받은 항목은
+  출처 실행과 함께 증거와 인증서에 기록됩니다.
+- 선언한 check는 여러 task와 `required_checks`가 참조해도 한 번의 verify에서
+  한 번만 실행합니다.
+- 실패한 결과는 이어받지 않습니다. 패턴이 아무 파일도 고르지 못하거나
+  symlink를 고르면 이어받지 않고 실행합니다.
+- Git이 무시하는 파일, 환경 변수, 도구 버전, 네트워크는 추적하지 않습니다.
+  이런 것에 의존하는 check에는 선언하지 마세요. 의존 경로를 빠뜨리면 실패해야
+  할 check가 PASS로 이어받아질 수 있으므로, 넓은 범위(`**`에서 문서만 제외)로
+  시작해 근거가 있을 때만 좁히세요.
+- 전부 새로 실행하려면 `--no-reuse`를 붙입니다.
+
+```bash
+python .ezpowers/ezpowers.py verify --plan <plan-path> --all --no-reuse --json
+```
 
 ## 업데이트
 

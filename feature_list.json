@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-11-17T05:34:10Z",
+  "updated_at": "2026-11-18T06:22:47Z",
   "features": [
     {
       "id": "F11",
@@ -395,6 +395,38 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_codex_plugin_discovery.py",
         "project-kit/v5.8.0/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
+      ]
+    },
+    {
+      "id": "F26",
+      "title": "Content-bound check reuse",
+      "status": "complete",
+      "success_criteria": [
+        "A project whose checks declare no reuse keeps its validation, trace, evidence, certificate, and state shapes, its execution counts, and its verdicts",
+        "The optional reuse declaration is validated fail-closed, is rejected on schema-1 checks, and joins the check contract and assurance-graph hash only when present",
+        "A declared check is carried only from a really executed PASS of the same contract, selected content, and installed kit in a stable run; changed content, a changed contract, an ineligible selection, an earlier failure, an invalid source record, or --no-reuse executes it",
+        "A declared check executes at most once per verification run while undeclared repeated checks keep executing once per occurrence",
+        "Freshness and certification accept valid reuse records, reject altered or incomplete ones without rehashing inputs, and the certificate lists every carried occurrence with its source run",
+        "A harness chain carries only within its approved run, never in the baseline, rejects a reuse-declared oracle check that omits its oracle file, and keeps gate, rework, and limit behavior",
+        "The planning profile binds the declared artifact inventory into the reuse key, including Git-ignored deliverables",
+        "On an installed fixture, re-verification after a change that affects only some checks is at least 50 percent faster by three-run median than a forced full run with equal outcomes",
+        "Contracts, skills, product documents, the Korean guide, the 5.10.0 manifests, and both host discovery surfaces describe the same behavior"
+      ],
+      "evidence": [
+        "docs/decisions/0010-content-bound-check-reuse.md",
+        "docs/specs/f26-check-reuse.md",
+        "docs/plans/f26-check-reuse.md",
+        "scripts/ezpowers.py",
+        "tests/test_check_reuse.py",
+        "tests/test_harness_chain.py",
+        "tests/test_planning_profile.py",
+        "tests/test_v5_workflow_surface.py",
+        "scripts/benchmark_check_reuse.py",
+        "scripts/runtime_smoke.py",
+        "docs/reference/verification-contract.md",
+        "project-kit/v5.10.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]

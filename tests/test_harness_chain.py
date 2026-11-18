@@ -815,6 +815,292 @@ class HarnessChainTests(unittest.TestCase):
             self.assertEqual("NEEDS_REAPPROVAL", legacy_value["status"])
             self.assertIn("predates assurance graph", legacy_value["terminal_reason"])
 
+    def reuse_bundle(
+        self,
+        project: ChainProject,
+        run_id: str,
+        *,
+        oracle_paths: list[str],
+        extra_checks: list[str] | None = None,
+        oracle_counter: pathlib.Path | None = None,
+    ) -> pathlib.Path:
+        bundle = project.write_run_bundle(run_id=run_id)
+        oracle_name = f"test_{run_id.replace('-', '_')}.py"
+        oracle_argv = [
+            sys.executable,
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "tests",
+            "-p",
+            oracle_name,
+        ]
+        if oracle_counter is not None:
+            # Record every real process start outside the project, including
+            # the ones the isolated baseline makes in its overlay copy.
+            oracle_argv = [
+                sys.executable,
+                "-c",
+                "import pathlib, sys, unittest; "
+                "handle = pathlib.Path(sys.argv[1]).open('a', encoding='utf-8'); "
+                "handle.write('run\\n'); handle.close(); "
+                "suite = unittest.defaultTestLoader.discover('tests', pattern=sys.argv[2]); "
+                "result = unittest.TextTestRunner().run(suite); "
+                "raise SystemExit(0 if result.wasSuccessful() else 1)",
+                str(oracle_counter),
+                oracle_name,
+            ]
+        plan = {
+            "schema_version": 2,
+            "spec": f"docs/specs/{run_id}.md",
+            "checks": {
+                "feature-oracle": {
+                    "argv": oracle_argv,
+                    "cwd": ".",
+                    "timeout_seconds": 30,
+                    "kind": "test",
+                    "concurrency": {"safe": False, "resource_locks": []},
+                    "reuse": {"paths": oracle_paths},
+                }
+            },
+            "tasks": [
+                {
+                    "id": "T1",
+                    "depends_on": [],
+                    "criteria": ["AC-1"],
+                    "checks": ["feature-oracle", *(extra_checks or [])],
+                }
+            ],
+        }
+        (bundle / "plan.md").write_text(
+            managed_block("plan", plan),
+            encoding="utf-8",
+        )
+        return bundle
+
+    def test_reuse_declared_oracle_check_must_select_its_oracle_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = self.reuse_bundle(
+                project,
+                "reuse-scope",
+                oracle_paths=["app.py"],
+            )
+            preview = project.command(
+                "chain",
+                "run",
+                "preview",
+                "--bundle",
+                str(bundle),
+                "--json",
+            )
+            self.assertEqual(2, preview.returncode, preview.stdout + preview.stderr)
+            self.assertIn(
+                "declares reuse without selecting its oracle file: "
+                "tests/test_reuse_scope.py",
+                preview.stdout + preview.stderr,
+            )
+
+    def test_chain_carries_only_within_the_approved_run_and_keeps_gate_rules(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, tempfile.TemporaryDirectory() as outside:
+            project = self.make_project(pathlib.Path(temp_dir))
+            counter = pathlib.Path(outside) / "steady.count"
+            oracle_counter = pathlib.Path(outside) / "oracle.count"
+
+            def starts(path: pathlib.Path) -> int:
+                if not path.exists():
+                    return 0
+                return len(path.read_text(encoding="utf-8").splitlines())
+
+            def steady_count() -> int:
+                return starts(counter)
+
+            (project.root / "steady").mkdir()
+            (project.root / "steady" / "data.txt").write_text(
+                "stable\n",
+                encoding="utf-8",
+            )
+            config_path = project.root / ".ezpowers" / "config.json"
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            config["checks"] = {
+                "steady": {
+                    "argv": [
+                        sys.executable,
+                        "-c",
+                        "import pathlib, sys; "
+                        "handle = pathlib.Path(sys.argv[1]).open('a', encoding='utf-8'); "
+                        "handle.write('run\\n'); handle.close()",
+                        str(counter),
+                    ],
+                    "cwd": ".",
+                    "timeout_seconds": 30,
+                    "kind": "integration",
+                    "concurrency": {"safe": False, "resource_locks": []},
+                    "reuse": {"paths": ["steady/**"]},
+                }
+            }
+            config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+            (project.root / "docs" / "specs").mkdir(parents=True, exist_ok=True)
+            (project.root / "docs" / "plans").mkdir(parents=True, exist_ok=True)
+            (project.root / "docs" / "specs" / "pre.md").write_text(
+                managed_block(
+                    "spec",
+                    {
+                        "schema_version": 1,
+                        "criteria": [
+                            {
+                                "id": "AC-1",
+                                "requirement_id": "R1",
+                                "claim": "The steady data check observes its input.",
+                                "verify_type": "cli",
+                                "integration": False,
+                            }
+                        ],
+                    },
+                ),
+                encoding="utf-8",
+            )
+            pre_plan = project.root / "docs" / "plans" / "pre.md"
+            pre_plan.write_text(
+                managed_block(
+                    "plan",
+                    {
+                        "schema_version": 2,
+                        "spec": "docs/specs/pre.md",
+                        "tasks": [
+                            {
+                                "id": "T1",
+                                "depends_on": [],
+                                "criteria": ["AC-1"],
+                                "checks": ["steady"],
+                            }
+                        ],
+                    },
+                ),
+                encoding="utf-8",
+            )
+            project.commit_all("reuse fixture")
+
+            def verify(plan_path: pathlib.Path) -> dict:
+                result = project.command(
+                    "verify",
+                    "--plan",
+                    str(plan_path),
+                    "--all",
+                    "--json",
+                )
+                project.assert_success(result)
+                return json.loads(result.stdout)
+
+            def record_modes(payload: dict) -> list[tuple[str, str]]:
+                return [
+                    (check["id"], check["reuse"]["mode"])
+                    for check in payload["tasks"][0]["checks"]
+                ]
+
+            verify(pre_plan)
+            self.assertEqual([("steady", "carried")], record_modes(verify(pre_plan)))
+            self.assertEqual(1, steady_count())
+            pre_approval_candidates = project.state_value()["reuse_candidates"]
+            self.assertTrue(pre_approval_candidates)
+
+            project.configure()
+            value = project.approve_and_activate(
+                self.reuse_bundle(
+                    project,
+                    "reuse-run",
+                    oracle_paths=["app.py", "tests/test_reuse_run.py"],
+                    extra_checks=["steady"],
+                    oracle_counter=oracle_counter,
+                )
+            )
+            # The reuse-declared oracle check really started in the isolated
+            # baseline for both previews and for apply; a baseline never
+            # carries, and each of those starts observed the expected failure.
+            self.assertEqual(3, starts(oracle_counter))
+            self.assertNotIn("reuse_candidates", project.state_value())
+            # Put the pre-approval pointer back. Its source evidence is intact
+            # and has the same key, so only the approved-run binding can
+            # refuse it in the first chain verification below.
+            state_path = project.root / ".ezpowers" / "state.json"
+            restored = project.state_value()
+            restored["reuse_candidates"] = pre_approval_candidates
+            state_path.write_text(
+                json.dumps(restored, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            plan = project.root / value["plan_path"]
+            app = project.root / "app.py"
+            app.write_text("def value():\n    return 5\n", encoding="utf-8")
+
+            first = verify(plan)
+            self.assertEqual(
+                [("feature-oracle", "executed"), ("steady", "executed")],
+                record_modes(first),
+            )
+            self.assertEqual(4, starts(oracle_counter))
+            self.assertEqual(2, steady_count())
+            first_evidence = project.state_value()["latest_evidence"]["all"]["sha256"]
+            project.complete_gate(
+                "code-review",
+                subject_sha256=first_evidence,
+                verdict="FAIL",
+            )
+            counters = project.state_value()["chain_run"]["counters"]
+            self.assertEqual(1, counters["review_failures"])
+
+            app.write_text(
+                "def value():\n    result = 5\n    return result\n",
+                encoding="utf-8",
+            )
+            second = verify(plan)
+            self.assertEqual(
+                [("feature-oracle", "executed"), ("steady", "carried")],
+                record_modes(second),
+            )
+            self.assertEqual(5, starts(oracle_counter))
+            self.assertEqual(2, steady_count())
+            self.assertEqual(
+                first["run_id"],
+                second["tasks"][0]["checks"][1]["reuse"]["source"]["run_id"],
+            )
+            reworked = project.state_value()
+            # A PASS clears only the identical-failure streak, exactly as it
+            # does without reuse; every other counter is untouched.
+            self.assertEqual(
+                {**counters, "identical_error_repeats": 0},
+                reworked["chain_run"]["counters"],
+            )
+            self.assertIsNone(reworked["chain_run"]["rework_required"])
+            self.assertIsNone(reworked["chain_run"]["gates"]["code-review"])
+
+            second_evidence = reworked["latest_evidence"]["all"]["sha256"]
+            project.complete_gate("code-review", subject_sha256=second_evidence)
+            certified = project.command("certify", "--plan", str(plan), "--json")
+            project.assert_success(certified)
+            certificate = json.loads(
+                (project.root / json.loads(certified.stdout)["certificate_path"]).read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(
+                [first["run_id"]],
+                [item["source_run_id"] for item in certificate["reuse"]["carried"]],
+            )
+            status = project.command("chain", "run", "status", "--json")
+            project.assert_success(status)
+            self.assertEqual("CERTIFIED", json.loads(status.stdout)["status"])
+
+            config["checks"]["steady"]["reuse"] = {"paths": ["steady/data.txt"]}
+            config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+            changed = project.command("chain", "run", "status", "--json")
+            project.assert_success(changed)
+            self.assertEqual("NEEDS_REAPPROVAL", json.loads(changed.stdout)["status"])
+
     def test_v2_staged_flow_uses_the_same_cycle_validation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             project = self.make_project(pathlib.Path(temp_dir))

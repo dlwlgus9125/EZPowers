@@ -400,6 +400,123 @@ class PlanningProfileRuntimeTests(unittest.TestCase):
             self.assertIn("declared planning artifacts changed during verification", mutated.stdout)
 
 
+class PlanningProfileReuseTests(unittest.TestCase):
+    def test_reuse_key_binds_the_declared_artifact_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, tempfile.TemporaryDirectory() as outside:
+            project = planning_project(pathlib.Path(temp_dir))
+            counter = pathlib.Path(outside) / "md-check.count"
+
+            def count() -> int:
+                if not counter.exists():
+                    return 0
+                return len(counter.read_text(encoding="utf-8").splitlines())
+
+            (project.root / ".gitignore").write_text(
+                "__pycache__/\n*.py[cod]\ndeliverables/\n.ezpowers/evidence/\n",
+                encoding="utf-8",
+            )
+            input_path = project.root / "inputs" / "source.txt"
+            input_path.parent.mkdir(parents=True)
+            input_path.write_text("source one\n", encoding="utf-8")
+            brief = project.root / "deliverables" / "brief.md"
+            brief.parent.mkdir(parents=True)
+            brief.write_text("# Brief\n", encoding="utf-8")
+            (project.root / "tools").mkdir()
+            (project.root / "tools" / "rules.cfg").write_text("strict\n", encoding="utf-8")
+            (project.root / "notes.txt").write_text("one\n", encoding="utf-8")
+            md_check = {
+                "id": "md-check",
+                "argv": [
+                    sys.executable,
+                    "-c",
+                    "import pathlib, sys; "
+                    "handle = pathlib.Path(sys.argv[1]).open('a', encoding='utf-8'); "
+                    "handle.write('run\\n'); handle.close(); "
+                    "assert pathlib.Path('deliverables/brief.md')"
+                    ".read_text(encoding='utf-8').startswith('# Brief')",
+                    str(counter),
+                ],
+                "cwd": ".",
+                "timeout_seconds": 30,
+                "kind": "integration",
+                "concurrency": {"safe": False, "resource_locks": []},
+                "reuse": {"paths": ["tools/**"]},
+            }
+            plan_path = write_planning_flow(
+                project,
+                slug="reuse",
+                criteria=["AC-1"],
+                checks={"md-check": md_check},
+                tasks=[
+                    {
+                        "id": "T1",
+                        "depends_on": [],
+                        "criteria": ["AC-1"],
+                        "checks": ["md-check"],
+                    }
+                ],
+                inputs=[{"id": "source", "path": "inputs/source.txt"}],
+                deliverables=[
+                    {
+                        "id": "brief",
+                        "paths": ["deliverables/brief.md"],
+                        "criteria": ["AC-1"],
+                        "input_ids": ["source"],
+                        "review": {"mode": "direct", "checks": []},
+                    }
+                ],
+            )
+            project.commit_all()
+
+            def verify(expected_count: int, expected_mode: str, label: str) -> dict:
+                result = run_cli(
+                    project.runtime,
+                    "verify",
+                    "--plan",
+                    str(plan_path),
+                    "--all",
+                    "--json",
+                    cwd=project.root,
+                )
+                self.assertEqual(0, result.returncode, label + result.stdout + result.stderr)
+                payload = json.loads(result.stdout)
+                self.assertEqual(expected_count, count(), label)
+                self.assertEqual(
+                    expected_mode,
+                    payload["tasks"][0]["checks"][0]["reuse"]["mode"],
+                    label,
+                )
+                return payload
+
+            verify(1, "executed", "cold")
+            verify(1, "carried", "unchanged")
+            (project.root / "notes.txt").write_text("two\n", encoding="utf-8")
+            verify(1, "carried", "edit outside the declared artifacts")
+            brief.write_text("# Brief\n\nMore detail.\n", encoding="utf-8")
+            verify(2, "executed", "edit a Git-ignored deliverable")
+            verify(2, "carried", "unchanged after the deliverable edit")
+            input_path.write_text("source two\n", encoding="utf-8")
+            verify(3, "executed", "edit a declared input")
+            carried = verify(3, "carried", "unchanged after the input edit")
+            self.assertEqual(3, carried["schema_version"])
+
+            certified = run_cli(
+                project.runtime,
+                "certify",
+                "--plan",
+                str(plan_path),
+                "--json",
+                cwd=project.root,
+            )
+            self.assertEqual(0, certified.returncode, certified.stdout + certified.stderr)
+            certificate = json.loads(
+                (project.root / json.loads(certified.stdout)["certificate_path"]).read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(1, len(certificate["reuse"]["carried"]))
+
+
 def write_planning_chain_bundle(project: ChainProject, run_id: str) -> pathlib.Path:
     bundle = project.root / ".ezpowers" / "staging" / run_id
     bundle.mkdir(parents=True, exist_ok=True)
@@ -694,6 +811,99 @@ class PlanningProfileChainTests(unittest.TestCase):
             )
             project.assert_success(certified)
             self.assertEqual("PASS", json.loads(certified.stdout)["status"])
+
+    def test_chain_reviews_a_carried_inspection_log(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project = ChainProject(root)
+            installed = run_cli(
+                EZPOWERS,
+                "install",
+                "--project-root",
+                str(root),
+                "--project-profile",
+                "planning",
+                cwd=REPO_ROOT,
+            )
+            project.assert_success(installed)
+            (root / ".gitignore").write_text(
+                "__pycache__/\n*.py[cod]\ndeliverables/\n.ezpowers/evidence/\n.ezpowers/staging/\n.ezpowers/backups/\n",
+                encoding="utf-8",
+            )
+            input_path = root / "inputs" / "source.xlsx"
+            input_path.parent.mkdir(parents=True)
+            input_path.write_bytes(b"PK\x03\x04\x00\xfffrozen-input")
+            project.commit_all()
+            project.configure()
+            bundle = write_planning_chain_bundle(project, "carried-run")
+            staged_plan = bundle / "plan.md"
+            plan = json.loads(
+                staged_plan.read_text(encoding="utf-8")
+                .split("```json", 1)[1]
+                .split("```", 1)[0]
+            )
+            plan["checks"]["artifact-oracle"]["reuse"] = {"paths": ["checks/**"]}
+            plan["deliverables"][1]["review"] = {
+                "mode": "inspected",
+                "checks": ["artifact-oracle"],
+            }
+            staged_plan.write_text(managed_block("plan", plan), encoding="utf-8")
+            approved = project.approve_and_activate(bundle)
+
+            workbook = root / "deliverables" / "workbook.xlsx"
+            brief = root / "deliverables" / "brief.md"
+            workbook.parent.mkdir(parents=True)
+            workbook.write_bytes(b"PK10")
+            brief.write_bytes(b"#1")
+            plan_path = root / approved["plan_path"]
+
+            def verify() -> dict:
+                result = project.command(
+                    "verify",
+                    "--plan",
+                    str(plan_path),
+                    "--all",
+                    "--json",
+                )
+                project.assert_success(result)
+                return json.loads(result.stdout)
+
+            first = verify()
+            first_entry = first["tasks"][0]["checks"][0]
+            self.assertEqual("executed", first_entry["reuse"]["mode"])
+            self.assertIsNotNone(first_entry["reuse"]["key"])
+
+            (root / "notes.txt").write_text("outside the declared artifacts\n", encoding="utf-8")
+            second = verify()
+            carried_entry = second["tasks"][0]["checks"][0]
+            self.assertEqual("carried", carried_entry["reuse"]["mode"])
+            self.assertEqual(first["run_id"], carried_entry["reuse"]["source"]["run_id"])
+            self.assertEqual(first_entry["stdout_sha256"], carried_entry["stdout_sha256"])
+            self.assertNotEqual(first_entry["stdout_log"], carried_entry["stdout_log"])
+
+            complete_artifact_gate(
+                project,
+                {"workbook": "PASS", "brief": "PASS"},
+            )
+            certified = project.command(
+                "certify",
+                "--plan",
+                str(plan_path),
+                "--json",
+            )
+            project.assert_success(certified)
+            certificate = json.loads(
+                (root / json.loads(certified.stdout)["certificate_path"]).read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(
+                [first["run_id"]],
+                [item["source_run_id"] for item in certificate["reuse"]["carried"]],
+            )
+            status = project.command("chain", "run", "status", "--json")
+            project.assert_success(status)
+            self.assertEqual("CERTIFIED", json.loads(status.stdout)["status"])
 
 
 if __name__ == "__main__":

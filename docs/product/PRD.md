@@ -43,6 +43,14 @@ and candidate blocking paths. Legacy plans remain serial. Only checks with an
 explicit, evidence-backed safety contract may overlap, and exact results retain
 declaration order and the existing freshness rules.
 
+A check may also declare the paths its outcome depends on. While that content,
+the check contract, and the installed kit are unchanged, later verification
+carries the recorded PASS instead of running the command again, runs the
+declared check once however many occurrences reference it, and names every
+carried result in the evidence and certificate. Undeclared checks and existing
+projects keep executing exactly as before, and `verify --no-reuse` forces a
+full run.
+
 For planning plan-v3 work, the user can name existing byte inputs, group one
 or more output files into logical deliverables, choose direct or inspected
 review sources, and receive evidence that binds every declared byte even when
@@ -83,6 +91,8 @@ EZPowers owns:
 - check argv, working directories, kinds, and timeouts;
 - bounded per-check concurrency safety, resource locks, task waves, and the
   separate required-check phase;
+- opt-in content-bound reuse of a declared check's recorded PASS, its reuse
+  key, candidate revalidation, and the carried-result record;
 - fail-closed execution, stdout/stderr logs and hashes;
 - binding evidence to spec/plan/config, the installed-kit identity, and the
   Git workspace;
@@ -154,6 +164,15 @@ dependencies never assign implementation work or select an agent.
 - Plan-v2 evidence and certificates, plus new feature-chain approvals, bind
   the assurance graph; a nonterminal legacy approval without that binding
   requires explicit reapproval after refresh.
+- A check that declares reuse paths is carried only from a really executed PASS
+  of the same contract, selected content, and installed kit in a stable run; a
+  later executed failure revokes it, and a selection that cannot be represented
+  executes instead of carrying.
+- Projects that declare no reuse keep their exact validation, trace, evidence,
+  certificate, and state shapes and their execution counts.
+- Re-verification after a change that affects only some checks is at least 50%
+  faster by three-run median than a forced full run, with equal outcomes,
+  through the installed CLI.
 - Integration criteria require a real integration, end-to-end, or smoke check.
 - Merely validating a candidate plan cannot alter the active resume target.
 - Task evidence is revalidated for resume guidance without becoming completion.

@@ -99,8 +99,8 @@ unmarked or `safe: false` check is a global barrier. Plan or config v1 forces a
 worker cap of one regardless of other input.
 
 Task dependencies order ready waves, not outcomes. A failed task never skips a
-dependent task's declared checks: all selected checks run so the evidence is
-complete. All-scope required project checks start only after every task wave
+dependent task's declared checks: every selected occurrence still receives a
+result so the evidence is complete. All-scope required project checks start only after every task wave
 finishes. Task scope runs exactly the selected task and neither auto-runs nor
 blocks on its declared dependencies. Results and log arrays retain plan and
 check declaration order even when process execution overlaps. Timeout,
@@ -116,7 +116,10 @@ python .ezpowers/ezpowers.py verify --plan <plan-path> --task <task-id> --json
 ```
 
 This runs that task's checks and may be used during implementation. It cannot
-be certified and is not completion evidence.
+be certified and is not completion evidence. A declared check that really
+passes in a task-scope run may later be carried into an all-scope result under
+the reuse rules below, but the task-scope result itself never certifies and
+never satisfies the all-scope inventory.
 
 All-scope completion candidate:
 
@@ -124,8 +127,10 @@ All-scope completion candidate:
 python .ezpowers/ezpowers.py verify --plan <plan-path> --all --json
 ```
 
-This runs every task check plus every check named by
-`.ezpowers/config.json` `required_checks`. Any failure, timeout, spawn error,
+This produces a result for every task check occurrence plus every check named
+by `.ezpowers/config.json` `required_checks`. Every occurrence executes unless
+the content-bound reuse rules below let its recorded PASS be carried or shared.
+Any failure, timeout, spawn error,
 unknown check, invalid plan, or required-check failure makes the result FAIL.
 Certification considers only the latest all-scope result.
 
@@ -141,6 +146,85 @@ changed path inventory, or any input/output byte mutation even when Git ignores
 the path. Planning checks are therefore read-only validators; they do not
 generate or normalize the deliverable during `verify`. The same exact-command
 rules apply to Markdown, XLSX, and every other format without a built-in parser.
+
+## Content-Bound Check Reuse
+
+Reuse is opt-in per check. A plan/config schema-2 or schema-3 check may declare
+the paths whose content determines its outcome:
+
+```json
+"reuse": {"paths": ["server/**", "tools/check_api.py"], "exclude": ["**/*.md"]}
+```
+
+`paths` is a non-empty array and `exclude` is optional. Patterns are
+project-relative and use `/`. `*` and `?` never cross `/`. `**` is valid only
+as a whole segment: it matches zero or more directories, and everything below
+when it is the last segment. Matching is case-sensitive and defined by the
+runtime. Absolute or drive paths, backslashes, `.`, `..`, or empty segments, a
+trailing `/`, a leading `:` or `-`, the characters `[ ] { } !`, a first segment
+of `.git`, duplicates, a pattern present in both lists, and unknown fields are
+invalid. A schema-1 check that carries `reuse` is invalid. The declaration is
+part of the check contract hash, so changing it changes the assurance graph and
+stales earlier evidence.
+
+Reuse acts only in a graph-bound flow, that is plan schema 2 or later. For each
+declared check the runtime selects the Git-visible files that match `paths`
+and not `exclude`: tracked files plus untracked files that Git does not ignore,
+without runtime-owned paths. It derives a reuse key from the check contract
+hash, each selected file's path, bytes, and execute bit, the installed-kit
+identity, the project profile, the planning artifact inventory, the resolved
+project root, and the platform. Git HEAD is not part of the key, so committing
+unchanged content keeps it. The key is computed after the before-run workspace
+snapshot.
+
+An occurrence is ineligible when any `paths` pattern selects no existing file,
+a selected entry is or crosses a symbolic link, is a gitlink, a directory,
+unreadable, or vanished, a path component's spelling differs from its directory
+listing, or Git cannot list files. An ineligible occurrence executes, records
+the reason, and neither consumes nor produces a candidate. Verification does
+not fail for this reason.
+
+For an eligible declared check the runtime carries the recorded PASS of the
+latest real execution of the same contract, without running the command, only
+when the source record satisfies all of these:
+
+- the state candidate resolves to a canonical `result.json` whose bytes,
+  sidecar, and pointer hash agree, and whose path and run ID match its
+  directory;
+- that run recorded identical before/after workspace, installation, and
+  planning-artifact snapshots, and its `reasons` are exactly the failures of
+  its own checks;
+- the source entry was really executed, passed with exit code zero, no timeout,
+  and no spawn error, and recorded the same reuse key;
+- its identity fields equal the current check, and both logs exist inside that
+  run with matching hashes;
+- in a matching RUNNING harness chain, the source is bound to the same approved
+  run.
+
+Only a really executed entry is a source; a carried or shared entry never is.
+An executed failure, an unkeyed result, or any result of an unstable run
+removes the candidate. A failed result is never carried into another run. A
+task-scope run, or an all-scope run that failed only because of other checks,
+can be a source. The state file only locates a candidate; every property above
+is read from the hash-bound source evidence.
+
+A declared check that produced a key runs at most once per verification run.
+Its other occurrences share that execution's result, PASS or FAIL. Undeclared
+checks and ineligible occurrences run once per reference.
+
+```text
+python .ezpowers/ezpowers.py verify --plan <plan-path> --all --no-reuse --json
+```
+
+`verify --no-reuse` executes every occurrence, records keys, and neither
+carries nor shares. Status, certification, and hooks never rehash inputs or
+revisit a source run: an all-scope result is self-contained.
+
+The key does not bind Git history, Git-ignored files such as build output and
+dependency directories, environment variables, tool versions, the clock, the
+network, or external services. Do not declare reuse for a check that depends
+on them, and do not declare a narrower selection than the check actually
+reads: an incomplete declaration can carry a PASS that a real run would fail.
 
 ## Evidence Record
 
@@ -164,6 +248,18 @@ worker cap. Repeated references to one named check remain distinct
 occurrences with distinct logs while the implicit same-check lock prevents
 overlap. Plan-v1 evidence remains schema v1 and retains the existing serial
 shape.
+
+When a selected check declares reuse in a graph-bound flow, every declared
+occurrence's entry has a `reuse` record with `mode` `executed`, `carried`, or
+`shared`, the reuse key, the selected-content hash, and the selected file
+count. An executed record adds the ineligibility `reason` or null. A carried
+record names the source run, evidence path and SHA-256, occurrence, scope, and
+the original start, finish, and duration; its logs are byte copies stored in
+the new run under the occurrence's own names and its `duration_ms` is zero. A
+shared record names the executed occurrence in the same result. The result
+also has a top-level `reuse` summary that lists executed, carried, and shared
+occurrences and whether the run was forced fresh. A run with no declared check
+records none of these fields, and no evidence schema number changes.
 
 Planning plan-v3 results use evidence schema v3 and assurance-graph schema v2.
 The graph adds typed input and logical-deliverable nodes plus their criterion,
@@ -224,13 +320,20 @@ An all-scope result is fresh only when all of these hold:
   current plan and config;
 - every recorded check has exit code zero, `timed_out: false`, an empty
   `spawn_error`, and PASS;
+- reuse records exist exactly on the occurrences whose current contract
+  declares reuse, have the exact shape of their mode, and agree on one key per
+  contract; a shared record names an executed occurrence in the same result
+  with the same outcome and log hashes;
+- the occurrences in the execution waves together with the carried and shared
+  occurrences partition the expected occurrence list in order, and the reuse
+  summary equals the one derived from the entries;
 - every stdout and stderr file exists inside the evidence tree and matches its
   recorded SHA-256, uses its canonical same-run path, and is not reused by a
   second stream.
 
 Missing logs or sidecars, edited evidence, changed plan/config/workspace,
-non-all scope, or a failed check makes the result stale. Rerun all checks; do
-not repair evidence by hand.
+non-all scope, or a failed check makes the result stale. Run all-scope
+verification again; do not repair evidence by hand.
 
 Task pointers are checked by the same path, hash, binding, inventory, result,
 and log rules, except that the expected scope is exactly `task:<task-id>`, the
@@ -253,7 +356,9 @@ evidence and stores its pointer. The certificate binds the plan, config, spec,
 installed-kit identity, workspace, canonical evidence path, and evidence
 SHA-256. A plan-v2 certificate uses schema v2 and also binds the assurance
 graph SHA-256. A planning certificate uses schema v3 and additionally binds
-the planning profile and full artifact inventory. The selected plan must already be active through explicit activation
+the planning profile and full artifact inventory. When the evidence has a
+reuse summary the certificate carries the same summary, including each carried
+occurrence's source run and original finish time. The selected plan must already be active through explicit activation
 or verification; certification never changes the resume target or clears a
 different plan's pointers. Its state pointer must resolve to the canonical `certificate.json`
 next to that exact evidence result and match the certificate hash. It never
@@ -361,6 +466,9 @@ accessibility claims still require a feature-specific deterministic oracle.
 - Passing repository tests does not replace plan validation or required
   project checks.
 - Task-scope evidence does not replace all-scope evidence.
+- A carried PASS is valid only under the content-bound reuse rules. An agent's
+  judgement that a check is unaffected, or a hand-picked subset of checks,
+  does not replace it.
 - Fresh evidence without certification is not completed work.
 - Host review, reviewer text, or an agent's DONE report does not replace
   machine evidence.

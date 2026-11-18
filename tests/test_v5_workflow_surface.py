@@ -134,7 +134,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             self.assertNotIn("stress-test", metadata)
 
         manifest = json.loads(
-            (REPO_ROOT / "project-kit" / "v5.8.0" / "manifest.json").read_text(
+            (REPO_ROOT / "project-kit" / "v5.10.0" / "manifest.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -158,7 +158,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertFalse((REPO_ROOT / "harness-kit").exists())
         self.assertFalse((REPO_ROOT / "phases").exists())
         self.assertFalse((REPO_ROOT / ".harness").exists())
-        self.assertTrue((REPO_ROOT / "project-kit" / "v5.8.0" / "manifest.json").is_file())
+        self.assertTrue((REPO_ROOT / "project-kit" / "v5.10.0" / "manifest.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "config.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "state.json").is_file())
 
@@ -223,7 +223,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.8.0"
+                / "v5.10.0"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -471,7 +471,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.8.0"
+                / "v5.10.0"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -527,7 +527,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertIn("Copyright (c) 2026 Matt Pocock", license_text)
 
         manifest_text = (
-            REPO_ROOT / "project-kit" / "v5.8.0" / "manifest.json"
+            REPO_ROOT / "project-kit" / "v5.10.0" / "manifest.json"
         ).read_text(encoding="utf-8")
         manifest = json.loads(manifest_text)
         self.assertNotIn("teach", {entry["name"] for entry in manifest["skills"]})
@@ -586,6 +586,63 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertIn("Dynamic agent/team/capability graphs | Defer", evaluation)
         self.assertIn("Automatic capability/model routing", evaluation)
 
+    def test_content_bound_reuse_is_described_consistently(self) -> None:
+        def text(*parts: str) -> str:
+            return " ".join(
+                REPO_ROOT.joinpath(*parts).read_text(encoding="utf-8").split()
+            )
+
+        verification = text("docs", "reference", "verification-contract.md")
+        plan_contract = text("docs", "reference", "plan-contract.md")
+        setup_contract = text("docs", "reference", "setup-contract.md")
+        chain_contract = text("docs", "reference", "harness-chain-contract.md")
+        architecture = text("docs", "reference", "architecture.md")
+        decision = text("docs", "decisions", "0010-content-bound-check-reuse.md")
+
+        for phrase in (
+            "## Content-Bound Check Reuse",
+            '"reuse": {"paths":',
+            "`*` and `?` never cross `/`",
+            "Git HEAD is not part of the key",
+            "neither consumes nor produces a candidate",
+            "Only a really executed entry is a source",
+            "A failed result is never carried into another run",
+            "runs at most once per verification run",
+            "`verify --no-reuse` executes every occurrence",
+            "never rehash inputs or revisit a source run",
+            "an incomplete declaration can carry a PASS that a real run would fail",
+        ):
+            self.assertIn(phrase, verification)
+        self.assertIn("a correctness contract, not a speed hint", plan_contract)
+        self.assertIn("Start broad", plan_contract)
+        self.assertIn("`reuse_candidates`", setup_contract)
+        self.assertIn("bound to the same approved run", chain_contract)
+        self.assertIn("never carries a recorded PASS", chain_contract)
+        self.assertIn("select every one of its oracle's `artifact_paths`", chain_contract)
+        self.assertIn("content-bound reuse", architecture)
+        self.assertIn("0010-content-bound-check-reuse.md", architecture)
+        for phrase in (
+            "Single hop",
+            "Stable runs only",
+            "Failure revokes",
+            "What the key does not bind",
+            "the one intended visible change",
+        ):
+            self.assertIn(phrase, decision)
+
+        execute = text("skills", "execute", "SKILL.md")
+        prepare = text("skills", "prepare-execute", "SKILL.md")
+        setup = text("skills", "setup", "SKILL.md")
+        chain = text("skills", "harness-chain", "SKILL.md")
+        self.assertIn("`--no-reuse`", execute)
+        self.assertIn("Never add, narrow, or remove a `reuse` declaration", execute)
+        self.assertNotIn("rerun the complete verification set", execute)
+        self.assertIn("Start from a broad selection", prepare)
+        self.assertIn("Never infer a `reuse` declaration", setup)
+        self.assertIn("executed in this same run", chain)
+        for skill in (execute, prepare, setup, chain):
+            self.assertIn("reuse", skill)
+
     def test_korean_skill_guide_covers_the_v57_catalog(self) -> None:
         guide = (
             REPO_ROOT / "docs" / "ezpowers-skills-guide.html"
@@ -601,16 +658,16 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertEqual(15, guide.count('class="skill-card"'))
         self.assertIn("15 plugin skills", guide)
         self.assertIn("13 project skills", guide)
-        self.assertIn("../project-kit/v5.8.0/manifest.json", guide)
+        self.assertIn("../project-kit/v5.10.0/manifest.json", guide)
         self.assertNotIn("v5.2.0/manifest.json", guide)
 
     def test_plugin_manifests_expose_the_same_version_and_current_workflow(self) -> None:
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.9.0")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.9.0")
-        self.assertTrue(codex["version"].startswith("5.9.0+codex."))
+        self.assertEqual(claude["version"], "5.10.0")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.10.0")
+        self.assertTrue(codex["version"].startswith("5.10.0+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)

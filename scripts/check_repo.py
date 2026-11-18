@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cross-platform structural gate for the EZPowers v5.8 repository surface."""
+"""Cross-platform structural gate for the EZPowers v5.10 repository surface."""
 
 from __future__ import annotations
 
@@ -127,7 +127,7 @@ OBSOLETE_REFERENCES = (
     "testing-methodology.md",
 )
 
-PROJECT_KIT_MANIFEST = pathlib.Path("project-kit/v5.8.0/manifest.json")
+PROJECT_KIT_MANIFEST = pathlib.Path("project-kit/v5.10.0/manifest.json")
 PROJECT_KIT_VERIFIER = pathlib.Path("scripts/verify-harness-kit.py")
 
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")

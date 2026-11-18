@@ -2,10 +2,14 @@
 
 ## Current State
 
-EZPowers v5.9.0 plugin and v5.8.0 project kit are present in the working tree on
-`main`. F24 and F25 are complete. F19 is explicitly deferred because
+EZPowers v5.10.0 plugin and v5.10.0 project kit are present in the working tree on
+`main`. F24, F25, and F26 are complete. F19 is explicitly deferred because
 its semantic dual-host diagnosis probe still needs external access; it is not included in
-the v5.8 kit or v5.9 plugin completion claim. The candidate preserves the host-native verification
+the v5.10 kit or plugin completion claim. F26 adds opt-in content-bound check
+reuse: a check may declare the paths its outcome depends on, and while that
+content, its contract, and the installed kit are unchanged the runtime carries
+the recorded PASS instead of running the command again. Undeclared checks and
+existing projects keep executing exactly as before. The candidate preserves the host-native verification
 core, documentation graph, local wiki, explicit harness chain, and Plan
 Mode-aware clarification while adding a derived evidence-gated assurance
 graph, compatible plan/config v2 contracts, graph-bound evidence and chain
@@ -40,6 +44,12 @@ blocks counted against `total_iterations`):
 - per-check safety declarations, resource and implicit same-check locks,
   unsafe global barriers, complete declaration-order evidence, and required
   project checks after task waves;
+- opt-in content-bound check reuse that binds a declared check's PASS to its
+  contract, selected file content, and installed kit, carries only a really
+  executed PASS from a stable run, revokes it on a later failure, runs a
+  declared check once per verification run, records every carried result in
+  the evidence and certificate, and keeps `verify --no-reuse` as the explicit
+  full run;
 - repository analysis and an adaptive Markdown graph rooted at canonical
   `AGENTS.md`, exact `CLAUDE.md` import, and `docs/INDEX.md`;
 - an existing-first canonical architecture artifact, conventional root
@@ -129,6 +139,7 @@ force product rework until a configured limit becomes terminal.
 - `F23`: evidence-gated assurance graph and safe parallel verification.
 - `F24`: planning-artifact project profile and artifact assurance.
 - `F25`: plugin-only explicit `teach` learning skill.
+- `F26`: opt-in content-bound check reuse.
 
 ## Deferred Item
 
@@ -136,14 +147,104 @@ force product rework until a configured limit becomes terminal.
   deterministic receipts, and opt-in dual-host probe are implemented. Its
   semantic completion remains deferred until an authenticated Claude call and
   a Codex host can execute the authoritative isolated-fixture command. No v5.8
-  planning-profile result is presented as evidence for that separate probe.
+  planning-profile or v5.10 reuse result is presented as evidence for that
+  separate probe.
 
-The v5.8 project kit installs thirteen project skills, eleven canonical
+The v5.10 project kit installs thirteen project skills, eleven canonical
 contracts, and three deterministic tools. The plugin exposes fifteen skills:
 the project skills plus the plugin-only global `hud` utility and the
 plugin-only `teach` learning skill.
 
 ## Verification Evidence
+
+v5.10.0 content-bound check reuse validation on 2026-11-18:
+
+- Claude plugin and marketplace versions are `5.10.0`; Codex is
+  `5.10.0+codex.20261118060358`. The project kit is `5.10.0` at
+  `project-kit/v5.10.0/manifest.json`; the tracked v5.8.0 manifest is
+  byte-unchanged (`git diff -- project-kit/v5.8.0/` is empty). Installed global
+  plugins and project copies were not refreshed.
+- Design order: `docs/reference/architecture.md` and ADR 0010 were written
+  first, then `docs/specs/f26-check-reuse.md` and
+  `docs/plans/f26-check-reuse.md`. `validate --spec` and `validate --plan`
+  pass with waves `[T1] [T2 T3 T4] [T5]` and assurance graph
+  `058a70494f13ce4eff1e115607c3688a37d0ea6bf9316d00c94798c8aa23c275`, the
+  same hash before and after the runtime change. The F24 plan still validates
+  with its recorded graph `70ad1b16...835d`.
+- Three characterization tests pinned the undeclared plan-v1 and plan-v2
+  evidence, certificate, and state key sets and one process start per
+  occurrence. They passed on the unmodified runtime and pass unchanged now.
+- `python -m unittest discover -s tests` in UTF-8 mode on Python 3.14.3:
+  228 tests passed in 716.131 seconds with one POSIX-only skip. An earlier
+  run of 227 tests passed in 697.896 seconds before the last test was added.
+  After the 228-test run, one step was added to each of two existing tests:
+  deleting the source run leaves a certified carried result `CERTIFIED`, and
+  a re-injected pre-approval candidate is refused by the approved-run
+  binding. Those two tests passed in 28.608 seconds. No runtime, contract, or
+  skill byte changed after the 228-test run, and the 36 workflow-surface,
+  discovery, kit, and repository-check tests and the repository gate passed
+  again after the final record edits.
+- New coverage is 24 tests in `tests/test_check_reuse.py`, two harness-chain
+  tests, two planning tests, and one phrase test. Process starts are observed
+  through a counter file outside the project, not through the reuse fields.
+  They show a carry for unchanged selected content, a commit, and an excluded
+  file; re-execution after an edited, added, removed, deleted-tracked, or
+  renamed selected file, a changed declaration, and a changed contract;
+  failure never carried and a forced failure revoking the earlier PASS; one
+  process start for a declared check with three occurrences; ineligible
+  typo, ignored-only, and symbolic-link selections executing every run;
+  task-scope and cross-plan sources; refresh and profile switch invalidating
+  candidates; six invalid-candidate cases falling back to execution; nine
+  altered reuse records and an altered certificate reported stale; an
+  unstable run leaving no key; plan-v1 flows staying inert; a copied project
+  tree not carrying; a case-only rename not carried; and an edit inside the
+  snapshot window failing the run instead of carrying.
+- Chain and planning: the reuse-declared oracle check started in the isolated
+  baseline for both previews and for apply; a PASS recorded before approval
+  was not carried into the approved run; a rework verification carried the
+  unaffected declared check while counters other than the cleared
+  identical-failure streak stayed unchanged; a declaration that omits its
+  oracle file was rejected at preview; a changed declaration ended the run at
+  `NEEDS_REAPPROVAL`; a Git-ignored deliverable or input change re-executed
+  the planning check; and a carried inspection log passed `artifact-review`
+  and certification.
+- `python scripts/benchmark_check_reuse.py --runs 3 --minimum-improvement 50`:
+  PASS through the installed CLI. Re-verification after a change to one of
+  five scopes had a median of 2.910926 seconds against 8.157862 seconds for
+  `--no-reuse`, a 64.32 percent improvement, with equal per-check outcomes,
+  identical output hashes for unaffected checks, a certified result in both
+  modes, and the same failing nodes after an injected failure. One declared
+  check referenced three times started one process with reuse and three with
+  `--no-reuse`.
+- Scheduler measurements passed: fixture median 1.193408 seconds serial versus
+  0.316485 parallel (73.48 percent improvement, identical output hashes);
+  project median 1.175328 versus 0.766041 (34.82 percent improvement,
+  equivalent process outcomes).
+- Five interleaved, 100-iteration software compatibility runs against
+  `08f9f84d24c59ec130dd6b3bf26555503910cbab` produced equivalent validation
+  and trace JSON. Baseline median was 4.223984 seconds; candidate median was
+  4.245030 seconds, a 0.5 percent regression against the 5 percent limit.
+- `scripts/check-repo.ps1`: PASS. `scripts/harness-runtime-smoke.ps1`: PASS
+  for a real v5.10 install, trace, verify, certify, stale, carry, changed-path
+  re-execution, and `--no-reuse` flow. `scripts/verify-harness-kit.py`: v5.10
+  manifest valid. `scripts/plugin_smoke.py --host both`: file surfaces
+  matched, Claude 2.1.327 accepted both manifests, and Codex 0.169.1 loaded
+  every project and namespaced skill in isolation.
+- `DESIGN.md` lint, the project design check, and the visual-readiness check
+  passed for the content-only guide edit. The guide was not rendered or
+  inspected at the three documented viewports.
+- One deviation from the approved plan: a tracked file deleted from the
+  working tree is left out of the selected content instead of being recorded
+  as an `absent` entry. With the `absent` entry, committing that deletion
+  changed the reuse key although no byte on disk moved; a test reproduced it
+  and now pins both the deletion and the later commit.
+- Not exercised: the POSIX execute-bit test was skipped on Windows; macOS
+  Unicode normalization, `assume-unchanged`, `skip-worktree`, sparse
+  checkout, and submodule behavior were not run; no installed project was
+  refreshed, given declarations, or timed; the updated `execute`,
+  `prepare-execute`, `setup`, and `harness-chain` text was not run through a
+  live model on either host; discovery and release checks do not substitute
+  for those results; F19 remains deferred.
 
 v5.9.0 plugin-only teach skill release validation on 2026-11-17:
 

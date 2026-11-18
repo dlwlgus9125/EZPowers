@@ -56,10 +56,17 @@ boundary, stop that path and return through `design-architecture`, `spec`, and
 plan validation; do not hide the divergence with a final documentation edit.
 
 After each coherent slice, run the task's real checks. Treat the check result as
-feedback, not completion evidence; only a full `verify --all` run can become
-the certification candidate. Plan-v2 verification may overlap only checks
+feedback, not completion evidence; only an all-scope `verify --all` result can
+become the certification candidate. Plan-v2 verification may overlap only checks
 whose own contract is explicitly safe and lock-compatible; do not add a safety
 declaration merely to accelerate the current run.
+When a check declares `reuse`, the runtime carries its recorded PASS while the
+declared content, the check contract, and the installed kit are unchanged, so
+running `verify --all` again after small rework executes only what the change
+can affect plus every undeclared check. Never add, narrow, or remove a `reuse`
+declaration during execute, and never hand-pick a subset of checks as
+completion evidence. Add `--no-reuse` when a full fresh run is wanted, for
+example before a release.
 Planning validators are likewise read-only during verification: produce the
 deliverable before `verify`, and never let a check rewrite, normalize, or
 repair declared input/output bytes. Git-ignored deliverables are still bound
@@ -85,7 +92,7 @@ regression test may be added before the fix when the approved plan permits it;
 the diagnosis itself never expands scope. Root cause is not a handoff point:
 continue through the source-cause patch, the original failure reproduction,
 affected checks, and cleanup. Fix the product or revise the approved spec/plan,
-then rerun the complete verification set.
+then run `verify --all` again.
 
 ## Resume and report
 
@@ -95,6 +102,7 @@ guide where implementation resumes, but they never substitute for all-scope
 completion. Reuse any PASS only when the runtime says it is fresh.
 
 Report changed paths, host-native execution/review choices actually used,
-every command and exit result, evidence path and hashes, certification status,
+every command and exit result, which declared checks executed and which were
+carried, evidence path and hashes, certification status,
 and remaining limitations. Do not claim completion unless certification is a
 fresh PASS.

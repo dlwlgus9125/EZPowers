@@ -72,7 +72,10 @@ Preview validates the staged spec and plan against the actual project config.
 For UI work it also validates the frontend managed mapping and each staged
 DESIGN.md against its retained profile. It then runs the oracle checks against
 an isolated current-workspace overlay and
-requires the declared baseline result. Preview identity binds:
+requires the declared baseline result. The baseline always executes its checks
+and never carries a recorded PASS. An oracle check that declares `reuse` must
+select every one of its oracle's `artifact_paths`; otherwise preview fails.
+Preview identity binds:
 
 - request, host, stages, risks, and effective limits;
 - staged file bytes and current target hashes;
@@ -121,7 +124,8 @@ still apply.
 The feature approval freezes by path and SHA-256:
 
 - project chain configuration;
-- project verification configuration and exact required argv;
+- project verification configuration and exact required argv, including every
+  check's `reuse` declaration;
 - managed spec and plan;
 - the deterministic assurance-graph SHA-256, including task dependencies,
   check occurrences, concurrency contracts, and required-check phase;
@@ -218,8 +222,18 @@ may overlap only the explicitly safe oracle checks under the same resource-lock
 and worker-cap rules; version-1 baselines remain serial. Planning v3 uses the
 same scheduler and binds its artifact inventory. Any all-scope verification
 invalidates the older profile-primary-review and QA pointers. On FAIL,
-the product must be reworked and real checks rerun; changing the oracle or
-check is reapproval, not rework.
+the product must be reworked and all-scope verification run again; changing the
+oracle or check is reapproval, not rework.
+
+Content-bound check reuse applies to chain verification with one additional
+condition: a recorded PASS is carried only from a result bound to the same
+approved run. Feature apply clears earlier reuse candidates, so the first
+verification after approval executes every check and nothing verified before
+approval can satisfy the frozen contract. Later rework verifications carry a
+declared check whose selected content is unchanged. Gate, rework, and limit
+rules do not change: a carried result is part of the fresh all-scope evidence
+that every review binds, and a carried check that would have passed again
+proves nothing new about the rework.
 
 The failed workspace fingerprint is durable state. Another all-scope
 verification against identical repository content is rejected and counts as

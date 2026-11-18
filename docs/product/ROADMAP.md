@@ -1,6 +1,19 @@
 # EZPowers Roadmap
 
-## Current: v5.8.0 core / v5.9.0 plugin
+## Current: v5.10.0 core / v5.10.0 plugin
+
+- Let a check declare the path patterns its outcome depends on and carry its
+  recorded PASS while that content, its contract, and the installed kit are
+  unchanged; keep undeclared checks, plan-v1 flows, and the chain baseline
+  executing as before.
+- Accept a carry only from a really executed PASS in a stable run, revoke it on
+  a later executed failure, execute any occurrence whose selection cannot be
+  represented, and record every carried result in the evidence and certificate.
+- Run a declared check once per verification run, bind chain carries to the
+  approved run, and add `verify --no-reuse` for an explicit full run.
+- Gate the optimisation on equal outcomes and at least 50% median improvement
+  across three matched runs through the installed CLI, and keep the software
+  compatibility gate unchanged.
 
 - Select one project-level `software` or `planning` profile at setup and allow
   only explicit later migration without coupling profile changes to refresh.
@@ -86,14 +99,14 @@
   second architecture state machine.
 - Keep one exact catalog: fifteen plugin skills, thirteen project skills, and
   separate namespaced versus project-local Codex prompt metadata.
-- Upgrade existing pre-v5.8 installations only through explicit
+- Upgrade existing pre-v5.10 installations only through explicit
   `setup --refresh`;
   preserve customized managed files and fail atomically on conflicts.
 
 ## Later, only with demonstrated demand
 
 - Complete F19's authenticated live Claude and sandbox-capable Codex diagnose
-  probes when both external host environments are available; v5.8 does not
+  probes when both external host environments are available; v5.10 does not
   claim those deferred probes.
 
 - Real visual-baseline generation and visual-diff execution behind the current

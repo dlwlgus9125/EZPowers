@@ -85,7 +85,14 @@ with a bounded worker cap. Planning installations use fail-closed config
 schema v3 with `project_profile: planning`; explicit migration back to
 software retains schema v3 with `project_profile: software`. Existing v1/v2
 software config is preserved across refresh and remains compatible.
-Never infer `concurrency.safe` from a command name. Preserve unknown user fields. Pre-v5
+Never infer `concurrency.safe` from a command name. Never infer a `reuse` declaration
+from a command name either: register one only when repository evidence shows
+which Git-visible paths the check reads, start broad (`**` minus
+documentation), include the check's own script, runner configuration, and
+lockfiles, and leave network-, clock-, environment-, or Git-history-dependent
+checks undeclared. Prefer several real checks with honest selections over one
+coarse command only when each part already exists as a real command.
+Preserve unknown user fields. Pre-v5
 `.harness/` and `phases/` content is retired: leave it byte-for-byte untouched,
 do not inspect it as configuration, and do not translate it. Never overwrite a
 managed file after the installer reports a conflict.

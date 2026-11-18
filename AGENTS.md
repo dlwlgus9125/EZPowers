@@ -137,7 +137,7 @@ has explicitly approved a design-contract change.
 - Local supporting knowledge: `.ezpowers/wiki/`
 - Resume/evidence pointer: `.ezpowers/state.json`
 - Runtime: `scripts/ezpowers.py`
-- Distribution manifest: `project-kit/v5.8.0/manifest.json`
+- Distribution manifest: `project-kit/v5.10.0/manifest.json`
 - Specs and plans: `docs/specs/`, `docs/plans/`
 - Canonical contracts: `docs/reference/*-contract.md`
 - Product state: `PROGRESS.md`, `feature_list.json`
@@ -146,7 +146,10 @@ has explicitly approved a design-contract change.
 The installed runtime, manifest, skills, references, contracts, frontend
 readiness tool, and architecture report renderer must be self-contained.
 Preserve exact check argv unless the approved spec or plan changes. Never
-weaken validation, evidence, or freshness rules merely to pass a gate.
+weaken validation, evidence, or freshness rules merely to pass a gate. A check
+`reuse` declaration is a correctness contract: never add or narrow one merely
+to shorten a run, and never treat a hand-picked subset of checks as completion
+evidence.
 
 Do not install plugins, change global configuration, commit, or push without
 explicit user authorization.
@@ -161,12 +164,14 @@ python scripts/verify-harness-kit.py
 python scripts/plugin_smoke.py --host both
 ```
 
-For a v5.8 kit or v5.9 plugin release candidate, also run both three-run scheduler measurements
-and the five-run interleaved software compatibility measurement:
+For a v5.10 kit or plugin release candidate, also run both three-run scheduler measurements,
+the three-run content-bound reuse measurement, and the five-run interleaved software
+compatibility measurement:
 
 ```powershell
 python scripts/benchmark_parallel_verification.py --mode fixture --runs 3 --minimum-improvement 30
 python scripts/benchmark_parallel_verification.py --mode project --runs 3 --minimum-improvement 30
+python scripts/benchmark_check_reuse.py --runs 3 --minimum-improvement 50
 python scripts/benchmark_software_profile.py --baseline-ref 08f9f84d24c59ec130dd6b3bf26555503910cbab --runs 5 --maximum-regression 5
 ```
 

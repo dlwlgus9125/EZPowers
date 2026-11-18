@@ -157,8 +157,11 @@ Planning-profile projects use schema v3 and add an artifact contract:
 
 Named checks in `.ezpowers/config.json` provide stable project commands.
 Plan-local checks are appropriate for feature-specific filters or oracles.
-Avoid mapping the same config check as both a task check and a required project
-check unless running it twice during `verify --all` is intentional.
+An undeclared check referenced more than once runs once per reference, so avoid
+mapping the same undeclared config check as both a task check and a required
+project check unless running it twice during `verify --all` is intentional. A
+check that declares `reuse` runs once per verification run however many
+occurrences reference it.
 When documentation status is ready, `ezpowers.docs` is a required project
 check and must remain exact.
 When its graph contains DESIGN.md, `ezpowers.design` is also required and must
@@ -194,12 +197,36 @@ remain exact.
   check safe only after serial/parallel outcome equivalence and workspace
   behavior have been measured; the declaration is a safety contract, not a
   speed hint.
+- `reuse` is optional and available only in plan/config schema v2 or v3. Its
+  `paths` and optional `exclude` arrays name the project-relative path
+  patterns whose content determines the check's outcome.
+  `verification-contract.md` defines the pattern language, the reuse key, and
+  when a recorded PASS is carried instead of executed. The declaration is a
+  correctness contract, not a speed hint: an incomplete selection can carry a
+  PASS that a real run would fail.
 - `echo`, `true`, trivial zero-exit snippets, shell pipelines, redirections,
   opaque PowerShell command forms, `cmd /K`, path traversal, and synthetic PASS
   output are invalid.
 
 Preserve the exact argv tokens established by repository evidence. Do not
 convert a command to a shell string or drop a feature filter for convenience.
+
+### Declaring Reuse
+
+Declare `reuse` only for a check whose outcome is a function of Git-visible
+files.
+
+- Start broad, for example `{"paths": ["**"], "exclude": ["docs/**"]}`, and
+  narrow the selection only with repository evidence. A missing exclusion
+  costs an unnecessary run; a missing path can carry a false PASS.
+- Always select the check's own script, runner configuration, and lockfiles.
+- Leave undeclared any check that depends on the network, the clock,
+  environment variables, tool versions outside the repository, Git history,
+  or another check's Git-ignored output.
+- Split a coarse command into several checks only when each part is a real
+  existing command and their union covers the original scope.
+- A plan never adds, narrows, or removes a declaration merely to shorten a
+  run, and a declaration is not changed during `execute`.
 
 ## UI And Delivery Work
 

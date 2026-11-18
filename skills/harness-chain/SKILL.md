@@ -235,6 +235,7 @@ When preview is `READY`, show the user:
 - baseline result, risks, QA requirement, and hard limits;
 - preview hash and any forced replacement/backup requirement;
 - assurance-graph hash and topological task waves;
+- every check `reuse` declaration that the approval freezes;
 - selected project profile and, for planning, frozen inputs, deliverable
   groups, and direct/inspected review sources;
 - that approval starts an unattended loop until `CERTIFIED`,
@@ -282,6 +283,13 @@ Run real verification:
 python .ezpowers/ezpowers.py verify --plan <plan> --all --json
 ```
 
+A check that declares `reuse` is carried only from a PASS executed in this same
+run, so the first verification after approval executes everything and later
+rework verifications execute what the rework can affect plus every undeclared
+check. A reuse-declared oracle check must select its own oracle files or the
+preview rejects the bundle. Never add or narrow a declaration to shorten the
+loop; it is frozen with the approval.
+
 On FAIL, apply the `diagnose` evidence ladder to the recorded logs, add a
 regression test before the fix when applicable, and fix the product. Put a new
 regression test in a new non-frozen file: editing an approved oracle, spec, or
@@ -289,7 +297,7 @@ plan file (even to add a test) changes a frozen hash and ends the run at
 `NEEDS_REAPPROVAL`. This does
 not create another retry authority or expand the approved acceptance contract.
 Reproduction and root cause are intermediate chain work; continue through the
-source-cause patch and rerun the original failing scenario before full
+source-cause patch and rerun the original failing scenario before all-scope
 verification.
 Never weaken, skip, rename, or replace the oracle/check to obtain PASS. A
 failure that reaches any approved limit becomes terminal immediately; do not
@@ -326,7 +334,7 @@ python .ezpowers/ezpowers.py chain gate begin --kind adversarial-qa --subject-sh
 ```
 
 Spawn a host-native independent subagent for each challenge. A FAIL means fix
-the product and rerun full verification. The runtime clears prior product-gate
+the product and run all-scope verification again. The runtime clears prior product-gate
 receipts, rejects the unchanged workspace, and will not review the old PASS
 evidence again. Use `blocker-review` only for a concrete external blocker
 after safe in-scope alternatives are exhausted.
@@ -342,7 +350,7 @@ Stop only at a runtime terminal verdict. `CERTIFIED` is success. Report the
 approval, evidence, review receipt, QA receipt when required, certificate
 hashes, command exits, changes, and remaining limitations.
 
-After an explicit v5.8 refresh, a nonterminal legacy approval without an
+After an explicit v5.10 refresh, a nonterminal legacy approval without an
 assurance-graph hash is intentionally terminal at `NEEDS_REAPPROVAL`. Start a
 new preview, oracle audit, and approval; never synthesize the missing binding.
 

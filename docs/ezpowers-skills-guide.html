@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="EZPowers v5.9.0 플러그인의 15개 스킬과 software/planning 프로필을 언제, 어떤 순서로 사용하는지 설명하는 한국어 가이드">
+  <meta name="description" content="EZPowers v5.10.0 플러그인의 15개 스킬과 software/planning 프로필을 언제, 어떤 순서로 사용하는지 설명하는 한국어 가이드">
   <meta name="color-scheme" content="light dark">
   <title>EZPowers Skill Atlas — 스킬 사용 가이드</title>
   <script>
@@ -2698,7 +2698,7 @@
         <span class="brand-mark" aria-hidden="true">EZ</span>
         <span class="brand-copy">
           <strong>Skill Atlas</strong>
-          <span>EZPowers v5.9</span>
+          <span>EZPowers v5.10</span>
         </span>
       </a>
 
@@ -2726,7 +2726,7 @@
           실제 동작 기준:
           <a href="../AGENTS.md">AGENTS.md</a>,
           <a href="reference/codex-plugin-discovery.md">호스트 호출 계약</a>,
-          <a href="../project-kit/v5.8.0/manifest.json">v5.8 매니페스트</a>
+          <a href="../project-kit/v5.10.0/manifest.json">v5.10 매니페스트</a>
         </p>
       </div>
     </aside>
@@ -2735,7 +2735,7 @@
       <div class="mobile-bar">
         <a class="mobile-brand" href="#overview">
           <span class="brand-mark" aria-hidden="true">EZ</span>
-          <span>Skill Atlas · v5.9</span>
+          <span>Skill Atlas · v5.10</span>
         </a>
         <div class="control-group">
           <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
@@ -2752,7 +2752,7 @@
 
       <section class="section hero" id="overview" aria-labelledby="hero-title">
         <div class="hero-topline">
-          <span class="hero-edition">Verified workflow · plugin v5.9.0</span>
+          <span class="hero-edition">Verified workflow · plugin v5.10.0</span>
           <div class="control-group">
             <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 테마로 전환">
               <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true">
@@ -3622,9 +3622,9 @@
                 <ol>
                   <li><code>validate --plan &lt;path&gt; --activate</code>로 resume 대상을 명시합니다.</li>
                   <li><code>trace --plan &lt;path&gt; --json</code>으로 graph hash·task wave·차단 경로를 확인합니다.</li>
-                  <li>구현·리뷰 후 <code>verify --plan &lt;path&gt; --all --json</code>으로 전체 검사를 실행합니다.</li>
-                  <li><code>certify --plan &lt;path&gt; --json</code>과 <code>status --json</code>으로 신선한 완료를 확인합니다.</li>
-                  <li>워크스페이스·계획·설정·문서가 바뀌면 이전 PASS는 완료를 대신하지 못합니다.</li>
+                  <li>구현·리뷰 후 <code>verify --plan &lt;path&gt; --all --json</code>을 실행합니다. <code>reuse</code>를 선언한 검사는 선언한 경로의 내용이 그대로면 이전에 실제로 실행한 PASS를 이어받고, 나머지는 모두 실행합니다.</li>
+                  <li><code>certify --plan &lt;path&gt; --json</code>과 <code>status --json</code>으로 신선한 완료를 확인합니다. 이어받은 검사와 출처 실행은 인증서에 기록됩니다.</li>
+                  <li>워크스페이스·계획·설정·문서가 바뀌면 이전 all-scope 결과는 완료를 대신하지 못하므로 verify를 다시 실행합니다. 모든 검사를 새로 실행하려면 <code>--no-reuse</code>를 붙입니다.</li>
                   <li>명시적으로 안전하고 lock이 충돌하지 않는 검사만 겹쳐 실행되며 결과 배열은 선언 순서를 유지합니다.</li>
                 </ol>
               </div>
@@ -4083,7 +4083,8 @@
             <summary>인증을 받은 뒤 파일 하나를 바꾸면 어떻게 되나요?</summary>
             <div class="faq-answer">
               <p>워크스페이스나 관리 입력이 바뀌면 이전 증거가 stale이 될 수 있습니다.
-                런타임 status를 다시 확인하고 필요한 전체 검증과 인증을 재실행해야 합니다.</p>
+                런타임 status를 다시 확인하고 verify와 certify를 다시 실행해야 합니다.
+                <code>reuse</code>를 선언한 검사는 선언한 경로의 내용이 그대로면 다시 실행하지 않고 이전 PASS를 이어받습니다.</p>
             </div>
           </details>
         </div>
@@ -4093,7 +4094,7 @@
         <div>
           <strong>EZPowers Skill Atlas</strong>
           <p>
-            v5.8.0 프로젝트 키트와 v5.9.0 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
+            v5.10.0 프로젝트 키트와 v5.10.0 플러그인의 실제 저장소 스킬·계약을 기준으로 작성했습니다.
             동작이 바뀌면 <code>skills/*/SKILL.md</code>, 호출 계약, 프로젝트 매니페스트와 함께 이 문서를 갱신하세요.
             시각 토큰과 재사용 컴포넌트 규칙은 루트 <code>DESIGN.md</code>를 먼저 갱신한 뒤 이 구현에 반영하세요.
           </p>

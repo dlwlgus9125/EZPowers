@@ -41,7 +41,7 @@ ASSURANCE_GRAPH_SCHEMA_VERSION = 1
 PLANNING_ASSURANCE_GRAPH_SCHEMA_VERSION = 2
 GRAPH_BOUND_SCHEMA_VERSION = 2
 PLANNING_EVIDENCE_SCHEMA_VERSION = 3
-KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.8.0/manifest.json")
+KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.10.0/manifest.json")
 CONFIG_RELATIVE_PATH = pathlib.Path(".ezpowers/config.json")
 STATE_RELATIVE_PATH = pathlib.Path(".ezpowers/state.json")
 LEDGER_RELATIVE_PATH = pathlib.Path(".ezpowers/ledger.json")
@@ -59,6 +59,19 @@ LOCK_TIMEOUT_SECONDS = 1.0
 LOCK_POLL_SECONDS = 0.05
 ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9._-]{0,63}$")
 RESOURCE_LOCK_RE = re.compile(r"^[A-Za-z][A-Za-z0-9._-]{0,127}$")
+REUSE_DECLARATION_FIELDS = {"paths", "exclude"}
+REUSE_UNSUPPORTED_PATTERN_CHARS = set("[]{}!")
+REUSE_KEY_SCHEMA_VERSION = 1
+REUSE_SOURCE_FIELDS = {
+    "run_id",
+    "evidence_path",
+    "evidence_sha256",
+    "node_id",
+    "scope",
+    "started_at",
+    "finished_at",
+    "duration_ms",
+}
 CHECK_KINDS = {
     "build",
     "custom",
@@ -494,6 +507,10 @@ def _load_state(root: pathlib.Path) -> dict[str, Any]:
     state.setdefault("chain_run", None)
     if state["chain_run"] is not None and not isinstance(state["chain_run"], dict):
         raise EZPowersError(".ezpowers/state.json chain_run must be an object or null")
+    if "reuse_candidates" in state and not isinstance(state["reuse_candidates"], dict):
+        # The map only locates candidate source records and is revalidated on
+        # use, so a damaged one is dropped instead of blocking status or hooks.
+        del state["reuse_candidates"]
     return state
 
 
@@ -741,6 +758,7 @@ def _invalidate_profile_transition(
     state = _load_state(project_root)
     state["latest_evidence"] = {"all": None, "tasks": {}}
     state["latest_certificate"] = None
+    state.pop("reuse_candidates", None)
     run = state.get("chain_run")
     if (
         isinstance(run, dict)
@@ -3434,6 +3452,108 @@ def _unsafe_shell_command(argv: list[str]) -> bool:
     return bool(re.search(r"(?:&&|\|\||[|;&<>]|[\r\n])", payload))
 
 
+def _reuse_pattern_error(pattern: Any) -> str | None:
+    """Return why a reuse path pattern is invalid, or None when it is valid."""
+    if not isinstance(pattern, str) or not pattern:
+        return "must be a non-empty string"
+    if any(ord(char) < 32 for char in pattern):
+        return "contains a control character"
+    if "\\" in pattern:
+        return "must use forward slashes"
+    if pattern.startswith("/") or re.match(r"^[A-Za-z]:", pattern):
+        return "must be project-relative"
+    if pattern[0] in ":-":
+        return "must not start with ':' or '-'"
+    unsupported = sorted(set(pattern) & REUSE_UNSUPPORTED_PATTERN_CHARS)
+    if unsupported:
+        return "contains unsupported pattern characters: " + " ".join(unsupported)
+    segments = pattern.split("/")
+    if any(segment == "" for segment in segments):
+        return "must not contain empty segments or end with '/'"
+    if any(segment in {".", ".."} for segment in segments):
+        return "must not contain '.' or '..' segments"
+    if segments[0].lower() == ".git":
+        return "must not select the .git directory"
+    if any("**" in segment and segment != "**" for segment in segments):
+        return "may use '**' only as a whole path segment"
+    return None
+
+
+def _reuse_pattern_regex(pattern: str) -> str:
+    """Translate a validated reuse pattern into an anchored regex source.
+
+    `*` and `?` never cross `/`. A whole-segment `**` matches zero or more
+    directories, and as the final segment it matches everything below.
+    """
+    segments = pattern.split("/")
+    pieces: list[str] = []
+    for index, segment in enumerate(segments):
+        last = index == len(segments) - 1
+        if segment == "**":
+            pieces.append("(?:[^/]+/)*[^/]+" if last else "(?:[^/]+/)*")
+            continue
+        literal = "".join(
+            "[^/]*" if char == "*" else "[^/]" if char == "?" else re.escape(char)
+            for char in segment
+        )
+        pieces.append(literal if last else literal + "/")
+    return "".join(pieces)
+
+
+def _reuse_declaration_selects(declaration: dict[str, list[str]], name: str) -> bool:
+    """Tell whether a reuse declaration selects one project-relative path."""
+    return any(
+        re.fullmatch(_reuse_pattern_regex(pattern), name)
+        for pattern in declaration["paths"]
+    ) and not any(
+        re.fullmatch(_reuse_pattern_regex(pattern), name)
+        for pattern in declaration["exclude"]
+    )
+
+
+def _validate_reuse_declaration(
+    raw: Any,
+    *,
+    label: str,
+    errors: list[str],
+) -> dict[str, list[str]] | None:
+    if not isinstance(raw, dict):
+        errors.append(f"{label} must be an object")
+        return None
+    unknown = set(raw) - REUSE_DECLARATION_FIELDS
+    if unknown:
+        errors.append(
+            f"{label} contains unknown fields: "
+            + ", ".join(sorted(str(item) for item in unknown))
+        )
+    normalized: dict[str, list[str]] = {}
+    for field, required in (("paths", True), ("exclude", False)):
+        values = raw.get(field) if required or field in raw else []
+        if not isinstance(values, list) or (required and not values):
+            errors.append(
+                f"{label}.{field} must be a "
+                f"{'non-empty ' if required else ''}string array"
+            )
+            values = []
+        cleaned: list[str] = []
+        for value in values:
+            problem = _reuse_pattern_error(value)
+            if problem:
+                errors.append(f"{label}.{field} pattern {value!r} {problem}")
+                continue
+            cleaned.append(value)
+        if len(set(cleaned)) != len(cleaned):
+            errors.append(f"{label}.{field} must not contain duplicates")
+        normalized[field] = cleaned
+    overlap = sorted(set(normalized["paths"]) & set(normalized["exclude"]))
+    if overlap:
+        errors.append(
+            f"{label} lists the same pattern in paths and exclude: "
+            + ", ".join(overlap)
+        )
+    return normalized
+
+
 def _validate_check(
     raw: Any,
     *,
@@ -3442,6 +3562,7 @@ def _validate_check(
     label: str,
     errors: list[str],
     allow_concurrency: bool = False,
+    allow_reuse: bool = False,
 ) -> dict[str, Any] | None:
     if not ID_RE.fullmatch(check_id):
         errors.append(f"{label} has invalid check id: {check_id!r}")
@@ -3516,7 +3637,7 @@ def _validate_check(
                 "safe": bool(safe),
                 "resource_locks": list(locks),
             }
-    return {
+    normalized: dict[str, Any] = {
         "id": check_id,
         "argv": list(argv),
         "cwd": cwd,
@@ -3524,6 +3645,19 @@ def _validate_check(
         "kind": kind,
         "concurrency": concurrency,
     }
+    # The key exists only when declared so undeclared contracts, graphs, chain
+    # previews, and approvals keep their exact bytes.
+    if "reuse" in raw:
+        if not allow_reuse:
+            errors.append(f"{label}.reuse requires schema_version 2")
+        reuse = _validate_reuse_declaration(
+            raw.get("reuse"),
+            label=f"{label}.reuse",
+            errors=errors,
+        )
+        if reuse is not None:
+            normalized["reuse"] = reuse
+    return normalized
 
 
 def _validate_config_value(
@@ -3590,6 +3724,7 @@ def _validate_config_value(
             label=f"config.checks.{check_id}",
             errors=errors,
             allow_concurrency=config_version >= 2,
+            allow_reuse=config_version >= 2,
         )
         if normalized:
             project_checks[str(check_id)] = normalized
@@ -3625,6 +3760,8 @@ def _check_contract_sha256(check: dict[str, Any]) -> str:
             "concurrency",
         )
     }
+    if check.get("reuse") is not None:
+        contract["reuse"] = check["reuse"]
     return _sha256_bytes(_json_bytes(contract))
 
 
@@ -4240,6 +4377,7 @@ def _normalize_plan_value(
             label=f"plan.checks.{name}",
             errors=errors,
             allow_concurrency=plan_schema_version >= 2,
+            allow_reuse=plan_schema_version >= 2,
         )
         if normalized:
             top_checks[name] = normalized
@@ -4335,6 +4473,7 @@ def _normalize_plan_value(
                 label=f"task {task_id} check {check_id or check_index}",
                 errors=errors,
                 allow_concurrency=plan_schema_version >= 2,
+                allow_reuse=plan_schema_version >= 2,
             )
             if normalized:
                 normalized_checks.append(normalized)
@@ -5372,6 +5511,24 @@ def _load_chain_run_bundle(
                 f"oracle {oracle_id} artifact_paths must reference staged oracle files"
             )
         referenced_artifacts.update(str(item) for item in artifacts)
+        for check_id in checks:
+            declaration = (
+                flow["top_checks"].get(check_id)
+                or flow["project_checks"].get(check_id)
+                or {}
+            ).get("reuse")
+            if declaration is None:
+                continue
+            uncovered = [
+                str(item)
+                for item in artifacts
+                if not _reuse_declaration_selects(declaration, str(item))
+            ]
+            if uncovered:
+                raise EZPowersError(
+                    f"oracle {oracle_id} check {check_id} declares reuse without "
+                    "selecting its oracle file: " + ", ".join(uncovered)
+                )
         boundary = raw.get("boundary")
         if (
             not isinstance(boundary, str)
@@ -5942,6 +6099,7 @@ def _chain_run_apply_command(args: argparse.Namespace) -> int:
             state["active_plan"] = plan_entry["target"]
             state["latest_evidence"] = {"all": None, "tasks": {}}
             state["latest_certificate"] = None
+            state.pop("reuse_candidates", None)
             state["chain_gates"]["pending"] = None
             state["chain_run"] = {
                 "run_id": normalized["run_id"],
@@ -7863,6 +8021,24 @@ def _log_relative(root: pathlib.Path, path: pathlib.Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
 
 
+def _check_log_paths(
+    run_dir: pathlib.Path,
+    task_id: str,
+    check_id: str,
+    occurrence_id: str | None,
+) -> tuple[pathlib.Path, pathlib.Path]:
+    """Return the canonical stdout/stderr log paths of one check occurrence."""
+    safe_task = re.sub(r"[^A-Za-z0-9._-]+", "-", task_id) or "project"
+    safe_check = re.sub(r"[^A-Za-z0-9._-]+", "-", check_id) or "check"
+    identity_source = occurrence_id or f"{task_id}\0{check_id}"
+    identity = _sha256_bytes(identity_source.encode("utf-8"))[:12]
+    prefix = run_dir / f"{safe_task}--{safe_check}--{identity}"
+    return (
+        pathlib.Path(f"{prefix}.stdout.log"),
+        pathlib.Path(f"{prefix}.stderr.log"),
+    )
+
+
 def _run_check(
     root: pathlib.Path,
     run_dir: pathlib.Path,
@@ -7875,13 +8051,12 @@ def _run_check(
     process_registry: set[subprocess.Popen[Any]] | None = None,
     registry_lock: threading.Lock | None = None,
 ) -> dict[str, Any]:
-    safe_task = re.sub(r"[^A-Za-z0-9._-]+", "-", task_id) or "project"
-    safe_check = re.sub(r"[^A-Za-z0-9._-]+", "-", check["id"]) or "check"
-    identity_source = occurrence_id or f"{task_id}\0{check['id']}"
-    identity = _sha256_bytes(identity_source.encode("utf-8"))[:12]
-    prefix = run_dir / f"{safe_task}--{safe_check}--{identity}"
-    stdout_path = pathlib.Path(f"{prefix}.stdout.log")
-    stderr_path = pathlib.Path(f"{prefix}.stderr.log")
+    stdout_path, stderr_path = _check_log_paths(
+        run_dir,
+        task_id,
+        str(check["id"]),
+        occurrence_id,
+    )
     cwd = _contained_path(root, check["cwd"], label=f"check {check['id']} cwd", must_exist=True, directory=True)
     started = time.monotonic()
     started_at = _utc_now()
@@ -8105,6 +8280,639 @@ def _execute_invocations(
     )
 
 
+def _chain_evidence_binding(
+    chain_run: dict[str, Any],
+    chain_approval: dict[str, Any],
+) -> dict[str, Any]:
+    """Return the approved-run binding recorded in chain verification evidence."""
+    binding: dict[str, Any] = {
+        "run_id": chain_run.get("run_id"),
+        "approval_path": chain_run.get("approval_path"),
+        "approval_sha256": chain_run.get("approval_sha256"),
+        "chain_sha256": chain_approval.get("chain_sha256"),
+    }
+    if isinstance(chain_approval.get("assurance_graph_sha256"), str):
+        binding["assurance_graph_sha256"] = chain_approval["assurance_graph_sha256"]
+    return binding
+
+
+def _reuse_file_universe(root: pathlib.Path) -> dict[str, str]:
+    """Map every Git-visible project path to tracked, untracked, or gitlink.
+
+    Git-ignored files are outside this universe, exactly as they are outside
+    the workspace fingerprint.
+    """
+    universe: dict[str, str] = {}
+    for row in _git_bytes(root, "ls-files", "-s", "-z").split(b"\0"):
+        if not row:
+            continue
+        meta, separator, raw_name = row.partition(b"\t")
+        if not separator:
+            raise EZPowersError("Git index listing is malformed")
+        name = os.fsdecode(raw_name).replace("\\", "/")
+        if _excluded_runtime_path(name):
+            continue
+        universe[name] = (
+            "gitlink" if meta.split(b" ", 1)[0] == b"160000" else "tracked"
+        )
+    untracked = _git_bytes(root, "ls-files", "--others", "--exclude-standard", "-z")
+    for raw_name in untracked.split(b"\0"):
+        if not raw_name:
+            continue
+        name = os.fsdecode(raw_name).replace("\\", "/")
+        if _excluded_runtime_path(name) or name in universe:
+            continue
+        universe[name] = "untracked"
+    return universe
+
+
+def _reuse_content(
+    root: pathlib.Path,
+    declaration: dict[str, list[str]],
+    universe: dict[str, str],
+    digests: dict[str, str],
+    listings: dict[str, set[str]],
+) -> tuple[str | None, int, str | None]:
+    """Hash the files a reuse declaration selects.
+
+    Returns `(content_sha256, file_count, None)`. When the selection cannot be
+    represented faithfully it returns `(None, 0, reason)` and the occurrence
+    must execute: a typo or an unusual entry must never become a carried PASS.
+    """
+    excludes = [
+        re.compile(_reuse_pattern_regex(pattern))
+        for pattern in declaration["exclude"]
+    ]
+    matched_by_pattern: list[tuple[str, set[str]]] = []
+    selected: set[str] = set()
+    for pattern in declaration["paths"]:
+        regex = re.compile(_reuse_pattern_regex(pattern))
+        matched = {
+            name
+            for name in universe
+            if regex.fullmatch(name)
+            and not any(item.fullmatch(name) for item in excludes)
+        }
+        matched_by_pattern.append((pattern, matched))
+        selected.update(matched)
+    entries: list[list[str]] = []
+    present: set[str] = set()
+    for name in sorted(selected):
+        if universe[name] == "gitlink":
+            return None, 0, f"reuse path is a gitlink: {name}"
+        components = name.split("/")
+        path = root.joinpath(*components)
+        if not os.path.lexists(path):
+            if universe[name] != "tracked":
+                return None, 0, f"reuse path vanished during verification: {name}"
+            # A tracked file deleted from the working tree is simply not
+            # content. Recording it would make committing that deletion look
+            # like a content change although no byte on disk moved.
+            continue
+        parent = root
+        for index, component in enumerate(components):
+            listing_key = str(parent)
+            names = listings.get(listing_key)
+            if names is None:
+                try:
+                    names = set(os.listdir(parent))
+                except OSError as exc:
+                    return None, 0, f"reuse path cannot be listed: {name}: {exc}"
+                listings[listing_key] = names
+            if component not in names:
+                return (
+                    None,
+                    0,
+                    f"reuse path spelling differs from the directory listing: {name}",
+                )
+            parent = parent / component
+            if os.path.islink(parent):
+                return None, 0, f"reuse path is or crosses a symbolic link: {name}"
+            if index < len(components) - 1 and not os.path.isdir(parent):
+                return None, 0, f"reuse path is not a regular file: {name}"
+        if not os.path.isfile(path):
+            return None, 0, f"reuse path is not a regular file: {name}"
+        try:
+            digest = digests.get(name)
+            if digest is None:
+                digest = _sha256_file(path)
+                digests[name] = digest
+            executable = os.name != "nt" and bool(os.stat(path).st_mode & 0o100)
+        except OSError as exc:
+            return None, 0, f"reuse path is unreadable: {name}: {exc}"
+        entries.append([name, digest, "x" if executable else "-"])
+        present.add(name)
+    for pattern, matched in matched_by_pattern:
+        if not matched & present:
+            return None, 0, f"reuse pattern selects no file: {pattern}"
+    payload = {"schema": REUSE_KEY_SCHEMA_VERSION, "files": entries}
+    return _sha256_bytes(_json_bytes(payload)), len(entries), None
+
+
+def _reuse_key(
+    *,
+    root: pathlib.Path,
+    contract_sha256: str,
+    content_sha256: str,
+    installation: dict[str, Any],
+    profile: str,
+    artifacts_sha256: str | None,
+) -> str:
+    """Bind a declared check's outcome to everything the runtime can observe.
+
+    Git HEAD is deliberately absent so a commit of unchanged content carries.
+    Ignored files, the environment, and tool versions are not observable here.
+    """
+    return _sha256_bytes(
+        _json_bytes(
+            {
+                "schema": REUSE_KEY_SCHEMA_VERSION,
+                "contract_sha256": contract_sha256,
+                "content_sha256": content_sha256,
+                "installation": installation,
+                "project_profile": profile,
+                "artifacts_sha256": artifacts_sha256,
+                "project_root": str(root.resolve()),
+                "platform": sys.platform,
+            }
+        )
+    )
+
+
+def _reuse_context(
+    root: pathlib.Path,
+    flow: Flow,
+    checks: Iterable[dict[str, Any]],
+    *,
+    installation: dict[str, Any],
+    artifacts_sha256: str | None,
+    state: dict[str, Any],
+    chain_expected: dict[str, Any] | None,
+    forced_fresh: bool,
+) -> dict[str, Any] | None:
+    """Prepare reuse decisions for one verification run.
+
+    Returns None when the flow is not graph-bound or no selected check declares
+    reuse, which keeps undeclared runs on the unchanged execution path.
+    """
+    if not _flow_graph_bound(flow):
+        return None
+    declared: dict[str, dict[str, Any]] = {}
+    for check in checks:
+        if check.get("reuse") is not None:
+            declared.setdefault(_check_contract_sha256(check), check)
+    if not declared:
+        return None
+    universe: dict[str, str] = {}
+    universe_error: str | None = None
+    try:
+        universe = _reuse_file_universe(root)
+    except EZPowersError as exc:
+        universe_error = f"Git file listing failed: {exc}"
+    digests: dict[str, str] = {}
+    listings: dict[str, set[str]] = {}
+    contracts: dict[str, dict[str, Any]] = {}
+    for contract_sha256, check in declared.items():
+        if universe_error is not None:
+            content_sha256, file_count, reason = None, 0, universe_error
+        else:
+            content_sha256, file_count, reason = _reuse_content(
+                root,
+                check["reuse"],
+                universe,
+                digests,
+                listings,
+            )
+        contracts[contract_sha256] = {
+            "key": (
+                _reuse_key(
+                    root=root,
+                    contract_sha256=contract_sha256,
+                    content_sha256=content_sha256,
+                    installation=installation,
+                    profile=flow.profile.name,
+                    artifacts_sha256=artifacts_sha256,
+                )
+                if content_sha256 is not None
+                else None
+            ),
+            "content_sha256": content_sha256,
+            "file_count": file_count,
+            "reason": reason,
+        }
+    candidates = state.get("reuse_candidates")
+    return {
+        "forced_fresh": forced_fresh,
+        "contracts": contracts,
+        "candidates": candidates if isinstance(candidates, dict) else {},
+        "chain_expected": chain_expected,
+        "sources": {},
+        "primaries": {},
+        "executed": {},
+    }
+
+
+def _reuse_run_is_stable(evidence: dict[str, Any]) -> bool:
+    """Allow-list: nothing but the run's own check outcomes may have failed."""
+    workspace = evidence.get("workspace")
+    if not isinstance(workspace, dict) or evidence.get("workspace_before") != workspace:
+        return False
+    installation = evidence.get("installation")
+    if (
+        not isinstance(installation, dict)
+        or evidence.get("installation_before") != installation
+    ):
+        return False
+    if "artifacts" in evidence and evidence.get("artifacts_before") != evidence["artifacts"]:
+        return False
+    expected: list[str] = []
+    tasks = evidence.get("tasks")
+    project_checks = evidence.get("project_checks")
+    if not isinstance(tasks, list) or not isinstance(project_checks, list):
+        return False
+    for task in tasks:
+        if not isinstance(task, dict) or not isinstance(task.get("checks"), list):
+            return False
+        if any(
+            not isinstance(check, dict) or check.get("status") != "PASS"
+            for check in task["checks"]
+        ):
+            expected.append(f"task {task.get('id')} verification failed")
+    for check in project_checks:
+        if not isinstance(check, dict):
+            return False
+        if check.get("status") != "PASS":
+            expected.append(f"required project check {check.get('id')} failed")
+    return evidence.get("reasons") == expected
+
+
+def _reuse_source(
+    root: pathlib.Path,
+    pointer: Any,
+    *,
+    check: dict[str, Any],
+    key: str,
+    chain_expected: dict[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """Revalidate a candidate against its own evidence bytes.
+
+    The state pointer only locates a record. Every property that makes the
+    earlier PASS trustworthy is read from the hash-bound source evidence.
+    """
+    if not isinstance(pointer, dict):
+        return None
+    relative_name = pointer.get("path")
+    node_id = pointer.get("node_id")
+    if not isinstance(relative_name, str) or not isinstance(node_id, str):
+        return None
+    try:
+        evidence_root = (root / EVIDENCE_RELATIVE_PATH).resolve()
+        evidence_path = _contained_path(
+            root,
+            relative_name,
+            label="reuse source",
+            must_exist=True,
+        )
+        if (
+            not evidence_path.is_file()
+            or evidence_path.name != "result.json"
+            or evidence_path.parent.parent != evidence_root
+            or relative_name != _log_relative(root, evidence_path)
+        ):
+            return None
+        sidecar = evidence_path.with_name("result.json.sha256")
+        if not sidecar.is_file():
+            return None
+        evidence_sha256 = _sha256_file(evidence_path)
+        recorded = sidecar.read_text(encoding="ascii", errors="replace").strip().lower()
+        if (
+            evidence_sha256 != recorded
+            or str(pointer.get("sha256", "")).lower() != evidence_sha256
+        ):
+            return None
+        evidence = _read_json(evidence_path)
+        run_dir = evidence_path.parent
+        if (
+            evidence.get("evidence_path") != relative_name
+            or evidence.get("run_id") != run_dir.name
+            or not _reuse_run_is_stable(evidence)
+        ):
+            return None
+        if chain_expected is not None and evidence.get("chain") != chain_expected:
+            return None
+        entry = next(
+            (
+                item
+                for item in _iter_check_results(evidence)
+                if item.get("node_id") == node_id
+            ),
+            None,
+        )
+        if entry is None:
+            return None
+        record = entry.get("reuse")
+        if (
+            not isinstance(record, dict)
+            or record.get("mode") != "executed"
+            or record.get("key") != key
+            or entry.get("status") != "PASS"
+            or entry.get("exit_code") != 0
+            or entry.get("timed_out") is not False
+            or entry.get("spawn_error") != ""
+            or any(
+                entry.get(field) != check.get(field)
+                for field in ("id", "argv", "cwd", "timeout_seconds", "kind")
+            )
+        ):
+            return None
+        for stream_name in ("stdout", "stderr"):
+            log_name = entry.get(f"{stream_name}_log")
+            log_sha256 = entry.get(f"{stream_name}_sha256")
+            if not isinstance(log_name, str) or not isinstance(log_sha256, str):
+                return None
+            log_path = _contained_path(
+                root,
+                log_name,
+                label="reuse source log",
+                must_exist=True,
+            )
+            if (
+                not log_path.is_file()
+                or log_path.parent != run_dir
+                or log_name != _log_relative(root, log_path)
+                or _sha256_file(log_path) != log_sha256
+            ):
+                return None
+    except (EZPowersError, OSError, ValueError):
+        return None
+    return entry, {
+        "run_id": evidence["run_id"],
+        "evidence_path": relative_name,
+        "evidence_sha256": evidence_sha256,
+        "scope": evidence.get("scope"),
+    }
+
+
+def _reused_result(
+    root: pathlib.Path,
+    run_dir: pathlib.Path,
+    invocation: dict[str, Any],
+    source_entry: dict[str, Any],
+    record: dict[str, Any],
+) -> dict[str, Any]:
+    """Write a complete entry for an occurrence that did not execute.
+
+    Identity comes from the current occurrence and the outcome from the source.
+    Logs are byte copies under this occurrence's own canonical names, so the
+    new result stays self-contained.
+    """
+    check = invocation["check"]
+    stdout_path, stderr_path = _check_log_paths(
+        run_dir,
+        invocation["task_id"],
+        str(check["id"]),
+        invocation["node_id"],
+    )
+    logs: dict[str, str] = {}
+    for stream_name, target in (("stdout", stdout_path), ("stderr", stderr_path)):
+        source = _contained_path(
+            root,
+            source_entry[f"{stream_name}_log"],
+            label="reuse source log",
+            must_exist=True,
+        )
+        shutil.copyfile(source, target)
+        logs[f"{stream_name}_log"] = _log_relative(root, target)
+        logs[f"{stream_name}_sha256"] = _sha256_file(target)
+    now = _utc_now()
+    return {
+        "id": check["id"],
+        "argv": check["argv"],
+        "cwd": check["cwd"],
+        "timeout_seconds": check["timeout_seconds"],
+        "kind": check["kind"],
+        "status": source_entry["status"],
+        "exit_code": source_entry["exit_code"],
+        "timed_out": source_entry["timed_out"],
+        "spawn_error": source_entry["spawn_error"],
+        "duration_ms": 0,
+        **logs,
+        "node_id": invocation["node_id"],
+        "started_at": now,
+        "finished_at": now,
+        "reuse": record,
+    }
+
+
+def _execute_with_reuse(
+    root: pathlib.Path,
+    run_dir: pathlib.Path,
+    invocations: list[dict[str, Any]],
+    *,
+    reuse: dict[str, Any] | None,
+    max_workers: int,
+    parallel_enabled: bool,
+    phase: str,
+    task_wave: int | None,
+    include_graph_fields: bool,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Execute only the occurrences that must run; record the rest.
+
+    Carried and shared occurrences are removed before scheduling, so the
+    unchanged scheduler sees an ordinary list. Results stay aligned with
+    `invocations`.
+    """
+    if reuse is None:
+        return _execute_invocations(
+            root,
+            run_dir,
+            invocations,
+            max_workers=max_workers,
+            parallel_enabled=parallel_enabled,
+            phase=phase,
+            task_wave=task_wave,
+            include_graph_fields=include_graph_fields,
+        )
+    to_run: list[dict[str, Any]] = []
+    carried: list[tuple[dict[str, Any], str]] = []
+    shared: list[tuple[dict[str, Any], str]] = []
+    pending: set[str] = set()
+    for invocation in invocations:
+        check = invocation["check"]
+        if check.get("reuse") is None:
+            to_run.append(invocation)
+            continue
+        contract = _check_contract_sha256(check)
+        info = reuse["contracts"][contract]
+        if reuse["forced_fresh"] or info["key"] is None:
+            to_run.append(invocation)
+            continue
+        if contract in reuse["primaries"] or contract in pending:
+            shared.append((invocation, contract))
+            continue
+        if contract not in reuse["sources"]:
+            reuse["sources"][contract] = _reuse_source(
+                root,
+                reuse["candidates"].get(contract),
+                check=check,
+                key=info["key"],
+                chain_expected=reuse["chain_expected"],
+            )
+        if reuse["sources"][contract] is not None:
+            carried.append((invocation, contract))
+            continue
+        to_run.append(invocation)
+        pending.add(contract)
+    executed, waves = _execute_invocations(
+        root,
+        run_dir,
+        to_run,
+        max_workers=max_workers,
+        parallel_enabled=parallel_enabled,
+        phase=phase,
+        task_wave=task_wave,
+        include_graph_fields=include_graph_fields,
+    )
+    results: dict[str, dict[str, Any]] = {}
+    for invocation, result in zip(to_run, executed):
+        check = invocation["check"]
+        if check.get("reuse") is not None:
+            contract = _check_contract_sha256(check)
+            info = reuse["contracts"][contract]
+            result["reuse"] = {
+                "mode": "executed",
+                "key": info["key"],
+                "content_sha256": info["content_sha256"],
+                "file_count": info["file_count"],
+                "reason": info["reason"],
+            }
+            reuse["executed"].setdefault(contract, []).append(result)
+            if contract in pending:
+                reuse["primaries"][contract] = result
+        results[invocation["node_id"]] = result
+    for invocation, contract in carried:
+        info = reuse["contracts"][contract]
+        source_entry, source_meta = reuse["sources"][contract]
+        results[invocation["node_id"]] = _reused_result(
+            root,
+            run_dir,
+            invocation,
+            source_entry,
+            {
+                "mode": "carried",
+                "key": info["key"],
+                "content_sha256": info["content_sha256"],
+                "file_count": info["file_count"],
+                "source": {
+                    "run_id": source_meta["run_id"],
+                    "evidence_path": source_meta["evidence_path"],
+                    "evidence_sha256": source_meta["evidence_sha256"],
+                    "node_id": source_entry["node_id"],
+                    "scope": source_meta["scope"],
+                    "started_at": source_entry.get("started_at"),
+                    "finished_at": source_entry.get("finished_at"),
+                    "duration_ms": source_entry.get("duration_ms"),
+                },
+            },
+        )
+    for invocation, contract in shared:
+        info = reuse["contracts"][contract]
+        primary = reuse["primaries"][contract]
+        results[invocation["node_id"]] = _reused_result(
+            root,
+            run_dir,
+            invocation,
+            primary,
+            {
+                "mode": "shared",
+                "key": info["key"],
+                "content_sha256": info["content_sha256"],
+                "file_count": info["file_count"],
+                "source": {"node_id": primary["node_id"]},
+            },
+        )
+    return [results[item["node_id"]] for item in invocations], waves
+
+
+def _reuse_summary(
+    evidence: dict[str, Any],
+    *,
+    forced_fresh: bool,
+) -> dict[str, Any]:
+    """Summarize which declared occurrences executed, were carried, or shared."""
+    executed: list[Any] = []
+    carried: list[dict[str, Any]] = []
+    shared: list[dict[str, Any]] = []
+    for entry in _iter_check_results(evidence):
+        record = entry.get("reuse")
+        if not isinstance(record, dict):
+            continue
+        source = record.get("source")
+        if not isinstance(source, dict):
+            source = {}
+        if record.get("mode") == "executed":
+            executed.append(entry.get("node_id"))
+        elif record.get("mode") == "carried":
+            carried.append(
+                {
+                    "node_id": entry.get("node_id"),
+                    "source_run_id": source.get("run_id"),
+                    "source_node_id": source.get("node_id"),
+                    "source_evidence_sha256": source.get("evidence_sha256"),
+                    "source_finished_at": source.get("finished_at"),
+                }
+            )
+        elif record.get("mode") == "shared":
+            shared.append(
+                {
+                    "node_id": entry.get("node_id"),
+                    "source_node_id": source.get("node_id"),
+                }
+            )
+    return {
+        "forced_fresh": forced_fresh,
+        "executed": executed,
+        "carried": carried,
+        "shared": shared,
+    }
+
+
+def _record_reuse_candidates(
+    state: dict[str, Any],
+    reuse: dict[str, Any],
+    pointer: dict[str, Any],
+    *,
+    stable: bool,
+) -> None:
+    """Let the latest real execution of each declared contract win.
+
+    A keyed PASS from a stable run becomes the candidate. A failure, an
+    unkeyed result, or any result from an unstable run removes the candidate.
+    The map is created only when there is something to record.
+    """
+    existing = state.get("reuse_candidates")
+    candidates = dict(existing) if isinstance(existing, dict) else {}
+    changed = False
+    for contract, entries in reuse["executed"].items():
+        usable = stable and all(
+            entry.get("status") == "PASS" and entry["reuse"]["key"] is not None
+            for entry in entries
+        )
+        if usable:
+            candidates[contract] = {
+                "path": pointer["path"],
+                "sha256": pointer["sha256"],
+                "node_id": entries[0]["node_id"],
+                "recorded_at": _utc_now(),
+            }
+            changed = True
+        elif contract in candidates:
+            del candidates[contract]
+            changed = True
+    if changed or "reuse_candidates" in state:
+        state["reuse_candidates"] = candidates
+
+
 def _evidence_run_id() -> str:
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
     return f"{stamp}-{uuid.uuid4().hex[:8]}"
@@ -8224,6 +9032,31 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
     }
     execution_waves: list[dict[str, Any]] = []
     reasons: list[str] = []
+    # Reuse keys are computed after the workspace snapshot so an edit that lands
+    # in between is caught by the before/after comparison instead of the key.
+    reuse_checks = [check for task in selected for check in task["checks"]]
+    if args.all_checks:
+        reuse_checks.extend(
+            flow.project_checks[check_id] for check_id in flow.required_checks
+        )
+    reuse = _reuse_context(
+        root,
+        flow,
+        reuse_checks,
+        installation=installation_before,
+        artifacts_sha256=(
+            artifacts_before.get("sha256")
+            if isinstance(artifacts_before, dict)
+            else None
+        ),
+        state=state_before,
+        chain_expected=(
+            _chain_evidence_binding(chain_run_before, chain_approval)
+            if chain_approval is not None and isinstance(chain_run_before, dict)
+            else None
+        ),
+        forced_fresh=bool(args.no_reuse),
+    )
     task_groups: list[tuple[int | None, list[dict[str, Any]]]] = []
     if args.task:
         task_groups.append((None, selected))
@@ -8252,10 +9085,11 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
                         "check": check,
                     }
                 )
-        check_results, wave_records = _execute_invocations(
+        check_results, wave_records = _execute_with_reuse(
             root,
             run_dir,
             invocations,
+            reuse=reuse,
             max_workers=effective_workers,
             parallel_enabled=parallel_enabled,
             phase="task",
@@ -8284,10 +9118,11 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
             }
             for index, check_id in enumerate(flow.required_checks, 1)
         ]
-        project_results, project_waves = _execute_invocations(
+        project_results, project_waves = _execute_with_reuse(
             root,
             run_dir,
             project_invocations,
+            reuse=reuse,
             max_workers=effective_workers,
             parallel_enabled=parallel_enabled,
             phase="required",
@@ -8298,6 +9133,8 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
         for check_id, result in zip(flow.required_checks, project_results):
             if result["status"] != "PASS":
                 reasons.append(f"required project check {check_id} failed")
+    # Every reason appended after this point means the run itself was unstable.
+    check_reason_count = len(reasons)
 
     workspace_after = _workspace_snapshot(root)
     artifacts_after: dict[str, Any] | None = None
@@ -8339,24 +9176,13 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
                 for reason in contract_reasons
             )
             _chain_mark_reapproval(state_after_checks, contract_reasons)
-        chain_binding = {
-            "run_id": chain_run.get("run_id"),
-            "approval_path": chain_run.get("approval_path"),
-            "approval_sha256": chain_run.get("approval_sha256"),
-            "chain_sha256": chain_approval.get("chain_sha256"),
-            **(
-                {
-                    "assurance_graph_sha256": chain_approval.get(
-                        "assurance_graph_sha256"
-                    )
-                }
-                if isinstance(
-                    chain_approval.get("assurance_graph_sha256"),
-                    str,
-                )
-                else {}
-            ),
-        }
+        chain_binding = _chain_evidence_binding(chain_run, chain_approval)
+    stable_run = len(reasons) == check_reason_count
+    if reuse is not None and not stable_run:
+        # An unstable run must not leave a key that could later justify a carry.
+        for entries in reuse["executed"].values():
+            for entry in entries:
+                entry["reuse"]["key"] = None
 
     result_path = run_dir / "result.json"
     result: dict[str, Any] = {
@@ -8403,6 +9229,11 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
         result["artifacts_before"] = artifacts_before
     if chain_binding is not None:
         result["chain"] = chain_binding
+    if reuse is not None:
+        result["reuse"] = _reuse_summary(
+            result,
+            forced_fresh=bool(reuse["forced_fresh"]),
+        )
     result_bytes = _json_bytes(result)
     _atomic_write(result_path, result_bytes)
     digest = _sha256_bytes(result_bytes)
@@ -8413,6 +9244,13 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
         state_after_checks["latest_evidence"]["all"] = pointer
     else:
         state_after_checks["latest_evidence"]["tasks"][args.task] = pointer
+    if reuse is not None:
+        _record_reuse_candidates(
+            state_after_checks,
+            reuse,
+            pointer,
+            stable=stable_run,
+        )
     if chain_binding is not None and isinstance(chain_run, dict):
         if args.all_checks:
             chain_run["latest_verification"] = {
@@ -8689,10 +9527,175 @@ def _execution_reasons(
         for field in ("started_at", "finished_at"):
             if not isinstance(raw_wave.get(field), str) or not raw_wave[field]:
                 reasons.append(f"evidence execution wave {index} has no {field}")
-    if observed_task_nodes != expected_task_nodes:
+    # A carried or shared occurrence was not executed, so it must be in no wave.
+    # Executed and not-executed occurrences together must still partition the
+    # expected list in order; `_reuse_reasons` decides which records are valid.
+    not_executed = {
+        str(check.get("node_id"))
+        for check in _iter_check_results(evidence)
+        if isinstance(check.get("reuse"), dict)
+        and check["reuse"].get("mode") in {"carried", "shared"}
+    }
+    if observed_task_nodes != [
+        node_id for node_id in expected_task_nodes if node_id not in not_executed
+    ]:
         reasons.append("evidence execution task occurrence order changed")
-    if observed_project_nodes != expected_project_nodes:
+    if observed_project_nodes != [
+        node_id for node_id in expected_project_nodes if node_id not in not_executed
+    ]:
         reasons.append("evidence execution required occurrence order changed")
+    return reasons
+
+
+def _reuse_record_is_valid(
+    entry: dict[str, Any],
+    by_node: dict[str, dict[str, Any]],
+) -> bool:
+    """Check one declared occurrence's reuse record for an exact, honest shape."""
+    record = entry.get("reuse")
+    if not isinstance(record, dict):
+        return False
+    hex64 = r"[0-9a-f]{64}"
+    key = record.get("key")
+    content = record.get("content_sha256")
+    keyed = isinstance(key, str) and re.fullmatch(hex64, key) is not None
+    if not isinstance(record.get("file_count"), int) or isinstance(
+        record.get("file_count"),
+        bool,
+    ):
+        return False
+    mode = record.get("mode")
+    if mode == "executed":
+        return (
+            set(record) == {"mode", "key", "content_sha256", "file_count", "reason"}
+            and (key is None or keyed)
+            and (
+                content is None
+                or (isinstance(content, str) and re.fullmatch(hex64, content) is not None)
+            )
+            and (record["reason"] is None or isinstance(record["reason"], str))
+        )
+    if set(record) != {"mode", "key", "content_sha256", "file_count", "source"}:
+        return False
+    source = record.get("source")
+    if not keyed or not isinstance(source, dict) or entry.get("duration_ms") != 0:
+        return False
+    if mode == "carried":
+        return (
+            set(source) == REUSE_SOURCE_FIELDS
+            and entry.get("status") == "PASS"
+            and isinstance(source.get("evidence_sha256"), str)
+            and re.fullmatch(hex64, source["evidence_sha256"]) is not None
+            and all(
+                isinstance(source.get(field), str) and source[field]
+                for field in ("run_id", "evidence_path", "node_id", "scope")
+            )
+        )
+    if mode == "shared":
+        if set(source) != {"node_id"}:
+            return False
+        primary = by_node.get(str(source.get("node_id")))
+        primary_record = primary.get("reuse") if isinstance(primary, dict) else None
+        return (
+            isinstance(primary, dict)
+            and primary is not entry
+            and isinstance(primary_record, dict)
+            and primary_record.get("mode") == "executed"
+            and primary_record.get("key") == key
+            and all(
+                primary.get(field) == entry.get(field)
+                for field in (
+                    "id",
+                    "argv",
+                    "cwd",
+                    "timeout_seconds",
+                    "kind",
+                    "status",
+                    "exit_code",
+                    "timed_out",
+                    "spawn_error",
+                    "stdout_sha256",
+                    "stderr_sha256",
+                )
+            )
+        )
+    return False
+
+
+def _reuse_reasons(
+    flow: Flow,
+    evidence: dict[str, Any],
+    *,
+    task_id: str | None,
+) -> list[str]:
+    """Validate reuse records against the current contracts.
+
+    Inputs are never rehashed here and the source run is never revisited: an
+    identical workspace already binds the recorded bytes, and freshness must
+    stay cheap enough for status and the Stop hook.
+    """
+    reasons: list[str] = []
+    graph_bound = _flow_graph_bound(flow)
+    pairs: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    expected_tasks = (
+        flow.tasks
+        if task_id is None
+        else [task for task in flow.tasks if task["id"] == task_id]
+    )
+    recorded_tasks = evidence.get("tasks")
+    if not isinstance(recorded_tasks, list):
+        recorded_tasks = []
+    for expected_task, recorded_task in zip(expected_tasks, recorded_tasks):
+        recorded_checks = (
+            recorded_task.get("checks") if isinstance(recorded_task, dict) else None
+        )
+        if not isinstance(recorded_checks, list):
+            continue
+        for expected_check, recorded_check in zip(
+            expected_task["checks"],
+            recorded_checks,
+        ):
+            if isinstance(recorded_check, dict):
+                pairs.append((expected_check, recorded_check))
+    recorded_project = evidence.get("project_checks")
+    if task_id is None and isinstance(recorded_project, list):
+        for check_id, recorded_check in zip(flow.required_checks, recorded_project):
+            if isinstance(recorded_check, dict):
+                pairs.append((flow.project_checks[check_id], recorded_check))
+
+    by_node = {str(entry.get("node_id")): entry for _, entry in pairs}
+    declared_in_scope = False
+    keys_by_contract: dict[str, set[str]] = {}
+    for check, entry in pairs:
+        label = str(entry.get("node_id") or check.get("id"))
+        if not graph_bound or check.get("reuse") is None:
+            if "reuse" in entry:
+                reasons.append(
+                    f"reuse record is not allowed for an undeclared check: {label}"
+                )
+            continue
+        declared_in_scope = True
+        if not _reuse_record_is_valid(entry, by_node):
+            reasons.append(f"reuse record is missing or invalid: {label}")
+            continue
+        key = entry["reuse"].get("key")
+        if isinstance(key, str):
+            keys_by_contract.setdefault(_check_contract_sha256(check), set()).add(key)
+    if any(len(keys) > 1 for keys in keys_by_contract.values()):
+        reasons.append("reuse keys disagree for one check contract")
+
+    summary = evidence.get("reuse")
+    if not declared_in_scope:
+        if "reuse" in evidence:
+            reasons.append("reuse summary is not allowed without a declared check")
+    elif (
+        not isinstance(summary, dict)
+        or not isinstance(summary.get("forced_fresh"), bool)
+        or summary != _reuse_summary(evidence, forced_fresh=summary["forced_fresh"])
+    ):
+        reasons.append("reuse summary does not match the recorded checks")
+    elif summary["forced_fresh"] and (summary["carried"] or summary["shared"]):
+        reasons.append("a forced fresh run must not carry or share a check")
     return reasons
 
 
@@ -8869,6 +9872,7 @@ def _pointer_freshness(
         reasons.append(f"harness-chain state is invalid: {exc}")
     reasons.extend(_inventory_reasons(flow, evidence, task_id=task_id))
     reasons.extend(_execution_reasons(flow, evidence, task_id=task_id))
+    reasons.extend(_reuse_reasons(flow, evidence, task_id=task_id))
     if "workspace" in current:
         recorded_workspace = evidence.get("workspace", {})
         if (
@@ -9212,6 +10216,9 @@ def _certify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int
         if flow.profile.name == "planning":
             certificate["project_profile"] = flow.profile.name
             certificate["artifacts"] = evidence["artifacts"]
+        if "reuse" in evidence:
+            # Name every carried or shared occurrence and its source run.
+            certificate["reuse"] = evidence["reuse"]
         if chain_approval is not None:
             certificate["chain"] = evidence.get("chain")
             certificate["gates"] = chain_gates
@@ -9606,6 +10613,7 @@ def _status_payload(
                     and certificate.get("workspace") == evidence.get("workspace")
                     and certificate.get("evidence_path") == evidence.get("evidence_path")
                     and certificate.get("evidence_sha256") == evidence_hash
+                    and certificate.get("reuse") == evidence.get("reuse")
                     and (
                         not _flow_graph_bound(flow)
                         or certificate.get("assurance_graph_sha256")
@@ -9970,6 +10978,12 @@ def _parser() -> argparse.ArgumentParser:
     scope = verify.add_mutually_exclusive_group(required=True)
     scope.add_argument("--task")
     scope.add_argument("--all", action="store_true", dest="all_checks")
+    verify.add_argument(
+        "--no-reuse",
+        action="store_true",
+        dest="no_reuse",
+        help="Execute every check occurrence instead of carrying or sharing a declared PASS",
+    )
     verify.add_argument("--json", action="store_true")
     verify.set_defaults(handler=_verify_command)
 

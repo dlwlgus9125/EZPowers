@@ -38,7 +38,14 @@ contract. New software plans use schema v2 and new planning-profile plans use
 schema v3. Both give every task an explicit `depends_on`
 array, and declare check concurrency only when independence has reproducible
 evidence; unproven checks remain unsafe barriers. Map every criterion exactly once and bind it to real named or inline
-project checks. Preserve frontend, accessibility, integration, and visual
+project checks. Declare `reuse` only for a check whose outcome is a function of
+Git-visible files. Start from a broad selection such as `**` minus
+documentation and narrow it only with repository evidence; always select the
+check's own script, runner configuration, and lockfiles. Leave a check
+undeclared when it depends on the network, the clock, environment variables,
+Git history, or another check's ignored output. Split a coarse command only
+into real existing commands whose union covers the original scope. An
+undeclared check referenced by several tasks runs once per reference. Preserve frontend, accessibility, integration, and visual
 oracles; missing tooling becomes an explicit prerequisite. For UI work,
 include code-to-DESIGN.md alignment and `check-project`. Reuse the exact
 required `ezpowers.design` check when registered; otherwise add it as a

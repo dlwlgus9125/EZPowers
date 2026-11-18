@@ -28,6 +28,7 @@ must remain stable across hosts and sessions:
 - a deterministic assurance graph derived from criteria, tasks, check
   occurrences, evidence, independent chain review, and certification;
 - check output, hashes, workspace freshness, certification, and resume state;
+- opt-in, content-bound reuse of a declared check's recorded PASS;
 - optional worktree-local session knowledge that has no completion authority;
 - explicit, hash-frozen feature approvals, bound independent-review receipts,
   and hard terminal limits when a harness chain is requested;
@@ -242,14 +243,32 @@ and, for plan-v2 evidence, the assurance-graph snapshot and hash. Config v2
 sets a bounded worker cap. Concurrency is per-check opt-in and is constrained
 by explicit resource locks, an implicit same-check lock, task dependencies,
 and a global barrier for every unmarked check. Task failures do not suppress
-downstream declared checks: all checks still run so the evidence remains
-complete. Required project checks remain a distinct phase after task checks.
+downstream declared checks: every declared occurrence still receives a result
+so the evidence remains complete. Required project checks remain a distinct
+phase after task checks.
 A bounded project-local lock serializes state writers, not the safe child
 checks within one verification run.
 `.ezpowers/state.json` holds only revalidated resume pointers; it never turns a
 stale result into PASS. Plan validation is read-only until execution explicitly
 activates a resume target. Task-scope pointers are independently revalidated
 for resume guidance but cannot promote the all-scope completion verdict.
+
+The all-scope record stays bound to the whole current workspace, but a check
+may opt in to content-bound reuse. A check that declares `reuse` path patterns
+binds its own PASS to its exact contract, the bytes of the matching
+Git-visible files, the installed-kit identity, the project profile and
+planning artifact inventory, the project root, and the platform rather than to
+every workspace byte. In a graph-bound flow the runtime may record that earlier
+real PASS for the current occurrence without running the command again. It
+copies the source logs into the new run and names the source run in the
+evidence and the certificate. Only a really executed PASS from a stable run is
+a source, a later executed failure of the same contract revokes it, and
+`verify --no-reuse` executes every occurrence. A declared check runs at most
+once per verification run however many occurrences reference it. A task-scope
+run can be a source, but a task-scope result still cannot certify. Undeclared
+checks, plan-v1 flows, and the harness-chain baseline always execute as before.
+The state file may hold a lazily created map that only locates candidate source
+records; the source evidence bytes remain the authority.
 
 ## Source Of Truth
 
@@ -284,6 +303,8 @@ for resume guidance but cannot promote the all-scope completion verdict.
   `docs/decisions/0008-project-profile-artifact-assurance.md`.
 - Plugin-only learning-skill catalog decision:
   `docs/decisions/0009-plugin-only-teach-skill.md`.
+- Content-bound check reuse decision:
+  `docs/decisions/0010-content-bound-check-reuse.md`.
 
 Human-readable Markdown may explain these contracts but must not duplicate or
 override the managed JSON values.

@@ -1,6 +1,6 @@
 # Setup Contract
 
-This contract defines installation of the self-contained v5.8 project kit.
+This contract defines installation of the self-contained v5.10 project kit.
 `setup` configures deterministic project checks and may stage the
 repository-aware documentation workflow defined by
 `documentation-contract.md`; it does not configure an external executor or
@@ -55,6 +55,8 @@ python <plugin-root>/scripts/ezpowers.py install --project-root <project> --refr
 
 An older v5 installation does not update implicitly. The explicit refresh
 changes the installed kit identity and makes prior completion evidence stale.
+Because the kit identity is part of every reuse key, it also invalidates every
+content-bound reuse candidate.
 If any managed target differs from its ledger hash, refresh reports every
 conflict and writes none of the replacement set.
 
@@ -205,8 +207,16 @@ or opaque command forms, and `cmd /K` are invalid. A literal operator-looking
 argument passed to an ordinary direct executable is not treated as a shell
 pipeline.
 
+`reuse` is an optional v2/v3 check field governed by `plan-contract.md` and
+`verification-contract.md`. Register it only when repository evidence shows
+which Git-visible paths the check reads; never infer it from a command name,
+and never add it to the runtime-registered `ezpowers.docs` or
+`ezpowers.design` checks.
+
 Every `required_checks` entry must name a check in `checks`. Required checks
-run in addition to every plan task check during `verify --all`.
+are verified in addition to every plan task check during `verify --all`; a
+required check that declares `reuse` is carried or shared under the
+verification contract instead of executing again.
 
 ## State Initialization
 
@@ -219,7 +229,10 @@ the caller supplies `--activate`; that explicit transition changes the resume
 target and invalidates pointers only when the selected plan changes.
 The same file initializes empty chain host handshakes, gate receipts, and run
 state. Those inert fields do not activate a chain or change ordinary
-verification.
+verification. A `reuse_candidates` map appears only after a check that
+declares `reuse` has really passed. It only locates candidate source records,
+is revalidated against the evidence on every use, is ignored when malformed,
+and is cleared by a profile change or a chain feature apply.
 
 ## Explicit Harness Chain
 

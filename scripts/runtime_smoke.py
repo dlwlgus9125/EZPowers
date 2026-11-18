@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the installed EZPowers v5.8 graph-bound flow in a disposable project."""
+"""Exercise the installed EZPowers v5.10 graph-bound and reuse flow in a disposable project."""
 
 from __future__ import annotations
 
@@ -136,7 +136,27 @@ def smoke() -> None:
                                         "safe": True,
                                         "resource_locks": [],
                                     },
-                                }
+                                    "reuse": {
+                                        "paths": ["smoke_math.py", "tests/**"],
+                                    },
+                                },
+                                {
+                                    "id": "syntax-probe",
+                                    "argv": [
+                                        sys.executable,
+                                        "-c",
+                                        "import ast, pathlib; "
+                                        "ast.parse(pathlib.Path('smoke_math.py')"
+                                        ".read_text(encoding='utf-8'))",
+                                    ],
+                                    "cwd": ".",
+                                    "timeout_seconds": 10,
+                                    "kind": "static",
+                                    "concurrency": {
+                                        "safe": True,
+                                        "resource_locks": [],
+                                    },
+                                },
                             ],
                         }
                     ],
@@ -230,14 +250,73 @@ def smoke() -> None:
         if "workspace" not in " ".join(json.loads(stale.stdout).get("reasons", [])).lower():
             raise RuntimeError("workspace mutation did not invalidate evidence")
 
+        def verify_modes(*extra: str) -> tuple[dict, dict[str, str | None]]:
+            completed = run(
+                [
+                    sys.executable,
+                    str(runtime),
+                    "verify",
+                    "--plan",
+                    str(plan_path),
+                    "--all",
+                    *extra,
+                    "--json",
+                ],
+                root,
+            )
+            payload = json.loads(completed.stdout)
+            return payload, {
+                check["id"]: (check.get("reuse") or {}).get("mode")
+                for check in payload["tasks"][0]["checks"]
+            }
+
+        # source.txt is outside the declared paths, so the unit test is carried
+        # from the first run while the undeclared probe executes again.
+        carried, carried_modes = verify_modes()
+        if carried.get("status") != "PASS" or carried_modes != {
+            "real-unit-test": "carried",
+            "syntax-probe": None,
+        }:
+            raise RuntimeError("unchanged declared content was not carried")
+        recertified = run(
+            [sys.executable, str(runtime), "certify", "--plan", str(plan_path), "--json"],
+            root,
+        )
+        carried_certificate = json.loads(
+            (root / json.loads(recertified.stdout)["certificate_path"]).read_text(
+                encoding="utf-8"
+            )
+        )
+        carried_sources = [
+            item.get("source_run_id")
+            for item in carried_certificate.get("reuse", {}).get("carried", [])
+        ]
+        if carried_sources != [evidence.get("run_id")]:
+            raise RuntimeError("the certificate did not name the carried check's source run")
+
+        (root / "smoke_math.py").write_text(
+            "def add(left, right):\n    total = left + right\n    return total\n",
+            encoding="utf-8",
+        )
+        _, changed_modes = verify_modes()
+        if changed_modes.get("real-unit-test") != "executed":
+            raise RuntimeError("a changed declared path did not re-execute its check")
+        forced, forced_modes = verify_modes("--no-reuse")
+        if (
+            forced_modes.get("real-unit-test") != "executed"
+            or forced.get("reuse", {}).get("forced_fresh") is not True
+            or forced.get("reuse", {}).get("carried")
+        ):
+            raise RuntimeError("--no-reuse did not execute every declared check")
+
 
 def main() -> int:
     try:
         smoke()
     except Exception as exc:
-        print(f"[FAIL] EZPowers v5.8 runtime smoke: {exc}", file=sys.stderr)
+        print(f"[FAIL] EZPowers v5.10 runtime smoke: {exc}", file=sys.stderr)
         return 1
-    print("[PASS] EZPowers v5.8 install -> trace -> verify -> certify -> stale flow")
+    print("[PASS] EZPowers v5.10 install -> trace -> verify -> certify -> stale -> reuse flow")
     return 0
 
 
