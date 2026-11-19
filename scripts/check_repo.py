@@ -127,7 +127,7 @@ OBSOLETE_REFERENCES = (
     "testing-methodology.md",
 )
 
-PROJECT_KIT_MANIFEST = pathlib.Path("project-kit/v5.12.0/manifest.json")
+PROJECT_KIT_MANIFEST = pathlib.Path("project-kit/v5.12.1/manifest.json")
 PROJECT_KIT_VERIFIER = pathlib.Path("scripts/verify-harness-kit.py")
 
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")

@@ -1,3 +1,4 @@
+import contextlib
 import importlib.util
 import hashlib
 import json
@@ -8,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import time
 import unittest
 
 
@@ -84,6 +86,55 @@ def gate_marker(challenge: str, verdict: str = "PASS") -> str:
         "```\n"
         "<!-- ezpowers:gate:end -->"
     )
+
+
+@contextlib.contextmanager
+def held_lock(path: pathlib.Path):
+    # Hold a runtime lock file from this process the way the runtime holds it
+    # on this platform.
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a+b") as stream:
+        stream.seek(0, os.SEEK_END)
+        if stream.tell() == 0:
+            stream.write(b"\0")
+            stream.flush()
+        stream.seek(0)
+        if os.name == "nt":
+            import msvcrt
+
+            msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            yield
+        finally:
+            stream.seek(0)
+            if os.name == "nt":
+                msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+
+
+# Product code whose import waits until the test lets the check go. The signal
+# files live outside the project, so they never change its workspace.
+GATED_APP = textwrap.dedent(
+    """
+    import pathlib
+    import time
+
+    _signals = pathlib.Path({signals!r})
+    (_signals / "started").write_text("x", encoding="utf-8")
+    _deadline = time.time() + 25
+    while not (_signals / "release").exists() and time.time() < _deadline:
+        time.sleep(0.05)
+
+
+    def value():
+        return 5
+    """
+).lstrip()
 
 
 # The entry Claude Code 2.1.327 reports on Stop while a background subagent
@@ -3709,6 +3760,484 @@ class HarnessChainTests(unittest.TestCase):
                 "abandoned",
                 state["chain_gates"]["consumed"][f"oracle-audit:{other}"],
             )
+
+    def gated_code_review(
+        self,
+        project: ChainProject,
+        signals: pathlib.Path,
+        *,
+        review_retries: int = 3,
+    ) -> str:
+        # running_code_review with a check that waits until the test lets it
+        # go. The release file is present, so this first verification is quick.
+        project.configure(
+            limits={
+                "total_iterations": 10,
+                "qa_cycles": 5,
+                "validation_retries": 3,
+                "review_retries": review_retries,
+                "identical_error_repeats": 3,
+            }
+        )
+        project.approve_and_activate(project.write_run_bundle())
+        (project.root / "app.py").write_text(
+            GATED_APP.format(signals=str(signals)),
+            encoding="utf-8",
+        )
+        (signals / "release").write_text("x", encoding="utf-8")
+        self.verify_all(project)
+        begin = self.begin_gate(project, "code-review", self.latest_evidence(project))
+        project.assert_success(begin)
+        return json.loads(begin.stdout)["challenge_id"]
+
+    @contextlib.contextmanager
+    def gated_verify(
+        self,
+        project: ChainProject,
+        signals: pathlib.Path,
+        *scope: str,
+    ):
+        # A real verify whose check keeps running until the block ends. State
+        # is read here only while no runtime process can be writing it.
+        for name in ("release", "started"):
+            (signals / name).unlink(missing_ok=True)
+        plan = project.state_value()["chain_run"]["plan_path"]
+        environment = dict(os.environ)
+        environment.pop("PYTHONPATH", None)
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                str(project.runtime),
+                "verify",
+                "--plan",
+                str(project.root / plan),
+                *scope,
+                "--json",
+            ],
+            cwd=project.root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=environment,
+        )
+        result: dict = {}
+        try:
+            deadline = time.time() + 20
+            while not (signals / "started").exists():
+                if process.poll() is not None or time.time() > deadline:
+                    raise AssertionError("verify did not reach its check")
+                time.sleep(0.05)
+            yield result
+        finally:
+            (signals / "release").write_text("x", encoding="utf-8")
+            out, err = process.communicate(timeout=90)
+            result.update(code=process.returncode, stdout=out, stderr=err)
+
+    def test_report_during_verify_is_stored_then_becomes_a_receipt(self) -> None:
+        # Claude Code delivers a background reviewer's hooks while the main
+        # agent's verify is still running (recorded on 2.1.327).
+        with tempfile.TemporaryDirectory() as temp_dir, tempfile.TemporaryDirectory() as signal_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            signals = pathlib.Path(signal_dir)
+            challenge = self.gated_code_review(project, signals)
+            evidence = self.latest_evidence(project)
+            self.reviewer_event(project, "SubagentStart", "reviewer-1")
+
+            with self.gated_verify(project, signals, "--task", "T1") as verify:
+                self.assertEqual(
+                    {},
+                    self.hand_back(project, "reviewer-1", gate_marker(challenge)),
+                )
+                # No verdict while the check runs: the report waits on the gate.
+                during = project.state_value()
+                pending = during["chain_gates"]["pending"]
+                self.assertEqual("reviewer-1", pending["bound_agent_id"])
+                self.assertIn("ezpowers:gate:start", pending["handback"]["message"])
+                self.assertNotIn(
+                    f"code-review:{evidence}",
+                    during["chain_gates"]["receipts"],
+                )
+                self.assertEqual(
+                    0,
+                    during["chain_run"]["counters"]["review_failures"],
+                )
+            self.assertEqual(0, verify["code"], verify["stdout"] + verify["stderr"])
+
+            after = project.state_value()
+            self.assertIsNone(after["chain_gates"]["pending"])
+            self.assertIn(f"code-review:{evidence}", after["chain_gates"]["receipts"])
+            self.assertEqual(0, after["chain_run"]["counters"]["review_failures"])
+            self.assertEqual(evidence, self.latest_evidence(project))
+            self.assertIn("Run certify", self.stop_reason(project))
+
+    def test_reviewer_start_and_frozen_guard_work_during_verify(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, tempfile.TemporaryDirectory() as signal_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            signals = pathlib.Path(signal_dir)
+            challenge = self.gated_code_review(project, signals)
+
+            with self.gated_verify(project, signals, "--task", "T1") as verify:
+                started = self.reviewer_event(project, "SubagentStart", "reviewer-1")
+                self.assertIn(
+                    challenge,
+                    started["hookSpecificOutput"]["additionalContext"],
+                )
+                self.assertEqual(
+                    "reviewer-1",
+                    self.pending_gate(project)["bound_agent_id"],
+                )
+                denied = self.pretool(
+                    project,
+                    "claude",
+                    "Write",
+                    {
+                        "file_path": str(project.root / "tests" / "test_demo_run.py"),
+                        "content": "tampered\n",
+                    },
+                )
+                self.assertEqual(
+                    "deny",
+                    denied["hookSpecificOutput"]["permissionDecision"],
+                )
+            self.assertEqual(0, verify["code"], verify["stdout"] + verify["stderr"])
+
+    def test_stop_during_verify_is_a_wait_and_a_second_command_is_busy(self) -> None:
+        # Unchanged behavior: commands still exclude each other, and a Stop
+        # that meets a running command is neither blocked nor counted.
+        with tempfile.TemporaryDirectory() as temp_dir, tempfile.TemporaryDirectory() as signal_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            signals = pathlib.Path(signal_dir)
+            self.gated_code_review(project, signals)
+
+            with self.gated_verify(project, signals, "--task", "T1") as verify:
+                stop = project.stop_event()
+                project.assert_success(stop)
+                self.assertEqual({}, json.loads(stop.stdout))
+                busy = project.command("chain", "run", "status", "--json")
+                self.assertEqual(2, busy.returncode, busy.stdout + busy.stderr)
+                self.assertIn("runtime is busy", busy.stdout + busy.stderr)
+            self.assertEqual(0, verify["code"], verify["stdout"] + verify["stderr"])
+            self.assertEqual(
+                0,
+                project.state_value()["chain_run"]["counters"]["iterations"],
+            )
+
+    def test_stored_report_is_judged_after_its_command_ended_without_judging(
+        self,
+    ) -> None:
+        # A verification that is killed never reaches the point where it
+        # judges the report it left on the gate.
+        judges = {
+            "Stop": self.stop_reason,
+            "chain run status": self.next_action,
+        }
+        for name, judge in judges.items():
+            with self.subTest(judged_by=name), tempfile.TemporaryDirectory() as temp_dir:
+                project = self.make_project(pathlib.Path(temp_dir))
+                challenge = self.running_code_review(project, review_retries=3)
+                evidence = self.latest_evidence(project)
+                with held_lock(project.root / ".ezpowers" / "runtime.lock"):
+                    self.assertEqual(
+                        {},
+                        self.hand_back(project, "reviewer-1", gate_marker(challenge)),
+                    )
+                    self.assertEqual(
+                        "reviewer-1",
+                        self.pending_gate(project)["bound_agent_id"],
+                    )
+                self.assertIn("Run certify", judge(project))
+                state = project.state_value()
+                self.assertIsNone(state["chain_gates"]["pending"])
+                self.assertIn(
+                    f"code-review:{evidence}",
+                    state["chain_gates"]["receipts"],
+                )
+                self.assertEqual(0, state["chain_run"]["counters"]["review_failures"])
+
+    def test_rejected_stored_report_releases_its_reviewer_inside_a_run(self) -> None:
+        # The reviewer has stopped by the time its report is judged, so it
+        # cannot be told to correct it, whatever the host.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            self.running_code_review(project, review_retries=3)
+            self.reviewer_event(project, "SubagentStart", "reviewer-1")
+            with held_lock(project.root / ".ezpowers" / "runtime.lock"):
+                self.assertEqual(
+                    {},
+                    self.stop_with_message(project, "reviewer-1", "Looks good to me."),
+                )
+
+            reason = self.stop_reason(project)
+            self.assertIn("code-review receipt was rejected", reason)
+            self.assertIn("exactly one structured gate marker", reason)
+            self.assertIn("Spawn one new independent reviewer", reason)
+            state = project.state_value()
+            self.assertIsNone(state["chain_gates"]["pending"]["bound_agent_id"])
+            self.assertEqual(1, state["chain_run"]["counters"]["review_failures"])
+
+    def test_stored_audit_report_follows_the_one_replacement_rule(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            subject = self.preview_hash(project, project.write_run_bundle())
+            lock = project.root / ".ezpowers" / "runtime.lock"
+
+            project.assert_success(self.begin_gate(project, "oracle-audit", subject))
+            self.reviewer_event(project, "SubagentStart", "first")
+            with held_lock(lock):
+                self.assertEqual(
+                    {},
+                    self.stop_with_message(project, "first", "Looks good to me."),
+                )
+            begin = self.begin_gate(project, "oracle-audit", subject)
+            project.assert_success(begin)
+            answer = json.loads(begin.stdout)
+            self.assertIsNone(answer["bound_agent_id"])
+            self.assertEqual("REJECTED", answer["previous_receipt"]["status"])
+            self.assertIn("only replacement", answer["next_step"])
+
+            self.reviewer_event(project, "SubagentStart", "second")
+            with held_lock(lock):
+                self.assertEqual(
+                    {},
+                    self.stop_with_message(project, "second", "Still no marker."),
+                )
+            closed = self.begin_gate(project, "oracle-audit", subject)
+            self.assertEqual(2, closed.returncode, closed.stdout + closed.stderr)
+            self.assertIn(
+                "no valid oracle-audit receipt",
+                closed.stdout + closed.stderr,
+            )
+
+    def test_stored_stop_is_judged_the_same_way_on_codex(self) -> None:
+        # Codex reports through the SubagentStop message and normally keeps a
+        # rejected reviewer bound for a correction. A recorded stop cannot be
+        # corrected there either.
+        def codex_event(project: ChainProject, name: str, agent_id: str, **fields: object) -> dict:
+            result = project.hook(
+                "codex",
+                {
+                    "hook_event_name": name,
+                    "session_id": "codex-session",
+                    "cwd": str(project.root),
+                    "agent_id": agent_id,
+                    "agent_type": "worker",
+                    **fields,
+                },
+            )
+            project.assert_success(result)
+            return json.loads(result.stdout)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            subject = self.preview_hash(project, project.write_run_bundle())
+            lock = project.root / ".ezpowers" / "runtime.lock"
+
+            begin = self.begin_gate(project, "oracle-audit", subject)
+            project.assert_success(begin)
+            challenge = json.loads(begin.stdout)["challenge_id"]
+            codex_event(project, "SubagentStart", "first")
+            with held_lock(lock):
+                self.assertEqual(
+                    {},
+                    codex_event(
+                        project,
+                        "SubagentStop",
+                        "first",
+                        last_assistant_message="No marker here.",
+                        stop_hook_active=False,
+                    ),
+                )
+            answer = self.begin_gate(project, "oracle-audit", subject)
+            project.assert_success(answer)
+            self.assertIsNone(json.loads(answer.stdout)["bound_agent_id"])
+
+            codex_event(project, "SubagentStart", "second")
+            with held_lock(lock):
+                self.assertEqual(
+                    {},
+                    codex_event(
+                        project,
+                        "SubagentStop",
+                        "second",
+                        last_assistant_message=gate_marker(challenge),
+                        stop_hook_active=False,
+                    ),
+                )
+            done = self.begin_gate(project, "oracle-audit", subject)
+            self.assertEqual(2, done.returncode, done.stdout + done.stderr)
+            self.assertIn(
+                "already has an independent oracle-audit PASS",
+                done.stdout + done.stderr,
+            )
+            receipt = project.state_value()["chain_gates"]["receipts"][
+                f"oracle-audit:{subject}"
+            ]
+            self.assertEqual("PASS", receipt["verdict"])
+
+    def test_pass_for_superseded_evidence_does_not_satisfy_the_gate(self) -> None:
+        # The main agent verified again while the review of the earlier
+        # evidence was running. That review cannot certify the new evidence.
+        with tempfile.TemporaryDirectory() as temp_dir, tempfile.TemporaryDirectory() as signal_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            signals = pathlib.Path(signal_dir)
+            challenge = self.gated_code_review(project, signals)
+            reviewed = self.latest_evidence(project)
+            self.reviewer_event(project, "SubagentStart", "reviewer-1")
+
+            with self.gated_verify(project, signals, "--all") as verify:
+                self.assertEqual(
+                    {},
+                    self.hand_back(project, "reviewer-1", gate_marker(challenge)),
+                )
+            self.assertEqual(0, verify["code"], verify["stdout"] + verify["stderr"])
+
+            state = project.state_value()
+            self.assertNotEqual(reviewed, self.latest_evidence(project))
+            self.assertIsNone(state["chain_gates"]["pending"])
+            self.assertIn(f"code-review:{reviewed}", state["chain_gates"]["receipts"])
+            self.assertIsNone(state["chain_run"]["gates"]["code-review"])
+            self.assertEqual(0, state["chain_run"]["counters"]["review_failures"])
+            self.assertEqual(
+                "Begin a fresh independent code-review gate.",
+                self.next_action(project),
+            )
+            fresh = self.begin_gate(project, "code-review", self.latest_evidence(project))
+            project.assert_success(fresh)
+            self.assertNotEqual(challenge, json.loads(fresh.stdout)["challenge_id"])
+
+    def test_fail_during_an_all_scope_verify_still_requires_rework(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, tempfile.TemporaryDirectory() as signal_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            signals = pathlib.Path(signal_dir)
+            challenge = self.gated_code_review(project, signals)
+            self.reviewer_event(project, "SubagentStart", "reviewer-1")
+
+            with self.gated_verify(project, signals, "--all") as verify:
+                self.assertEqual(
+                    {},
+                    self.hand_back(
+                        project,
+                        "reviewer-1",
+                        gate_marker(challenge, "FAIL"),
+                    ),
+                )
+            self.assertEqual(0, verify["code"], verify["stdout"] + verify["stderr"])
+
+            state = project.state_value()
+            self.assertEqual(1, state["chain_run"]["counters"]["review_failures"])
+            self.assertEqual(
+                "Implement the approved plan, then run verify --all.",
+                self.next_action(project),
+            )
+            again = project.command(
+                "verify",
+                "--plan",
+                str(project.root / state["chain_run"]["plan_path"]),
+                "--all",
+                "--json",
+            )
+            self.assertEqual(2, again.returncode, again.stdout + again.stderr)
+            self.assertIn("product rework is required", again.stdout + again.stderr)
+
+    def test_state_lock_and_state_temp_files_stay_outside_the_fingerprint(
+        self,
+    ) -> None:
+        # A hook may save state, and so leave its lock file and for a moment
+        # its temporary file, while a verification takes its snapshots.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            challenge = self.running_code_review(project, review_retries=3)
+            self.assertEqual(
+                {},
+                self.hand_back(project, "reviewer-1", gate_marker(challenge)),
+            )
+            self.assertTrue((project.root / ".ezpowers" / "state.lock").is_file())
+            (project.root / ".ezpowers" / ".state.json.pending").write_text(
+                "{}",
+                encoding="utf-8",
+            )
+            certified = project.command(
+                "certify",
+                "--plan",
+                str(project.root / project.state_value()["chain_run"]["plan_path"]),
+                "--json",
+            )
+            project.assert_success(certified)
+            self.assertEqual(
+                "CERTIFIED",
+                project.state_value()["chain_run"]["status"],
+            )
+
+    def test_baseline_preview_does_not_read_the_held_state_lock(self) -> None:
+        # On Windows another process cannot read a lock file that is held, and
+        # every hook call holds this one.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle()
+            with held_lock(project.root / ".ezpowers" / "state.lock"):
+                preview = self.audit_preview(project, bundle)
+            self.assertEqual(4, preview.returncode, preview.stdout + preview.stderr)
+            self.assertEqual("REVIEW_REQUIRED", json.loads(preview.stdout)["status"])
+
+    def test_ending_a_challenge_judges_a_stored_stop_first(self) -> None:
+        # ADR 0013: a report that has arrived is judged, not dropped.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            challenge = self.running_code_review(project, review_retries=3)
+            with held_lock(project.root / ".ezpowers" / "runtime.lock"):
+                self.assertEqual(
+                    {},
+                    self.hand_back(project, "reviewer-1", gate_marker(challenge)),
+                )
+            abandoned = self.gate_abandon(project)
+            project.assert_success(abandoned)
+            answer = json.loads(abandoned.stdout)
+            self.assertEqual("RESOLVED", answer["status"])
+            self.assertEqual("PASS", answer["verdict"])
+            self.assertEqual(
+                0,
+                project.state_value()["chain_run"]["counters"]["review_failures"],
+            )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle()
+            approved = self.preview_hash(project, bundle)
+            project.complete_gate("oracle-audit", subject_sha256=approved)
+            other = self.preview_hash(
+                project,
+                project.write_run_bundle(run_id="second-run"),
+            )
+            begin = self.begin_gate(project, "oracle-audit", other)
+            project.assert_success(begin)
+            with held_lock(project.root / ".ezpowers" / "runtime.lock"):
+                self.assertEqual(
+                    {},
+                    self.hand_back(
+                        project,
+                        "other-reviewer",
+                        gate_marker(json.loads(begin.stdout)["challenge_id"]),
+                    ),
+                )
+            applied = project.command(
+                "chain",
+                "run",
+                "apply",
+                "--bundle",
+                str(bundle),
+                "--preview-sha256",
+                approved,
+                "--json",
+            )
+            project.assert_success(applied)
+            state = project.state_value()
+            self.assertIsNone(state["chain_gates"]["pending"])
+            self.assertIn(f"oracle-audit:{other}", state["chain_gates"]["receipts"])
+            self.assertNotIn(f"oracle-audit:{other}", state["chain_gates"]["consumed"])
 
     def test_rejection_reason_is_one_bounded_ascii_line(self) -> None:
         # The reason is repeated to the main agent as an instruction, so it

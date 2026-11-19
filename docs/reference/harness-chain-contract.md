@@ -147,6 +147,10 @@ session when that subagent reports. Background shells and monitors never defer
 a Stop. A reviewer that never reports therefore leaves the run waiting; the
 runtime does not time it out.
 
+A Stop that meets a running command of the project, in practice a
+verification, is neither blocked nor counted on either host. The hook waits
+one second for the command lock and does not judge the run without it.
+
 After feature approval, normal product edits and retries inside the approved
 limits need no additional human approval. Host-owned permission boundaries
 still apply.
@@ -235,6 +239,28 @@ rejection counts as a review failure and the approved review limit ends the
 run. Before a run nothing counts: an oracle audit allows one replacement, and
 a second rejected hand-back closes that preview exactly as a bound audit
 `FAIL` does.
+
+### Reports during a verification
+
+Chain hooks keep working while a verification runs its checks. A reviewer
+that starts is bound and receives its rubric, its hand-back is kept, and
+frozen files stay guarded.
+
+A verdict is taken only under the command lock, which a verification holds for
+its whole run. The bound reviewer's SubagentStop that arrives meanwhile is
+therefore recorded on the challenge and judged afterwards: by that
+verification when it ends, after it recorded its own result, and otherwise by
+the next Stop, `chain gate begin`, `chain gate abandon`, `chain run apply`,
+`chain run status`, `certify`, or `verify`. No receipt and no rework
+requirement stores a workspace snapshot taken while a check runs.
+
+A recorded report can no longer be corrected, because its reviewer has
+stopped. Its rejection releases the binding for a new reviewer on every host,
+with the counting and the one-replacement bound of a rejected hand-back.
+
+A `PASS` receipt whose subject is no longer the run's latest all-scope
+verification is stored but does not satisfy the run's gate. The next action
+asks for a fresh gate.
 
 ### Challenge lifecycle
 
@@ -358,11 +384,13 @@ except while a background subagent is still running. A deferred Stop is not a
 continuation event and does not increment `iterations`.
 Codex Stop does not continue work because the native goal is authoritative.
 Both permit the host to stop at terminal state. A chain hook that cannot read
-runtime state degrades to a fail-safe no-op response with exit 0 instead of
-blocking: a corrupt loop dies rather than wedging the session, and the
-authoritative contract checks still gate verification, review, and
-certification. Resume uses repository state
-and hashed artifacts, never conversation memory.
+runtime state, or cannot take the state lock within one second, degrades to a
+fail-safe no-op response with exit 0 instead of blocking. `verify` holds that
+lock only around its reads and writes of state; every other command holds it
+for its whole run. A corrupt loop dies rather than wedging the session, and
+the authoritative contract checks still gate verification, review, and
+certification. Resume uses repository state and hashed artifacts, never
+conversation memory.
 
 Terminal states do not grant authority to weaken checks, repair evidence,
 silently expand scope, change global configuration, or request approval merely

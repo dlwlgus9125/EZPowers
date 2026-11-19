@@ -288,10 +288,19 @@ and installation snapshots must match.
 
 `.ezpowers/state.json` stores the active plan and pointers to the latest task,
 all-scope, and certificate artifacts. The pointer repeats the evidence hash;
-state never substitutes for the artifact it points to. A bounded
-`.ezpowers/runtime.lock` serializes installation, verification, certification,
-and other state-writing commands; the lock itself is excluded from the
-workspace fingerprint.
+state never substitutes for the artifact it points to.
+
+Two bounded locks keep that state consistent. `.ezpowers/runtime.lock` is the
+command lock: installation, verification, certification, and every other
+state-writing command hold it for their whole run, so a second command fails
+with a busy result. `.ezpowers/state.lock` guards each read-modify-write of
+`.ezpowers/state.json`. A command holds it too, except that `verify` holds it
+only from each read of state to the save that follows. Host hooks need the
+state lock alone to bind a reviewer, keep its report, and guard frozen files,
+so those keep working while a verification runs its checks; a Stop and a
+review verdict also take the command lock. What a verification executes and
+records does not depend on them. Both lock files and the temporary file of a
+state write are excluded from the workspace fingerprint.
 
 ## Freshness And Tamper Detection
 
@@ -448,7 +457,8 @@ The shared deterministic verdict does not imply identical continuation:
 - Claude Stop blocks a nonterminal RUNNING stop and reports the next
   evidence-backed action. It is that run's sole continuation authority. A Stop
   that arrives while a background subagent is still running is a wait: it
-  neither blocks nor counts.
+  neither blocks nor counts. Neither does a Stop that meets a running command
+  such as a verification.
 - Codex continuation belongs to one native goal. Codex Stop does not continue
   a nonterminal run; at a terminal state it emits a hook-run terminal brake.
 - both hosts use SessionStart to bind installed hook identity and the current
@@ -457,6 +467,9 @@ The shared deterministic verdict does not imply identical continuation:
   mode is read from the first later event that reports it, and a bound
   reviewer's report may arrive through a `SubagentHandback` tool call instead
   of SubagentStop.
+- those hooks keep working while a verification runs its checks, but a review
+  verdict is taken only under the command lock. A reviewer's stop that arrives
+  meanwhile is recorded and judged when the verification has ended.
 
 Runtime hash checks, evidence freshness, receipt sidecars, and hard counters
 remain authoritative. A hook response alone cannot certify completion.

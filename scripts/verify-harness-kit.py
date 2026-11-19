@@ -11,8 +11,8 @@ import re
 import subprocess
 
 
-VERSION = "5.12.0"
-MANIFEST = "project-kit/v5.12.0/manifest.json"
+VERSION = "5.12.1"
+MANIFEST = "project-kit/v5.12.1/manifest.json"
 PROJECT_SKILLS = {
     "codebase-design",
     "setup",

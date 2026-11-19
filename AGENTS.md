@@ -141,7 +141,7 @@ has explicitly approved a design-contract change.
 - Local supporting knowledge: `.ezpowers/wiki/`
 - Resume/evidence pointer: `.ezpowers/state.json`
 - Runtime: `scripts/ezpowers.py`
-- Distribution manifest: `project-kit/v5.12.0/manifest.json`
+- Distribution manifest: `project-kit/v5.12.1/manifest.json`
 - Specs and plans: `docs/specs/`, `docs/plans/`
 - Canonical contracts: `docs/reference/*-contract.md`
 - Product state: `PROGRESS.md`, `feature_list.json`

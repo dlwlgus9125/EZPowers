@@ -251,8 +251,20 @@ and answer recorded):
   The host shows it as a notice that begins "Stop says:".
 - A Stop hook that exits 1 with nothing on stdout does not block. The host
   shows a generic "stop hook reported a problem" notice.
+- While the main agent's foreground shell call is still running, the host
+  delivers the hooks of a background subagent: its PreToolUse events, its
+  `SubagentHandback`, and its SubagentStop (chain hooks, recorded the same
+  day).
 
 Doc-verified on 2026-11-19:
+
+- Claude documents 600 seconds as the default timeout of a command hook on
+  most events, a timed-out command hook as cancelled with no decision, a
+  timed-out PreToolUse command hook as not blocking the call, and a timed-out
+  Stop or SubagentStop hook as no decision, in
+  [Hooks reference](https://code.claude.com/docs/en/hooks) and
+  [Automate workflows with hooks](https://code.claude.com/docs/en/hooks-guide).
+  EZPowers installs its chain hook with a 30 second timeout.
 
 - Claude documents a hook that exits with a code other than 0 or 2, or prints
   JSON that cannot be parsed, as a non-blocking error, and `systemMessage` as
@@ -310,8 +322,11 @@ Unverified:
   the frozen-file guard classification, taking the mode from a later event
   when SessionStart reported none, UTF-8 hook input with ASCII answers, the
   code-review rubric wording, the comparison of installed matchers, a
-  finished run no longer ending a pending oracle audit, and the v5.12.0
-  review challenge lifecycle with its rejection notice.
+  finished run no longer ending a pending oracle audit, the v5.12.0
+  review challenge lifecycle with its rejection notice, and the v5.12.1
+  runtime locks with the review report that is recorded during a verification
+  and judged after it. Whether Codex delivers a subagent's hooks while the
+  main agent's command runs was not observed.
 - The ordinary completion hook was not run on a live Codex host. Whether
   Codex shows a Stop answer that carries only `systemMessage`, and what it
   does with a Stop hook that exits with an error, comes from its

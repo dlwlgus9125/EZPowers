@@ -250,7 +250,10 @@ Start the reviewer in the foreground when the host lets you choose. If it runs
 in the background, end your turn and wait: on Claude Code the Stop hook neither
 blocks nor counts while a background subagent is running, and the host resumes
 the session when it reports. Do not begin another gate, rerun verification, or
-start a second reviewer while one is bound. If a receipt is rejected, the same
+start a second reviewer while one is bound. A report that arrives while a
+verification is running is kept and judged when that verification ends, so do
+not abandon its reviewer; a new all-scope verification still makes the review
+moot, because its receipt is for the earlier evidence. If a receipt is rejected, the same
 `chain gate begin` command reports it as `previous_receipt` with the reason
 and a `next_step`, and inside a run the Stop reason says the same. When it
 then shows no `bound_agent_id`, the first reviewer could not be continued:

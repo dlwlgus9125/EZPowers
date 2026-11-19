@@ -201,6 +201,9 @@ dependencies never assign implementation work or select an agent.
   closes the audited preview or counts a review failure.
 - After a rejected review receipt the main agent is told what was rejected,
   why, and what to do next.
+- A reviewer's report that arrives while a verification is running is not
+  lost: the chain hooks keep working during the checks, and the report is
+  judged once the verification has ended.
 - The frozen-file guard never blocks the runtime's own verification commands
   and denies direct writes through every tool it inspects.
 - Removed orchestration concepts have no live reference or advertised flow.

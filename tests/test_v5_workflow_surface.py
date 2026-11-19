@@ -134,7 +134,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             self.assertNotIn("stress-test", metadata)
 
         manifest = json.loads(
-            (REPO_ROOT / "project-kit" / "v5.12.0" / "manifest.json").read_text(
+            (REPO_ROOT / "project-kit" / "v5.12.1" / "manifest.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -158,7 +158,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertFalse((REPO_ROOT / "harness-kit").exists())
         self.assertFalse((REPO_ROOT / "phases").exists())
         self.assertFalse((REPO_ROOT / ".harness").exists())
-        self.assertTrue((REPO_ROOT / "project-kit" / "v5.12.0" / "manifest.json").is_file())
+        self.assertTrue((REPO_ROOT / "project-kit" / "v5.12.1" / "manifest.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "config.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "state.json").is_file())
 
@@ -223,7 +223,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.12.0"
+                / "v5.12.1"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -471,7 +471,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.12.0"
+                / "v5.12.1"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -527,7 +527,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertIn("Copyright (c) 2026 Matt Pocock", license_text)
 
         manifest_text = (
-            REPO_ROOT / "project-kit" / "v5.12.0" / "manifest.json"
+            REPO_ROOT / "project-kit" / "v5.12.1" / "manifest.json"
         ).read_text(encoding="utf-8")
         manifest = json.loads(manifest_text)
         self.assertNotIn("teach", {entry["name"] for entry in manifest["skills"]})
@@ -809,6 +809,74 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         ):
             self.assertIn(phrase, decision)
 
+    def test_hooks_during_verification_are_described_consistently(self) -> None:
+        def text(*parts: str) -> str:
+            return " ".join(
+                REPO_ROOT.joinpath(*parts).read_text(encoding="utf-8").split()
+            )
+
+        verification = text("docs", "reference", "verification-contract.md")
+        for phrase in (
+            "`.ezpowers/runtime.lock` is the command lock",
+            "`.ezpowers/state.lock` guards each read-modify-write",
+            "only from each read of state to the save that follows",
+            "Host hooks need the state lock alone to bind a reviewer",
+            "a Stop and a review verdict also take the command lock",
+            "the temporary file of a state write are excluded from the workspace fingerprint",
+            "Neither does a Stop that meets a running command",
+            "a review verdict is taken only under the command lock",
+        ):
+            self.assertIn(phrase, verification)
+
+        setup = text("docs", "reference", "setup-contract.md")
+        self.assertIn("the only lock most host hook events take", setup)
+        self.assertIn(
+            "`.ezpowers/runtime.lock` and `.ezpowers/state.lock` paths",
+            setup,
+        )
+
+        contract = text("docs", "reference", "harness-chain-contract.md")
+        for phrase in (
+            "### Reports during a verification",
+            "Chain hooks keep working while a verification runs its checks",
+            "A verdict is taken only under the command lock",
+            "recorded on the challenge and judged afterwards",
+            "after it recorded its own result",
+            "No receipt and no rework requirement stores a workspace snapshot taken while a check runs",
+            "A recorded report can no longer be corrected",
+            "is stored but does not satisfy the run's gate",
+            "A Stop that meets a running command of the project",
+            "cannot take the state lock within one second",
+        ):
+            self.assertIn(phrase, contract)
+
+        chain = text("skills", "harness-chain", "SKILL.md")
+        self.assertIn(
+            "is kept and judged when that verification ends",
+            chain,
+        )
+        self.assertIn("its receipt is for the earlier evidence", chain)
+
+        architecture = text("docs", "reference", "architecture.md")
+        self.assertIn("0014-hooks-during-verification.md", architecture)
+        self.assertIn(
+            "only a Stop and a review verdict also take the command lock",
+            architecture,
+        )
+        self.assertIn("A verdict is never taken while checks run", architecture)
+        decision = text("docs", "decisions", "0014-hooks-during-verification.md")
+        for phrase in (
+            "**Two locks.**",
+            "**Hooks work during verification.**",
+            "**No verdict while checks run.**",
+            "**A stored report cannot be corrected.**",
+            "**Stop during a command.**",
+            "**A receipt for superseded evidence.**",
+            "**The lock file is runtime state.**",
+            "Declined by the user in favour of the lock split",
+        ):
+            self.assertIn(phrase, decision)
+
     def test_korean_skill_guide_covers_the_v57_catalog(self) -> None:
         guide = (
             REPO_ROOT / "docs" / "ezpowers-skills-guide.html"
@@ -824,16 +892,16 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertEqual(15, guide.count('class="skill-card"'))
         self.assertIn("15 plugin skills", guide)
         self.assertIn("13 project skills", guide)
-        self.assertIn("../project-kit/v5.12.0/manifest.json", guide)
+        self.assertIn("../project-kit/v5.12.1/manifest.json", guide)
         self.assertNotIn("v5.2.0/manifest.json", guide)
 
     def test_plugin_manifests_expose_the_same_version_and_current_workflow(self) -> None:
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.12.0")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.12.0")
-        self.assertTrue(codex["version"].startswith("5.12.0+codex."))
+        self.assertEqual(claude["version"], "5.12.1")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.12.1")
+        self.assertTrue(codex["version"].startswith("5.12.1+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)

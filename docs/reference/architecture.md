@@ -46,7 +46,7 @@ action.
 Project configuration selects one policy adapter at a stable profile seam.
 Config v1 and v2 imply the unchanged `software` adapter. Config v3 names
 `software` or `planning`; planning requires plan v3. Both adapters use the
-same exact-command scheduler, evidence store, freshness checks, state lock,
+same exact-command scheduler, evidence store, freshness checks, runtime locks,
 certificate core, and host hooks. The policy controls only profile-specific
 validation, assurance nodes, review gates, rubrics, and rework terminology.
 This keeps legacy graph bytes and code-review behavior stable while allowing a
@@ -210,6 +210,17 @@ counts one review failure, so replacing a reviewer never becomes a way around
 a review. A rejection is recorded on the challenge with a short reason, and
 the next action and the gate answer repeat it to the main agent.
 
+The chain hooks keep working while a verification runs its checks. They still
+bind a reviewer, keep its hand-back, guard frozen files, and record that the
+bound reviewer stopped. A verdict is never taken while checks run: the stored
+report is judged once no check is running, at the end of that verification
+after its own result is recorded, or by the next Stop, gate command, run
+status, or certification. A Stop that arrives while a command is running is
+not blocked and not counted. A rejected stored report releases its reviewer,
+which has stopped and can no longer correct it. A receipt for evidence that is
+no longer the run's latest all-scope verification is kept but does not satisfy
+the run's gate.
+
 The optional ordinary Stop adapter maps the same status to the host and blocks
 a stop while an active plan has no fresh certificate. Two host-facing rules
 keep it out of the session's way without touching the verdict. A Claude Stop
@@ -275,8 +286,14 @@ and a global barrier for every unmarked check. Task failures do not suppress
 downstream declared checks: every declared occurrence still receives a result
 so the evidence remains complete. Required project checks remain a distinct
 phase after task checks.
-A bounded project-local lock serializes state writers, not the safe child
-checks within one verification run.
+Two bounded project-local locks keep state consistent. The command lock
+serializes installation, verification, certification, and every other
+state-writing command for its whole run, not the safe child checks within one
+verification run. The state lock guards each read-modify-write of
+`.ezpowers/state.json`. A command holds it throughout, except that
+verification releases it while its checks run and takes it again before it
+reads state back. Host hooks take the state lock, and only a Stop and a review
+verdict also take the command lock.
 `.ezpowers/state.json` holds only revalidated resume pointers; it never turns a
 stale result into PASS. Plan validation is read-only until execution explicitly
 activates a resume target. Task-scope pointers are independently revalidated
@@ -340,6 +357,8 @@ records; the source evidence bytes remain the authority.
   `docs/decisions/0012-completion-hook-wait-and-failure.md`.
 - Review gate ownership, endings, and abandonment:
   `docs/decisions/0013-review-gate-lifecycle.md`.
+- Runtime locks and review reports during verification:
+  `docs/decisions/0014-hooks-during-verification.md`.
 
 Human-readable Markdown may explain these contracts but must not duplicate or
 override the managed JSON values.

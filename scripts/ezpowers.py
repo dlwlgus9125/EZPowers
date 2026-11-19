@@ -41,7 +41,7 @@ ASSURANCE_GRAPH_SCHEMA_VERSION = 1
 PLANNING_ASSURANCE_GRAPH_SCHEMA_VERSION = 2
 GRAPH_BOUND_SCHEMA_VERSION = 2
 PLANNING_EVIDENCE_SCHEMA_VERSION = 3
-KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.12.0/manifest.json")
+KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.12.1/manifest.json")
 CONFIG_RELATIVE_PATH = pathlib.Path(".ezpowers/config.json")
 STATE_RELATIVE_PATH = pathlib.Path(".ezpowers/state.json")
 LEDGER_RELATIVE_PATH = pathlib.Path(".ezpowers/ledger.json")
@@ -55,7 +55,11 @@ WIKI_RELATIVE_PATH = pathlib.Path(".ezpowers/wiki")
 INSTALLED_MANIFEST_RELATIVE_PATH = pathlib.Path(".ezpowers/kit/manifest.json")
 EVIDENCE_RELATIVE_PATH = pathlib.Path(".ezpowers/evidence")
 LOCK_RELATIVE_PATH = pathlib.Path(".ezpowers/runtime.lock")
+STATE_LOCK_RELATIVE_PATH = pathlib.Path(".ezpowers/state.lock")
 LOCK_TIMEOUT_SECONDS = 1.0
+# verify gives the state lock up while its checks run. Losing a finished run
+# because a hook held that lock a moment longer would be worse than waiting.
+STATE_LOCK_RETURN_SECONDS = 30.0
 LOCK_POLL_SECONDS = 0.05
 ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9._-]{0,63}$")
 RESOURCE_LOCK_RE = re.compile(r"^[A-Za-z][A-Za-z0-9._-]{0,127}$")
@@ -234,6 +238,10 @@ class EZPowersError(RuntimeError):
 
 class InstallConflict(EZPowersError):
     """A managed target contains user-owned changes."""
+
+
+class RuntimeBusy(EZPowersError):
+    """A runtime lock could not be taken in time."""
 
 
 @dataclass(frozen=True)
@@ -451,13 +459,14 @@ def _is_project_relative_text(value: str) -> bool:
 
 
 @contextlib.contextmanager
-def _runtime_lock(
+def _file_lock(
     root: pathlib.Path,
+    relative: pathlib.Path,
     *,
     timeout_seconds: float = LOCK_TIMEOUT_SECONDS,
 ) -> Iterator[None]:
-    """Serialize project-local state writers with an OS-released file lock."""
-    path = _safe_target(root, LOCK_RELATIVE_PATH.as_posix(), "runtime lock")
+    """Hold one project-local lock file; the OS releases it with the process."""
+    path = _safe_target(root, relative.as_posix(), "runtime lock")
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
         stream = path.open("a+b")
@@ -486,9 +495,9 @@ def _runtime_lock(
                 break
             except OSError as exc:
                 if time.monotonic() >= deadline:
-                    raise EZPowersError(
+                    raise RuntimeBusy(
                         "runtime is busy: could not acquire "
-                        f"{LOCK_RELATIVE_PATH.as_posix()} within {timeout_seconds:g} seconds"
+                        f"{relative.as_posix()} within {timeout_seconds:g} seconds"
                     ) from exc
                 time.sleep(LOCK_POLL_SECONDS)
         yield
@@ -505,6 +514,62 @@ def _runtime_lock(
 
                     fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
         stream.close()
+
+
+class _StateLock:
+    """The state lock of one command, which verify gives up while checks run."""
+
+    def __init__(self, root: pathlib.Path) -> None:
+        self._root = root
+        self._held: contextlib.ExitStack | None = None
+
+    def acquire(self, timeout_seconds: float = LOCK_TIMEOUT_SECONDS) -> None:
+        if self._held is None:
+            held = contextlib.ExitStack()
+            held.enter_context(
+                _file_lock(
+                    self._root,
+                    STATE_LOCK_RELATIVE_PATH,
+                    timeout_seconds=timeout_seconds,
+                )
+            )
+            self._held = held
+
+    def release(self) -> None:
+        if self._held is not None:
+            held, self._held = self._held, None
+            held.close()
+
+
+@contextlib.contextmanager
+def _runtime_lock(
+    root: pathlib.Path,
+    *,
+    timeout_seconds: float = LOCK_TIMEOUT_SECONDS,
+    state: bool = True,
+) -> Iterator[_StateLock]:
+    """Serialize state-writing commands.
+
+    The command lock is held for the whole block, so two commands never run
+    together. The state lock guards each read-modify-write of the state file.
+    A command holds it too, except verify: it takes the state lock only where
+    it reads and writes state, so host hooks keep working while checks run.
+    """
+    with _file_lock(root, LOCK_RELATIVE_PATH, timeout_seconds=timeout_seconds):
+        state_lock = _StateLock(root)
+        try:
+            if state:
+                state_lock.acquire(timeout_seconds)
+            yield state_lock
+        finally:
+            state_lock.release()
+
+
+@contextlib.contextmanager
+def _state_lock(root: pathlib.Path) -> Iterator[None]:
+    """What a host hook takes: the state lock alone, never the command lock."""
+    with _file_lock(root, STATE_LOCK_RELATIVE_PATH):
+        yield
 
 
 def _default_state() -> dict[str, Any]:
@@ -5723,14 +5788,19 @@ def _chain_overlay_ignore(root: pathlib.Path):
         if relative == ".":
             return {".git"} & set(names)
         if relative == ".ezpowers":
+            # A held lock file cannot be read on Windows, and a hook may be
+            # replacing the state file while the copy runs.
             return {
                 "evidence",
                 "staging",
                 "backups",
                 "wiki",
                 "runtime.lock",
+                "state.lock",
                 "state.json",
-            } & set(names)
+            } & set(names) | {
+                name for name in names if name.startswith(".state.json.")
+            }
         return set()
 
     return ignore
@@ -6023,6 +6093,9 @@ def _chain_goal_objective(
 def _chain_run_apply_command(args: argparse.Namespace) -> int:
     root = _runtime_project_root()
     with _runtime_lock(root):
+        # A report that was only recorded is judged before the preview reads
+        # its receipt and before a pending challenge is replaced.
+        _chain_judge_stored_stop(root, _load_state(root))
         payload, bundle, normalized = _chain_run_preview(root, args.bundle)
         if args.preview_sha256 != payload["preview_sha256"]:
             raise InstallConflict(
@@ -6567,6 +6640,7 @@ def _chain_next_action(state: dict[str, Any]) -> str:
 
 def _chain_run_status_locked(root: pathlib.Path) -> tuple[dict[str, Any], int]:
     state = _load_state(root)
+    _chain_judge_stored_stop(root, state)
     run = state.get("chain_run")
     if not isinstance(run, dict):
         return {
@@ -7109,6 +7183,9 @@ def _chain_settle_stored_report(root: pathlib.Path, state: dict[str, Any]) -> bo
     # A hand-back that already carries a gate marker is the bound reviewer's
     # report even when its SubagentStop never reached the hook. It is judged
     # before its challenge ends: a FAIL that arrived cannot be abandoned away.
+    # A stop that was only recorded while a command ran is judged the same way.
+    if _chain_judge_stored_stop(root, state):
+        return True
     pending = state["chain_gates"].get("pending")
     if not isinstance(pending, dict):
         return False
@@ -7144,6 +7221,8 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
         if requested is not None and not re.fullmatch(r"[0-9a-f]{64}", requested):
             raise EZPowersError("--subject-sha256 must be 64 lowercase hex characters")
         state = _load_state(root)
+        # A report that was only recorded while a command ran is judged first.
+        _chain_judge_stored_stop(root, state)
         if args.kind == "oracle-audit":
             # One feature at a time. The status is read fresh, so an emergency
             # stop is honoured without waiting for a Stop event.
@@ -7917,21 +7996,81 @@ def _chain_gate_receipt_pointer(
     }
 
 
+def _chain_is_bound_reviewer(
+    pending: Any,
+    event: dict[str, Any],
+    host: str,
+) -> bool:
+    return (
+        isinstance(pending, dict)
+        and pending.get("host") == host
+        and pending.get("bound_agent_id") == event.get("agent_id")
+        and pending.get("bound_agent_type") == event.get("agent_type")
+        and pending.get("session_id") == event.get("session_id")
+    )
+
+
+def _chain_store_reviewer_stop(
+    root: pathlib.Path,
+    state: dict[str, Any],
+    event: dict[str, Any],
+    host: str,
+) -> None:
+    # A verdict is taken only while holding the command lock. When a command
+    # is running, in practice a verification and its checks, the bound
+    # reviewer's stop is recorded on the challenge and judged afterwards.
+    pending = state.get("chain_gates", {}).get("pending")
+    if not _chain_is_bound_reviewer(pending, event, host):
+        return
+    stored: dict[str, Any] = {"received_at": _utc_now()}
+    message = event.get("last_assistant_message")
+    if isinstance(message, str) and len(message) <= CHAIN_HANDBACK_MAX_CHARS:
+        stored["message"] = message
+    pending["stored_stop"] = stored
+    _save_state(root, state)
+
+
+def _chain_judge_stored_stop(root: pathlib.Path, state: dict[str, Any]) -> bool:
+    # Called by whoever holds the command lock next: the end of the
+    # verification that was running, a Stop, a gate command, run status, or
+    # certification. No check is running then, so the workspace snapshot in
+    # a receipt or a rework requirement is a settled one.
+    pending = state.get("chain_gates", {}).get("pending")
+    stored = pending.get("stored_stop") if isinstance(pending, dict) else None
+    if (
+        not isinstance(stored, dict)
+        or not isinstance(pending.get("bound_agent_id"), str)
+        or not isinstance(pending.get("host"), str)
+    ):
+        return False
+    event: dict[str, Any] = {
+        "hook_event_name": "SubagentStop",
+        "session_id": pending.get("session_id"),
+        "agent_id": pending.get("bound_agent_id"),
+        "agent_type": pending.get("bound_agent_type"),
+    }
+    if isinstance(stored.get("message"), str):
+        event["last_assistant_message"] = stored["message"]
+    _chain_bound_subagent_stop(
+        root,
+        state,
+        event,
+        str(pending["host"]),
+        stored=True,
+    )
+    return True
+
+
 def _chain_bound_subagent_stop(
     root: pathlib.Path,
     state: dict[str, Any],
     event: dict[str, Any],
     host: str,
+    *,
+    stored: bool = False,
 ) -> dict[str, Any]:
     pending = state.get("chain_gates", {}).get("pending")
-    if not isinstance(pending, dict):
-        return {}
-    if (
-        pending.get("host") != host
-        or pending.get("bound_agent_id") != event.get("agent_id")
-        or pending.get("bound_agent_type") != event.get("agent_type")
-        or pending.get("session_id") != event.get("session_id")
-    ):
+    if not _chain_is_bound_reviewer(pending, event, host):
         return {}
     try:
         marker = _chain_gate_marker(
@@ -8012,8 +8151,16 @@ def _chain_bound_subagent_stop(
                 gates = {}
                 run["gates"] = gates
             if verdict == "PASS" and kind in gates:
-                gates[kind] = pointer
-                _chain_clear_failure_repeat(run)
+                latest = run.get("latest_verification")
+                if (
+                    isinstance(latest, dict)
+                    and latest.get("sha256") == receipt["subject_sha256"]
+                ):
+                    gates[kind] = pointer
+                    _chain_clear_failure_repeat(run)
+                # Otherwise the run verified again while this review was
+                # running. The receipt is kept, but certification needs one
+                # for the latest evidence, so it must not look satisfied.
             elif kind in {"code-review", "artifact-review", "adversarial-qa"}:
                 failure_workspace = receipt.get("workspace")
                 if not isinstance(failure_workspace, dict):
@@ -8081,15 +8228,19 @@ def _chain_bound_subagent_stop(
         note = _chain_rejection_note(pending, event, host, exc)
         # A rejected report must not be read again when the reviewer corrects it.
         pending.pop("handback", None)
+        pending.pop("stored_stop", None)
         # A terminal run ends its own gates.
         terminal = owned_by_run and run.get("status") in CHAIN_TERMINAL_STATUSES
         # Claude Code does not continue a subagent that already handed its
         # report back (its SubagentStop then has no last_assistant_message),
+        # and a reviewer whose stop was only recorded has ended on any host,
         # so a new reviewer may take the challenge over. Inside a run every
         # rejection is counted above. Where nothing counts, one replacement is
         # allowed and a second unusable report closes the subject the way a
         # failed audit does.
-        handed_back = host == "claude" and "last_assistant_message" not in event
+        handed_back = stored or (
+            host == "claude" and "last_assistant_message" not in event
+        )
         exhausted = (
             handed_back
             and not counted
@@ -8368,6 +8519,34 @@ def _chain_stop_response(
     return {}
 
 
+def _chain_subagent_stop_event(
+    root: pathlib.Path,
+    event: dict[str, Any],
+    host: str,
+) -> dict[str, Any]:
+    with _state_lock(root):
+        state = _load_state(root)
+        _chain_observe_permission_mode(root, state, event, host)
+        if not _chain_is_bound_reviewer(
+            state.get("chain_gates", {}).get("pending"),
+            event,
+            host,
+        ):
+            return {}
+    # Only the bound reviewer's stop gets here. It is judged under the command
+    # lock, which no verification can hold at the same time. When a command is
+    # running the stop is recorded instead and judged once that lock is free.
+    command = contextlib.ExitStack()
+    try:
+        command.enter_context(_file_lock(root, LOCK_RELATIVE_PATH))
+    except RuntimeBusy:
+        with _state_lock(root):
+            _chain_store_reviewer_stop(root, _load_state(root), event, host)
+        return {}
+    with command, _state_lock(root):
+        return _chain_bound_subagent_stop(root, _load_state(root), event, host)
+
+
 def _chain_hook_command(args: argparse.Namespace) -> int:
     try:
         # Hosts send UTF-8 JSON. sys.stdin's text layer would decode it with
@@ -8382,59 +8561,65 @@ def _chain_hook_command(args: argparse.Namespace) -> int:
     response: dict[str, Any] = {}
     try:
         root = _runtime_project_root()
-        with _runtime_lock(root):
-            state = _load_state(root)
-            event_name = event.get("hook_event_name")
-            if event_name == "SessionStart":
-                try:
-                    chain, chain_sha256 = _load_chain_value(root)
-                except EZPowersError:
-                    chain = {}
-                    chain_sha256 = ""
-                if (
-                    args.host in chain.get("hosts", [])
-                    and _chain_host_hook_present(root, args.host)
-                    and isinstance(event.get("session_id"), str)
-                    and bool(event["session_id"])
-                ):
-                    state["chain_hosts"][args.host] = {
-                        "session_id": event["session_id"],
-                        "hook_identity": _chain_hook_identity(
-                            root,
-                            args.host,
-                            chain_sha256,
-                        ),
-                        "permission_mode": event.get("permission_mode"),
-                        "source": event.get("source"),
-                        "handshake_at": _utc_now(),
-                    }
-                    _save_state(root, state)
-            else:
+        event_name = event.get("hook_event_name")
+        if event_name == "Stop":
+            # A Stop is judged only while no command is running, so it takes
+            # the command lock the way a command does. While a verification
+            # holds that lock the wait ends in the fail-safe below, and the
+            # Stop is neither blocked nor counted.
+            with _runtime_lock(root):
+                state = _load_state(root)
                 _chain_observe_permission_mode(root, state, event, args.host)
-            if event_name == "PreToolUse":
-                if (
-                    args.host == "claude"
-                    and event.get("tool_name") == CHAIN_HANDBACK_TOOL
-                ):
-                    _chain_capture_handback(root, state, event)
-                else:
-                    response = _chain_pretool_response(root, state, event)
-            elif event_name == "SubagentStart":
-                response = _chain_bound_subagent_start(
-                    root,
-                    state,
-                    event,
-                    args.host,
-                )
-            elif event_name == "SubagentStop":
-                response = _chain_bound_subagent_stop(
-                    root,
-                    state,
-                    event,
-                    args.host,
-                )
-            elif event_name == "Stop":
+                _chain_judge_stored_stop(root, state)
                 response = _chain_stop_response(root, state, args.host, event)
+        elif event_name == "SubagentStop":
+            response = _chain_subagent_stop_event(root, event, args.host)
+        else:
+            # Every other event needs the state file only, so it keeps
+            # working while a verification runs its checks.
+            with _state_lock(root):
+                state = _load_state(root)
+                if event_name == "SessionStart":
+                    try:
+                        chain, chain_sha256 = _load_chain_value(root)
+                    except EZPowersError:
+                        chain = {}
+                        chain_sha256 = ""
+                    if (
+                        args.host in chain.get("hosts", [])
+                        and _chain_host_hook_present(root, args.host)
+                        and isinstance(event.get("session_id"), str)
+                        and bool(event["session_id"])
+                    ):
+                        state["chain_hosts"][args.host] = {
+                            "session_id": event["session_id"],
+                            "hook_identity": _chain_hook_identity(
+                                root,
+                                args.host,
+                                chain_sha256,
+                            ),
+                            "permission_mode": event.get("permission_mode"),
+                            "source": event.get("source"),
+                            "handshake_at": _utc_now(),
+                        }
+                        _save_state(root, state)
+                else:
+                    _chain_observe_permission_mode(root, state, event, args.host)
+                if event_name == "PreToolUse":
+                    if (
+                        args.host == "claude"
+                        and event.get("tool_name") == CHAIN_HANDBACK_TOOL
+                    ):
+                        _chain_capture_handback(root, state, event)
+                    else:
+                        response = _chain_pretool_response(root, state, event)
+                elif event_name == "SubagentStart":
+                    response = _chain_bound_subagent_start(
+                        root,
+                        state,
+                        event,
+                        args.host,
+                    )
     except EZPowersError as exc:
         # A chain hook must never exit 2: on Stop that blocks stopping
         # forever, and on PreToolUse it denies every matched tool call.
@@ -8571,7 +8756,11 @@ def _excluded_runtime_path(name: str) -> bool:
         normalized = normalized[2:]
     return (
         normalized == ".ezpowers/state.json"
+        # A hook may save state while a verification takes its snapshots, so
+        # the temporary file of that atomic write is runtime state too.
+        or normalized.startswith(".ezpowers/.state.json.")
         or normalized == LOCK_RELATIVE_PATH.as_posix()
+        or normalized == STATE_LOCK_RELATIVE_PATH.as_posix()
         or normalized.startswith(".ezpowers/evidence/")
         or normalized.startswith(f"{WIKI_RELATIVE_PATH.as_posix()}/")
         or normalized.startswith(f"{DOCS_STAGING_RELATIVE_PATH.as_posix()}/")
@@ -8597,6 +8786,7 @@ def _workspace_snapshot(root: pathlib.Path) -> dict[str, Any]:
         ":(exclude).ezpowers/evidence/**",
         ":(exclude).ezpowers/state.json",
         ":(exclude).ezpowers/runtime.lock",
+        ":(exclude).ezpowers/state.lock",
         ":(exclude).ezpowers/wiki/**",
         ":(exclude).ezpowers/staging/**",
         ":(exclude).ezpowers/backups/**",
@@ -9600,11 +9790,18 @@ def _evidence_run_id() -> str:
 
 def _verify_command(args: argparse.Namespace) -> int:
     root = _runtime_project_root()
-    with _runtime_lock(root):
-        return _verify_command_locked(args, root)
+    with _runtime_lock(root, state=False) as state_lock:
+        return _verify_command_locked(args, root, state_lock)
 
 
-def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
+def _verify_command_locked(
+    args: argparse.Namespace,
+    root: pathlib.Path,
+    state_lock: _StateLock,
+) -> int:
+    # The command lock is held for the whole run. The state lock is held only
+    # from each read of state to the save that follows it, so host hooks keep
+    # working while the checks run.
     flow = _validate_flow(root, args.plan)
     if flow.errors:
         payload = {"status": "FAIL", "errors": flow.errors, "tasks": [], "reasons": flow.errors}
@@ -9634,7 +9831,10 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
             payload = {"status": "FAIL", "errors": [f"unknown task: {args.task}"], "tasks": []}
             _emit(payload, args.json)
             return 2
+    state_lock.acquire()
     state_before = _load_state(root)
+    # A report an earlier verification recorded but never judged.
+    _chain_judge_stored_stop(root, state_before)
     chain_approval, chain_errors = _chain_flow_preflight(
         root,
         state_before,
@@ -9681,6 +9881,7 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
             return 2
     installation_before = _installed_identity(root)
     _set_active_plan(flow)
+    state_lock.release()
 
     plan_hash_before = _sha256_file(flow.plan_path)
     spec_hash_before = _sha256_file(flow.spec_path)
@@ -9845,6 +10046,7 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
     if installation_before != installation_after:
         reasons.append("installed kit identity changed during verification")
 
+    state_lock.acquire(STATE_LOCK_RETURN_SECONDS)
     state_after_checks = _load_state(root)
     chain_run = state_after_checks.get("chain_run")
     chain_binding: dict[str, Any] | None = None
@@ -9977,6 +10179,10 @@ def _verify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int:
                 },
             )
     _save_state(root, state_after_checks)
+    # A reviewer that stopped while the checks ran is judged now, after this
+    # run's own result is recorded: the order of a report that arrives just
+    # after a verification.
+    _chain_judge_stored_stop(root, state_after_checks)
     _emit(result, args.json)
     return 0 if result["status"] == "PASS" else 1
 
@@ -10826,6 +11032,7 @@ def _certify_command_locked(args: argparse.Namespace, root: pathlib.Path) -> int
         _emit(payload, args.json)
         return 2
     state = _load_state(root)
+    _chain_judge_stored_stop(root, state)
     if state.get("active_plan") != flow.plan_rel:
         payload = {
             "status": "FAIL",

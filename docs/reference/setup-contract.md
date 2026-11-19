@@ -128,10 +128,13 @@ sources, unsafe paths, hash drift, or host-copy drift fail installation.
 Every install or refresh also validates the complete config schema before
 writing managed files. Installation and other state-writing operations use a
 bounded project-local `.ezpowers/runtime.lock`; concurrent writers fail with a
-clear busy result rather than interleaving state. The lock file is runtime
-state and is excluded internally from workspace fingerprints. The installer
-does not edit the target project's `.gitignore`; a project may add the exact
-`.ezpowers/runtime.lock` path to its ignore file if it wants Git to hide it.
+clear busy result rather than interleaving state. Each read-modify-write of
+the state file additionally holds `.ezpowers/state.lock`, the only lock most
+host hook events take. Both lock files are runtime state and are excluded
+internally from workspace fingerprints. The installer does not edit the target
+project's `.gitignore`; a project may add the exact `.ezpowers/runtime.lock`
+and `.ezpowers/state.lock` paths to its ignore file if it wants Git to hide
+them.
 
 ## Managed File Ownership
 

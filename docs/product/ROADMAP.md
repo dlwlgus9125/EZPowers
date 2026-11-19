@@ -1,6 +1,11 @@
 # EZPowers Roadmap
 
-## Current: v5.12.0 core / v5.12.0 plugin
+## Current: v5.12.1 core / v5.12.1 plugin
+
+- Keep the chain hooks working while a verification runs its checks: split
+  the runtime lock into a command lock and a state lock, record a reviewer's
+  stop that arrives meanwhile, and judge it when the verification has ended,
+  so a review is no longer lost to a running `verify`.
 
 - Give a pending review challenge an owner and an end: drop the gate of a run
   that has ended, let a new subject of the same kind replace a pending

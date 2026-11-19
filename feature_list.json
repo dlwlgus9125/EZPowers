@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-11-19T03:16:25Z",
+  "updated_at": "2026-11-19T07:20:00Z",
   "features": [
     {
       "id": "F11",
@@ -20,7 +20,7 @@
         "tests/test_v5_workflow_surface.py",
         "scripts/runtime_smoke.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.12.0/manifest.json"
+        "project-kit/v5.12.1/manifest.json"
       ]
     },
     {
@@ -40,7 +40,7 @@
         "docs/reference/wiki-contract.md",
         "tests/test_ezpowers_docs_wiki.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.12.0/manifest.json"
+        "project-kit/v5.12.1/manifest.json"
       ]
     },
     {
@@ -63,7 +63,7 @@
         "skills/harness-chain/SKILL.md",
         "tests/test_harness_chain.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.12.0/manifest.json"
+        "project-kit/v5.12.1/manifest.json"
       ]
     },
     {
@@ -87,7 +87,7 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_harness_chain.py",
         "tests/test_codex_hud.py",
-        "project-kit/v5.12.0/manifest.json"
+        "project-kit/v5.12.1/manifest.json"
       ]
     },
     {
@@ -107,7 +107,7 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -139,7 +139,7 @@
         "scripts/plugin_smoke.py",
         "tests/test_v5_workflow_surface.py",
         "tests/test_ezpowers_runtime.py",
-        "project-kit/v5.12.0/manifest.json"
+        "project-kit/v5.12.1/manifest.json"
       ]
     },
     {
@@ -162,7 +162,7 @@
         "docs/reference/engineering-practices-contract.md",
         "tests/test_v5_workflow_surface.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -186,7 +186,7 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -211,7 +211,7 @@
         "tests/test_v5_workflow_surface.py",
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -239,7 +239,7 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -270,7 +270,7 @@
         "tests/test_ezpowers_docs_wiki.py",
         "tests/test_ezpowers_runtime.py",
         "tests/test_harness_chain.py",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -298,7 +298,7 @@
         "scripts/ezpowers.py",
         "tests/test_ezpowers_docs_wiki.py",
         "tests/test_harness_chain.py",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -330,7 +330,7 @@
         "tests/test_assurance_graph.py",
         "tests/test_harness_chain.py",
         "tests/test_repo_check.py",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -362,7 +362,7 @@
         "scripts/benchmark_software_profile.py",
         "tests/test_planning_profile.py",
         "tests/test_harness_chain.py",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -395,7 +395,7 @@
         "tests/test_v5_workflow_surface.py",
         "tests/test_ezpowers_runtime.py",
         "tests/test_codex_plugin_discovery.py",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -427,7 +427,7 @@
         "scripts/benchmark_check_reuse.py",
         "scripts/runtime_smoke.py",
         "docs/reference/verification-contract.md",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -458,7 +458,7 @@
         "docs/reference/harness-chain-contract.md",
         "docs/reference/verification-contract.md",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -484,7 +484,7 @@
         "docs/reference/verification-contract.md",
         "docs/reference/setup-contract.md",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -513,7 +513,39 @@
         "tests/test_v5_workflow_surface.py",
         "docs/reference/harness-chain-contract.md",
         "skills/harness-chain/SKILL.md",
-        "project-kit/v5.12.0/manifest.json",
+        "project-kit/v5.12.1/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
+      ]
+    },
+    {
+      "id": "F30",
+      "title": "Hooks during verification",
+      "status": "complete",
+      "success_criteria": [
+        "A bound reviewer's report that arrives while a real verify runs its check becomes a receipt once that verify has ended, with no review failure and no abandon",
+        "While the check still runs no verdict is taken: the report is stored on the challenge and no receipt or counter changes",
+        "A reviewer that starts during a verification is bound and receives the rubric, and a write to a frozen acceptance file is denied",
+        "A Stop that meets a running verification is neither blocked nor counted, and a second state-writing command still fails with a busy result",
+        "A stored report whose command ended without judging it is judged by the next Stop or chain run status",
+        "A rejected stored report releases its reviewer on every host with the existing counting, and a stored audit report follows the one-replacement rule",
+        "A PASS receipt for evidence that is no longer the run's latest all-scope verification is stored but does not satisfy the gate, and a FAIL in the same situation still requires product rework",
+        "The state lock file and the temporary file of a state write never change a workspace fingerprint, and the baseline preview does not read a held lock file",
+        "The verification, setup, and harness-chain contracts, the skill, the architecture artifact, and ADR 0014 state the two locks, hooks during verification, the deferred verdict, the Stop answer, and the superseded-receipt rule",
+        "The 5.12.1 plugin, marketplace, Codex, and single project-kit manifests agree and no older kit manifest remains"
+      ],
+      "evidence": [
+        "docs/decisions/0014-hooks-during-verification.md",
+        "docs/specs/f30-hooks-during-verification.md",
+        "docs/plans/f30-hooks-during-verification.md",
+        "scripts/ezpowers.py",
+        "tests/test_harness_chain.py",
+        "tests/test_v5_workflow_surface.py",
+        "docs/reference/verification-contract.md",
+        "docs/reference/setup-contract.md",
+        "docs/reference/harness-chain-contract.md",
+        "skills/harness-chain/SKILL.md",
+        "project-kit/v5.12.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
