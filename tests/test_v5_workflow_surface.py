@@ -134,7 +134,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             self.assertNotIn("stress-test", metadata)
 
         manifest = json.loads(
-            (REPO_ROOT / "project-kit" / "v5.11.0" / "manifest.json").read_text(
+            (REPO_ROOT / "project-kit" / "v5.11.1" / "manifest.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -158,7 +158,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertFalse((REPO_ROOT / "harness-kit").exists())
         self.assertFalse((REPO_ROOT / "phases").exists())
         self.assertFalse((REPO_ROOT / ".harness").exists())
-        self.assertTrue((REPO_ROOT / "project-kit" / "v5.11.0" / "manifest.json").is_file())
+        self.assertTrue((REPO_ROOT / "project-kit" / "v5.11.1" / "manifest.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "config.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "state.json").is_file())
 
@@ -223,7 +223,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.11.0"
+                / "v5.11.1"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -471,7 +471,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.11.0"
+                / "v5.11.1"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -527,7 +527,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertIn("Copyright (c) 2026 Matt Pocock", license_text)
 
         manifest_text = (
-            REPO_ROOT / "project-kit" / "v5.11.0" / "manifest.json"
+            REPO_ROOT / "project-kit" / "v5.11.1" / "manifest.json"
         ).read_text(encoding="utf-8")
         manifest = json.loads(manifest_text)
         self.assertNotIn("teach", {entry["name"] for entry in manifest["skills"]})
@@ -717,6 +717,53 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         ):
             self.assertIn(phrase, decision)
 
+    def test_completion_hook_wait_and_failure_rules_are_described_consistently(
+        self,
+    ) -> None:
+        def text(*parts: str) -> str:
+            return " ".join(
+                REPO_ROOT.joinpath(*parts).read_text(encoding="utf-8").split()
+            )
+
+        verification = text("docs", "reference", "verification-contract.md")
+        for phrase in (
+            "a running background subagent is a wait and is not blocked",
+            "Codex reports no background tasks and keeps blocking",
+            '| the adapter could not evaluate | `{"systemMessage":"<notice>"}` |',
+            "A status the runtime can read as invalid",
+            "ASCII-only JSON",
+            "An event that cannot be read defers nothing",
+        ):
+            self.assertIn(phrase, verification)
+
+        setup = text("docs", "reference", "setup-contract.md")
+        self.assertIn("the notice for an adapter failure", setup)
+
+        discovery = text("docs", "reference", "codex-plugin-discovery.md")
+        for phrase in (
+            "lists a running subagent is a wait and is not blocked",
+            "Codex's Stop input has no such list",
+            'answers `{"systemMessage":"..."}` and does not block',
+        ):
+            self.assertIn(phrase, discovery)
+
+        architecture = text("docs", "reference", "architecture.md")
+        self.assertIn("0012-completion-hook-wait-and-failure.md", architecture)
+        self.assertIn("warns the user instead of blocking", architecture)
+        decision = text(
+            "docs",
+            "decisions",
+            "0012-completion-hook-wait-and-failure.md",
+        )
+        for phrase in (
+            "**Wait.**",
+            "**Adapter failure.**",
+            "**Encoding.**",
+            "Declined by the user",
+            "Deleting or breaking the plan would open the gate",
+        ):
+            self.assertIn(phrase, decision)
+
     def test_korean_skill_guide_covers_the_v57_catalog(self) -> None:
         guide = (
             REPO_ROOT / "docs" / "ezpowers-skills-guide.html"
@@ -732,16 +779,16 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertEqual(15, guide.count('class="skill-card"'))
         self.assertIn("15 plugin skills", guide)
         self.assertIn("13 project skills", guide)
-        self.assertIn("../project-kit/v5.11.0/manifest.json", guide)
+        self.assertIn("../project-kit/v5.11.1/manifest.json", guide)
         self.assertNotIn("v5.2.0/manifest.json", guide)
 
     def test_plugin_manifests_expose_the_same_version_and_current_workflow(self) -> None:
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.11.0")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.11.0")
-        self.assertTrue(codex["version"].startswith("5.11.0+codex."))
+        self.assertEqual(claude["version"], "5.11.1")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.11.1")
+        self.assertTrue(codex["version"].startswith("5.11.1+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)

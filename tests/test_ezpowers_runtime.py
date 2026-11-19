@@ -1,4 +1,7 @@
+import contextlib
 import hashlib
+import importlib.util
+import io
 import json
 import os
 import pathlib
@@ -7,11 +10,38 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import types
 import unittest
+from unittest import mock
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 EZPOWERS = REPO_ROOT / "scripts" / "ezpowers.py"
+
+# The entry Claude Code 2.1.327 lists in a Stop event while a background
+# subagent is still running (recorded from a live session).
+RUNNING_SUBAGENT_TASK = {
+    "id": "acf537a98b7e40ccf",
+    "type": "subagent",
+    "status": "running",
+    "description": "Independent review of source.txt",
+    "agent_type": "general-purpose",
+}
+RUNNING_SHELL_TASK = {
+    "id": "task-001",
+    "type": "shell",
+    "status": "running",
+    "description": "dev server",
+    "command": "npm run dev",
+}
+RUNNING_MONITOR_TASK = {
+    "id": "task-002",
+    "type": "monitor",
+    "status": "running",
+    "description": "watch logs",
+    "server": "logs",
+    "tool": "tail",
+}
 
 
 def _write_fake_host_commands(
@@ -121,6 +151,53 @@ class RuntimeProject:
     def commit_all(self) -> None:
         subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
         subprocess.run(["git", "commit", "-qm", "fixture"], cwd=self.root, check=True)
+
+
+def stop_event(project: RuntimeProject, **fields: object) -> dict:
+    # The Stop input Claude Code 2.1.327 sends, with the keys a live session
+    # carried. Codex sends only the first few of them.
+    return {
+        "hook_event_name": "Stop",
+        "session_id": "session-1",
+        "transcript_path": str(project.root / "transcript.jsonl"),
+        "cwd": str(project.root),
+        "permission_mode": "auto",
+        "stop_hook_active": False,
+        "last_assistant_message": "Waiting for the reviewer.",
+        "background_tasks": [],
+        "session_crons": [],
+        **fields,
+    }
+
+
+def completion_hook(
+    project: RuntimeProject,
+    host: str,
+    event: dict | None = None,
+    *,
+    raw: bytes | None = None,
+    console_encoding: str | None = None,
+) -> subprocess.CompletedProcess:
+    # A host writes UTF-8 JSON to the hook's stdin. With console_encoding the
+    # hook runs as a host starts it on a machine whose console is not UTF-8.
+    env = dict(os.environ)
+    env.pop("PYTHONPATH", None)
+    if console_encoding is not None:
+        env["PYTHONUTF8"] = "0"
+        env["PYTHONIOENCODING"] = console_encoding
+    return subprocess.run(
+        [sys.executable, str(project.runtime), "hook", "--host", host],
+        cwd=project.root,
+        input=(
+            raw
+            if raw is not None
+            else json.dumps(event, ensure_ascii=False).encode("utf-8")
+        ),
+        capture_output=True,
+        env=env,
+        timeout=30,
+        check=False,
+    )
 
 
 class EZPowersInstallTests(unittest.TestCase):
@@ -281,10 +358,10 @@ class EZPowersInstallTests(unittest.TestCase):
             distribution.mkdir()
             project_root.mkdir()
 
-            manifest_path = REPO_ROOT / "project-kit" / "v5.11.0" / "manifest.json"
+            manifest_path = REPO_ROOT / "project-kit" / "v5.11.1" / "manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             sources = {
-                "project-kit/v5.11.0/manifest.json",
+                "project-kit/v5.11.1/manifest.json",
                 manifest["runtime"]["source"],
                 *(item["source"] for item in manifest.get("tools", [])),
                 *(item["source"] for item in manifest.get("contracts", [])),
@@ -403,7 +480,7 @@ class EZPowersInstallTests(unittest.TestCase):
             refreshed = project.install("--refresh")
             self.assertEqual(refreshed.returncode, 0, refreshed.stderr + refreshed.stdout)
             repaired = json.loads(ledger_path.read_text(encoding="utf-8"))
-            self.assertEqual(repaired["version"], "5.11.0")
+            self.assertEqual(repaired["version"], "5.11.1")
 
     def test_opt_in_hooks_use_native_nested_shape_and_work_from_a_subdirectory(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1701,6 +1778,196 @@ class EZPowersVerificationTests(unittest.TestCase):
             self.assertEqual(claude_json["decision"], "block")
             self.assertEqual(codex_json["decision"], "block")
             self.assertEqual(claude_json["reason"], codex_json["reason"])
+
+    def verified_project(self, root: pathlib.Path) -> tuple[RuntimeProject, pathlib.Path]:
+        # Fresh all-scope PASS evidence without a certificate: status READY,
+        # the state of an execute run whose review is still going on.
+        project = RuntimeProject(root)
+        self.assertEqual(project.install().returncode, 0)
+        plan = project.write_flow([self.passing_check()])
+        (project.root / "source.txt").write_text("one\n", encoding="utf-8")
+        project.commit_all()
+        verified = run_cli(
+            project.runtime,
+            "verify",
+            "--plan",
+            str(plan),
+            "--all",
+            "--json",
+            cwd=project.root,
+        )
+        self.assertEqual(verified.returncode, 0, verified.stdout + verified.stderr)
+        return project, plan
+
+    def test_claude_stop_waits_for_a_running_background_subagent(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project, _ = self.verified_project(pathlib.Path(temp_dir))
+
+            def answer(host: str, **fields: object) -> dict:
+                proc = completion_hook(project, host, stop_event(project, **fields))
+                self.assertEqual(proc.returncode, 0, proc.stderr)
+                return json.loads(proc.stdout)
+
+            waiting = [RUNNING_SUBAGENT_TASK]
+            self.assertEqual(answer("claude", background_tasks=waiting), {})
+            self.assertEqual(
+                answer("claude", background_tasks=waiting, stop_hook_active=True),
+                {},
+            )
+            self.assertEqual(
+                answer(
+                    "claude",
+                    background_tasks=[RUNNING_SHELL_TASK, RUNNING_SUBAGENT_TASK],
+                ),
+                {},
+            )
+
+            # A shell or a monitor may never end, so only a subagent defers.
+            not_waiting = {
+                "no task": [],
+                "shell only": [RUNNING_SHELL_TASK],
+                "monitor only": [RUNNING_MONITOR_TASK],
+                "finished subagent": [{**RUNNING_SUBAGENT_TASK, "status": "completed"}],
+                "subagent without a type": [
+                    {
+                        key: value
+                        for key, value in RUNNING_SUBAGENT_TASK.items()
+                        if key != "agent_type"
+                    }
+                ],
+                "not a list": RUNNING_SUBAGENT_TASK,
+                "not objects": ["subagent"],
+            }
+            for label, tasks in not_waiting.items():
+                with self.subTest(label=label):
+                    blocked = answer("claude", background_tasks=tasks)
+                    self.assertEqual(blocked.get("decision"), "block")
+                    self.assertIn("not certified", blocked["reason"])
+
+            # Codex reports no background tasks; the same payload still blocks.
+            self.assertEqual(
+                answer("codex", background_tasks=waiting).get("decision"),
+                "block",
+            )
+
+            # The wait rule does not depend on the status: STALE defers too,
+            # and blocks again as soon as nothing is running.
+            (project.root / "source.txt").write_text("changed\n", encoding="utf-8")
+            self.assertEqual(answer("claude", background_tasks=waiting), {})
+            stale = answer("claude")
+            self.assertEqual(stale.get("decision"), "block")
+            self.assertIn("workspace changed", stale["reason"])
+
+    def test_completion_hook_blocks_when_the_event_cannot_be_read(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project, _ = self.verified_project(pathlib.Path(temp_dir))
+            unreadable = {
+                "empty": b"",
+                "not json": b"background_tasks: subagent running",
+                "json array": json.dumps([RUNNING_SUBAGENT_TASK]).encode("utf-8"),
+                "invalid utf-8": b'{"background_tasks": "\xff\xfe"}',
+            }
+            for label, raw in unreadable.items():
+                with self.subTest(label=label):
+                    proc = completion_hook(project, "claude", raw=raw)
+                    self.assertEqual(proc.returncode, 0, proc.stderr)
+                    answer = json.loads(proc.stdout)
+                    self.assertEqual(answer.get("decision"), "block")
+                    self.assertIn("not certified", answer["reason"])
+
+    def cp949_console_answer(self, project: RuntimeProject, event: dict) -> dict:
+        proc = completion_hook(project, "claude", event, console_encoding="cp949")
+        self.assertEqual(proc.returncode, 0, proc.stderr.decode("utf-8", "replace"))
+        # A host reads the answer as UTF-8; ASCII survives any console.
+        return json.loads(proc.stdout.decode("ascii"))
+
+    def test_completion_hook_answer_is_ascii_under_a_non_utf8_console(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # A Korean folder name plus a character cp949 cannot encode.
+            root = pathlib.Path(temp_dir) / "결제 프로젝트 ✓"
+            root.mkdir()
+            project, _ = self.verified_project(root)
+            # An unreadable state file is a status the runtime recognises as
+            # invalid: it still blocks, and the reason names the real path.
+            (root / ".ezpowers" / "state.json").write_text(
+                "{ not json",
+                encoding="utf-8",
+            )
+            blocked = self.cp949_console_answer(project, stop_event(project))
+            self.assertEqual(blocked.get("decision"), "block")
+            self.assertIn("invalid JSON", blocked["reason"])
+            self.assertIn(root.name, blocked["reason"])
+
+    def test_completion_hook_reads_a_utf8_event_under_a_non_utf8_console(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project, _ = self.verified_project(pathlib.Path(temp_dir))
+            # The event is UTF-8 whatever the console is: its non-ASCII text
+            # must not hide the running subagent.
+            waiting = stop_event(
+                project,
+                last_assistant_message="검토 결과를 기다립니다 … ✓",
+                background_tasks=[RUNNING_SUBAGENT_TASK],
+            )
+            self.assertEqual(self.cp949_console_answer(project, waiting), {})
+
+    def test_completion_hook_still_blocks_an_invalid_status(self) -> None:
+        # Breaking the plan must not open the gate.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project, plan = self.verified_project(pathlib.Path(temp_dir))
+            plan.unlink()
+            proc = completion_hook(project, "claude", stop_event(project))
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            answer = json.loads(proc.stdout)
+            self.assertEqual(answer.get("decision"), "block")
+            self.assertIn("docs/plans/demo.md", answer["reason"])
+
+    def test_completion_hook_warns_instead_of_blocking_when_it_cannot_evaluate(
+        self,
+    ) -> None:
+        spec = importlib.util.spec_from_file_location(
+            "ezpowers_completion_hook_failure_check",
+            EZPOWERS,
+        )
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        self.addCleanup(sys.modules.pop, spec.name, None)
+        spec.loader.exec_module(module)
+
+        def run_hook(failure: BaseException) -> tuple[int, str]:
+            stdin = types.SimpleNamespace(
+                buffer=io.BytesIO(b'{"hook_event_name":"Stop"}')
+            )
+            output = io.StringIO()
+            with (
+                mock.patch.object(module, "_status_payload", side_effect=failure),
+                mock.patch.object(sys, "stdin", stdin),
+                contextlib.redirect_stdout(output),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                code = module.main(["hook", "--host", "claude"])
+            return code, output.getvalue()
+
+        # An error the runtime does not recognise: the hook itself is broken.
+        code, text = run_hook(RuntimeError("status exploded: 상태 ✓"))
+        self.assertEqual(code, 0)
+        self.assertTrue(text.isascii(), text)
+        warning = json.loads(text)
+        self.assertNotIn("decision", warning)
+        self.assertIn("RuntimeError", warning["systemMessage"])
+        self.assertIn("status exploded: 상태 ✓", warning["systemMessage"])
+        self.assertIn("not blocked", warning["systemMessage"])
+
+        # An error the runtime raises on purpose is a reason to keep going.
+        code, text = run_hook(module.EZPowersError("evidence store is unreadable"))
+        self.assertEqual(code, 0)
+        self.assertTrue(text.isascii(), text)
+        blocked = json.loads(text)
+        self.assertEqual(blocked.get("decision"), "block")
+        self.assertIn("evidence store is unreadable", blocked["reason"])
 
 
 if __name__ == "__main__":

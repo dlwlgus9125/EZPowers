@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-11-18T16:22:38Z",
+  "updated_at": "2026-11-19T01:33:26Z",
   "features": [
     {
       "id": "F11",
@@ -20,7 +20,7 @@
         "tests/test_v5_workflow_surface.py",
         "scripts/runtime_smoke.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.11.0/manifest.json"
+        "project-kit/v5.11.1/manifest.json"
       ]
     },
     {
@@ -40,7 +40,7 @@
         "docs/reference/wiki-contract.md",
         "tests/test_ezpowers_docs_wiki.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.11.0/manifest.json"
+        "project-kit/v5.11.1/manifest.json"
       ]
     },
     {
@@ -63,7 +63,7 @@
         "skills/harness-chain/SKILL.md",
         "tests/test_harness_chain.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.11.0/manifest.json"
+        "project-kit/v5.11.1/manifest.json"
       ]
     },
     {
@@ -87,7 +87,7 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_harness_chain.py",
         "tests/test_codex_hud.py",
-        "project-kit/v5.11.0/manifest.json"
+        "project-kit/v5.11.1/manifest.json"
       ]
     },
     {
@@ -107,7 +107,7 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.11.0/manifest.json",
+        "project-kit/v5.11.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -139,7 +139,7 @@
         "scripts/plugin_smoke.py",
         "tests/test_v5_workflow_surface.py",
         "tests/test_ezpowers_runtime.py",
-        "project-kit/v5.11.0/manifest.json"
+        "project-kit/v5.11.1/manifest.json"
       ]
     },
     {
@@ -162,7 +162,7 @@
         "docs/reference/engineering-practices-contract.md",
         "tests/test_v5_workflow_surface.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.11.0/manifest.json",
+        "project-kit/v5.11.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -186,7 +186,7 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.11.0/manifest.json",
+        "project-kit/v5.11.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -211,7 +211,7 @@
         "tests/test_v5_workflow_surface.py",
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.11.0/manifest.json",
+        "project-kit/v5.11.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -239,7 +239,7 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.11.0/manifest.json",
+        "project-kit/v5.11.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -270,7 +270,7 @@
         "tests/test_ezpowers_docs_wiki.py",
         "tests/test_ezpowers_runtime.py",
         "tests/test_harness_chain.py",
-        "project-kit/v5.11.0/manifest.json",
+        "project-kit/v5.11.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -298,7 +298,7 @@
         "scripts/ezpowers.py",
         "tests/test_ezpowers_docs_wiki.py",
         "tests/test_harness_chain.py",
-        "project-kit/v5.11.0/manifest.json",
+        "project-kit/v5.11.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -330,7 +330,7 @@
         "tests/test_assurance_graph.py",
         "tests/test_harness_chain.py",
         "tests/test_repo_check.py",
-        "project-kit/v5.11.0/manifest.json",
+        "project-kit/v5.11.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -362,7 +362,7 @@
         "scripts/benchmark_software_profile.py",
         "tests/test_planning_profile.py",
         "tests/test_harness_chain.py",
-        "project-kit/v5.11.0/manifest.json",
+        "project-kit/v5.11.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -395,7 +395,7 @@
         "tests/test_v5_workflow_surface.py",
         "tests/test_ezpowers_runtime.py",
         "tests/test_codex_plugin_discovery.py",
-        "project-kit/v5.11.0/manifest.json",
+        "project-kit/v5.11.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -427,7 +427,7 @@
         "scripts/benchmark_check_reuse.py",
         "scripts/runtime_smoke.py",
         "docs/reference/verification-contract.md",
-        "project-kit/v5.11.0/manifest.json",
+        "project-kit/v5.11.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -458,7 +458,33 @@
         "docs/reference/harness-chain-contract.md",
         "docs/reference/verification-contract.md",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.11.0/manifest.json",
+        "project-kit/v5.11.1/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
+      ]
+    },
+    {
+      "id": "F28",
+      "title": "Completion hook wait and failure rules",
+      "status": "complete",
+      "success_criteria": [
+        "On Claude Code the ordinary completion hook does not block a Stop that lists a running background subagent, whatever the status, while a Stop that lists none, only a shell or monitor, a finished subagent, or a malformed task list blocks as before and Codex blocks for the same payload",
+        "A failure of the hook itself that the runtime does not recognise exits successfully with a systemMessage warning and no decision, while a recognised runtime error and an invalid status such as unreadable state or a deleted plan still block",
+        "Under a console encoding that is not UTF-8 the hook reads a UTF-8 event with non-ASCII text and answers with ASCII-only JSON whose block reason keeps a path that encoding cannot represent",
+        "The verification and setup contracts, the host discovery reference, the architecture artifact, and ADR 0012 state the wait rule, the adapter-failure rule, and the encoding rule",
+        "The 5.11.1 plugin, marketplace, Codex, and single project-kit manifests agree and no older kit manifest remains"
+      ],
+      "evidence": [
+        "docs/decisions/0012-completion-hook-wait-and-failure.md",
+        "docs/specs/f28-completion-hook-wait.md",
+        "docs/plans/f28-completion-hook-wait.md",
+        "scripts/ezpowers.py",
+        "tests/test_ezpowers_runtime.py",
+        "tests/test_v5_workflow_surface.py",
+        "docs/reference/verification-contract.md",
+        "docs/reference/setup-contract.md",
+        "docs/reference/codex-plugin-discovery.md",
+        "project-kit/v5.11.1/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]

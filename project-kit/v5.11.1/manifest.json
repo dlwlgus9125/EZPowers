@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "version": "5.11.0",
+  "version": "5.11.1",
   "no_synthesis": true,
   "runtime": {
     "source": "scripts/ezpowers.py",
     "target": ".ezpowers/ezpowers.py",
-    "sha256": "a761e247b512a81ea6c57f5b62bfbdc639f914300cb7b43ccf3c7361915f6627"
+    "sha256": "deafbd77ec4ef87e3edef180561d5ed99e1da929d5d5c71ea9b59afc08c907b6"
   },
   "tools": [
     {
@@ -240,7 +240,7 @@
     {
       "source": "docs/reference/setup-contract.md",
       "target": ".ezpowers/contracts/setup-contract.md",
-      "sha256": "356f8dc7c2420712c6d52f8bdb30f5d8310b5a6c3e4b3a2f00c531efcc83dac5"
+      "sha256": "affad0015bbd8968aa88afa781a43e0cafb8bdb3b9cfad9fc809cc2cef248fe0"
     },
     {
       "source": "docs/reference/design-architecture-contract.md",
@@ -265,7 +265,7 @@
     {
       "source": "docs/reference/verification-contract.md",
       "target": ".ezpowers/contracts/verification-contract.md",
-      "sha256": "cafeac28cfc600007aa030ac2be3e7c8832e548d8adbc37e9b04a59a2eed0884"
+      "sha256": "5d752480c729a4cdf0d6ebc4e303aa6205e44c5d9eacf1e3fbb58e8bc4ca942e"
     },
     {
       "source": "docs/reference/documentation-contract.md",

@@ -404,19 +404,33 @@ requires `CERTIFIED` for the current workspace.
 
 Project hooks are optional and disabled by default. They read status; they do
 not execute checks. With no active plan they are neutral. With an active plan,
-only a fresh certified result permits stopping.
+only a fresh certified result permits stopping, with one exception. On Claude
+Code a Stop that reports a running background subagent is a wait and is not
+blocked: the host starts the next turn when that subagent reports, and that
+Stop is judged as usual. Shells, monitors, and other background tasks never
+defer a Stop. Codex reports no background tasks and keeps blocking.
 
 Optional wiki SessionEnd hooks are a separate feature. They never read or
 change the completion verdict and are governed by `wiki-contract.md`.
 
-Both adapters derive the same allow/block verdict and block reason from the
-core status. They emit only the fields documented by the hosts' official Stop
-schemas. The standard Stop payload is identical on both hosts:
+Apart from that wait, both adapters derive the same allow/block verdict and
+block reason from the core status. They emit only the fields documented by the
+hosts' official Stop schemas. The standard Stop payload is identical on both
+hosts:
 
 | Core verdict | Claude and Codex Stop output |
 | --- | --- |
 | allow | `{}` |
 | block | `{"decision":"block","reason":"<core reason>"}` |
+| the adapter could not evaluate | `{"systemMessage":"<notice>"}` |
+
+A status the runtime can read as invalid, such as unreadable state or a
+missing plan, is a block with its reasons. Only a failure of the adapter
+itself that the runtime does not recognise yields the notice. It does not
+block, because the model cannot repair the hook, and it never changes status,
+evidence, or certification. The adapter reads host input as UTF-8 and answers
+with ASCII-only JSON, so a console whose locale encoding is not UTF-8 cannot
+corrupt a reason. An event that cannot be read defers nothing.
 
 The configuration wire formats differ: Claude uses a no-shell `command` plus
 `args`, while Codex uses POSIX `command` and Windows `commandWindows` strings.

@@ -1,6 +1,10 @@
 # EZPowers Roadmap
 
-## Current: v5.11.0 core / v5.11.0 plugin
+## Current: v5.11.1 core / v5.11.1 plugin
+
+- Let the optional ordinary completion Stop hook wait for a running background
+  subagent on Claude Code, warn instead of blocking when the hook itself
+  fails, and answer with ASCII-only JSON on any console encoding.
 
 - Align the harness chain's Claude adapter with the hook payloads Claude Code
   really sends: read the permission mode from the first event that reports it,

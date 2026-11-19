@@ -149,6 +149,15 @@ certified state, or `{"decision":"block","reason":"..."}` for a stale or
 uncertified state. In Codex, `continue: false` stops the hook run itself and is
 not the completion-continuation response.
 
+Two rules keep the adapter out of the session's way. On Claude Code a Stop
+whose `background_tasks` lists a running subagent is a wait and is not
+blocked; the host starts the next turn when the subagent reports, and that
+Stop is judged as usual. Codex's Stop input has no such list, so Codex keeps
+blocking. An adapter that fails with an error the runtime does not recognise
+answers `{"systemMessage":"..."}` and does not block, while an invalid status
+still blocks. The adapter reads its input as UTF-8 and answers with ASCII-only
+JSON.
+
 The adapter does not rerun tests or reinterpret evidence. Project hooks are
 thin lifecycle integrations, not a second completion engine.
 
@@ -223,6 +232,37 @@ Live-verified on 2026-11-18 with Claude Code 2.1.327 (`claude -p`, one run in
 - The hook process does not run in Python UTF-8 mode. On a Korean Windows
   console its text streams default to cp949 while the host sends UTF-8.
 
+Live-verified on 2026-11-19 with Claude Code 2.1.327 (`claude -p` in `auto`
+with the `sonnet` alias, the ordinary completion Stop hook, every Stop input
+and answer recorded):
+
+- A Stop input carries `background_tasks`, `cwd`, `effort`,
+  `hook_event_name`, `last_assistant_message`, `permission_mode`, `prompt_id`,
+  `session_crons`, `session_id`, `stop_hook_active`, and `transcript_path`.
+- The host ends the turn after nine consecutive Stop blocks with no tool call
+  between them, says so, and names `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`. The
+  documentation says eight.
+- `stop_hook_active` is false on the first Stop of a turn and true on a Stop
+  that follows a block. The Stop after a background subagent reports is a
+  first Stop again.
+- A Stop answer `{}` while a subagent runs ends the turn, and the host starts
+  the next turn when the subagent reports.
+- A Stop answer that carries only `systemMessage` does not continue the turn.
+  The host shows it as a notice that begins "Stop says:".
+- A Stop hook that exits 1 with nothing on stdout does not block. The host
+  shows a generic "stop hook reported a problem" notice.
+
+Doc-verified on 2026-11-19:
+
+- Claude documents a hook that exits with a code other than 0 or 2, or prints
+  JSON that cannot be parsed, as a non-blocking error, and `systemMessage` as
+  a warning shown to the user, in
+  [Hooks reference](https://code.claude.com/docs/en/hooks).
+- Codex documents Stop input as `turn_id`, `stop_hook_active`, and
+  `last_assistant_message`, with no list of background tasks, and
+  `systemMessage` as a warning surfaced in the UI or event stream, in
+  [Hooks](https://learn.chatgpt.com/docs/hooks).
+
 Doc-verified on 2026-11-18:
 
 - Claude documents project and plugin skill locations, plugin namespaces, and
@@ -271,6 +311,10 @@ Unverified:
   when SessionStart reported none, UTF-8 hook input with ASCII answers, the
   code-review rubric wording, the comparison of installed matchers, and a
   finished run no longer ending a pending oracle audit.
+- The ordinary completion hook was not run on a live Codex host. Whether
+  Codex shows a Stop answer that carries only `systemMessage`, and what it
+  does with a Stop hook that exits with an error, comes from its
+  documentation alone.
 - An interactive Claude Code session, a forked session, and compaction during
   a run were not probed.
 

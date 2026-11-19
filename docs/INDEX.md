@@ -39,6 +39,7 @@
 - [Plugin-only teach skill ADR](decisions/0009-plugin-only-teach-skill.md)
 - [Content-bound check reuse ADR](decisions/0010-content-bound-check-reuse.md)
 - [Current-host chain adapter ADR](decisions/0011-current-host-chain-adapter.md)
+- [Completion hook wait and failure ADR](decisions/0012-completion-hook-wait-and-failure.md)
 - [2026-07-24 workflow harness audit](reports/workflow-harness-audit-2026-07-24.md)
 - [2026-08-25 graph-engineering paper evaluation](reports/graph-engineering-paper-evaluation-2026-08-25.md)
 

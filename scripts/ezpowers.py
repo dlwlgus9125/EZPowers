@@ -41,7 +41,7 @@ ASSURANCE_GRAPH_SCHEMA_VERSION = 1
 PLANNING_ASSURANCE_GRAPH_SCHEMA_VERSION = 2
 GRAPH_BOUND_SCHEMA_VERSION = 2
 PLANNING_EVIDENCE_SCHEMA_VERSION = 3
-KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.11.0/manifest.json")
+KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.11.1/manifest.json")
 CONFIG_RELATIVE_PATH = pathlib.Path(".ezpowers/config.json")
 STATE_RELATIVE_PATH = pathlib.Path(".ezpowers/state.json")
 LEDGER_RELATIVE_PATH = pathlib.Path(".ezpowers/ledger.json")
@@ -7931,7 +7931,7 @@ def _chain_pretool_response(
     }
 
 
-def _chain_background_subagent_running(event: dict[str, Any]) -> bool:
+def _background_subagent_running(event: dict[str, Any]) -> bool:
     tasks = event.get("background_tasks")
     if not isinstance(tasks, list):
         return False
@@ -7959,7 +7959,7 @@ def _chain_stop_response(
     if (
         host == "claude"
         and status == "RUNNING"
-        and _chain_background_subagent_running(event)
+        and _background_subagent_running(event)
     ):
         # Claude Code runs subagents in the background and starts the next
         # turn when one reports, so this Stop is a wait, not a continuation.
@@ -11006,11 +11006,11 @@ def _status_command(args: argparse.Namespace) -> int:
     return code
 
 
-def _hook_command(args: argparse.Namespace) -> int:
-    # Consume the event so a producer never blocks on a full pipe.  Completion
-    # authority comes only from project-local state and evidence.
-    with contextlib.suppress(Exception):
-        sys.stdin.read()
+def _hook_response(host: str, event: dict[str, Any]) -> dict[str, Any]:
+    if host == "claude" and _background_subagent_running(event):
+        # Claude Code starts the next turn when the subagent reports, so this
+        # Stop is a wait. The Stop that follows is judged below as usual.
+        return {}
     root = _runtime_project_root()
     payload, _ = _status_payload(root)
     unconfigured = payload.get("status") == "UNCONFIGURED"
@@ -11027,7 +11027,40 @@ def _hook_command(args: argparse.Namespace) -> int:
     if not allow:
         response["decision"] = "block"
         response["reason"] = reason
-    print(json.dumps(response, ensure_ascii=False))
+    return response
+
+
+def _hook_command(args: argparse.Namespace) -> int:
+    # Hosts send UTF-8 JSON, and sys.stdin's text layer would decode it with
+    # the console's locale encoding. An event that cannot be read changes
+    # nothing: completion authority comes only from project-local state and
+    # evidence.
+    try:
+        raw = sys.stdin.buffer.read().decode("utf-8-sig", errors="replace")
+        event = json.loads(raw) if raw.strip() else None
+    except Exception:
+        event = None
+    if not isinstance(event, dict):
+        event = {}
+    try:
+        response = _hook_response(args.host, event)
+    except EZPowersError as exc:
+        # A state the runtime recognises as invalid is a reason to keep going.
+        response = {"decision": "block", "reason": str(exc)}
+    except Exception as exc:
+        # The adapter itself failed. The model cannot repair that, so warn the
+        # user instead of holding the session. Status, evidence, and
+        # certification are untouched.
+        response = {
+            "systemMessage": (
+                "EZPowers completion hook could not evaluate the completion "
+                f"status ({type(exc).__name__}: {exc}). Stopping is not "
+                "blocked; run the project runtime's status command to see "
+                "the state."
+            )
+        }
+    # ASCII-only JSON survives any console encoding on the way back.
+    print(json.dumps(response))
     return 0
 
 

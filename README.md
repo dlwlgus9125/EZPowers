@@ -3,7 +3,7 @@
 > Claude Code와 Codex가 같은 저장소 증거로 작업의 **완료 여부**를
 > 판단하도록 만드는 프로젝트 로컬 워크플로 플러그인입니다.
 
-**Plugin v5.11.0 · Project kit v5.11.0 · Python 3.10+ · MIT**
+**Plugin v5.11.1 · Project kit v5.11.1 · Python 3.10+ · MIT**
 
 [빠른 시작](#빠른-시작) · [워크플로](#기본-워크플로) ·
 [스킬 목록](#스킬-목록) · [업데이트](#업데이트) ·
@@ -92,7 +92,10 @@ preview/apply/lint 순서로 진행되며, 관리되지 않은 기존 문서는 
 없이 덮어쓰지 않습니다.
 
 기본값으로 completion hook과 SessionEnd wiki capture는 설치되지 않습니다.
-각 기능은 별도 요청과 승인이 필요합니다.
+각 기능은 별도 요청과 승인이 필요합니다. completion hook은 활성 plan이
+인증되기 전에는 정지를 막지만, Claude Code에서 백그라운드 서브에이전트가
+실행 중일 때는 막지 않고 기다리며, hook 자체가 실패하면 막는 대신 경고를
+남깁니다.
 
 ## 두 개의 설치 계층
 

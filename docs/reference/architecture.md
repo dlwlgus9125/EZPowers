@@ -199,6 +199,15 @@ configured project must carry. These values follow the hosts' observed hook
 payloads. The completion verdict, the receipt schema and marker, hard limits,
 and hash checks do not move with them.
 
+The optional ordinary Stop adapter maps the same status to the host and blocks
+a stop while an active plan has no fresh certificate. Two host-facing rules
+keep it out of the session's way without touching the verdict. A Claude Stop
+that reports a running background subagent is a wait and is not blocked; the
+next Stop is judged as before. An adapter that cannot evaluate status at all
+warns the user instead of blocking, while a status the runtime can read as
+invalid still blocks. The adapter reads host input as UTF-8 and answers with
+ASCII-only JSON.
+
 Planning inputs are named project-relative regular files whose bytes are
 hashed directly, including files ignored by Git. Logical deliverables own one
 or more unique output paths and the acceptance criteria they realise. A
@@ -316,6 +325,8 @@ records; the source evidence bytes remain the authority.
   `docs/decisions/0010-content-bound-check-reuse.md`.
 - Chain host-adapter alignment with the current hosts:
   `docs/decisions/0011-current-host-chain-adapter.md`.
+- Ordinary Stop adapter wait and failure rules:
+  `docs/decisions/0012-completion-hook-wait-and-failure.md`.
 
 Human-readable Markdown may explain these contracts but must not duplicate or
 override the managed JSON values.

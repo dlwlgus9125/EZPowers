@@ -315,7 +315,9 @@ no shell quoting is needed. Codex stores a POSIX-safe `command` plus a Windows
 `commandWindows` string because its hook schema does not expose a separate
 argument array. Both invoke the same installed runtime and emit the same Stop
 payload: `{}` when stopping is allowed, or
-`{"decision":"block","reason":"..."}` when it is not.
+`{"decision":"block","reason":"..."}` when it is not. The wait for a running
+background subagent on Claude Code and the notice for an adapter failure are
+defined in `verification-contract.md`.
 
 Preserve unrelated settings and hooks. A conflicting non-object hook structure
 is an installation conflict. Codex project hooks require a trusted project and

@@ -192,6 +192,9 @@ dependencies never assign implementation work or select an agent.
 - A rejected review report never opens an unbounded series of reviewers: a
   run stops at its review limit, an oracle audit allows one replacement before
   the preview is closed, and a finished run does not reopen an audit.
+- The optional completion Stop hook does not spend turns while a background
+  subagent is running on Claude Code, cannot wedge a session when the hook
+  itself fails, and still blocks an uncertified stop otherwise.
 - The frozen-file guard never blocks the runtime's own verification commands
   and denies direct writes through every tool it inspects.
 - Removed orchestration concepts have no live reference or advertised flow.
