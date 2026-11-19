@@ -250,17 +250,32 @@ Start the reviewer in the foreground when the host lets you choose. If it runs
 in the background, end your turn and wait: on Claude Code the Stop hook neither
 blocks nor counts while a background subagent is running, and the host resumes
 the session when it reports. Do not begin another gate, rerun verification, or
-start a second reviewer while one is bound. If a receipt is rejected and the
-same `chain gate begin` command then shows no `bound_agent_id`, the first
-reviewer could not be continued: spawn one new reviewer for that challenge.
+start a second reviewer while one is bound. If a receipt is rejected, the same
+`chain gate begin` command reports it as `previous_receipt` with the reason
+and a `next_step`, and inside a run the Stop reason says the same. When it
+then shows no `bound_agent_id`, the first reviewer could not be continued:
+spawn one new reviewer for that challenge.
 An oracle audit allows that once. If the replacement's report is rejected too,
 the preview is closed like a failed audit; tell the person and revise the
 staged contract. Inside a run each rejection counts toward the review limit.
+If a bound reviewer cannot report at all, because it was interrupted or its
+session ended, run:
+
+```text
+python .ezpowers/ezpowers.py chain gate abandon --json
+```
+
+Wait for a reviewer that is still running; abandoning is not a way around a
+review. It closes an audit's preview, and inside a run it counts one review
+failure and frees the challenge for one new reviewer.
 After the bound reviewer's receipt registers, rerun the same preview. Any staged or target
 change produces a different hash and requires a new audit.
 A bound audit `FAIL` consumes that exact preview hash: revise the staged
 acceptance contract before starting another audit. Do not cycle reviewers
-against unchanged oracle evidence until one returns `PASS`.
+against unchanged oracle evidence until one returns `PASS`. A new preview hash
+replaces a pending audit and closes the earlier preview when a reviewer was
+already bound to it. Do not begin an oracle audit while a run is
+`PENDING_LOOP` or `RUNNING`.
 
 ### 3. Obtain one feature approval
 
@@ -410,6 +425,8 @@ If runtime state is unreadable, the chain hook itself degrades to a fail-safe
 no-op (exit 0, empty response) instead of blocking, so a corrupt loop dies
 rather than wedging the session. After any emergency stop, repair state with a
 new preview/audit/approval; never hand-edit hashes to resurrect the old run.
+A review gate the stopped run left pending is dropped by the next
+`chain gate begin`.
 
 ## Approval and absence rules
 

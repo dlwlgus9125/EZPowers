@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "wip_limit": 1,
-  "updated_at": "2026-11-19T01:33:26Z",
+  "updated_at": "2026-11-19T03:16:25Z",
   "features": [
     {
       "id": "F11",
@@ -20,7 +20,7 @@
         "tests/test_v5_workflow_surface.py",
         "scripts/runtime_smoke.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.11.1/manifest.json"
+        "project-kit/v5.12.0/manifest.json"
       ]
     },
     {
@@ -40,7 +40,7 @@
         "docs/reference/wiki-contract.md",
         "tests/test_ezpowers_docs_wiki.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.11.1/manifest.json"
+        "project-kit/v5.12.0/manifest.json"
       ]
     },
     {
@@ -63,7 +63,7 @@
         "skills/harness-chain/SKILL.md",
         "tests/test_harness_chain.py",
         "scripts/ezpowers.py",
-        "project-kit/v5.11.1/manifest.json"
+        "project-kit/v5.12.0/manifest.json"
       ]
     },
     {
@@ -87,7 +87,7 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_harness_chain.py",
         "tests/test_codex_hud.py",
-        "project-kit/v5.11.1/manifest.json"
+        "project-kit/v5.12.0/manifest.json"
       ]
     },
     {
@@ -107,7 +107,7 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -139,7 +139,7 @@
         "scripts/plugin_smoke.py",
         "tests/test_v5_workflow_surface.py",
         "tests/test_ezpowers_runtime.py",
-        "project-kit/v5.11.1/manifest.json"
+        "project-kit/v5.12.0/manifest.json"
       ]
     },
     {
@@ -162,7 +162,7 @@
         "docs/reference/engineering-practices-contract.md",
         "tests/test_v5_workflow_surface.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -186,7 +186,7 @@
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -211,7 +211,7 @@
         "tests/test_v5_workflow_surface.py",
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -239,7 +239,7 @@
         "tests/test_ezpowers_runtime.py",
         "tests/test_codex_plugin_discovery.py",
         "scripts/plugin_smoke.py",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -270,7 +270,7 @@
         "tests/test_ezpowers_docs_wiki.py",
         "tests/test_ezpowers_runtime.py",
         "tests/test_harness_chain.py",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -298,7 +298,7 @@
         "scripts/ezpowers.py",
         "tests/test_ezpowers_docs_wiki.py",
         "tests/test_harness_chain.py",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -330,7 +330,7 @@
         "tests/test_assurance_graph.py",
         "tests/test_harness_chain.py",
         "tests/test_repo_check.py",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -362,7 +362,7 @@
         "scripts/benchmark_software_profile.py",
         "tests/test_planning_profile.py",
         "tests/test_harness_chain.py",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -395,7 +395,7 @@
         "tests/test_v5_workflow_surface.py",
         "tests/test_ezpowers_runtime.py",
         "tests/test_codex_plugin_discovery.py",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -427,7 +427,7 @@
         "scripts/benchmark_check_reuse.py",
         "scripts/runtime_smoke.py",
         "docs/reference/verification-contract.md",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -458,7 +458,7 @@
         "docs/reference/harness-chain-contract.md",
         "docs/reference/verification-contract.md",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]
@@ -484,7 +484,36 @@
         "docs/reference/verification-contract.md",
         "docs/reference/setup-contract.md",
         "docs/reference/codex-plugin-discovery.md",
-        "project-kit/v5.11.1/manifest.json",
+        "project-kit/v5.12.0/manifest.json",
+        "PROGRESS.md",
+        "harness_versions/changelog.jsonl"
+      ]
+    },
+    {
+      "id": "F29",
+      "title": "Review gate lifecycle",
+      "status": "complete",
+      "success_criteria": [
+        "After a rejected review receipt the Stop reason, the run status next action, and the chain gate begin answer state the rejection, a one-line ASCII reason, and the next step, and none of them asks for another reviewer while one is bound",
+        "An oracle audit cannot begin while a run is PENDING_LOOP or RUNNING, can begin directly after an emergency stop, and a rejected oracle-audit receipt never counts against a run",
+        "A product gate left pending by a run that has ended does not block the next feature's oracle audit and binds no later subagent",
+        "chain gate begin with a new subject of the same kind replaces the pending challenge; a replaced audit that had a reviewer closes its preview, and a replaced product gate with a bound reviewer counts one review failure",
+        "chain gate abandon ends a challenge whose bound reviewer cannot report: before approval it closes the preview, inside a run it counts one review failure once for each reviewer and ends the run at the review limit",
+        "A hand-back with a gate marker that is already stored is judged before its challenge is abandoned or replaced",
+        "While a reviewer is bound the guidance says to wait before it mentions abandoning, and the refusal for a closed preview names how it was closed",
+        "The harness-chain contract and skill, the architecture artifact, and ADR 0013 state the owner, the endings, the fail-closed rule, the abandon command, the one-feature-at-a-time rule, and the rejection notice",
+        "The 5.12.0 plugin, marketplace, Codex, and single project-kit manifests agree and no older kit manifest remains"
+      ],
+      "evidence": [
+        "docs/decisions/0013-review-gate-lifecycle.md",
+        "docs/specs/f29-review-gate-lifecycle.md",
+        "docs/plans/f29-review-gate-lifecycle.md",
+        "scripts/ezpowers.py",
+        "tests/test_harness_chain.py",
+        "tests/test_v5_workflow_surface.py",
+        "docs/reference/harness-chain-contract.md",
+        "skills/harness-chain/SKILL.md",
+        "project-kit/v5.12.0/manifest.json",
         "PROGRESS.md",
         "harness_versions/changelog.jsonl"
       ]

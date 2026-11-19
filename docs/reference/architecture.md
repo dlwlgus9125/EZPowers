@@ -199,6 +199,17 @@ configured project must carry. These values follow the hosts' observed hook
 payloads. The completion verdict, the receipt schema and marker, hard limits,
 and hash checks do not move with them.
 
+A pending review challenge has an owner and an end. A product gate belongs to
+the run that was `RUNNING` when it began and ends with that run; an oracle
+audit belongs to its preview hash, and no audit begins while a run is still
+nonterminal. A challenge ends with its bound reviewer's receipt, when its
+owner ends, when a new subject of the same kind replaces it, or when it is
+abandoned explicitly. Ending a challenge that has a bound reviewer without a
+receipt always leaves a trace: an audit closes its preview and a product gate
+counts one review failure, so replacing a reviewer never becomes a way around
+a review. A rejection is recorded on the challenge with a short reason, and
+the next action and the gate answer repeat it to the main agent.
+
 The optional ordinary Stop adapter maps the same status to the host and blocks
 a stop while an active plan has no fresh certificate. Two host-facing rules
 keep it out of the session's way without touching the verdict. A Claude Stop
@@ -327,6 +338,8 @@ records; the source evidence bytes remain the authority.
   `docs/decisions/0011-current-host-chain-adapter.md`.
 - Ordinary Stop adapter wait and failure rules:
   `docs/decisions/0012-completion-hook-wait-and-failure.md`.
+- Review gate ownership, endings, and abandonment:
+  `docs/decisions/0013-review-gate-lifecycle.md`.
 
 Human-readable Markdown may explain these contracts but must not duplicate or
 override the managed JSON values.

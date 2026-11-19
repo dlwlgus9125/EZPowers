@@ -141,7 +141,7 @@ has explicitly approved a design-contract change.
 - Local supporting knowledge: `.ezpowers/wiki/`
 - Resume/evidence pointer: `.ezpowers/state.json`
 - Runtime: `scripts/ezpowers.py`
-- Distribution manifest: `project-kit/v5.11.1/manifest.json`
+- Distribution manifest: `project-kit/v5.12.0/manifest.json`
 - Specs and plans: `docs/specs/`, `docs/plans/`
 - Canonical contracts: `docs/reference/*-contract.md`
 - Product state: `PROGRESS.md`, `feature_list.json`
@@ -168,7 +168,7 @@ python scripts/verify-harness-kit.py
 python scripts/plugin_smoke.py --host both
 ```
 
-For a v5.11 kit or plugin release candidate, also run both three-run scheduler measurements,
+For a v5.12 kit or plugin release candidate, also run both three-run scheduler measurements,
 the three-run content-bound reuse measurement, and the five-run interleaved software
 compatibility measurement:
 

@@ -101,7 +101,7 @@ class RepositoryGateTests(unittest.TestCase):
         write(root / ".claude-plugin" / "marketplace.json", json.dumps(marketplace))
         write(root / ".codex-plugin" / "plugin.json", json.dumps(codex))
 
-        write(root / "project-kit" / "v5.11.1" / "manifest.json", "{}")
+        write(root / "project-kit" / "v5.12.0" / "manifest.json", "{}")
         write(
             root / "scripts" / "verify-harness-kit.py",
             """

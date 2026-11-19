@@ -2422,34 +2422,92 @@ class HarnessChainTests(unittest.TestCase):
         project: ChainProject,
         *,
         review_retries: int,
+        total_iterations: int = 10,
     ) -> str:
         project.configure(
             limits={
-                "total_iterations": 10,
+                "total_iterations": total_iterations,
                 "qa_cycles": 5,
                 "validation_retries": 3,
                 "review_retries": review_retries,
                 "identical_error_repeats": 3,
             }
         )
-        value = project.approve_and_activate(project.write_run_bundle())
+        project.approve_and_activate(project.write_run_bundle())
         (project.root / "app.py").write_text(
             "def value():\n    return 5\n",
             encoding="utf-8",
         )
+        self.verify_all(project)
+        begin = self.begin_gate(project, "code-review", self.latest_evidence(project))
+        project.assert_success(begin)
+        return json.loads(begin.stdout)["challenge_id"]
+
+    def verify_all(self, project: ChainProject) -> None:
+        plan = project.state_value()["chain_run"]["plan_path"]
         project.assert_success(
             project.command(
                 "verify",
                 "--plan",
-                str(project.root / value["plan_path"]),
+                str(project.root / plan),
                 "--all",
                 "--json",
             )
         )
-        evidence = project.state_value()["latest_evidence"]["all"]["sha256"]
-        begin = self.begin_gate(project, "code-review", evidence)
-        project.assert_success(begin)
-        return json.loads(begin.stdout)["challenge_id"]
+
+    def latest_evidence(self, project: ChainProject) -> str:
+        return project.state_value()["latest_evidence"]["all"]["sha256"]
+
+    def gate_abandon(self, project: ChainProject) -> subprocess.CompletedProcess[str]:
+        return project.command("chain", "gate", "abandon", "--json")
+
+    def next_feature_bundle(self, project: ChainProject) -> pathlib.Path:
+        # The first feature already made value() return five, so the next
+        # one asks for six: its oracle still fails on the baseline.
+        project.commit_all("first feature")
+        bundle = project.write_run_bundle(run_id="second-run")
+        oracle = bundle / "test_second_run.py"
+        oracle.write_text(
+            oracle.read_text(encoding="utf-8").replace("value(), 5", "value(), 6"),
+            encoding="utf-8",
+        )
+        return bundle
+
+    def preview_hash(self, project: ChainProject, bundle: pathlib.Path) -> str:
+        return json.loads(self.audit_preview(project, bundle).stdout)["preview_sha256"]
+
+    def leave_audit_beside_the_run(self, project: ChainProject, *, bound: bool) -> str:
+        # v5.11.1 and earlier allowed an oracle audit to begin while a run was
+        # RUNNING. A project refreshed in that state still carries the gate.
+        path = project.root / ".ezpowers" / "state.json"
+        state = json.loads(path.read_text(encoding="utf-8"))
+        subject = "a" * 64
+        gate = {
+            "schema_version": 1,
+            "challenge_id": "0" * 32,
+            "kind": "oracle-audit",
+            "subject_sha256": subject,
+            "approval_sha256": None,
+            "host": None,
+            "expected_host": None,
+            "session_id": None,
+            "bound_agent_id": None,
+            "bound_agent_type": None,
+            "created_at": "2026-11-18T00:00:00.000000Z",
+        }
+        if bound:
+            gate.update(
+                {
+                    "host": "claude",
+                    "session_id": "claude-session",
+                    "bound_agent_id": "auditor",
+                    "bound_agent_type": "general-purpose",
+                    "bound_at": "2026-11-18T00:00:01.000000Z",
+                }
+            )
+        state["chain_gates"]["pending"] = gate
+        path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+        return subject
 
     def test_pretool_guard_allows_runtime_commands_reads_and_mentions(
         self,
@@ -3010,6 +3068,687 @@ class HarnessChainTests(unittest.TestCase):
             self.assertEqual(2, state["chain_run"]["counters"]["review_failures"])
             self.assertIn("review retries limit", state["chain_run"]["terminal_reason"])
             self.assertIsNone(state["chain_gates"]["pending"])
+
+    def stop_reason(self, project: ChainProject) -> str:
+        stop = project.stop_event()
+        project.assert_success(stop)
+        answer = json.loads(stop.stdout)
+        self.assertEqual("block", answer.get("decision"))
+        return answer["reason"]
+
+    def next_action(self, project: ChainProject) -> str:
+        status = project.command("chain", "run", "status", "--json")
+        project.assert_success(status)
+        return json.loads(status.stdout)["next_action"]
+
+    def test_rejected_receipt_reason_reaches_the_main_agent_inside_a_run(
+        self,
+    ) -> None:
+        # In auto mode the host does not deliver the hook's rejection to
+        # anybody, so the Stop reason, the run status, and the gate answer
+        # have to say what happened and what to do.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            challenge = self.running_code_review(project, review_retries=3)
+            evidence = project.state_value()["latest_evidence"]["all"]["sha256"]
+
+            def gate_answer() -> dict:
+                begin = self.begin_gate(project, "code-review", evidence)
+                project.assert_success(begin)
+                return json.loads(begin.stdout)
+
+            self.assertEqual(
+                {},
+                self.hand_back(project, "first", "The change looks fine. PASS."),
+            )
+            for told in (self.stop_reason(project), self.next_action(project)):
+                self.assertIn("code-review receipt was rejected", told)
+                self.assertIn("hand-back carried no gate marker", told)
+                self.assertIn("Spawn one new independent reviewer", told)
+            answer = gate_answer()
+            self.assertEqual("PENDING_REVIEWER", answer["status"])
+            self.assertEqual(challenge, answer["challenge_id"])
+            self.assertIsNone(answer["bound_agent_id"])
+            self.assertEqual("REJECTED", answer["previous_receipt"]["status"])
+            self.assertIn(
+                "hand-back carried no gate marker",
+                answer["previous_receipt"]["reason"],
+            )
+            self.assertIn("Spawn one new independent reviewer", answer["next_step"])
+            self.assertIn("review limit", answer["next_step"])
+
+            # Once a replacement is bound nobody is told to spawn another one.
+            self.reviewer_event(project, "SubagentStart", "second")
+            self.assertNotIn("Spawn one new", self.stop_reason(project))
+            answer = gate_answer()
+            self.assertEqual("second", answer["bound_agent_id"])
+            self.assertEqual("REJECTED", answer["previous_receipt"]["status"])
+            self.assertIn("do not start another reviewer", answer["next_step"])
+            self.assertNotIn("Spawn one new", answer["next_step"])
+
+            self.assertEqual(
+                {},
+                self.reviewer_event(
+                    project,
+                    "PreToolUse",
+                    "second",
+                    permission_mode="auto",
+                    tool_name="SubagentHandback",
+                    tool_input={"message": gate_marker(challenge)},
+                ),
+            )
+            self.assertEqual(
+                {},
+                self.reviewer_event(
+                    project,
+                    "SubagentStop",
+                    "second",
+                    permission_mode="auto",
+                    stop_hook_active=False,
+                ),
+            )
+            self.assertIsNone(self.pending_gate(project))
+            self.assertIn("Run certify", self.stop_reason(project))
+
+    def test_rejected_audit_receipt_reason_is_in_the_gate_begin_answer(self) -> None:
+        # Before approval no Stop hook speaks for the chain, so the answer of
+        # `chain gate begin` is the only place the main agent can learn it.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle()
+            subject = json.loads(self.audit_preview(project, bundle).stdout)[
+                "preview_sha256"
+            ]
+
+            def gate_answer() -> dict:
+                begin = self.begin_gate(project, "oracle-audit", subject)
+                project.assert_success(begin)
+                return json.loads(begin.stdout)
+
+            first = gate_answer()
+            self.assertNotIn("previous_receipt", first)
+
+            # The same reviewer is told to correct (the block is honoured
+            # outside auto mode): the answer must not ask for another one.
+            self.reviewer_event(project, "SubagentStart", "first")
+            blocked = self.stop_with_message(project, "first", "Looks good to me.")
+            self.assertEqual("block", blocked.get("decision"))
+            answer = gate_answer()
+            self.assertEqual("first", answer["bound_agent_id"])
+            self.assertEqual("REJECTED", answer["previous_receipt"]["status"])
+            self.assertIn(
+                "exactly one structured gate marker",
+                answer["previous_receipt"]["reason"],
+            )
+            self.assertIn("do not start another reviewer", answer["next_step"])
+            self.assertNotIn("Spawn one new", answer["next_step"])
+
+            # A handed-back report cannot be corrected: one replacement.
+            self.assertEqual(
+                {},
+                self.hand_back(project, "first", gate_marker("wrong-challenge")),
+            )
+            answer = gate_answer()
+            self.assertIsNone(answer["bound_agent_id"])
+            self.assertIn(
+                "challenge_id does not match",
+                answer["previous_receipt"]["reason"],
+            )
+            self.assertIn("Spawn one new independent reviewer", answer["next_step"])
+            self.assertIn("only replacement", answer["next_step"])
+
+            self.assertEqual({}, self.hand_back(project, "second", "No marker."))
+            closed = self.begin_gate(project, "oracle-audit", subject)
+            self.assertEqual(2, closed.returncode, closed.stdout + closed.stderr)
+            refusal = closed.stdout + closed.stderr
+            self.assertIn("no valid oracle-audit receipt", refusal)
+            self.assertIn("hand-back carried no gate marker", refusal)
+
+    def test_audit_rejection_does_not_change_a_running_runs_stop_reason(self) -> None:
+        # An oracle audit belongs to another preview. Its rejection must not
+        # tell the running feature's session to spawn a reviewer, and the
+        # audit must not stand in the way of the run's own review.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            project.approve_and_activate(project.write_run_bundle())
+            subject = self.leave_audit_beside_the_run(project, bound=True)
+            self.assertEqual({}, self.hand_back(project, "auditor", "No marker."))
+            rejected = self.pending_gate(project)
+            self.assertIsNotNone(rejected)
+            self.assertEqual("oracle-audit", rejected["kind"])
+            self.assertIsNone(rejected["bound_agent_id"])
+
+            # The running feature reaches its own review stage.
+            (project.root / "app.py").write_text(
+                "def value():\n    return 5\n",
+                encoding="utf-8",
+            )
+            self.verify_all(project)
+            reason = self.stop_reason(project)
+            self.assertEqual("Begin a fresh independent code-review gate.", reason)
+            self.assertEqual(reason, self.next_action(project))
+
+            begin = self.begin_gate(project, "code-review", self.latest_evidence(project))
+            project.assert_success(begin)
+            self.assertEqual("code-review", self.pending_gate(project)["kind"])
+            # The audit had a reviewer, so leaving it closes its preview.
+            self.assertIn(
+                "abandoned",
+                project.state_value()["chain_gates"]["consumed"][
+                    f"oracle-audit:{subject}"
+                ],
+            )
+
+    def test_audit_rejection_beside_a_running_run_never_counts_against_it(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure(
+                limits={
+                    "total_iterations": 10,
+                    "qa_cycles": 5,
+                    "validation_retries": 3,
+                    "review_retries": 1,
+                    "identical_error_repeats": 3,
+                }
+            )
+            project.approve_and_activate(project.write_run_bundle())
+            subject = self.leave_audit_beside_the_run(project, bound=True)
+
+            def run() -> dict:
+                return project.state_value()["chain_run"]
+
+            # Outside auto mode the auditor is told to correct its receipt.
+            blocked = self.stop_with_message(project, "auditor", "FAIL: too weak.")
+            self.assertEqual("block", blocked.get("decision"))
+            self.assertEqual("RUNNING", run()["status"])
+            self.assertEqual(0, run()["counters"]["review_failures"])
+
+            # A handed-back report follows the rule of an audit: one
+            # replacement, then the preview is closed. The run is untouched.
+            self.assertEqual({}, self.hand_back(project, "auditor", "No marker."))
+            self.assertIsNone(self.pending_gate(project)["bound_agent_id"])
+            self.assertEqual({}, self.hand_back(project, "second", "No marker."))
+            self.assertIsNone(self.pending_gate(project))
+            self.assertIn(
+                "invalid_receipt",
+                project.state_value()["chain_gates"]["consumed"][
+                    f"oracle-audit:{subject}"
+                ],
+            )
+            self.assertEqual("RUNNING", run()["status"])
+            self.assertEqual(0, run()["counters"]["review_failures"])
+            self.assertEqual(0, run()["counters"]["identical_error_repeats"])
+
+    def test_oracle_audit_waits_for_the_running_feature(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure(
+                limits={
+                    "total_iterations": 2,
+                    "qa_cycles": 5,
+                    "validation_retries": 3,
+                    "review_retries": 3,
+                    "identical_error_repeats": 3,
+                }
+            )
+            value = project.approve(project.write_run_bundle())
+            subject = self.preview_hash(
+                project,
+                project.write_run_bundle(run_id="second-run"),
+            )
+
+            def refused(status: str) -> None:
+                begin = self.begin_gate(project, "oracle-audit", subject)
+                self.assertEqual(2, begin.returncode, begin.stdout + begin.stderr)
+                self.assertIn(
+                    f"cannot begin while harness-chain run demo-run is {status}",
+                    begin.stdout + begin.stderr,
+                )
+                self.assertIsNone(self.pending_gate(project))
+
+            refused("PENDING_LOOP")
+            project.assert_success(
+                project.command(
+                    "chain",
+                    "activate",
+                    "--host",
+                    value["host"],
+                    "--authority",
+                    value["loop_authority"],
+                    "--objective-sha256",
+                    value["goal_objective_sha256"],
+                    "--json",
+                )
+            )
+            refused("RUNNING")
+
+            project.assert_success(project.stop_event())
+            project.assert_success(project.stop_event())
+            self.assertEqual("FAILED", project.state_value()["chain_run"]["status"])
+            project.assert_success(self.begin_gate(project, "oracle-audit", subject))
+
+    def test_finished_run_does_not_leave_its_review_gate_behind(self) -> None:
+        endings = ("iteration limit", "emergency stop")
+        for ending in endings:
+            with (
+                self.subTest(ending=ending),
+                tempfile.TemporaryDirectory() as temp_dir,
+            ):
+                project = self.make_project(pathlib.Path(temp_dir))
+                self.running_code_review(
+                    project,
+                    review_retries=3,
+                    total_iterations=2 if ending == "iteration limit" else 10,
+                )
+                self.reviewer_event(project, "SubagentStart", "lost-reviewer")
+                if ending == "iteration limit":
+                    project.assert_success(project.stop_event())
+                    project.assert_success(project.stop_event())
+                    self.assertEqual(
+                        "FAILED",
+                        project.state_value()["chain_run"]["status"],
+                    )
+                else:
+                    # The documented emergency stop, with no Stop event after
+                    # it: the state file still says RUNNING.
+                    approval = project.root / project.state_value()["chain_run"][
+                        "approval_path"
+                    ]
+                    approval.rename(approval.with_suffix(".json.stopped"))
+                self.assertEqual(
+                    "lost-reviewer",
+                    self.pending_gate(project)["bound_agent_id"],
+                )
+
+                subject = self.preview_hash(project, self.next_feature_bundle(project))
+                begin = self.begin_gate(project, "oracle-audit", subject)
+                project.assert_success(begin)
+                self.assertEqual("oracle-audit", self.pending_gate(project)["kind"])
+                self.assertIn(
+                    project.state_value()["chain_run"]["status"],
+                    {"FAILED", "NEEDS_REAPPROVAL"},
+                )
+
+    def test_subagent_is_not_bound_to_the_gate_of_a_finished_run(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            self.running_code_review(project, review_retries=3, total_iterations=2)
+            project.assert_success(project.stop_event())
+            project.assert_success(project.stop_event())
+            self.assertEqual("FAILED", project.state_value()["chain_run"]["status"])
+            # An unrelated subagent of a later task gets no review rubric.
+            self.assertEqual({}, self.reviewer_event(project, "SubagentStart", "helper"))
+            self.assertIsNone(self.pending_gate(project)["bound_agent_id"])
+
+    def test_new_preview_replaces_a_pending_audit_and_closes_the_one_it_left(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle()
+            oracle = bundle / "test_demo_run.py"
+            original = oracle.read_text(encoding="utf-8")
+
+            def begin(subject: str) -> subprocess.CompletedProcess[str]:
+                return self.begin_gate(project, "oracle-audit", subject)
+
+            first = self.preview_hash(project, bundle)
+            opened = begin(first)
+            project.assert_success(opened)
+            first_challenge = json.loads(opened.stdout)["challenge_id"]
+            self.reviewer_event(project, "SubagentStart", "first-reviewer")
+
+            oracle.write_text(original + "\n# revised\n", encoding="utf-8")
+            second = self.preview_hash(project, bundle)
+            self.assertNotEqual(first, second)
+            replaced = begin(second)
+            project.assert_success(replaced)
+            self.assertNotEqual(first_challenge, json.loads(replaced.stdout)["challenge_id"])
+
+            # The reviewer of the first preview can no longer decide anything.
+            self.assertEqual(
+                {},
+                self.stop_with_message(
+                    project,
+                    "first-reviewer",
+                    gate_marker(first_challenge),
+                ),
+            )
+            self.assertEqual(4, self.audit_preview(project, bundle).returncode)
+
+            # Going back to the first preview would be a second audit of
+            # unchanged evidence by another reviewer.
+            oracle.write_text(original, encoding="utf-8")
+            self.assertEqual(first, self.preview_hash(project, bundle))
+            back = begin(first)
+            self.assertEqual(2, back.returncode, back.stdout + back.stderr)
+            refusal = back.stdout + back.stderr
+            self.assertIn("was abandoned after a reviewer was bound", refusal)
+            self.assertIn("change the staged acceptance contract", refusal)
+
+            # The second preview never had a reviewer: leaving it for a third
+            # one leaves no trace, and it can be audited later.
+            oracle.write_text(original + "\n# revised again\n", encoding="utf-8")
+            project.assert_success(begin(self.preview_hash(project, bundle)))
+            oracle.write_text(original + "\n# revised\n", encoding="utf-8")
+            self.assertEqual(second, self.preview_hash(project, bundle))
+            project.assert_success(begin(second))
+
+    def test_new_evidence_replaces_a_pending_review_and_counts_a_bound_reviewer(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            first_challenge = self.running_code_review(project, review_retries=3)
+
+            def failures() -> int:
+                return project.state_value()["chain_run"]["counters"]["review_failures"]
+
+            def begin_for_new_evidence() -> str:
+                self.verify_all(project)
+                begin = self.begin_gate(
+                    project,
+                    "code-review",
+                    self.latest_evidence(project),
+                )
+                project.assert_success(begin)
+                return json.loads(begin.stdout)["challenge_id"]
+
+            # Nobody reviewed the first evidence: replacing it costs nothing.
+            second_challenge = begin_for_new_evidence()
+            self.assertNotEqual(first_challenge, second_challenge)
+            self.assertEqual(0, failures())
+
+            # A bound reviewer is being left behind: that is a review failure.
+            self.reviewer_event(project, "SubagentStart", "first")
+            third_challenge = begin_for_new_evidence()
+            self.assertNotEqual(second_challenge, third_challenge)
+            self.assertEqual(1, failures())
+            self.assertIsNone(self.pending_gate(project)["bound_agent_id"])
+            self.assertEqual(
+                {},
+                self.stop_with_message(project, "first", gate_marker(second_challenge)),
+            )
+            self.assertEqual(third_challenge, self.pending_gate(project)["challenge_id"])
+
+    def test_gate_abandon_closes_the_preview_of_a_bound_audit(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle()
+            subject = self.preview_hash(project, bundle)
+
+            nothing = self.gate_abandon(project)
+            self.assertEqual(2, nothing.returncode, nothing.stdout + nothing.stderr)
+            self.assertIn(
+                "no independent review challenge is pending",
+                nothing.stdout + nothing.stderr,
+            )
+
+            project.assert_success(self.begin_gate(project, "oracle-audit", subject))
+            unbound = self.gate_abandon(project)
+            self.assertEqual(2, unbound.returncode, unbound.stdout + unbound.stderr)
+            self.assertIn("has no bound reviewer", unbound.stdout + unbound.stderr)
+            self.assertIsNotNone(self.pending_gate(project))
+
+            self.reviewer_event(project, "SubagentStart", "lost-reviewer")
+            waiting = json.loads(self.begin_gate(project, "oracle-audit", subject).stdout)
+            self.assertEqual("lost-reviewer", waiting["bound_agent_id"])
+            self.assertIn("do not start another reviewer", waiting["next_step"])
+            self.assertIn("chain gate abandon", waiting["next_step"])
+            self.assertIn("closes this preview", waiting["next_step"])
+
+            abandoned = self.gate_abandon(project)
+            project.assert_success(abandoned)
+            answer = json.loads(abandoned.stdout)
+            self.assertEqual("ABANDONED", answer["status"])
+            self.assertEqual("oracle-audit", answer["kind"])
+            self.assertIn("preview is closed", answer["consequence"])
+            self.assertIsNone(self.pending_gate(project))
+
+            again = self.begin_gate(project, "oracle-audit", subject)
+            self.assertEqual(2, again.returncode, again.stdout + again.stderr)
+            self.assertIn(
+                "was abandoned after a reviewer was bound",
+                again.stdout + again.stderr,
+            )
+            self.assertEqual(4, self.audit_preview(project, bundle).returncode)
+
+    def test_gate_abandon_inside_a_run_counts_and_stops_at_the_review_limit(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            challenge = self.running_code_review(project, review_retries=2)
+            evidence = self.latest_evidence(project)
+
+            def run() -> dict:
+                return project.state_value()["chain_run"]
+
+            self.reviewer_event(project, "SubagentStart", "first")
+            # Bound and no receipt: wait first, abandon only a reviewer that
+            # has ended.
+            for told in (self.stop_reason(project), self.next_action(project)):
+                self.assertIn("bound to a reviewer whose receipt has not arrived", told)
+                self.assertLess(
+                    told.index("still running, wait"),
+                    told.index("chain gate abandon"),
+                )
+            waiting = json.loads(self.begin_gate(project, "code-review", evidence).stdout)
+            self.assertEqual("first", waiting["bound_agent_id"])
+            self.assertIn("do not start another reviewer", waiting["next_step"])
+            self.assertIn("chain gate abandon", waiting["next_step"])
+            self.assertIn("counts one review failure", waiting["next_step"])
+
+            # Another kind cannot push the pending review aside.
+            other = project.command(
+                "chain",
+                "gate",
+                "begin",
+                "--kind",
+                "blocker-review",
+                "--json",
+            )
+            self.assertEqual(2, other.returncode, other.stdout + other.stderr)
+            self.assertIn("already pending", other.stdout + other.stderr)
+            self.assertIn("code-review", other.stdout + other.stderr)
+            self.assertIn("chain gate abandon", other.stdout + other.stderr)
+
+            released = self.gate_abandon(project)
+            project.assert_success(released)
+            answer = json.loads(released.stdout)
+            self.assertEqual("RELEASED", answer["status"])
+            self.assertEqual(1, run()["counters"]["review_failures"])
+            pending = self.pending_gate(project)
+            self.assertEqual(challenge, pending["challenge_id"])
+            self.assertIsNone(pending["bound_agent_id"])
+            reason = self.stop_reason(project)
+            self.assertIn("abandoned without a receipt", reason)
+            self.assertIn("Spawn one new independent reviewer", reason)
+
+            # The abandoned reviewer's report no longer decides anything.
+            self.assertEqual(
+                {},
+                self.stop_with_message(project, "first", gate_marker(challenge)),
+            )
+            self.assertIsNotNone(self.pending_gate(project))
+
+            self.reviewer_event(project, "SubagentStart", "second")
+            ended = self.gate_abandon(project)
+            project.assert_success(ended)
+            self.assertEqual("FAILED", json.loads(ended.stdout)["run_status"])
+            self.assertEqual("FAILED", run()["status"])
+            self.assertEqual(2, run()["counters"]["review_failures"])
+            self.assertIn("review retries limit", run()["terminal_reason"])
+            self.assertIsNone(self.pending_gate(project))
+
+    def test_gate_abandon_does_not_count_a_reviewer_twice(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            self.running_code_review(project, review_retries=3)
+            self.reviewer_event(project, "SubagentStart", "first")
+            # Outside auto mode a rejected reviewer stays bound to correct
+            # its receipt, and that rejection is already counted.
+            blocked = self.stop_with_message(project, "first", "Looks fine.")
+            self.assertEqual("block", blocked.get("decision"))
+            counters = project.state_value()["chain_run"]["counters"]
+            self.assertEqual(1, counters["review_failures"])
+
+            project.assert_success(self.gate_abandon(project))
+            counters = project.state_value()["chain_run"]["counters"]
+            self.assertEqual(1, counters["review_failures"])
+            self.assertIsNone(self.pending_gate(project)["bound_agent_id"])
+
+    def test_stored_hand_back_is_judged_before_its_challenge_ends(self) -> None:
+        def store_hand_back(project: ChainProject, agent_id: str, message: str) -> None:
+            # The hand-back reached the hook, the SubagentStop never did.
+            self.reviewer_event(project, "SubagentStart", agent_id)
+            self.assertEqual(
+                {},
+                self.reviewer_event(
+                    project,
+                    "PreToolUse",
+                    agent_id,
+                    permission_mode="auto",
+                    tool_name="SubagentHandback",
+                    tool_input={"message": message},
+                ),
+            )
+
+        # A FAIL that has arrived cannot be abandoned away inside a run.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            challenge = self.running_code_review(project, review_retries=3)
+            store_hand_back(project, "first", gate_marker(challenge, "FAIL"))
+            judged = self.gate_abandon(project)
+            project.assert_success(judged)
+            answer = json.loads(judged.stdout)
+            self.assertEqual("RESOLVED", answer["status"])
+            self.assertEqual("FAIL", answer["verdict"])
+            state = project.state_value()
+            self.assertIsNone(state["chain_gates"]["pending"])
+            self.assertIsInstance(state["chain_run"].get("rework_required"), dict)
+
+        # Before approval: a stored PASS creates the receipt, and a stored
+        # FAIL closes the preview it judged even when a new preview replaces it.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle()
+            oracle = bundle / "test_demo_run.py"
+            original = oracle.read_text(encoding="utf-8")
+
+            first = self.preview_hash(project, bundle)
+            opened = self.begin_gate(project, "oracle-audit", first)
+            store_hand_back(
+                project,
+                "first",
+                gate_marker(json.loads(opened.stdout)["challenge_id"], "FAIL"),
+            )
+            oracle.write_text(original + "\n# revised\n", encoding="utf-8")
+            second = self.preview_hash(project, bundle)
+            reopened = self.begin_gate(project, "oracle-audit", second)
+            project.assert_success(reopened)
+            oracle.write_text(original, encoding="utf-8")
+            failed = self.begin_gate(project, "oracle-audit", first)
+            self.assertEqual(2, failed.returncode, failed.stdout + failed.stderr)
+            self.assertIn(
+                "the independent oracle audit failed",
+                failed.stdout + failed.stderr,
+            )
+
+            oracle.write_text(original + "\n# revised\n", encoding="utf-8")
+            store_hand_back(
+                project,
+                "second",
+                gate_marker(json.loads(reopened.stdout)["challenge_id"]),
+            )
+            judged = self.gate_abandon(project)
+            project.assert_success(judged)
+            answer = json.loads(judged.stdout)
+            self.assertEqual("RESOLVED", answer["status"])
+            self.assertEqual("PASS", answer["verdict"])
+            ready = self.audit_preview(project, bundle)
+            project.assert_success(ready)
+            self.assertEqual("READY", json.loads(ready.stdout)["status"])
+
+    def test_chain_run_apply_closes_another_preview_audit_it_replaces(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self.make_project(pathlib.Path(temp_dir))
+            project.configure()
+            bundle = project.write_run_bundle()
+            approved = self.preview_hash(project, bundle)
+            project.complete_gate("oracle-audit", subject_sha256=approved)
+
+            other = self.preview_hash(
+                project,
+                project.write_run_bundle(run_id="second-run"),
+            )
+            project.assert_success(self.begin_gate(project, "oracle-audit", other))
+            self.reviewer_event(project, "SubagentStart", "other-reviewer")
+
+            applied = project.command(
+                "chain",
+                "run",
+                "apply",
+                "--bundle",
+                str(bundle),
+                "--preview-sha256",
+                approved,
+                "--json",
+            )
+            project.assert_success(applied)
+            state = project.state_value()
+            self.assertIsNone(state["chain_gates"]["pending"])
+            self.assertIn(
+                "abandoned",
+                state["chain_gates"]["consumed"][f"oracle-audit:{other}"],
+            )
+
+    def test_rejection_reason_is_one_bounded_ascii_line(self) -> None:
+        # The reason is repeated to the main agent as an instruction, so it
+        # must stay a short runtime-authored line on any console.
+        spec = importlib.util.spec_from_file_location(
+            "ezpowers_rejection_note_check",
+            EZPOWERS,
+        )
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        self.addCleanup(sys.modules.pop, spec.name, None)
+        spec.loader.exec_module(module)
+
+        long_error = module.EZPowersError(
+            "planning deliverable is missing:\n  결제 ✓ " + "x" * 2000
+        )
+        note = module._chain_rejection_note({}, {}, "claude", long_error)
+        self.assertTrue(note.isascii(), note)
+        self.assertNotIn("\n", note)
+        self.assertLessEqual(len(note), 300)
+        self.assertTrue(note.startswith("planning deliverable is missing: "))
+
+        # A report that arrived without a marker is described as it is: the
+        # main agent holds that report, so "no terminal message" would be false.
+        no_marker = module._chain_rejection_note(
+            {"handback": {"message": "Everything passes."}},
+            {"hook_event_name": "SubagentStop"},
+            "claude",
+            module.EZPowersError("bound reviewer returned no terminal message"),
+        )
+        self.assertEqual("the reviewer's hand-back carried no gate marker", no_marker)
+        silent = module._chain_rejection_note(
+            {},
+            {"hook_event_name": "SubagentStop"},
+            "claude",
+            module.EZPowersError("bound reviewer returned no terminal message"),
+        )
+        self.assertEqual("bound reviewer returned no terminal message", silent)
 
     def test_chain_hook_reads_utf8_input_under_a_non_utf8_console(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

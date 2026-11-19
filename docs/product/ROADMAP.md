@@ -1,6 +1,16 @@
 # EZPowers Roadmap
 
-## Current: v5.11.1 core / v5.11.1 plugin
+## Current: v5.12.0 core / v5.12.0 plugin
+
+- Give a pending review challenge an owner and an end: drop the gate of a run
+  that has ended, let a new subject of the same kind replace a pending
+  challenge, add `chain gate abandon` for a bound reviewer that cannot report,
+  and keep every such ending fail-closed so that replacing a reviewer never is
+  cheaper than a review.
+- Tell the main agent that a review receipt was rejected and why, through the
+  Stop reason, the run status, and the `chain gate begin` answer.
+- Audit, approve, and run one feature at a time: no oracle audit begins while
+  a run is nonterminal, and an audit rejection never counts against a run.
 
 - Let the optional ordinary completion Stop hook wait for a running background
   subagent on Claude Code, warn instead of blocking when the hook itself
@@ -116,14 +126,14 @@
   second architecture state machine.
 - Keep one exact catalog: fifteen plugin skills, thirteen project skills, and
   separate namespaced versus project-local Codex prompt metadata.
-- Upgrade existing pre-v5.11 installations only through explicit
+- Upgrade existing pre-v5.12 installations only through explicit
   `setup --refresh`;
   preserve customized managed files and fail atomically on conflicts.
 
 ## Later, only with demonstrated demand
 
 - Complete F19's authenticated live Claude and sandbox-capable Codex diagnose
-  probes when both external host environments are available; v5.11 does not
+  probes when both external host environments are available; v5.12 does not
   claim those deferred probes.
 
 - Real visual-baseline generation and visual-diff execution behind the current

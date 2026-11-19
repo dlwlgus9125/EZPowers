@@ -134,7 +134,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             self.assertNotIn("stress-test", metadata)
 
         manifest = json.loads(
-            (REPO_ROOT / "project-kit" / "v5.11.1" / "manifest.json").read_text(
+            (REPO_ROOT / "project-kit" / "v5.12.0" / "manifest.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -158,7 +158,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertFalse((REPO_ROOT / "harness-kit").exists())
         self.assertFalse((REPO_ROOT / "phases").exists())
         self.assertFalse((REPO_ROOT / ".harness").exists())
-        self.assertTrue((REPO_ROOT / "project-kit" / "v5.11.1" / "manifest.json").is_file())
+        self.assertTrue((REPO_ROOT / "project-kit" / "v5.12.0" / "manifest.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "config.json").is_file())
         self.assertTrue((REPO_ROOT / ".ezpowers" / "state.json").is_file())
 
@@ -223,7 +223,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.11.1"
+                / "v5.12.0"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -471,7 +471,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             (
                 REPO_ROOT
                 / "project-kit"
-                / "v5.11.1"
+                / "v5.12.0"
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
@@ -527,7 +527,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertIn("Copyright (c) 2026 Matt Pocock", license_text)
 
         manifest_text = (
-            REPO_ROOT / "project-kit" / "v5.11.1" / "manifest.json"
+            REPO_ROOT / "project-kit" / "v5.12.0" / "manifest.json"
         ).read_text(encoding="utf-8")
         manifest = json.loads(manifest_text)
         self.assertNotIn("teach", {entry["name"] for entry in manifest["skills"]})
@@ -684,7 +684,7 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
             chain.index("## Rules that hold for the whole run"),
             chain.index("## Choose one mode"),
         )
-        self.assertNotIn("v5.11 refresh", chain)
+        self.assertNotIn("v5.12 refresh", chain)
 
         chain_contract = text("docs", "reference", "harness-chain-contract.md")
         for phrase in (
@@ -764,6 +764,51 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         ):
             self.assertIn(phrase, decision)
 
+    def test_review_gate_lifecycle_is_described_consistently(self) -> None:
+        def text(*parts: str) -> str:
+            return " ".join(
+                REPO_ROOT.joinpath(*parts).read_text(encoding="utf-8").split()
+            )
+
+        contract = text("docs", "reference", "harness-chain-contract.md")
+        for phrase in (
+            "### Challenge lifecycle",
+            "belongs to the run that was `RUNNING` when it began",
+            "A rejected audit receipt never counts against a run",
+            "An oracle audit cannot begin while a run is `PENDING_LOOP` or `RUNNING`",
+            "The gate of a run that has ended is dropped by the next `chain gate begin`",
+            "a `FAIL` that arrived cannot be abandoned away",
+            "`chain gate abandon` is for a bound reviewer that cannot report",
+            "`previous_receipt` with a `next_step`",
+            "wait before they mention abandoning",
+        ):
+            self.assertIn(phrase, contract)
+
+        chain = text("skills", "harness-chain", "SKILL.md")
+        for phrase in (
+            "reports it as `previous_receipt` with the reason and a `next_step`",
+            "python .ezpowers/ezpowers.py chain gate abandon --json",
+            "abandoning is not a way around a review",
+            "Do not begin an oracle audit while a run is `PENDING_LOOP` or `RUNNING`",
+            "is dropped by the next `chain gate begin`",
+        ):
+            self.assertIn(phrase, chain)
+
+        architecture = text("docs", "reference", "architecture.md")
+        self.assertIn("0013-review-gate-lifecycle.md", architecture)
+        self.assertIn("has an owner and an end", architecture)
+        decision = text("docs", "decisions", "0013-review-gate-lifecycle.md")
+        for phrase in (
+            "**Owner.**",
+            "**One feature at a time.**",
+            "**No silent ending.**",
+            "**A stored report is judged, not dropped.**",
+            "**Explicit abandonment.**",
+            "**The main agent is told.**",
+            "Declined by the user as a stopgap",
+        ):
+            self.assertIn(phrase, decision)
+
     def test_korean_skill_guide_covers_the_v57_catalog(self) -> None:
         guide = (
             REPO_ROOT / "docs" / "ezpowers-skills-guide.html"
@@ -779,16 +824,16 @@ class V5WorkflowSurfaceTests(unittest.TestCase):
         self.assertEqual(15, guide.count('class="skill-card"'))
         self.assertIn("15 plugin skills", guide)
         self.assertIn("13 project skills", guide)
-        self.assertIn("../project-kit/v5.11.1/manifest.json", guide)
+        self.assertIn("../project-kit/v5.12.0/manifest.json", guide)
         self.assertNotIn("v5.2.0/manifest.json", guide)
 
     def test_plugin_manifests_expose_the_same_version_and_current_workflow(self) -> None:
         claude = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         codex = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], "5.11.1")
-        self.assertEqual(marketplace["plugins"][0]["version"], "5.11.1")
-        self.assertTrue(codex["version"].startswith("5.11.1+codex."))
+        self.assertEqual(claude["version"], "5.12.0")
+        self.assertEqual(marketplace["plugins"][0]["version"], "5.12.0")
+        self.assertTrue(codex["version"].startswith("5.12.0+codex."))
         combined = json.dumps([claude, marketplace, codex])
         self.assertIn("deep-interview", combined)
         self.assertIn("execute", combined)

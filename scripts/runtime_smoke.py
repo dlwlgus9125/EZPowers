@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the installed EZPowers v5.11 graph-bound and reuse flow in a disposable project."""
+"""Exercise the installed EZPowers v5.12 graph-bound and reuse flow in a disposable project."""
 
 from __future__ import annotations
 
@@ -314,9 +314,9 @@ def main() -> int:
     try:
         smoke()
     except Exception as exc:
-        print(f"[FAIL] EZPowers v5.11 runtime smoke: {exc}", file=sys.stderr)
+        print(f"[FAIL] EZPowers v5.12 runtime smoke: {exc}", file=sys.stderr)
         return 1
-    print("[PASS] EZPowers v5.11 install -> trace -> verify -> certify -> stale -> reuse flow")
+    print("[PASS] EZPowers v5.12 install -> trace -> verify -> certify -> stale -> reuse flow")
     return 0
 
 

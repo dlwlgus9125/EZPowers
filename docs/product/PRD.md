@@ -195,6 +195,12 @@ dependencies never assign implementation work or select an agent.
 - The optional completion Stop hook does not spend turns while a background
   subagent is running on Claude Code, cannot wedge a session when the hook
   itself fails, and still blocks an uncertified stop otherwise.
+- A review gate never requires a hand edit of project state: a run that has
+  ended does not leave its gate in the next feature's way, a gate whose
+  reviewer cannot report can be abandoned, and every ending without a receipt
+  closes the audited preview or counts a review failure.
+- After a rejected review receipt the main agent is told what was rejected,
+  why, and what to do next.
 - The frozen-file guard never blocks the runtime's own verification commands
   and denies direct writes through every tool it inspects.
 - Removed orchestration concepts have no live reference or advertised flow.

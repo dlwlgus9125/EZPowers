@@ -41,7 +41,7 @@ ASSURANCE_GRAPH_SCHEMA_VERSION = 1
 PLANNING_ASSURANCE_GRAPH_SCHEMA_VERSION = 2
 GRAPH_BOUND_SCHEMA_VERSION = 2
 PLANNING_EVIDENCE_SCHEMA_VERSION = 3
-KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.11.1/manifest.json")
+KIT_RELATIVE_PATH = pathlib.Path("project-kit/v5.12.0/manifest.json")
 CONFIG_RELATIVE_PATH = pathlib.Path(".ezpowers/config.json")
 STATE_RELATIVE_PATH = pathlib.Path(".ezpowers/state.json")
 LEDGER_RELATIVE_PATH = pathlib.Path(".ezpowers/ledger.json")
@@ -6169,6 +6169,12 @@ def _chain_run_apply_command(args: argparse.Namespace) -> int:
             state["latest_evidence"] = {"all": None, "tasks": {}}
             state["latest_certificate"] = None
             state.pop("reuse_candidates", None)
+            foreign = state["chain_gates"].get("pending")
+            if isinstance(foreign, dict):
+                # A challenge still pending belongs to another preview or to
+                # the earlier run. An audit that had a reviewer closes its
+                # preview; nothing else leaves a trace.
+                _chain_leave_reviewer(state, foreign, "replaced")
             state["chain_gates"]["pending"] = None
             state["chain_run"] = {
                 "run_id": normalized["run_id"],
@@ -6480,6 +6486,42 @@ def _chain_refresh_run_status(
     return True
 
 
+def _chain_pending_gate_notice(
+    state: dict[str, Any],
+    run: dict[str, Any],
+    kind: str,
+) -> str | None:
+    # The host does not deliver a rejection to anybody once a reviewer has
+    # handed its report back, and a reviewer can be lost without any event,
+    # so the next action has to say it. Only the gate this run is waiting for
+    # counts: an oracle audit judges another preview.
+    pending = state.get("chain_gates", {}).get("pending")
+    latest = run.get("latest_verification")
+    if (
+        not isinstance(pending, dict)
+        or pending.get("kind") != kind
+        or not isinstance(latest, dict)
+        or pending.get("subject_sha256") != latest.get("sha256")
+    ):
+        return None
+    if isinstance(pending.get("bound_agent_id"), str):
+        # Waiting comes first: a host that reports no background tasks gives
+        # the runtime no way to know that the reviewer is still alive.
+        return (
+            f"The pending {kind} challenge is bound to a reviewer whose "
+            "receipt has not arrived. If that reviewer is still running, wait "
+            "for it. If it has ended, run chain gate abandon and spawn one "
+            "new independent reviewer."
+        )
+    if isinstance(pending.get("rejection"), dict):
+        return (
+            f"The last {kind} receipt was rejected: "
+            f"{pending['rejection'].get('reason')}. Spawn one new independent "
+            f"reviewer for the pending {kind} challenge."
+        )
+    return None
+
+
 def _chain_next_action(state: dict[str, Any]) -> str:
     run = state.get("chain_run")
     if not isinstance(run, dict):
@@ -6504,7 +6546,11 @@ def _chain_next_action(state: dict[str, Any]) -> str:
         gates.get(profile.primary_review_kind),
         dict,
     ):
-        return (
+        return _chain_pending_gate_notice(
+            state,
+            run,
+            profile.primary_review_kind,
+        ) or (
             "Begin a fresh independent "
             f"{profile.primary_review_kind} gate."
         )
@@ -6512,7 +6558,10 @@ def _chain_next_action(state: dict[str, Any]) -> str:
         gates.get("adversarial-qa"),
         dict,
     ):
-        return "Begin a fresh adversarial-qa gate."
+        return (
+            _chain_pending_gate_notice(state, run, "adversarial-qa")
+            or "Begin a fresh adversarial-qa gate."
+        )
     return "Run certify for the fresh evidence and gate receipts."
 
 
@@ -6975,6 +7024,117 @@ def _chain_artifact_review_contract(
     return contract
 
 
+def _chain_gate_is_dead(state: dict[str, Any], pending: dict[str, Any]) -> bool:
+    # A product gate belongs to the run that began it and lives only while
+    # that run is RUNNING. An oracle audit belongs to its preview hash. A gate
+    # written by an earlier kit has no run_id and follows the current run.
+    if pending.get("kind") == "oracle-audit":
+        return False
+    run = state.get("chain_run")
+    return not (
+        isinstance(run, dict)
+        and run.get("status") == "RUNNING"
+        and pending.get("run_id") in (None, run.get("run_id"))
+    )
+
+
+def _chain_count_unusable_review(
+    run: dict[str, Any],
+    kind: str,
+    value: dict[str, Any],
+    what: str,
+) -> None:
+    if kind == "adversarial-qa":
+        counters = run.get("counters", {})
+        counters["qa_cycles"] = int(counters.get("qa_cycles", 0)) + 1
+    _chain_record_failure(
+        run,
+        counter="review_failures",
+        category=kind,
+        value=value,
+    )
+    if (
+        kind == "adversarial-qa"
+        and int(run.get("counters", {}).get("qa_cycles", 0))
+        >= int(run.get("limits", {}).get("qa_cycles", 0))
+    ):
+        _chain_fail_terminal(
+            run,
+            f"adversarial QA {what} at the approved QA cycle "
+            f"limit ({run.get('limits', {}).get('qa_cycles')})",
+        )
+
+
+def _chain_leave_reviewer(
+    state: dict[str, Any],
+    pending: dict[str, Any],
+    how: str,
+) -> None:
+    # Ending or releasing a challenge without a receipt leaves a trace once a
+    # reviewer is involved, so replacing a reviewer never is cheaper than a
+    # review. An audit that ever had a reviewer closes its preview; a product
+    # gate counts its bound reviewer once.
+    if _chain_gate_is_dead(state, pending):
+        return
+    if pending.get("kind") == "oracle-audit":
+        if pending.get("bound_at") is not None:
+            state["chain_gates"]["consumed"][
+                _chain_receipt_key(
+                    "oracle-audit",
+                    str(pending.get("subject_sha256")),
+                )
+            ] = {
+                "challenge_id": pending.get("challenge_id"),
+                "abandoned": how,
+                "closed_at": _utc_now(),
+            }
+        return
+    reviewer = pending.get("bound_agent_id")
+    rejection = pending.get("rejection")
+    if not isinstance(reviewer, str) or (
+        isinstance(rejection, dict)
+        and rejection.get("counted") is True
+        and rejection.get("agent_id") == reviewer
+    ):
+        return
+    _chain_count_unusable_review(
+        state["chain_run"],
+        str(pending.get("kind")),
+        {"abandoned_reviewer": True},
+        "was abandoned",
+    )
+
+
+def _chain_settle_stored_report(root: pathlib.Path, state: dict[str, Any]) -> bool:
+    # A hand-back that already carries a gate marker is the bound reviewer's
+    # report even when its SubagentStop never reached the hook. It is judged
+    # before its challenge ends: a FAIL that arrived cannot be abandoned away.
+    pending = state["chain_gates"].get("pending")
+    if not isinstance(pending, dict):
+        return False
+    handback = pending.get("handback")
+    message = handback.get("message") if isinstance(handback, dict) else None
+    if (
+        not isinstance(pending.get("bound_agent_id"), str)
+        or not isinstance(pending.get("host"), str)
+        or not isinstance(message, str)
+        or "ezpowers:gate:start" not in message
+    ):
+        return False
+    _chain_bound_subagent_stop(
+        root,
+        state,
+        {
+            "hook_event_name": "SubagentStop",
+            "session_id": pending.get("session_id"),
+            "agent_id": pending.get("bound_agent_id"),
+            "agent_type": pending.get("bound_agent_type"),
+        },
+        str(pending["host"]),
+    )
+    return True
+
+
 def _chain_gate_begin_command(args: argparse.Namespace) -> int:
     root = _runtime_project_root()
     with _runtime_lock(root):
@@ -6984,6 +7144,21 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
         if requested is not None and not re.fullmatch(r"[0-9a-f]{64}", requested):
             raise EZPowersError("--subject-sha256 must be 64 lowercase hex characters")
         state = _load_state(root)
+        if args.kind == "oracle-audit":
+            # One feature at a time. The status is read fresh, so an emergency
+            # stop is honoured without waiting for a Stop event.
+            if _chain_refresh_run_status(root, state):
+                _save_state(root, state)
+            current = state.get("chain_run")
+            if (
+                isinstance(current, dict)
+                and current.get("status") not in CHAIN_TERMINAL_STATUSES
+            ):
+                raise EZPowersError(
+                    "an oracle audit cannot begin while harness-chain run "
+                    f"{current.get('run_id')} is {current.get('status')}; let "
+                    "it reach a terminal verdict first"
+                )
         active_run = state.get("chain_run")
         if (
             args.kind in {"code-review", "artifact-review"}
@@ -7009,14 +7184,24 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
             consumed = state.get("chain_gates", {}).get("consumed", {})
             closed = consumed.get(receipt_key) if isinstance(consumed, dict) else None
             if isinstance(closed, dict):
-                raise EZPowersError(
-                    (
+                if "invalid_receipt" in closed:
+                    outcome = (
                         "two rejected hand-backs left no valid oracle-audit "
-                        "receipt for this exact preview"
-                        if "invalid_receipt" in closed
-                        else "the independent oracle audit failed for this "
+                        "receipt for this exact preview "
+                        f"(last rejection: {closed['invalid_receipt']})"
+                    )
+                elif "abandoned" in closed:
+                    outcome = (
+                        "the oracle audit of this exact preview was abandoned "
+                        "after a reviewer was bound"
+                    )
+                else:
+                    outcome = (
+                        "the independent oracle audit failed for this "
                         "exact preview"
                     )
+                raise EZPowersError(
+                    outcome
                     + "; change the staged acceptance contract and use its "
                     "new preview hash before another audit"
                 )
@@ -7038,6 +7223,10 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
                     "its new preview hash before another audit"
                 )
         pending = state["chain_gates"].get("pending")
+        if isinstance(pending, dict) and _chain_gate_is_dead(state, pending):
+            # The run that owned this gate has ended; its verdict stands.
+            state["chain_gates"]["pending"] = None
+            pending = None
         if isinstance(pending, dict):
             if (
                 pending.get("kind") == args.kind
@@ -7051,6 +7240,39 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
                     "subject_sha256": subject,
                     "bound_agent_id": pending.get("bound_agent_id"),
                 }
+                rejection = pending.get("rejection")
+                if isinstance(rejection, dict):
+                    payload["previous_receipt"] = {
+                        "status": "REJECTED",
+                        "reason": rejection.get("reason"),
+                        "rejected_at": rejection.get("rejected_at"),
+                    }
+                if isinstance(pending.get("bound_agent_id"), str):
+                    payload["next_step"] = (
+                        "A reviewer is bound to this challenge. Wait for its "
+                        "receipt and do not start another reviewer. Only if "
+                        "that reviewer has ended without reporting, run chain "
+                        "gate abandon; "
+                        + (
+                            "that closes this preview."
+                            if args.kind == "oracle-audit"
+                            else "that counts one review failure and frees "
+                            "this challenge for a new reviewer."
+                        )
+                    )
+                elif isinstance(rejection, dict):
+                    if rejection.get("counted"):
+                        payload["next_step"] = (
+                            "Spawn one new independent reviewer for this "
+                            "challenge. Each rejected receipt counts toward "
+                            "the review limit."
+                        )
+                    else:
+                        payload["next_step"] = (
+                            "Spawn one new independent reviewer for this "
+                            "challenge. It is the only replacement: a second "
+                            "rejected receipt closes this preview."
+                        )
                 if args.kind == "artifact-review":
                     payload["deliverables"] = [
                         {
@@ -7063,9 +7285,38 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
                     ]
                 _emit(payload, args.json)
                 return 0
-            raise EZPowersError(
-                "another independent review challenge is already pending"
-            )
+            if pending.get("kind") not in {args.kind, "oracle-audit"}:
+                raise EZPowersError(
+                    "another independent review challenge is already pending "
+                    f"({pending.get('kind')}); wait for its receipt, or run "
+                    "chain gate abandon if its reviewer cannot report"
+                )
+            # A new subject of the same kind replaces the pending challenge,
+            # and a running feature's review replaces an audit an earlier kit
+            # left beside it. A report that already arrived for an audit is
+            # judged first; new evidence makes a product review moot.
+            if pending.get("kind") == "oracle-audit" and _chain_settle_stored_report(
+                root,
+                state,
+            ):
+                pending = state["chain_gates"].get("pending")
+            if isinstance(pending, dict):
+                _chain_leave_reviewer(state, pending, "replaced")
+                state["chain_gates"]["pending"] = None
+            replaced_run = state.get("chain_run")
+            if args.kind != "oracle-audit" and not (
+                isinstance(replaced_run, dict)
+                and replaced_run.get("status") == "RUNNING"
+            ):
+                # Leaving the bound reviewer reached a limit of the run.
+                _save_state(root, state)
+                raise EZPowersError(
+                    str(
+                        replaced_run.get("terminal_reason")
+                        if isinstance(replaced_run, dict)
+                        else "harness-chain run is not running"
+                    )
+                )
 
         run = state.get("chain_run")
         if args.kind == "adversarial-qa" and isinstance(run, dict):
@@ -7112,6 +7363,12 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
             "bound_agent_id": None,
             "bound_agent_type": None,
             "created_at": _utc_now(),
+            # A product gate ends with the run that began it.
+            "run_id": (
+                run.get("run_id")
+                if isinstance(run, dict) and args.kind != "oracle-audit"
+                else None
+            ),
         }
         if args.kind == "artifact-review":
             if not isinstance(run, dict):
@@ -7144,6 +7401,100 @@ def _chain_gate_begin_command(args: argparse.Namespace) -> int:
                 }
                 for item in pending_value["artifact_review"]
             ]
+    _emit(payload, args.json)
+    return 0
+
+
+def _chain_gate_abandon_command(args: argparse.Namespace) -> int:
+    # For a bound reviewer that cannot report. It never is a way around a
+    # review: an abandoned audit closes its preview, and an abandoned review
+    # inside a run counts toward the review limit.
+    root = _runtime_project_root()
+    with _runtime_lock(root):
+        state = _load_state(root)
+        if _chain_refresh_run_status(root, state):
+            _save_state(root, state)
+        pending = state["chain_gates"].get("pending")
+        if not isinstance(pending, dict):
+            raise EZPowersError("no independent review challenge is pending")
+        kind = str(pending.get("kind"))
+        subject = str(pending.get("subject_sha256"))
+        payload: dict[str, Any] = {
+            "status": "ABANDONED",
+            "kind": kind,
+            "challenge_id": pending.get("challenge_id"),
+            "subject_sha256": subject,
+        }
+        if _chain_gate_is_dead(state, pending):
+            state["chain_gates"]["pending"] = None
+            payload["consequence"] = (
+                "none: the run that owned this challenge has ended"
+            )
+            _save_state(root, state)
+        elif not isinstance(pending.get("bound_agent_id"), str):
+            raise EZPowersError(
+                f"the pending {kind} challenge has no bound reviewer to "
+                "abandon; spawn one independent reviewer for it"
+            )
+        elif _chain_settle_stored_report(root, state):
+            # The reviewer's report had already arrived, so it was judged.
+            pointer = state["chain_gates"]["receipts"].get(
+                _chain_receipt_key(kind, subject)
+            )
+            if isinstance(pointer, dict):
+                payload["status"] = "RESOLVED"
+                payload["verdict"] = pointer.get("verdict")
+                payload["consequence"] = "the reviewer's stored report was judged"
+            else:
+                payload["status"] = "REJECTED"
+                payload["consequence"] = "the reviewer's stored report was rejected"
+                after = state["chain_gates"].get("pending")
+                rejection = after.get("rejection") if isinstance(after, dict) else None
+                if isinstance(rejection, dict):
+                    payload["reason"] = rejection.get("reason")
+        else:
+            _chain_leave_reviewer(state, pending, "abandoned")
+            run = state.get("chain_run")
+            if kind == "oracle-audit":
+                state["chain_gates"]["pending"] = None
+                payload["consequence"] = (
+                    "this preview is closed; change the staged acceptance "
+                    "contract and use its new preview hash before another audit"
+                )
+            elif not isinstance(run, dict) or run.get("status") != "RUNNING":
+                # Counting this reviewer reached a limit of the run.
+                state["chain_gates"]["pending"] = None
+                payload["run_status"] = (
+                    run.get("status") if isinstance(run, dict) else None
+                )
+                payload["consequence"] = str(
+                    run.get("terminal_reason") if isinstance(run, dict) else ""
+                )
+            else:
+                for key in (
+                    "bound_agent_id",
+                    "bound_agent_type",
+                    "host",
+                    "session_id",
+                ):
+                    pending[key] = None
+                pending.pop("handback", None)
+                pending["reviewer_replaced"] = True
+                pending["rejection"] = {
+                    "reason": "the bound reviewer was abandoned without a receipt",
+                    "rejected_at": _utc_now(),
+                    "counted": True,
+                    "agent_id": None,
+                }
+                payload["status"] = "RELEASED"
+                payload["review_failures"] = run.get("counters", {}).get(
+                    "review_failures"
+                )
+                payload["next_step"] = (
+                    "Spawn one new independent reviewer for this challenge. "
+                    "Each rejected receipt counts toward the review limit."
+                )
+            _save_state(root, state)
     _emit(payload, args.json)
     return 0
 
@@ -7326,6 +7677,30 @@ def _chain_reviewer_report(
     return event.get("last_assistant_message")
 
 
+def _chain_rejection_note(
+    pending: dict[str, Any],
+    event: dict[str, Any],
+    host: str,
+    error: EZPowersError,
+) -> str:
+    # The note is repeated to the main agent, which holds the reviewer's
+    # report: a hand-back without a marker is not "no terminal message". It
+    # stays one short ASCII line so it reads the same on any console.
+    handback = pending.get("handback")
+    message = handback.get("message") if isinstance(handback, dict) else None
+    if (
+        host == "claude"
+        and isinstance(message, str)
+        and "ezpowers:gate:start" not in message
+        and not isinstance(event.get("last_assistant_message"), str)
+    ):
+        text = "the reviewer's hand-back carried no gate marker"
+    else:
+        text = str(error)
+    text = " ".join(text.split())
+    return text.encode("ascii", "backslashreplace").decode("ascii")[:300]
+
+
 def _chain_bound_subagent_start(
     root: pathlib.Path,
     state: dict[str, Any],
@@ -7333,7 +7708,7 @@ def _chain_bound_subagent_start(
     host: str,
 ) -> dict[str, Any]:
     pending = state.get("chain_gates", {}).get("pending")
-    if not isinstance(pending, dict):
+    if not isinstance(pending, dict) or _chain_gate_is_dead(state, pending):
         return {}
     agent_id = event.get("agent_id")
     agent_type = event.get("agent_type")
@@ -7692,39 +8067,22 @@ def _chain_bound_subagent_stop(
         return {}
     except EZPowersError as exc:
         run = state.get("chain_run")
-        counted = isinstance(run, dict) and run.get("status") == "RUNNING"
+        # An oracle audit judges a preview, not the run in state: its
+        # rejection never counts against a run and no run ends it.
+        owned_by_run = isinstance(run, dict) and pending.get("kind") != "oracle-audit"
+        counted = owned_by_run and run.get("status") == "RUNNING"
         if counted:
-            if pending.get("kind") == "adversarial-qa":
-                counters = run.get("counters", {})
-                counters["qa_cycles"] = int(counters.get("qa_cycles", 0)) + 1
-            _chain_record_failure(
+            _chain_count_unusable_review(
                 run,
-                counter="review_failures",
-                category=str(pending.get("kind")),
-                value={"invalid_receipt": str(exc)},
+                str(pending.get("kind")),
+                {"invalid_receipt": str(exc)},
+                "produced an invalid receipt",
             )
-            if (
-                pending.get("kind") == "adversarial-qa"
-                and int(run.get("counters", {}).get("qa_cycles", 0))
-                >= int(run.get("limits", {}).get("qa_cycles", 0))
-            ):
-                _chain_fail_terminal(
-                    run,
-                    "adversarial QA produced an invalid receipt at the "
-                    "approved QA cycle limit "
-                    f"({run.get('limits', {}).get('qa_cycles')})",
-                )
+        note = _chain_rejection_note(pending, event, host, exc)
         # A rejected report must not be read again when the reviewer corrects it.
         pending.pop("handback", None)
-        # A terminal run ends its own gates. An oracle audit judges a preview,
-        # not the run in state, so only a run that counted this rejection ends
-        # it; an earlier finished run must not reopen the audit for the next
-        # reviewer.
-        terminal = (
-            isinstance(run, dict)
-            and run.get("status") in CHAIN_TERMINAL_STATUSES
-            and (counted or pending.get("kind") != "oracle-audit")
-        )
+        # A terminal run ends its own gates.
+        terminal = owned_by_run and run.get("status") in CHAIN_TERMINAL_STATUSES
         # Claude Code does not continue a subagent that already handed its
         # report back (its SubagentStop then has no last_assistant_message),
         # so a new reviewer may take the challenge over. Inside a run every
@@ -7746,15 +8104,28 @@ def _chain_bound_subagent_stop(
                 )
             ] = {
                 "challenge_id": pending.get("challenge_id"),
-                "invalid_receipt": str(exc),
+                "invalid_receipt": note,
                 "closed_at": _utc_now(),
             }
         if terminal or exhausted:
             state["chain_gates"]["pending"] = None
-        elif handed_back:
-            for key in ("bound_agent_id", "bound_agent_type", "host", "session_id"):
-                pending[key] = None
-            pending["reviewer_replaced"] = True
+        else:
+            # `chain gate begin` and the next action read this back.
+            pending["rejection"] = {
+                "reason": note,
+                "rejected_at": _utc_now(),
+                "counted": counted,
+                "agent_id": event.get("agent_id"),
+            }
+            if handed_back:
+                for key in (
+                    "bound_agent_id",
+                    "bound_agent_type",
+                    "host",
+                    "session_id",
+                ):
+                    pending[key] = None
+                pending["reviewer_replaced"] = True
         _save_state(root, state)
         if terminal or handed_back:
             return {}
@@ -11283,6 +11654,9 @@ def _parser() -> argparse.ArgumentParser:
     chain_gate_begin.add_argument("--subject-sha256")
     chain_gate_begin.add_argument("--json", action="store_true")
     chain_gate_begin.set_defaults(handler=_chain_gate_begin_command)
+    chain_gate_abandon = chain_gate_subparsers.add_parser("abandon")
+    chain_gate_abandon.add_argument("--json", action="store_true")
+    chain_gate_abandon.set_defaults(handler=_chain_gate_abandon_command)
 
     chain_hook = chain_subparsers.add_parser(
         "hook",

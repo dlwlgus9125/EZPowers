@@ -3,7 +3,7 @@
 > Claude Code와 Codex가 같은 저장소 증거로 작업의 **완료 여부**를
 > 판단하도록 만드는 프로젝트 로컬 워크플로 플러그인입니다.
 
-**Plugin v5.11.1 · Project kit v5.11.1 · Python 3.10+ · MIT**
+**Plugin v5.12.0 · Project kit v5.12.0 · Python 3.10+ · MIT**
 
 [빠른 시작](#빠른-시작) · [워크플로](#기본-워크플로) ·
 [스킬 목록](#스킬-목록) · [업데이트](#업데이트) ·
@@ -300,10 +300,16 @@ file이 있으면 전체 교체를 중단하고 충돌을 보고합니다. kit i
 바뀌므로 기존 completion evidence는 stale이 되며 검증을 다시 실행해야
 합니다.
 
-`harness-chain`을 이미 구성한 프로젝트는 refresh 뒤에 `chain config preview`와
-`chain config apply`를 다시 실행하고 호스트 세션을 재시작해야 합니다. 새
-런타임이 다른 hook matcher를 쓰기 때문이며, 진행 중이던 체인 실행은 새로
-승인해야 합니다.
+`harness-chain`을 v5.11.0보다 앞선 키트에서 구성한 프로젝트는 refresh 뒤에
+`chain config preview`와 `chain config apply`를 다시 실행하고 호스트 세션을
+재시작해야 합니다. 그 사이에 hook matcher가 바뀌었기 때문이며, 진행 중이던
+체인 실행은 새로 승인해야 합니다. v5.11.x에서 올라오는 프로젝트는 hook이
+그대로여서 다시 적용할 필요가 없습니다.
+
+리뷰 게이트 때문에 상태 파일을 손으로 고칠 일은 없습니다. 끝난 실행이 남긴
+게이트는 다음 `chain gate begin`이 치우고, 묶인 리뷰어가 보고할 수 없게 되면
+`chain gate abandon`으로 끝냅니다. 이때 감사는 그 미리보기를 닫고, 실행 중인
+리뷰는 실패 1회로 집계합니다.
 
 ## 안전 및 개인정보 경계
 

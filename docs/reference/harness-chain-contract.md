@@ -107,10 +107,13 @@ Preview identity binds:
 
 Preview is `REVIEW_REQUIRED` until a bound independent `oracle-audit` receipt
 passes for that exact hash. Any input change creates a new hash.
-A bound audit `FAIL` makes that exact preview ineligible for another audit, and
-so do two rejected hand-backs on one audit challenge.
+A bound audit `FAIL` makes that exact preview ineligible for another audit. So
+do two rejected hand-backs on one audit challenge, and so does abandoning or
+replacing an audit challenge that had a reviewer bound.
 The staged acceptance contract must change and produce a new preview hash;
 cycling independent reviewers over unchanged evidence is not a retry path.
+An oracle audit cannot begin while a run is `PENDING_LOOP` or `RUNNING`: one
+feature is audited, approved, and run at a time.
 
 Apply requires one explicit approval for a `READY` preview. Replaced files
 require approved `--force` and are backed up. Apply writes the staged files and
@@ -232,6 +235,39 @@ rejection counts as a review failure and the approved review limit ends the
 run. Before a run nothing counts: an oracle audit allows one replacement, and
 a second rejected hand-back closes that preview exactly as a bound audit
 `FAIL` does.
+
+### Challenge lifecycle
+
+One challenge is pending at a time, and it has an owner. A product gate
+(`code-review`, `artifact-review`, `adversarial-qa`, `blocker-review`) belongs
+to the run that was `RUNNING` when it began. An oracle audit belongs to its
+preview hash. A rejected audit receipt never counts against a run.
+
+A challenge ends when its bound reviewer's receipt is accepted, when its owner
+ends, when `chain gate begin` names a new subject of the same kind, when it is
+abandoned, or through the bounds on rejected reports above. The gate of a run
+that has ended is dropped by the next `chain gate begin` and binds no later
+subagent.
+
+Ending a challenge without a receipt is fail-closed once a reviewer is
+involved. An oracle audit that ever had a reviewer bound closes its preview. A
+product gate with a reviewer bound counts one review failure in its running
+run, at most once for each reviewer. A challenge that never had a reviewer,
+and the gate of a run that has ended, leave nothing. A hand-back with a gate
+marker that is already stored on the challenge is judged first, so a `FAIL`
+that arrived cannot be abandoned away.
+
+`chain gate abandon` is for a bound reviewer that cannot report. Before
+approval it closes the preview. Inside a run it counts one review failure and
+releases the same challenge for one new reviewer, or ends the run at the
+review limit. A later report from an abandoned reviewer is ignored.
+
+A rejection is recorded on the challenge as one short ASCII line written by
+the runtime. `chain gate begin` for the pending challenge repeats it as
+`previous_receipt` with a `next_step`, and inside a run the next action
+repeats it when that challenge is the one the run is waiting for. While a
+reviewer is bound, both tell the main agent to wait before they mention
+abandoning.
 
 Chain hooks decode host input as UTF-8 and answer with ASCII-only JSON, so a
 console whose locale encoding is not UTF-8 cannot corrupt a report.

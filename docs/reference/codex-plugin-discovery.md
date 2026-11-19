@@ -309,8 +309,9 @@ Unverified:
   are unchanged. The changes that do not branch on the host apply to it too:
   the frozen-file guard classification, taking the mode from a later event
   when SessionStart reported none, UTF-8 hook input with ASCII answers, the
-  code-review rubric wording, the comparison of installed matchers, and a
-  finished run no longer ending a pending oracle audit.
+  code-review rubric wording, the comparison of installed matchers, a
+  finished run no longer ending a pending oracle audit, and the v5.12.0
+  review challenge lifecycle with its rejection notice.
 - The ordinary completion hook was not run on a live Codex host. Whether
   Codex shows a Stop answer that carries only `systemMessage`, and what it
   does with a Stop hook that exits with an error, comes from its

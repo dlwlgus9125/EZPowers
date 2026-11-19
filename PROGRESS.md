@@ -2,19 +2,29 @@
 
 ## Current State
 
-EZPowers v5.11.1 plugin and v5.11.1 project kit are present in the working tree
-on `main`. F28 is complete. F19 remains explicitly deferred because its
+EZPowers v5.12.0 plugin and v5.12.0 project kit are present in the working tree
+on `main`. F29 is complete. F19 remains explicitly deferred because its
 semantic dual-host diagnosis probe still needs external access; it is not part
-of the v5.11 completion claim.
+of the v5.12 completion claim.
 
-F28 gives the optional ordinary completion Stop hook the wait rule the chain
-hook received in v5.11.0, a rule for its own failure, and an answer that
-survives any console encoding. A live session on Claude Code 2.1.327 showed
-the hook blocking nine Stops in a row while a background reviewer ran, until
-the host overrode it. On Claude Code a Stop that reports a running background
-subagent is now a wait and is not blocked, a failure of the hook itself warns
-the user instead of blocking, and the answer is ASCII-only JSON. The decisions
-are recorded in `docs/decisions/0012-completion-hook-wait-and-failure.md`.
+F29 gives a pending review challenge of the harness chain an owner and an end.
+On the v5.11.1 runtime a run that ended at the iteration limit or through the
+documented emergency stop left its review gate behind, and the next feature's
+oracle audit could not begin without a hand edit of the state file. A gate
+whose reviewer never reported could not be ended, a rejected audit receipt
+could end another feature's running run, and nothing told the main agent that
+a receipt was rejected. The gate of a finished run is now dropped, a new
+subject of the same kind replaces a pending challenge, `chain gate abandon`
+ends a challenge whose bound reviewer cannot report, an oracle audit waits for
+the running feature, and the rejection is repeated to the main agent with its
+reason. Every ending without a receipt is fail-closed once a reviewer is
+involved. The decisions are recorded in
+`docs/decisions/0013-review-gate-lifecycle.md`.
+
+F28 (v5.11.1) gave the optional ordinary completion Stop hook a wait rule for
+a running background subagent on Claude Code, a rule for its own failure, and
+an ASCII-only answer. Its decisions are recorded in
+`docs/decisions/0012-completion-hook-wait-and-failure.md`.
 
 F27 (v5.11.0) aligned the harness chain's Claude Code host adapter with the
 hook payloads Claude Code 2.1.327 really sends and added the Claude Code
@@ -85,6 +95,14 @@ local wiki, explicit harness chain, and Plan Mode-aware clarification:
   background subagent on Claude Code, warns instead of blocking when the hook
   itself fails, keeps blocking a status the runtime reads as invalid, and
   answers with ASCII-only JSON;
+- a review challenge lifecycle: a product gate ends with the run that began
+  it, an oracle audit belongs to its preview hash and waits for the running
+  feature, a new subject of the same kind replaces a pending challenge,
+  `chain gate abandon` ends a challenge whose bound reviewer cannot report,
+  and each such ending closes the audited preview or counts a review failure;
+- a rejection notice: the runtime's one-line reason for a rejected receipt is
+  repeated by the Stop reason, the run status, and the `chain gate begin`
+  answer together with the next step;
 - a session-only `deep-interview` that separates stated gaps from an always-run
   internal blind-spot pass, exposes only plausible consequential candidates,
   challenges framing when material, avoids ritual questions, and ends with a
@@ -160,6 +178,7 @@ force product rework until a configured limit becomes terminal.
 - `F26`: opt-in content-bound check reuse.
 - `F27`: current-host chain adapter alignment and verification guidance.
 - `F28`: completion hook wait and failure rules.
+- `F29`: review gate lifecycle and rejection notice.
 
 ## Deferred Item
 
@@ -183,8 +202,8 @@ Open notes carried forward:
   that do not branch on the host apply to it too: the frozen-file guard
   classification, taking the mode from a later event when SessionStart
   reported none, UTF-8 hook input with ASCII answers, the code-review rubric
-  wording, the comparison of installed matchers, and a finished run no longer
-  ending a pending oracle audit.
+  wording, the comparison of installed matchers, a finished run no longer
+  ending a pending oracle audit, and the v5.12.0 review gate lifecycle.
 - The v5.11.0 chain adapter was exercised only through `claude -p`. Not run on
   a live host: an interactive session, a forked session, compaction during a
   run, the one-replacement cap of an oracle audit, the correction path after a
@@ -193,120 +212,155 @@ Open notes carried forward:
   is in the v5.11.0 changelog entry.
 - `test_chain_hook_is_fail_safe_on_corrupt_state` failed once on 2026-10-17
   with exit 1 and empty output and was never reproduced or explained. It
-  passed in every run of the v5.11.0 and v5.11.1 releases.
+  passed in every run of the v5.11.0, v5.11.1, and v5.12.0 releases.
 - This repository's own `unit` project check has a 600-second timeout, shorter
   than the full suite's run time, so release evidence here is the gates run
   directly rather than an in-repository all-scope certificate.
 
-The v5.11 project kit installs thirteen project skills, eleven canonical
+The v5.12 project kit installs thirteen project skills, eleven canonical
 contracts, and three deterministic tools. The plugin exposes fifteen skills:
 the project skills plus the plugin-only global `hud` utility and the
 plugin-only `teach` learning skill.
 
 ## Verification Evidence
 
-v5.11.1 completion hook validation on 2026-11-19:
+v5.12.0 review gate lifecycle validation on 2026-11-19:
 
-- Claude plugin and marketplace versions are `5.11.1`; Codex is
-  `5.11.1+codex.20261119013121`. The project kit is `5.11.1` at
-  `project-kit/v5.11.1/manifest.json`, moved from the v5.11.0 directory so one
+- Claude plugin and marketplace versions are `5.12.0`; Codex is
+  `5.12.0+codex.20261119031503`. The project kit is `5.12.0` at
+  `project-kit/v5.12.0/manifest.json`, moved from the v5.11.1 directory so one
   live manifest remains. Installed global plugins and project copies were not
   refreshed.
-- Baseline on the v5.11.0 runtime, without a host: the hook blocked a Stop
-  that listed a running background subagent on both hosts; unreadable state, a
-  deleted plan, and a missing Git executable blocked with their error as the
-  reason; under a cp949 console a project folder with a Korean name gave an
-  answer that is not valid UTF-8 with a garbled reason, and a folder name with
-  a character cp949 cannot encode made the hook exit 1 with empty output.
-- Baseline on the real host: Claude Code 2.1.327, `claude -p` in `auto` with
-  the `sonnet` alias (`claude-sonnet-5-5`), a throwaway project in status
-  `READY` whose Stop hook was routed through a recorder. The session started
-  one background reviewer, ended its turn to wait, and certified after the
-  report. The hook blocked nine Stops in a row while the reviewer ran, each
-  answered by a turn that only repeated that the session was waiting, and the
-  host then ended the turn with "A hook blocked the turn from ending 9
-  consecutive times". The Stop after the report was judged afresh. An earlier
-  run of the same kind, whose fixture was left `STALE` by a mistake in the
-  fixture script, showed the same nine blocks while the subagent ran. Trace
-  SHA-256 values under `%TEMP%/ezpowers-f28-notes/`: `before-trace.jsonl`
-  `64285cf8d43b56c05f5264acb2c13f2a984ac92ec699f83cb5d05e676c1eaa07`,
-  `before-stale-trace.jsonl`
-  `c2913109c646063c10dc77677a54ce0b74e1c94c2a0745fc8f987490389df2b5`.
-- The user decided three points before any repository edit: do not block
-  while a subagent runs, warn and pass when the hook itself fails, and add no
-  observe mode.
-- Design order: `docs/reference/architecture.md` and ADR 0012 were written
-  first, then `docs/specs/f28-completion-hook-wait.md` and
-  `docs/plans/f28-completion-hook-wait.md`. `validate --spec` and
+- Baseline on the v5.11.1 runtime with synthetic hook events and no host:
+  after a rejected hand-back inside a run the Stop reason and the run status
+  said only "Begin a fresh independent code-review gate." and the
+  `chain gate begin` answer carried nothing about the rejection; a rejected
+  oracle-audit receipt for a second feature ended another feature's `RUNNING`
+  run as `FAILED` at a review limit of 1; before approval a gate bound to a
+  reviewer that never reported refused `chain gate begin` for a changed
+  preview and bound no second reviewer; inside a run the same sentence was
+  repeated until the iteration limit ended the run.
+- Second baseline on the same runtime: a run that ended `FAILED` at the
+  iteration limit and a run stopped by the documented emergency stop each
+  left a bound code-review gate behind, and the next feature's oracle audit
+  was refused with "another independent review challenge is already
+  pending". Result SHA-256 values under `%TEMP%/ezpowers-f29-notes/`:
+  `rejection-baseline.json`
+  `78a77edce86bd3d14ec1aaad977eb1e2651c73c77424cadbea7932b1402e0e49`,
+  `dead-run-gate.json`
+  `d41c2aded5d89528dbd6d019cd4ba64c7649aada5c3a56e670dd032d02a75b88`.
+- The user decided three points: an oracle-audit rejection must not count
+  against a run; the missing way to end a pending gate is fixed properly and
+  not by a stopgap; and the lifecycle of ADR 0013 ships in this release as
+  v5.12.0 with its visible changes, namely the `chain gate abandon` command,
+  no oracle audit while a run is nonterminal, and a closed preview after an
+  abandoned or replaced audit that had a reviewer.
+- Design order: `docs/reference/architecture.md` and ADR 0013 were written
+  first, then `docs/specs/f29-review-gate-lifecycle.md` and
+  `docs/plans/f29-review-gate-lifecycle.md`. `validate --spec` and
   `validate --plan` pass with waves `[T1] [T2] [T3]` and assurance graph
-  `fe18bb1fb9db580c9ae555c4b0d7f08b32aa4f8b93ac90f7a68705d14a01d6d7`. The F27,
-  F26, F24, and F23 plans still validate with unchanged graphs.
-- `python -m unittest tests.test_ezpowers_runtime` passed 33 tests in 143.636
-  seconds before any edit. Six tests were added first. On the unchanged
-  runtime four failed: the wait rule blocked, the answer under cp949 exited 1
-  with `UnicodeEncodeError`, a UTF-8 event under cp949 blocked, and an
-  injected `RuntimeError` escaped the hook. Two already passed and pin
-  behavior that must not change: an unreadable event blocks, and a deleted
-  plan blocks. All six pass after the runtime change, and the module passes 39
-  tests in 170.611 seconds.
-- Same real-host session on the 5.11.1 kit: two Stops, none blocked. The Stop
-  while the reviewer ran was answered `{}`, the host resumed the session when
-  the reviewer reported, the session certified, and the final Stop was
-  allowed. A second session without a subagent was blocked once with
-  "EZPowers completion evidence is fresh but not certified", certified, and
-  was then allowed. Trace SHA-256 values: `after-trace.jsonl`
-  `d92d6480e08df966548bd10b66b5fb4099df757c8a06c9cba93bd6de45ac80a4`,
-  `after-nosub-trace.jsonl`
-  `d86de1d48e6a19b946fcc05715cf7dae5b6fb48d2735fbd9751b04c48daabe88`.
-- Two host probes with a fixed Stop answer, in an empty project: an answer
-  that carries only `systemMessage` ended the turn after one hook call and
-  the host showed "Stop says:" followed by the notice; a hook that exits 1
-  with nothing on stdout also ended the turn after one call, with only a
-  generic "stop hook reported a problem" notice. The hook's own failure path
-  was exercised by a test that injects the error, not on the host.
-- Upgrade path: a project installed from the committed v5.11.0 tree with the
-  completion hook enabled blocked a Stop with and without a running subagent.
-  After `install --refresh` with the 5.11.1 runtime its
-  `.claude/settings.json` was byte-identical, the installed kit was 5.11.1,
-  the Stop with a running subagent was answered `{}`, and the Stop with
-  nothing running was blocked.
+  `c0b8f6cab94a7908da87f5fe065997a003c5132bfc74eb4ca3b7a4abbbc3687b`. The F28,
+  F27, F26, F24, and F23 plans still validate with the graphs they have at
+  commit `929f8fe`.
+- Tests were written before each runtime change. Of four rejection-notice
+  tests three were red on the unchanged runtime: the Stop reason was the old
+  sentence, the gate answer had no `previous_receipt`, and the function that
+  bounds the reason did not exist. The fourth pinned behavior that already
+  held. Twelve lifecycle tests, one of them that pin rewritten for the new
+  rules, were all red on the runtime before the lifecycle change, with twelve
+  failures and one error counting subtests. All fifteen pass afterwards.
+  `python -m unittest tests.test_harness_chain tests.test_planning_profile`
+  passed 50 tests in 514.140 seconds after the notice change and 61 tests in
+  681.761 seconds after the lifecycle change, before the version move.
+- Upgrade path: a project built with the committed v5.11.1 tree was left in
+  the stuck state, a `FAILED` run with a bound code-review gate and a refused
+  oracle audit. After `install --refresh` with the 5.12.0 runtime (103
+  managed files) its `.claude/settings.json` was byte-identical,
+  `chain config status` was `READY` as before, the preview hash had changed
+  with the installation identity, and the oracle audit began. Result
+  `upgrade-path.json`
+  `cc5258f453fef7c32e06f8995a722baebbed991d0efff98d4083ab38cc1aea01`.
+- Real host: Claude Code 2.1.327, `claude -p` in `auto` with the `sonnet`
+  alias (`claude-sonnet-5-5`), a throwaway project with an approved `RUNNING`
+  run whose chain hooks were routed through a recorder, driven only by the
+  Stop hook without the harness-chain skill loaded. Three sessions, each
+  ended `CERTIFIED` after 4 iterations:
+  - Rejected receipt: the recorder let the first reviewer's hand-back reach
+    the runtime without a usable marker. The next Stop reason was "The last
+    code-review receipt was rejected: the reviewer's hand-back carried no
+    gate marker. Spawn one new independent reviewer for the pending
+    code-review challenge." The main agent repeated that reason in its own
+    text, read the gate section of the state file once, and started exactly
+    one new reviewer for the same challenge without another
+    `chain gate begin`; that reviewer's hand-back created the PASS receipt.
+    One review failure was counted. Because that session did not ask again,
+    the `chain gate begin` answer after a rejected receipt was seen only in
+    tests.
+  - Lost reviewer: the recorder kept the first reviewer's hand-back and
+    SubagentStop from the runtime. The next Stop reason was "The pending
+    code-review challenge is bound to a reviewer whose receipt has not
+    arrived. If that reviewer is still running, wait for it. If it has
+    ended, run chain gate abandon and spawn one new independent reviewer."
+    The main agent ran `chain gate abandon`, which answered `RELEASED` with
+    one review failure, and `chain gate begin`, whose answer carried
+    `previous_receipt` and `next_step`, and started a second reviewer, whose
+    hand-back created the PASS receipt. The state file was not read in
+    between.
+  - Background reviewer, nothing altered: no `chain gate abandon` call,
+    every Stop while a subagent ran was answered `{}`, and no review failure
+    was counted. After "Begin a fresh independent code-review gate." the
+    main agent first started a reviewer without `chain gate begin`; that
+    reviewer was not bound and its report was not used.
+  Trace SHA-256 values under `%TEMP%/ezpowers-f29-notes/`:
+  `rejected-trace.jsonl`
+  `0c0a411753a2465b98f753b5e3ec1dcd101bb4d9c1bbccdeeb58fa88f98790fe`,
+  `lost-trace.jsonl`
+  `979ae75761dbc4675f322ef5512164c9055ddf70e1cb4f759f2c3093485b05ed`,
+  `background-trace.jsonl`
+  `ebf700caeffa15a7a6fe09d2d2e7fa6dc0f2d2fd6afa8a4f19ae18fce4b43298`.
 - `python -m unittest discover -s tests` in UTF-8 mode on Python 3.14.3 passed
-  249 tests in 927.964 seconds with one POSIX-only skip, on the final runtime.
+  265 tests in 1143.654 seconds with one POSIX-only skip, on the final
+  runtime, contract, and skill.
 - `scripts/check-repo.ps1`: PASS. `scripts/harness-runtime-smoke.ps1`: PASS
-  for a real v5.11 install, trace, verify, certify, stale, and reuse flow.
-  `scripts/verify-harness-kit.py`: v5.11 manifest valid.
+  for a real v5.12 install, trace, verify, certify, stale, and reuse flow.
+  `scripts/verify-harness-kit.py`: v5.12 manifest valid.
   `scripts/plugin_smoke.py --host both`: file surfaces matched, Claude 2.1.327
   accepted both manifests, and Codex 0.169.1 loaded every project and
   namespaced skill in isolation.
-- Scheduler measurements passed: fixture median 1.193888 seconds serial versus
-  0.311331 parallel (73.92 percent improvement); project median 1.176528
-  versus 0.768892 (34.65 percent improvement); equivalent outcomes in both.
+- Scheduler measurements passed: fixture median 1.194420 seconds serial versus
+  0.310424 parallel (74.01 percent improvement); project median 1.214233
+  versus 0.791145 (34.84 percent improvement); equivalent outcomes in both.
 - `python scripts/benchmark_check_reuse.py --runs 3 --minimum-improvement 50`:
-  PASS with a median of 2.920966 seconds against 8.177094 for a forced full
-  run, a 64.28 percent improvement, equal outcomes, and one process start for
+  PASS with a median of 2.891716 seconds against 8.148852 for a forced full
+  run, a 64.51 percent improvement, equal outcomes, and one process start for
   a thrice-referenced declared check.
 - Five interleaved software compatibility runs against
   `08f9f84d24c59ec130dd6b3bf26555503910cbab` produced equivalent output.
-  Baseline median was 4.230037 seconds and candidate median 4.225222 seconds,
-  a -0.11 percent regression against the 5 percent limit.
+  Baseline median was 4.242847 seconds and candidate median 4.227545 seconds,
+  a -0.36 percent regression against the 5 percent limit.
 - `DESIGN.md` lint, the project design check, and the visual-readiness check
   passed for the version-only guide edit. The guide was not rendered or
   inspected at the three documented viewports.
-- Not exercised: the completion hook on a live Codex host, including how
-  Codex shows a `systemMessage`-only Stop answer; an interactive Claude Code
-  session (every live run used `claude -p`); the default model (the live runs
-  used the `sonnet` alias); a real crash of the hook on the host; a subagent
-  that never reports; background `workflow` or `teammate` tasks, which do not
-  defer; any installed project (none was refreshed); the POSIX execute-bit
-  test, skipped on Windows; in-repository `verify --all`; F19 remains
-  deferred.
+- Not exercised: any part of the chain, including this lifecycle, on a live
+  Codex host; an interactive Claude Code session (every live run used
+  `claude -p`); the default model (the live runs used the `sonnet` alias); a
+  session with the harness-chain skill loaded; on a live host, abandoning or
+  replacing an oracle audit, the refusal of an audit while a run is
+  nonterminal, the dropped gate of a finished run, a run that reaches its
+  review limit through abandonment, a stored hand-back judged by
+  `chain gate abandon`, and a rejected receipt outside `auto`, all of which
+  are covered only by tests with synthetic hook events; a receipt lost to
+  runtime lock contention, which is unchanged; any installed project (none
+  was refreshed); the POSIX execute-bit test, skipped on Windows;
+  in-repository `verify --all`; F19 remains deferred.
 
 Earlier per-release verification evidence was pruned from this file. It
 remains in `harness_versions/changelog.jsonl` (one entry per release from
-v5.2.0 through v5.11.0) and in this file's Git history: the v5.11.0 record is
-complete at commit `ddd53a2`, and the records up to v5.10.0 at commit
-`e5a4151`. The v5.3.3 and v5.3.4 candidate records have no changelog entry
-and exist only in the Git history at `e5a4151`.
+v5.2.0 through v5.11.1) and in this file's Git history: the v5.11.1 record is
+complete at commit `929f8fe`, the v5.11.0 record at commit `ddd53a2`, and the
+records up to v5.10.0 at commit `e5a4151`. The v5.3.3 and v5.3.4 candidate
+records have no changelog entry and exist only in the Git history at
+`e5a4151`.
 
 ## Remaining Candidates
 
@@ -331,8 +385,10 @@ permissions or signing outside this local core.
 - An observe mode for the completion hook that reports instead of blocking,
   and blocking when the hook itself fails. The user declined both for now; ADR
   0012 records the reasons.
+- Letting only a new preview hash replace a pending oracle audit. The user
+  declined it as a stopgap; ADR 0013 records the lifecycle chosen instead.
 
-### Candidates not acted on in v5.11
+### Candidates not acted on
 
 These were found while comparing the harness with current hosts and with the
 Claude Code team's verification practice. They were reported, not changed.
@@ -349,13 +405,18 @@ Claude Code team's verification practice. They were reported, not changed.
 - In ordinary execution nothing reports that a change edited its own checks.
 - The Codex chain path is unused by the maintainer and unverified.
 - The local wiki overlaps the hosts' own memory features.
-- Chain hooks give up on the runtime lock after one second, and no command
-  abandons a pending review gate.
-- A rejected oracle-audit receipt that arrives while another feature's run is
-  `RUNNING` is counted against that run's review limit.
-- Nothing tells the main agent that a receipt was rejected or why. In the
-  fifth live run it inferred the rejection from `review_failures` in the state
-  file; the Stop reason and the `chain gate begin` answer do not say it.
+- Chain hooks give up on the runtime lock after one second, and `verify`
+  holds that lock for its whole run. A receipt that arrives meanwhile is
+  dropped by the hook's fail-safe; the gate then stays bound until it is
+  abandoned, and the frozen-file early guard does not run either.
+- Inside a run the next action "Begin a fresh independent code-review gate."
+  does not name `chain gate begin`. The three live sessions, which did not
+  load the skill, looked the command up with `--help`, and one of them
+  started a reviewer before any challenge existed.
+- A report from an abandoned or replaced reviewer is ignored, also when it
+  arrives before a new reviewer is bound.
+- The runtime does not detect a lost reviewer by itself; the main agent has
+  to run `chain gate abandon`.
 - Outside `auto`, the same reviewer may correct a rejected oracle-audit
   receipt any number of times before approval; only replacement by another
   reviewer is bounded.

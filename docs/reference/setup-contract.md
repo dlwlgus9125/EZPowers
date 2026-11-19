@@ -1,6 +1,6 @@
 # Setup Contract
 
-This contract defines installation of the self-contained v5.11 project kit.
+This contract defines installation of the self-contained v5.12 project kit.
 `setup` configures deterministic project checks and may stage the
 repository-aware documentation workflow defined by
 `documentation-contract.md`; it does not configure an external executor or
